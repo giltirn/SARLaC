@@ -114,82 +114,62 @@ public:
   
 };
 
-template<typename _DataType, template<typename> class ResamplePolicy>
-class avgDistribution: public distribution<_DataType>, public ResamplePolicy<_DataType>{
+
+template<typename _DataType>
+class jackknifeDistribution: public distribution<_DataType>{
   _DataType variance() const{ assert(0); }
   _DataType standardDeviation() const{ assert(0); };
   friend class boost::serialization::access;
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version){
     ar & boost::serialization::base_object<distribution<_DataType> >(*this);
-    ar & boost::serialization::base_object<ResamplePolicy<_DataType> >(*this);
   }
 public:
   typedef _DataType DataType;
 
-  void resample(const distribution<DataType> &r){
-    if(&r == this){ //allow in-place operation, eg for double-jackknife
-      distribution<DataType> tmp(r);
-      return resample(tmp);
-    }
-    this->ResamplePolicy<_DataType>::resample(this->_data, r.sampleVector());
-  }
-  
-  DataType standardError() const{ return this->ResamplePolicy<_DataType>::standardError(this->_data); }
-  
-  avgDistribution(): distribution<DataType>(){}
-  avgDistribution(const int nsample): distribution<DataType>(nsample){}
-  avgDistribution(const int nsample, const DataType &init): distribution<DataType>(nsample, init){}
-};
-
-template<typename T>
-class jackknifeResample{
-  friend class boost::serialization::access;
-  template<class Archive>
-  void serialize(Archive & ar, const unsigned int version){
-  }
-  
-protected:
-  template<typename VectorType,
-	   typename std::enable_if<value_type_equals<VectorType,T>::value, int>::type = 0>
-  void resample(VectorType &out, const VectorType &in) const{    
-    const int N = in.size();
-    out.resize(N);
-
-    const int nthread = omp_get_max_threads();
-
-    T sum = threadedSum(in);
+  template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
+  void resample(const DistributionType &in){
+    struct Op{
+      const DistributionType &in;
+      Op(const DistributionType &_in): in(_in){}
+      inline int size() const{ return in.size(); }
+      inline DataType operator()(const int i) const{ return in.sample(i); }
+    };
+    Op op(in);
     
-    const T den(N-1);
-    const T num = T(1.)/den;
+    const int N = in.size();
+    this->resize(N);
+
+    DataType sum = threadedSum(op);
+    
+    const DataType den(N-1);
+    const DataType num = DataType(1.)/den;
     
 #pragma omp parallel for
     for(int j=0;j<N;j++)
-      out[j] = (sum - in[j])*num;
+      this->sample(j) = (sum - in.sample(j))*num;
   }
 
-  template<typename VectorType,
-	   typename std::enable_if<value_type_equals<VectorType,T>::value, int>::type = 0>
-  T standardError(const VectorType &resampled_data) const{
-    const int N = resampled_data.size();
-
-    const T mean = threadedSum(resampled_data)/T(N);
+  DataType standardError() const{
+    const int N = this->size();
 
     struct Op{
-      T avg;
-      const std::vector<T> &data;
-      Op(const T &_avg, const std::vector<T> &_data): data(_data), avg(_avg){}
+      DataType avg;
+      const std::vector<DataType> &data;
+      Op(const DataType &_avg, const std::vector<DataType> &_data): data(_data), avg(_avg){}
       inline int size() const{ return data.size(); }
-      inline T operator()(const int i) const{ T tmp = data[i] - avg; return tmp * tmp;  }
+      inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return tmp * tmp;  }
     };
-    Op op(mean,resampled_data);
+    Op op(this->mean(),this->_data);
     return sqrt( threadedSum(op) * double(N-1)/N );
   }
+  
+  jackknifeDistribution(): distribution<DataType>(){}
+  jackknifeDistribution(const int nsample): distribution<DataType>(nsample){}
+  jackknifeDistribution(const int nsample, const DataType &init): distribution<DataType>(nsample,init){}
 };
 
 
-template<typename DataType>
-using jackknifeDistribution = avgDistribution<DataType,jackknifeResample>; 
 
 
 #endif

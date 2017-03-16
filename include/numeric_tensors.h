@@ -34,8 +34,14 @@ public:
     for(int i=0;i<v.size();i++) v[i] += r.v[i];
   }
 };
+
 template<typename Numeric>
-class NumericMatrix{ //square matrix
+class SVDinvertPolicy;
+
+
+
+template<typename Numeric, typename InvertPolicy = SVDinvertPolicy<Numeric> >
+class NumericMatrix: public InvertPolicy{ //square matrix
   std::vector<std::vector<Numeric> > m;
 public:
   NumericMatrix():m(){}
@@ -55,8 +61,7 @@ public:
 	m[i][j] = 0.;
   }
   void invert(const NumericMatrix<Numeric> &what){
-    resize(what.m.size());
-    svd_inverse(m, what.m);
+    this->InvertPolicy::invert(m,what.m);
   }
 
   std::string print() const{
@@ -72,6 +77,16 @@ public:
   
   Numeric & operator()(const int i, const int j){ return m[i][j]; }
   const Numeric & operator()(const int i, const int j) const { return m[i][j]; }
+};
+
+template<typename Numeric>
+class SVDinvertPolicy{
+ protected:
+  inline static void invert(std::vector<std::vector<Numeric> > &inv_m, const std::vector<std::vector<Numeric> > &m){
+    assert(m.size() == m[0].size()); //square matrix
+    inv_m.resize(m.size(), std::vector<Numeric>(m.size()));
+    svd_inverse(inv_m, m);
+  }
 };
 
 #endif
