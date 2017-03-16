@@ -59,8 +59,12 @@ protected:
   }
 public:
   distribution(){}
+  distribution(const distribution &r): _data(r._data){}
   distribution(const int nsample): _data(nsample){}
   distribution(const int nsample, const DataType &init): _data(nsample,init){}
+  distribution(distribution&& o) noexcept : _data(std::move(o._data)) { }
+
+  distribution & operator=(const distribution &r){ _data = r._data; return *this; }
   
   int size() const{ return _data.size(); }
 
@@ -165,9 +169,14 @@ public:
   }
   
   jackknifeDistribution(): distribution<DataType>(){}
+  jackknifeDistribution(const jackknifeDistribution &r): distribution<DataType>(r){}
   jackknifeDistribution(const int nsample): distribution<DataType>(nsample){}
   jackknifeDistribution(const int nsample, const DataType &init): distribution<DataType>(nsample,init){}
+  jackknifeDistribution(jackknifeDistribution&& o) noexcept : distribution<DataType>(std::move(o)){}
+
+  jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
 };
+
 
 
 
