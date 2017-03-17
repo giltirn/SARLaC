@@ -11,6 +11,8 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include<distribution_ET.h>
+
 template<typename T>
 T threadedSum(const std::vector<T> &v){
   const int N = v.size();
@@ -49,6 +51,7 @@ template<typename _DataType>
 class distribution{
 public:
   typedef _DataType DataType;
+  typedef distribution<DataType> ET_base_type;
 protected:  
   std::vector<DataType> _data;
 
@@ -64,6 +67,13 @@ public:
   distribution(const int nsample, const DataType &init): _data(nsample,init){}
   distribution(distribution&& o) noexcept : _data(std::move(o._data)) { }
 
+  template<typename Expr, IS_EXPRESSION_WITH_SAME_BASE_TYPE(Expr, distribution<DataType>)>
+  distribution(const Expr &e): _data(e.size()){
+    for(int i=0;i<_data.size();i++)
+      _data[i] = e.sample(i);
+  }
+
+  
   distribution & operator=(const distribution &r){ _data = r._data; return *this; }
   
   int size() const{ return _data.size(); }
@@ -130,7 +140,8 @@ class jackknifeDistribution: public distribution<_DataType>{
   }
 public:
   typedef _DataType DataType;
-
+  typedef jackknifeDistribution<DataType> ET_base_type;
+  
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in){
     struct Op{
@@ -174,11 +185,71 @@ public:
   jackknifeDistribution(const int nsample, const DataType &init): distribution<DataType>(nsample,init){}
   jackknifeDistribution(jackknifeDistribution&& o) noexcept : distribution<DataType>(std::move(o)){}
 
+  template<typename Expr, IS_EXPRESSION_WITH_SAME_BASE_TYPE(Expr, jackknifeDistribution<DataType>)>
+  jackknifeDistribution(const Expr &e): distribution<DataType>(e.size()){
+    for(int i=0;i<this->size();i++)
+      this->sample(i) = e.sample(i);
+  }
+  
   jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
 };
 
 
+template<typename BaseDataType>
+class doubleJackknifeDistribution: public distribution<jackknifeDistribution<BaseDataType> >{
+  jackknifeDistribution<BaseDataType> standardDeviation() const{ assert(0); };
+  jackknifeDistribution<BaseDataType> standardError() const{ assert(0); };
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & boost::serialization::base_object<distribution<jackknifeDistribution<BaseDataType> > >(*this);
+  }
+public:
+  typedef jackknifeDistribution<BaseDataType> DataType;
+  typedef doubleJackknifeDistribution<BaseDataType> ET_base_type;
 
+  template<typename DistributionType> //Assumed to be a raw data distribution
+  void resample(const DistributionType &in){
+    const int N = in.size();
+    this->_data.resize(N, jackknifeDistribution<BaseDataType>(N-1));
+
+    struct Op{
+      const DistributionType &in;
+      Op(const DistributionType &_in): in(_in){}
+      inline int size() const{ return in.size(); }
+      inline BaseDataType operator()(const int i) const{ return in.sample(i); }
+    };
+    Op op(in);
+    BaseDataType sum = threadedSum(op);
+
+    const DataType den(N-2);
+    const DataType num = DataType(1.)/den;
+    #pragma omp parallel for
+    for(int i=0;i<N;i++){
+      int jj=0;
+      for(int j=0;j<N;j++){
+	if(i==j) continue;
+
+	this->sample(i).sample(jj++) = (sum - in.sample(i) - in.sample(j))*num;
+      }
+    }
+  }
+
+  doubleJackknifeDistribution(): distribution<jackknifeDistribution<BaseDataType> >(){}
+  doubleJackknifeDistribution(const doubleJackknifeDistribution &r): distribution<jackknifeDistribution<BaseDataType> >(r){}
+  
+  doubleJackknifeDistribution(const int nsample): distribution<jackknifeDistribution<BaseDataType> >(nsample){}
+  doubleJackknifeDistribution(const int nsample, const DataType &init): distribution<jackknifeDistribution<BaseDataType> >(nsample,init){}
+  doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : distribution<jackknifeDistribution<BaseDataType> >(std::move(o)){}
+
+  template<typename Expr, IS_EXPRESSION_WITH_SAME_BASE_TYPE(Expr, doubleJackknifeDistribution<BaseDataType>)>
+  doubleJackknifeDistribution(const Expr &e): distribution<jackknifeDistribution<BaseDataType> >(e.size()){
+    for(int i=0;i<this->size();i++)
+      this->sample(i) = e.sample(i);
+  }
+
+  doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<distribution<jackknifeDistribution<BaseDataType> >*>(this)->operator=(r); return *this; }
+};
 
 
 #endif

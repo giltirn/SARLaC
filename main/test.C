@@ -58,6 +58,20 @@ int main(void){
   for(int i=0;i<sigma.size();i++)
     sigma[i] = inrange_jackknife.value(i).standardError();
 
+  //Compute double-jackknife covariance matrix
+  // typedef dataSeries<double, doubleJackknifeDistribution<double> > doubleJackknifeSeriesType;
+  // doubleJackknifeSeriesType inrange_doublejacknife; resample(inrange_doublejacknife, inrange_data);
+  
+
+  
+  // NumericMatrix<distribution<double> > cov(inrange_jackknife.size());
+  // typedef jackknifeDistribution<jackknifeDistribution<double> > doubleJackknife;
+  // typedef dataSeries<double, doubleJackknife > doubleJackknifeSeriesType;
+  // doubleJackknifeSeriesType inrange_doublejacknife;
+
+
+
+  
   typedef sampleSeries<const JackknifeSeriesType> SampleSeriesConstType; //const access
   
   typedef UncorrelatedChisqCostFunction<FrozenFitFunction, SampleSeriesConstType> CostFunctionType;
@@ -155,3 +169,4 @@ int main(void){
   std::cout << "Normal exit\n"; std::cout.flush();
   return 0;
 }
+

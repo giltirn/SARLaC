@@ -1,5 +1,6 @@
-bin_PROGRAMS = test
+bin_PROGRAMS = test test_ET
 test_SOURCES = test.C
+test_ET_SOURCES = test_ET.C
 
 AM_CPPFLAGS = -I$(srcdir)/../include -fopenmp -g --std=c++11 @PYTHON_CFLAGS@
 
