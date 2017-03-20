@@ -37,6 +37,11 @@ inline typename std::enable_if<std::is_floating_point<T>::value, void>::type uni
   reinterpret_cast<T(&)[2]>(v)[1] = dis(RNG());
 }
 template<typename T>
+inline typename std::enable_if<hasSampleMethod<T>::value && hasDataType<T>::value, void>::type uniformRandom(T &v, const typename T::DataType start, const typename T::DataType end){ //for distribution types
+  for(int i=0;i<v.size();i++) uniformRandom(v.sample(i),start,end);
+}
+
+template<typename T>
 inline typename std::enable_if<std::is_floating_point<T>::value, void>::type gaussianRandom(T &v, const T mean, const T stddev){
   std::normal_distribution<> dis(mean, stddev);
   v = dis(RNG());
@@ -46,6 +51,10 @@ inline typename std::enable_if<std::is_floating_point<T>::value, void>::type gau
   std::normal_distribution<> dis(mean, stddev);
   reinterpret_cast<T(&)[2]>(v)[0] = dis(RNG());
   reinterpret_cast<T(&)[2]>(v)[1] = dis(RNG());
+}
+template<typename T>
+inline typename std::enable_if<hasSampleMethod<T>::value && hasDataType<T>::value, void>::type gaussianRandom(T &v, const typename T::DataType mean, const typename T::DataType stddev){ //for distribution types
+  for(int i=0;i<v.size();i++) gaussianRandom(v.sample(i),mean,stddev);
 }
 
 

@@ -12,6 +12,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include<distribution_ET.h>
+#include<distribution_print.h>
 
 template<typename T>
 T threadedSum(const std::vector<T> &v){
@@ -222,8 +223,8 @@ public:
     Op op(in);
     BaseDataType sum = threadedSum(op);
 
-    const DataType den(N-2);
-    const DataType num = DataType(1.)/den;
+    const BaseDataType den(N-2);
+    const BaseDataType num = BaseDataType(1.)/den;
     #pragma omp parallel for
     for(int i=0;i<N;i++){
       int jj=0;
@@ -249,6 +250,16 @@ public:
   }
 
   doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<distribution<jackknifeDistribution<BaseDataType> >*>(this)->operator=(r); return *this; }
+
+  static jackknifeDistribution<BaseDataType> covariance(const doubleJackknifeDistribution<BaseDataType> &a, const doubleJackknifeDistribution<BaseDataType> &b){
+    assert(a.size() == b.size());
+    const int nouter = a.size();
+    jackknifeDistribution<BaseDataType> out(nouter);
+    for(int i=0;i<nouter;i++)
+      out.sample(i) = jackknifeDistribution<BaseDataType>::covariance(a.sample(i),b.sample(i));
+    return out;
+  }
+  
 };
 
 

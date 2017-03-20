@@ -5,11 +5,8 @@
 #include<vector>
 #include<type_traits>
 #include<cassert>
+#include<template_wizardry.h>
 
-template<class T>
-struct Void {
-  typedef void type;
-};
 
 template<class T, class Fallback = void>
 struct has_ET_base_type{ enum{ value = 0 }; };
@@ -178,6 +175,21 @@ ETsqrt<T> sqrt(const T &a){
 }
 
 
+template<typename T>
+class ETneg{
+public:
+  typedef typename T::ET_base_type ET_base_type;
+  T const& a;
+  ETneg(const T &aa): a(aa){}
+  
+  inline decltype(-a.sample(0)) sample(const int i) const{ return -a.sample(i); }
+  inline int size() const{ return a.size(); }
+};
+
+template<typename T,  HAS_ET_BASE_TYPE(T)> 
+ETneg<T> operator-(const T &a){
+  return ETneg<T>(a);
+}
 
 
 
