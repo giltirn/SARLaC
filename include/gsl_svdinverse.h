@@ -4,21 +4,33 @@
 #include <vector>
 #include <cstdlib>
 #include <cstdio>
+#include <cassert>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_complex.h>
 #include <gsl/gsl_complex_math.h>
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_vector.h>
+#include <template_wizardry.h>
 
-template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
+template<typename MatrixType>
+struct _get_elem_type{
+  typedef decltype( ( (MatrixType*)(nullptr) )->operator()(0,0) ) RefType;
+  typedef typename std::remove_reference<RefType>::type BaseType;
+  typedef typename std::remove_const<BaseType>::type type;
+};
+
+//Requires a floating point *square* matrix with  (i,j) accessor and size() operation
+template<typename MatrixOutputType, typename MatrixInputType,
+	 typename std::enable_if<
+	   std::is_floating_point<typename _get_elem_type<MatrixInputType>::type>::value
+	   , int>::type = 0
+	 >
 struct _svd_inverse{
-  static int doit(std::vector<std::vector<T> > &Ainv, const std::vector<std::vector<T> > &A, double &condition_number){    
+  static int doit(MatrixOutputType &Ainv, const MatrixInputType &A, double &condition_number){
+    typedef typename _get_elem_type<MatrixInputType>::type T;
+    
     int size = A.size();
-    if ( (Ainv.size() != size )
-	 || (A[0].size() != size )
-	 || (Ainv[0].size() != size ) ){ 
-      exit(-1);
-    }
+    assert(Ainv.size() == size);
     int ret;
 
     std::vector< std::vector<T> > U(size, std::vector<T>(size));
@@ -32,7 +44,7 @@ struct _svd_inverse{
 
     for(int i=0;i<size;i++){
       for(int j=0;j<size;j++){
-	gsl_matrix_set(m,i,j,A[i][j]);
+	gsl_matrix_set(m,i,j,A(i,j));
       }
     }
     //ret = gsl_linalg_SV_decomp_jacobi(m,Q,S);
@@ -42,7 +54,7 @@ struct _svd_inverse{
       for(int j=0;j<size;j++){
 	U[i][j] = gsl_matrix_get(m,i,j);
 	V[i][j] = gsl_matrix_get(Q,i,j);
-	Ainv[i][j] = 0.0;
+	Ainv(i,j) = 0.0;
       }
     }
     for(int i=0;i<size;i++){
@@ -66,7 +78,7 @@ struct _svd_inverse{
     for(int i=0;i<size;i++){
       for(int j=0;j<size;j++){
 	for(int k=0;k<size;k++){
-	  Ainv[i][k] += V[i][j]*Diag[j]*U[k][j];  
+	  Ainv(i,k) += V[i][j]*Diag[j]*U[k][j];  
 	}}}
 
     condition_number = gsl_vector_get(S,0)/gsl_vector_get(S,smallest_sing_idx);
@@ -85,21 +97,42 @@ struct _svd_inverse{
 
 };
 
+template<typename T>
+class vectorVectorMatrixView{
+  typedef typename std::remove_const<T>::type T_unconst;
+  typedef typename std::add_const<T_unconst>::type T_const;
+  typedef typename std::vector<std::vector<T_unconst> > MtypeBase;
+  typedef typename add_const_if<MtypeBase, T>::type Mtype;   //const MtypeBase or MtypeBase if T const or unconst respectively
+  
+  Mtype &M;
+public:
+  vectorVectorMatrixView(Mtype &_M): M(_M){ assert(M[0].size() == M.size()); }
+  int size() const{ return M.size(); }
 
-
+  T_const& operator()(const int i, const int j) const{ return M[i][j]; }
+  
+  template<typename U = T>
+  typename std::enable_if< !std::is_const<U>::value, T_unconst& >::type operator()(const int i, const int j){ return M[i][j]; } //unconst accessor only for unconst T
+};
 
 template<typename T>  
 int svd_inverse(std::vector< std::vector<T> > &Ainv, 
 	        const std::vector< std::vector<T> > &A){
+  vectorVectorMatrixView<T> Ainv_view(Ainv);
+  vectorVectorMatrixView<const T> A_view(A);  
   double c;
-  return _svd_inverse<T>::doit(Ainv,A,c);
+  return _svd_inverse<vectorVectorMatrixView<T>, vectorVectorMatrixView<const T> >::doit(Ainv_view,A_view,c);
 }
 template<typename T>  
 int svd_inverse(std::vector< std::vector<T> > &Ainv, 
 	        const std::vector< std::vector<T> > &A,
 		double &condition_number){
-  return _svd_inverse<T>::doit(Ainv,A,condition_number);
+  vectorVectorMatrixView<T> Ainv_view(Ainv);
+  vectorVectorMatrixView<const T> A_view(A);  
+  return _svd_inverse<vectorVectorMatrixView<T>, vectorVectorMatrixView<const T> >::doit(Ainv_view,A_view,condition_number);
 }
+
+
 
 
 #endif
