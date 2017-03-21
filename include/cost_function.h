@@ -102,7 +102,9 @@ public:
 
 
 
-template<typename FitFunction, typename DataContainer, typename _CostType = double,
+template<typename FitFunction, typename DataContainer,
+	 typename InvCorrMatrixType = NumericMatrix<double>,
+	 typename _CostType = double,
 	 typename _CostDerivativeType = typename FitFunction::ValueDerivativeType,
 	 typename _CostSecondDerivativeMatrixType = NumericMatrix<_CostType>,
 	 typename _CostSecondDerivativeInverseMatrixType = NumericMatrix<_CostType>,
@@ -112,8 +114,8 @@ class CorrelatedChisqCostFunction{
   static_assert(std::is_same<typename FitFunction::GeneralizedCoordinate, typename DataContainer::GeneralizedCoordinate>::value, "DataContainer and FitFunction must have same coordinate");
   const FitFunction &fitfunc;
   const DataContainer &data;
-  std::vector<double> &sigma; //diagonal elements of covariance matrix
-  const NumericMatrix<double> &inv_corr; //inverse correlation matrix
+  const std::vector<double> &sigma; //diagonal elements of covariance matrix
+  const InvCorrMatrixType &inv_corr; //inverse correlation matrix
 public:
   typedef _CostType CostType;
   typedef typename FitFunction::ValueType ValueType;
@@ -126,7 +128,7 @@ public:
   typedef _CostSecondDerivativeMatrixType CostSecondDerivativeMatrixType;
   typedef _CostSecondDerivativeInverseMatrixType CostSecondDerivativeInverseMatrixType;
 
-  CorrelatedChisqCostFunction(const FitFunction &ff, const DataContainer &dd, const std::vector<double> &_sigma, const NumericMatrix<double> &_inv_corr):
+  CorrelatedChisqCostFunction(const FitFunction &ff, const DataContainer &dd, const std::vector<double> &_sigma, const InvCorrMatrixType &_inv_corr):
     fitfunc(ff), data(dd), sigma(_sigma), inv_corr(_inv_corr){
     assert(inv_corr.size() == data.size());
     assert(sigma.size() == data.size());
@@ -166,7 +168,7 @@ public:
 
     for(int a=0;a<ndata;a++){
       ValueType yfit_a = fitfunc.value(data.coord(a), params);
-      parameterDerivatives(yderivs[a], data.coord(a), params);
+      fitfunc.parameterDerivatives(yderivs[a], data.coord(a), params);
       dfw[a] = ( data.value(a) - yfit_a ) / sigma[a];
 
       //b==a

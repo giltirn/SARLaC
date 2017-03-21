@@ -11,19 +11,11 @@
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_vector.h>
 #include <template_wizardry.h>
-
-template<typename MatrixType>
-struct _get_elem_type{
-  typedef decltype( ( (MatrixType*)(nullptr) )->operator()(0,0) ) RefType;
-  typedef typename std::remove_reference<RefType>::type BaseType;
-  typedef typename std::remove_const<BaseType>::type type;
-};
+#include <numeric_tensors.h>
 
 //Requires a floating point *square* matrix with  (i,j) accessor and size() operation
 template<typename MatrixOutputType, typename MatrixInputType,
-	 typename std::enable_if<
-	   std::is_floating_point<typename _get_elem_type<MatrixInputType>::type>::value
-	   , int>::type = 0
+	 ENABLE_IF_ELEM_TYPE_FLOATINGPT(MatrixInputType)
 	 >
 struct _svd_inverse{
   static int doit(MatrixOutputType &Ainv, const MatrixInputType &A, double &condition_number){
@@ -107,12 +99,12 @@ class vectorVectorMatrixView{
   Mtype &M;
 public:
   vectorVectorMatrixView(Mtype &_M): M(_M){ assert(M[0].size() == M.size()); }
-  int size() const{ return M.size(); }
+  inline int size() const{ return M.size(); }
 
-  T_const& operator()(const int i, const int j) const{ return M[i][j]; }
+  inline T_const& operator()(const int i, const int j) const{ return M[i][j]; }
   
   template<typename U = T>
-  typename std::enable_if< !std::is_const<U>::value, T_unconst& >::type operator()(const int i, const int j){ return M[i][j]; } //unconst accessor only for unconst T
+  inline typename std::enable_if< !std::is_const<U>::value, T_unconst& >::type operator()(const int i, const int j){ return M[i][j]; } //unconst accessor only for unconst T
 };
 
 template<typename T>  
@@ -132,7 +124,32 @@ int svd_inverse(std::vector< std::vector<T> > &Ainv,
   return _svd_inverse<vectorVectorMatrixView<T>, vectorVectorMatrixView<const T> >::doit(Ainv_view,A_view,condition_number);
 }
 
+template<typename NumericMatrixOutputType, typename NumericMatrixInputType, ENABLE_IF_ELEM_TYPE_FLOATINGPT(NumericMatrixInputType)>
+int svd_inverse(NumericMatrixOutputType &Ainv, 
+	        const NumericMatrixInputType &A){ 
+  double c;
+  return _svd_inverse<NumericMatrixOutputType, NumericMatrixInputType>::doit(Ainv,A,c);
+}
 
 
+//For Matrix<D> where D is a distribution or any type with a 'sample' method
+template<typename NumericMatrixType, typename std::enable_if<hasSampleMethod<typename _get_elem_type<NumericMatrixType>::type>::value, int>::type = 0>
+int svd_inverse(NumericMatrixType &Ainv, 
+	        const NumericMatrixType &A){ 
+  const int nsample = A(0,0).size();
+  int ret = 0;
+  int ret_thr[omp_get_max_threads()] = {0};
+  
+#pragma omp parallel for
+  for(int j=0;j<nsample;j++){
+    NumericMatrixSampleView<const NumericMatrixType> A_view(A,j);
+    NumericMatrixSampleView<NumericMatrixType> Ainv_view(Ainv,j);
+    int r = svd_inverse(Ainv_view,A_view);
+    ret_thr[omp_get_thread_num()] = ret_thr[omp_get_thread_num()] || r;
+  }
+  for(int i=0;i<omp_get_max_threads();i++) ret = ret || ret_thr[i];
+  
+  return ret;
+}
 
 #endif
