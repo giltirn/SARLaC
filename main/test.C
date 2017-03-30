@@ -7,32 +7,63 @@
 #include <plot.h>
 #include <distribution.h>
 #include <data_series.h>
+#include <parser.h>
+#include <sstream>
+
+#define TEST_FIT_ARGS_MEMBERS \
+  ELEM( int, nsample ) \
+  ELEM( int, npoints ) \
+  ELEM( double, x_min ) \
+  ELEM( double, x_max )
+
+struct TestFitArgs{
+  
+#define STRUCT_ARGS TEST_FIT_ARGS_MEMBERS
+#include<struct_gen.incl> //you don't have to use this, instead you can define the members separately. However seeing as you have gone to the trouble of writing the ...MEMBERS definition you may as well...
+
+  //other methods here if you want
+};
+
+#define STRUCT_TYPE TestFitArgs
+#define STRUCT_ARGS TEST_FIT_ARGS_MEMBERS
+#include<parser_gen.incl>
+
+
 
 int main(void){  
   RNG.initialize(1234);
 
-  //Generate some random data
-  int npoints = 10;
-  int nsample = 100;
+  std::string fit_args_in = 
+"{"
+"   nsample = 100"
+"   npoints = 10"
+"   x_min = 2.0"
+"   x_max = 8.0"
+"}";
 
+  std::istringstream is(fit_args_in); //normally you would do this from an external file!
+  TestFitArgs fit_args;
+  is >> fit_args;
+
+  std::cout << "Read arguments: \n" << fit_args << std::endl;
+
+  //Generate some random data
   publicationPrint printer;
 
   typedef dataSeries<double, distribution<double> > RawDataSeriesType;
-  RawDataSeriesType data(npoints, nsample);
+  RawDataSeriesType data(fit_args.npoints, fit_args.nsample);
   
-  for(int i=0;i<npoints;i++){
+  for(int i=0;i<fit_args.npoints;i++){
     data.coord(i) = i;
-    for(int j=0;j<nsample;j++){
+    for(int j=0;j<fit_args.nsample;j++){
       data.value(i).sample(j) = gaussianRandom<double>(i, 0.3);
     }
     std::cout << "Mean " << i << " " << data.value(i).mean() << " Std. Dev. " << data.value(i).standardDeviation() << " " << " Std. Err. " << data.value(i).standardError() << std::endl;
   }
   
   //Setup fit range
-  double x_min = 2.0, x_max = 8.0;
-  
   typedef filteredDataSeries<RawDataSeriesType> InRangeDataSeriesType;
-  filterXrange<double> xfilter(x_min,x_max);
+  filterXrange<double> xfilter(fit_args.x_min,fit_args.x_max);
 
   InRangeDataSeriesType inrange_data(data,xfilter);
   xfilter.invert();
@@ -83,16 +114,16 @@ int main(void){
   printer << "double Jackknife correlation matrix:\n" << corr;
   
   //Generate inverse correlation matrix
-  jackknifeMatrixD inv_corr(ndata_in_range, jackknifeDistribution<double>(nsample));
+  jackknifeMatrixD inv_corr(ndata_in_range, jackknifeDistribution<double>(fit_args.nsample));
   svd_inverse(inv_corr, corr);
 
   printer << "double Jackknife inverse correlation matrix:\n" << inv_corr;
 
   //Test the inverse
-  jackknifeMatrixD inv_test(ndata_in_range, jackknifeDistribution<double>(nsample));
+  jackknifeMatrixD inv_test(ndata_in_range, jackknifeDistribution<double>(fit_args.nsample));
   for(int i=0;i<ndata_in_range;i++){
     for(int j=0;j<ndata_in_range;j++){
-      inv_test(i,j) = jackknifeDistribution<double>(nsample,0.);
+      inv_test(i,j) = jackknifeDistribution<double>(fit_args.nsample,0.);
       for(int k=0;k<ndata_in_range;k++)
 	inv_test(i,j) = inv_test(i,j) + corr(i,k)*inv_corr(k,j);
     }
@@ -115,11 +146,11 @@ int main(void){
   mlparams.output = &null_stream;
   
   std::vector<jackknifeDistribution<double> > param(2);
-  param[0] = jackknifeDistribution<double>(nsample, 5);
-  param[1] = jackknifeDistribution<double>(nsample, 0.5);
+  param[0] = jackknifeDistribution<double>(fit_args.nsample, 5);
+  param[1] = jackknifeDistribution<double>(fit_args.nsample, 0.5);
 
 #pragma omp parallel for
-  for(int j=0;j<nsample;j++){
+  for(int j=0;j<fit_args.nsample;j++){
     FrozenFitFunction func_frozen(func); //provide defaults (can freeze here too)
     //func_frozen.freeze(0, param[0].sample(j));
     
@@ -174,12 +205,12 @@ int main(void){
 
   //Generate fit curve
   int npt = 100;
-  JackknifeSeriesType fit(npt,nsample);
-  double delta = (x_max - x_min)/(npt-1);
+  JackknifeSeriesType fit(npt,fit_args.nsample);
+  double delta = (fit_args.x_max - fit_args.x_min)/(npt-1);
 #pragma omp parallel for
   for(int i=0;i<npt;i++){
-    fit.coord(i) = x_min + i*delta;
-    for(int j=0;j<nsample;j++){
+    fit.coord(i) = fit_args.x_min + i*delta;
+    for(int j=0;j<fit_args.nsample;j++){
       NumericVector<double> fp(2);
       fp(0) = param[0].sample(j);
       fp(1) = param[1].sample(j);

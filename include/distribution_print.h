@@ -5,6 +5,7 @@
 #include<cfenv>
 #include<iostream>
 #include<cassert>
+#include<sstream>
 
 
 //Base type for printers that use the mean and standard error of a distribution
@@ -53,11 +54,13 @@ private:
   
   friend class printerBase<publicationPrint>;
   template<typename Dist>
-  void print(std::ostream &os, const Dist &d){
-    std::ios oldState(nullptr);
-    oldState.copyfmt(os);
+  void print(std::ostream &os_out, const Dist &d){
+    // std::ios oldState(nullptr);
+    // oldState.copyfmt(os);
     const auto oldRound = std::fegetround();
 
+    std::stringstream os;
+    
     std::ios::streampos init_pos = os.tellp();
     
     typedef decltype(d.mean()) valueType;
@@ -89,10 +92,14 @@ private:
     else if(pow10 > 10) os << "*10^{" << pow10 << "}";
 
     int width = os.tellp() - init_pos;
+
     for(int i=0;i<min_width - width;i++) os << ' ';
     
     std::fesetround(oldRound);
-    os.copyfmt(oldState);
+
+    os_out << os.rdbuf();
+    
+    //os.copyfmt(oldState);
   }
 public:
   publicationPrint(const int _nsf = 3, const SigFigsSource _sfsrc = Largest, std::ostream &_os = std::cout): printerBase<publicationPrint>(_os), nsf(_nsf), sfsrc(_sfsrc), min_width(0){}

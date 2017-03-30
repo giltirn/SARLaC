@@ -103,4 +103,17 @@ struct _get_elem_type{
 	   std::is_floating_point<typename _get_elem_type<MatrixType>::type>::value \
 	   , int>::type = 0
 
+template<typename T>
+struct is_scalar{ enum{value = 0}; };
+
+template<typename T>
+struct is_scalar<std::complex<T> >{ enum{value = 1}; };
+
+template<>
+struct is_scalar<double>{ enum{value = 1}; };
+
+template<>
+struct is_scalar<float>{ enum{value = 1}; };
+
+
 #endif

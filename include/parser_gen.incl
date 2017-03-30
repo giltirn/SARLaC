@@ -1,0 +1,85 @@
+#define CONCAT_(A,B) A ## B
+#define CONCAT(A,B) CONCAT_(A,B)
+#define TOSTR_(A) #A
+#define TOSTR(A) TOSTR_(A)
+
+#define GRAMMAR CONCAT(STRUCT_TYPE,_grammar)
+
+namespace GRAMMAR{
+  namespace ascii = boost::spirit::x3::ascii;
+  namespace x3 = boost::spirit::x3;
+  
+#define ELEM(TYPE,NAME)  parsers::parser<TYPE> CONCAT(NAME, _type_parse);
+  STRUCT_ARGS
+#undef ELEM
+
+#define ELEM(TYPE,NAME) \
+  struct CONCAT(NAME,_parse){ \
+    template <typename Iterator, typename Exception, typename Context> \
+    x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
+      return parser_tools::on_error(TOSTR(STRUCT_TYPE) "." TOSTR(NAME),first,last,x,context); \
+    } \
+  }; \
+  x3::rule<CONCAT(NAME,_parse), TYPE > CONCAT(NAME,_parse) = #NAME "_parse"; \
+  auto const CONCAT(NAME,_parse_def) = x3::lit(#NAME) >> '=' >> CONCAT(NAME, _type_parse).parse[parser_tools::set_equals]; \
+  BOOST_SPIRIT_DEFINE(CONCAT(NAME,_parse));
+
+  
+  STRUCT_ARGS
+#undef ELEM
+
+  struct CONCAT(STRUCT_TYPE, _){					       \
+    template <typename Iterator, typename Exception, typename Context> \
+    x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
+      return parser_tools::on_error(TOSTR(STRUCT_TYPE),first,last,x,context); \
+    } \
+  };
+  
+  x3::rule<CONCAT(STRUCT_TYPE, _), STRUCT_TYPE> const CONCAT(STRUCT_TYPE, _) = TOSTR( CONCAT(STRUCT_TYPE, _) );
+  auto const CONCAT(STRUCT_TYPE, __def) = x3::eps > '{'
+#define ELEM(TYPE,NAME) >> CONCAT(NAME,_parse)[parser_tools::member_set_equals<STRUCT_TYPE,TYPE,& STRUCT_TYPE :: NAME>()]
+  STRUCT_ARGS
+#undef ELEM
+    > '}';
+  BOOST_SPIRIT_DEFINE(CONCAT(STRUCT_TYPE, _));
+};
+
+namespace parsers{
+  template<>
+  struct parser<STRUCT_TYPE>{
+    decltype( GRAMMAR::CONCAT(STRUCT_TYPE, _) ) &parse;
+    parser(): parse(GRAMMAR::CONCAT(STRUCT_TYPE, _) ){}
+  };
+};
+
+std::ostream & operator<<(std::ostream &os, const STRUCT_TYPE &s){
+  os << "{\n";
+#define ELEM(TYPE,NAME) os << TOSTR(NAME) " = " << s.NAME << std::endl;
+  STRUCT_ARGS
+  os << "}";
+  return os;
+}
+std::istream & operator>>(std::istream &is, STRUCT_TYPE &s){
+  namespace ascii = boost::spirit::x3::ascii;
+  namespace x3 = boost::spirit::x3;
+  
+  boost::spirit::istream_iterator f(is), l;
+  parsers::parser<STRUCT_TYPE> vp;
+
+  bool r = x3::phrase_parse(f, l, vp.parse, ascii::space, s);
+
+  if(!r){
+    throw std::runtime_error("Parsing of type " TOSTR(STRUCT_TYPE) " failed\n");
+  }
+  return is;
+}
+
+
+
+#undef CONCAT
+#undef CONCAT_
+#undef TOSTR
+#undef TOSTR_
+#undef GRAMMAR
+#undef STRUCT_TYPE
+#undef STRUCT_ARGS
