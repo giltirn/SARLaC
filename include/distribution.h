@@ -86,7 +86,7 @@ public:
   const DataType & sample(const int idx) const{ return _data[idx]; }
   DataType & sample(const int idx){ return _data[idx]; }
 
-  DataType mean() const{ return threadedSum(_data)/_data.size(); }
+  DataType mean() const{ return threadedSum(_data)/double(_data.size()); }
 
   DataType variance() const{
     const int N = _data.size();
@@ -177,7 +177,7 @@ public:
       inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return tmp * tmp;  }
     };
     Op op(this->mean(),this->_data);
-    return sqrt( threadedSum(op) * double(N-1)/N );
+    return sqrt( threadedSum(op) * (double(N-1)/N) );
   }
   
   jackknifeDistribution(): distribution<DataType>(){}

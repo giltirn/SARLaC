@@ -1,6 +1,7 @@
-bin_PROGRAMS = test test_ET
+bin_PROGRAMS = test test_ET simfit_example
 test_SOURCES = test.C
 test_ET_SOURCES = test_ET.C
+simfit_example_SOURCES = simfit_example.C
 
 AM_CPPFLAGS = -I$(srcdir)/../include -fopenmp -g --std=c++14 @PYTHON_CFLAGS@
 

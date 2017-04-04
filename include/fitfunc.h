@@ -16,12 +16,13 @@ auto getCoord(const int i, const T &coord, ...)->decltype( coord[0] ){ return co
 
 
 //A multi-dimensional linear fit. 0-dimensional: Constant
-template<typename _GeneralizedCoordinate, typename Numeric, int Dimension>  //p[0] + p[1]*x[0] + p[2]*x[1] + ...
+template<typename _GeneralizedCoordinate, typename Numeric, int Dimension,
+	 typename _ParameterType = NumericVector<Numeric>,  typename _ValueDerivativeType = NumericVector<Numeric> >  //p[0] + p[1]*x[0] + p[2]*x[1] + ...
 class NumericLinearFit{
 public:
   typedef Numeric ValueType;
-  typedef NumericVector<Numeric> ParameterType;
-  typedef NumericVector<Numeric> ValueDerivativeType; //derivative wrt parameters
+  typedef _ParameterType ParameterType;
+  typedef _ValueDerivativeType ValueDerivativeType; //derivative wrt parameters
   typedef _GeneralizedCoordinate GeneralizedCoordinate;
 
   ValueType value(const GeneralizedCoordinate &coord, const ParameterType &params) const{
