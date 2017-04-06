@@ -92,7 +92,7 @@ CLASS<T> OP(const T &a){		\
 
 //Put this inside your class. TAG is a struct type used to differentiate the ETE for this type from others. Most often convenient to set equal to the class name
 #define ENABLE_GENERIC_ET(CLASS, TAG) \
-  typedef Params Generic_ET_base_type; \
+  typedef TAG Generic_ET_base_type; \
   \
   template<typename Expr, IS_EXPRESSION_WITH_GENERIC_BASE_TYPE(Expr, CLASS, TAG) > \
   CLASS(const Expr &e){ \

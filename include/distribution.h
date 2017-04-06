@@ -80,7 +80,8 @@ public:
   int size() const{ return _data.size(); }
 
   void resize(const int sz){ _data.resize(sz); } //need default constructor for DataType
-
+  void resize(const int sz, const DataType &init_val){ _data.resize(sz,init_val); }
+  
   const std::vector<DataType> &sampleVector() const{ return _data; }
   
   const DataType & sample(const int idx) const{ return _data[idx]; }
@@ -261,6 +262,9 @@ public:
   }
   
 };
+
+
+
 
 
 #endif

@@ -86,7 +86,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = test$(EXEEXT) test_ET$(EXEEXT) simfit_example$(EXEEXT)
+bin_PROGRAMS = test$(EXEEXT) test_ET$(EXEEXT) simfit_example$(EXEEXT) \
+	superjack_example$(EXEEXT)
 subdir = main
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -103,6 +104,10 @@ am_simfit_example_OBJECTS = simfit_example.$(OBJEXT)
 simfit_example_OBJECTS = $(am_simfit_example_OBJECTS)
 simfit_example_LDADD = $(LDADD)
 simfit_example_DEPENDENCIES = ../src/libcpsfit.a
+am_superjack_example_OBJECTS = superjack_example.$(OBJEXT)
+superjack_example_OBJECTS = $(am_superjack_example_OBJECTS)
+superjack_example_LDADD = $(LDADD)
+superjack_example_DEPENDENCIES = ../src/libcpsfit.a
 am_test_OBJECTS = test.$(OBJEXT)
 test_OBJECTS = $(am_test_OBJECTS)
 test_LDADD = $(LDADD)
@@ -140,9 +145,10 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(simfit_example_SOURCES) $(test_SOURCES) $(test_ET_SOURCES)
-DIST_SOURCES = $(simfit_example_SOURCES) $(test_SOURCES) \
-	$(test_ET_SOURCES)
+SOURCES = $(simfit_example_SOURCES) $(superjack_example_SOURCES) \
+	$(test_SOURCES) $(test_ET_SOURCES)
+DIST_SOURCES = $(simfit_example_SOURCES) $(superjack_example_SOURCES) \
+	$(test_SOURCES) $(test_ET_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -270,6 +276,7 @@ top_srcdir = @top_srcdir@
 test_SOURCES = test.C
 test_ET_SOURCES = test_ET.C
 simfit_example_SOURCES = simfit_example.C
+superjack_example_SOURCES = superjack_example.C
 AM_CPPFLAGS = -I$(srcdir)/../include -fopenmp -g --std=c++14 @PYTHON_CFLAGS@
 AM_LDFLAGS = -fopenmp -g 
 LDADD = ../src/libcpsfit.a -lgsl -lgslcblas -lboost_serialization -lboost_python-py27 @PYTHON_LIBS@
@@ -353,6 +360,10 @@ simfit_example$(EXEEXT): $(simfit_example_OBJECTS) $(simfit_example_DEPENDENCIES
 	@rm -f simfit_example$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(simfit_example_OBJECTS) $(simfit_example_LDADD) $(LIBS)
 
+superjack_example$(EXEEXT): $(superjack_example_OBJECTS) $(superjack_example_DEPENDENCIES) $(EXTRA_superjack_example_DEPENDENCIES) 
+	@rm -f superjack_example$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(superjack_example_OBJECTS) $(superjack_example_LDADD) $(LIBS)
+
 test$(EXEEXT): $(test_OBJECTS) $(test_DEPENDENCIES) $(EXTRA_test_DEPENDENCIES) 
 	@rm -f test$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(test_OBJECTS) $(test_LDADD) $(LIBS)
@@ -368,6 +379,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/simfit_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/superjack_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_ET.Po@am__quote@
 
