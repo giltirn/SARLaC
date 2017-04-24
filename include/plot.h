@@ -2,9 +2,14 @@
 #define _CPSFIT_PLOT_H
 
 #include <boost/python.hpp>
-
+#include <map>
+#include <sstream>
 
 class MatPlotLibInterface{
+public:
+  typedef boost::python::dict kwargsType;
+
+private:  
   boost::python::object Figure;
   boost::python::object FigureCanvas;
 
@@ -212,12 +217,227 @@ public:
       PyErr_Print();
     }
   }
+};
+
+
+class OstreamHook{
+public:
+  virtual void write(std::ostream &) const = 0;
+};
+
+inline std::ostream & operator<<(std::ostream &os, const OstreamHook &hk){
+  hk.write(os);
+  return os;
+}
 
 
 
 
+class KWargElem: public OstreamHook{
+  std::string val;
+
+public:
+  KWargElem(){}
+    
+  template<typename T>
+  explicit KWargElem(const T& v){
+    *this = v;
+  }
+
+  template<typename T>
+  KWargElem &operator=(const T &v){
+    std::ostringstream os; os << v;
+    val = os.str();
+    return *this;
+  }
+
+  KWargElem &operator=(const char* v){
+    val = "\"" + std::string(v) + "\"";
+    return *this;
+  }
+  
+  KWargElem &operator=(const std::string &v){
+    val = "\"" + v + "\"";
+    return *this;
+  }
+  KWargElem &operator=(const char v){
+    std::ostringstream os; os << "\'" << v << "\'";
+    val = os.str();
+    return *this;
+  }
+  
+  inline void write(std::ostream &os) const{
+    os << val;
+  }
+};
+
+
+struct ListPrint: public OstreamHook{
+  const std::vector<double> &lst;
+  ListPrint(const std::vector<double> &_lst): lst(_lst){}
+  void write(std::ostream &os) const{
+    os << "[";
+    for(int i=0;i<lst.size()-1; i++) os << lst[i] << ',';      
+    os << lst.back() << "]";
+  }
+};
+
+class PythonDataContainer{
+  std::vector<double> x;
+  std::vector<double> y;
+  std::vector<double> dxm;
+  std::vector<double> dxp;
+  std::vector<double> dym;
+  std::vector<double> dyp;
+  std::string set_tag;
+
+public:
+
+  template<typename Data>
+  void import(const Data &data, const std::string &tag){
+    set_tag = tag;
+    
+    int sz = data.size();
+    for(int i=0;i<sz;i++){
+      x.push_back(data.x(i));
+      y.push_back(data.y(i));
+      
+      dxm.push_back(data.dxm(i));
+      dxp.push_back(data.dxp(i));
+      
+      dym.push_back(data.dym(i));
+      dyp.push_back(data.dyp(i));
+    }
+  }
+
+  void write(std::ostream &os) const{
+    os << set_tag << "= pyplot.DataSet()\n";
+    os << set_tag << ".x = " << ListPrint(x) << '\n';
+    os << set_tag << ".y = " << ListPrint(y) << '\n';
+    os << set_tag << ".dxm = " << ListPrint(dxm) << '\n';
+    os << set_tag << ".dxp = " << ListPrint(dxp) << '\n';
+    os << set_tag << ".dym = " << ListPrint(dym) << '\n';
+    os << set_tag << ".dyp = " << ListPrint(dyp) << "\n\n";
+  }
+
+  const std::string &tag() const{ return set_tag; }
   
 };
+
+
+class PythonErrorBandContainer{
+  std::vector<double> x;
+  std::vector<double> upper;
+  std::vector<double> lower;
+  std::string set_tag;
+
+public:
+  
+  template<typename Band>
+  void import(const Band &band, const std::string &tag){
+    set_tag = tag;
+    
+    int sz = band.size();
+    for(int i=0;i<sz;i++){
+      x.push_back(band.x(i));
+      upper.push_back(band.upper(i));
+      lower.push_back(band.lower(i));
+    }
+  }
+
+  void write(std::ostream &os) const{
+    os << set_tag << "= pyplot.ErrorBand()\n";
+    os << set_tag << ".x = " << ListPrint(x) << '\n';
+    os << set_tag << ".upper = " << ListPrint(upper) << '\n';
+    os << set_tag << ".lower = " << ListPrint(lower) << '\n';
+  }
+
+  const std::string &tag() const{ return set_tag; }  
+};
+
+
+
+
+class MatPlotLibScriptGenerate{
+public:
+  typedef std::map<std::string,KWargElem> kwargsType;
+private:
+  
+  std::vector<PythonDataContainer> plotdata_sets;
+  std::vector<kwargsType> plotdata_args;
+
+  std::vector<PythonErrorBandContainer> ploterrorband_sets;
+  std::vector<kwargsType> ploterrorband_args;
+
+  struct kwargsPrint: public OstreamHook{
+    const kwargsType &args;
+    kwargsPrint(const kwargsType &_args): args(_args){}
+    void write(std::ostream &os) const{
+      for(kwargsType::const_iterator it = args.begin(); it != args.end(); it++){
+	os << ',' << it->first << "=" << it->second;
+      }
+    }
+  };
+  
+public:
+
+  //Data should be an accessor wrapper that has methods
+  //double x(const int),
+  //double y(const int),
+  //double dxm(const int)  [minus-error],
+  //double dxp(const int) [plus-error],
+  //double dym(const int),
+  //double dyp(const int)
+  //int size()
+  template<typename Data>
+  void plotData(const Data &data, kwargsType &kwargs = kwargsType()){
+    std::ostringstream os; os << "dset" << plotdata_sets.size();
+    plotdata_sets.push_back(PythonDataContainer());
+    plotdata_sets.back().import(data, os.str());
+    plotdata_args.push_back(kwargs);
+  }
+
+  //Band is an accessor with methods:
+  //double x(const int i)
+  //double upper(const int i)
+  //double lower(const int i)
+  //int size()
+  template<typename Band>
+  void errorBand(const Band &band, kwargsType &kwargs = kwargsType()){
+    std::ostringstream os; os << "band" << ploterrorband_sets.size();
+    ploterrorband_sets.push_back(PythonErrorBandContainer());
+    ploterrorband_sets.back().import(band, os.str());
+    ploterrorband_args.push_back(kwargs);
+  }
+  
+  void write(std::ostream &os, const std::string &script_gen_filename = "plot.pdf") const{
+    os << "import pyplot\n\n";
+
+    for(int i=0;i<plotdata_sets.size();i++)
+      plotdata_sets[i].write(os);
+
+    for(int i=0;i<ploterrorband_sets.size();i++)
+      ploterrorband_sets[i].write(os);
+
+    os << "\nfig = pyplot.plt.figure()\n";
+    os << "ax = fig.add_subplot(1,1,1)\n";
+
+    for(int i=0;i<plotdata_sets.size();i++)
+      os << "plot_" << plotdata_sets[i].tag() << " = " << "pyplot.plotDataSet(ax, " << plotdata_sets[i].tag() << kwargsPrint(plotdata_args[i]) << ")\n";
+
+    for(int i=0;i<ploterrorband_sets.size();i++)
+      os << "plot_" << ploterrorband_sets[i].tag() << " = " << "pyplot.plotErrorBand(ax, " << ploterrorband_sets[i].tag() << kwargsPrint(ploterrorband_args[i]) << ")\n";    
+    
+    os << "fig.canvas.draw()\n";
+    os << "fig.savefig(\"" << script_gen_filename << "\")";
+  }
+  void write(const std::string &filename, const std::string &script_gen_filename = "plot.pdf"){
+    std::ofstream of(filename.c_str());
+    write(of,script_gen_filename);
+    of.close();
+  }
+};
+
 
 
 

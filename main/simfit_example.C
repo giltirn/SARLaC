@@ -328,16 +328,18 @@ int main(void){
   std::cout << "Params: " << params.mean() << " " << params.standardError() << std::endl;
 
   //Plot result
-  MatPlotLibInterface mpl;
+  typedef MatPlotLibScriptGenerate Plotter;  
+  //typedef MatPlotLibInterface Plotter;
+  Plotter mpl;
   typedef SingleTypePlotAccessor<jackknifeTimeSeriesType> PlotDataAccessor;
   
   {
-    boost::python::dict args; args["color"] = 'r';    
+    typename Plotter::kwargsType args; args["color"] = 'r';    
     PlotDataAccessor datainterface(inrange_jackknife,0);
     mpl.plotData(datainterface,args);    
   }
   {
-    boost::python::dict args; args["color"] = 'b';    
+    typename Plotter::kwargsType args; args["color"] = 'b';    
     PlotDataAccessor datainterface(inrange_jackknife,1);
     mpl.plotData(datainterface,args);    
   }
@@ -345,12 +347,12 @@ int main(void){
   
   {
     PlotDataAccessor datainterface(outofrange_jackknife,0);
-    boost::python::dict args; args["hollowsymbol"] = 1; args["color"] = 'r';   
+    typename Plotter::kwargsType args; args["hollowsymbol"] = 1; args["color"] = 'r';   
     mpl.plotData(datainterface,args);
   }
   {
     PlotDataAccessor datainterface(outofrange_jackknife,1);
-    boost::python::dict args; args["hollowsymbol"] = 1; args["color"] = 'b';  
+    typename Plotter::kwargsType args; args["hollowsymbol"] = 1; args["color"] = 'b';  
     mpl.plotData(datainterface,args);
   }
 
@@ -376,17 +378,18 @@ int main(void){
   
   {
     PlotDataAccessor curveinterface(fit_0,0);
-    boost::python::dict args; args["alpha"] = 0.3; args["color"] = "r";
+    typename Plotter::kwargsType args; args["alpha"] = 0.3; args["color"] = "r";
     mpl.errorBand(curveinterface,args);
   }
   {
     PlotDataAccessor curveinterface(fit_1,1);
-    boost::python::dict args; args["alpha"] = 0.3; args["color"] = "b";
+    typename Plotter::kwargsType args; args["alpha"] = 0.3; args["color"] = "b";
     mpl.errorBand(curveinterface,args);
   }
 
   
-  mpl.write("test.pdf");
+  //mpl.write("test.pdf");
+  mpl.write("test.py");
 
 
   
