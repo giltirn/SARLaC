@@ -14,13 +14,13 @@ namespace GRAMMAR{
 #undef ELEM
 
 #define ELEM(TYPE,NAME) \
-  struct CONCAT(NAME,_parse){ \
+  struct CONCAT(NAME,_parse_){ \
     template <typename Iterator, typename Exception, typename Context> \
     x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
       return parser_tools::on_error(TOSTR(STRUCT_TYPE) "." TOSTR(NAME),first,last,x,context); \
     } \
   }; \
-  x3::rule<CONCAT(NAME,_parse), TYPE > CONCAT(NAME,_parse) = #NAME "_parse"; \
+  x3::rule<CONCAT(NAME,_parse_), TYPE > CONCAT(NAME,_parse) = #NAME "_parse"; \
   auto const CONCAT(NAME,_parse_def) = x3::lit(#NAME) >> '=' >> CONCAT(NAME, _type_parse).parse[parser_tools::set_equals]; \
   BOOST_SPIRIT_DEFINE(CONCAT(NAME,_parse));
 
@@ -34,6 +34,9 @@ namespace GRAMMAR{
       return parser_tools::on_error(TOSTR(STRUCT_TYPE),first,last,x,context); \
     } \
   };
+  // struct CONCAT(STRUCT_TYPE, _){					       \
+  // };
+
   
   x3::rule<CONCAT(STRUCT_TYPE, _), STRUCT_TYPE> const CONCAT(STRUCT_TYPE, _) = TOSTR( CONCAT(STRUCT_TYPE, _) );
   auto const CONCAT(STRUCT_TYPE, __def) = x3::eps > '{'
@@ -53,10 +56,11 @@ namespace parsers{
 };
 
 std::ostream & operator<<(std::ostream &os, const STRUCT_TYPE &s){
-  os << "{\n";
-#define ELEM(TYPE,NAME) os << TOSTR(NAME) " = " << s.NAME << std::endl;
+  os << "{\n"; parser_tools::tabbing::increment();
+#define ELEM(TYPE,NAME) os << parser_tools::tabbing::tabs() << TOSTR(NAME) " = " << parser_tools::parser_output_print(s.NAME) << std::endl;
   STRUCT_ARGS
-  os << "}";
+#undef ELEM
+  parser_tools::tabbing::decrement(); os << parser_tools::tabbing::tabs() << "}"; 
   return os;
 }
 std::istream & operator>>(std::istream &is, STRUCT_TYPE &s){

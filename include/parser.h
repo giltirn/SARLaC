@@ -3,11 +3,12 @@
 //#define BOOST_SPIRIT_X3_DEBUG
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/include/support_istream_iterator.hpp>
+#include <utils.h>
 
 namespace parser_tools{
   namespace ascii = boost::spirit::x3::ascii;
   namespace x3 = boost::spirit::x3;
-
+  
   //Use these as lambdas, eg    auto const V_v_def = x3::char_('v') >> '=' >> x3::int_[parser_tools::set_equals];
   auto push_back = [&](auto& ctx){ x3::_val(ctx).push_back( x3::_attr(ctx) ); };
   auto set_equals = [&](auto& ctx){ x3::_val(ctx) = x3::_attr(ctx); };
@@ -20,23 +21,52 @@ namespace parser_tools{
       x3::_val(ctx).*ptr = x3::_attr(ctx); 
     }
   };
-
+  
   //Error handler
   template <typename Iterator, typename Exception, typename Context>
   x3::error_handler_result
   on_error(const std::string &field, Iterator&first, Iterator const& last, Exception const& x, Context const& context){
     std::cout
-      << "Error parsing " << field << "! Expecting: "
-      << x.which()
-      << " here: \""
-      << std::string(x.where(), last)
-      << "\""
-      << " in " << std::string(first,last)
-      << std::endl
-      ;
+      << "Error parsing " << field
+      << "\nin\n" << std::string(first,last)
+      << std::endl;
     return x3::error_handler_result::fail;
   }
 
+
+  template<typename T>
+  struct _parser_output_print: public OstreamHook{
+    const T &val;
+    _parser_output_print(const T&_val): val(_val){}
+    void write(std::ostream &os) const{
+      os << val;
+    }
+  };
+  template<>
+  void _parser_output_print<std::string>::write(std::ostream &os) const{
+    os << "\"" << val << "\"";
+  }
+  template<>
+  void _parser_output_print<bool>::write(std::ostream &os) const{
+    os << val ? "true" : "false";
+  }
+
+  
+  template<typename T>
+  _parser_output_print<T> parser_output_print(const T &val){
+    return _parser_output_print<T>(val);
+  }
+
+  struct tabbing{
+    static int & depth(){ static int d=0; return d; }
+    static void increment(){ depth()++; }
+    static void decrement(){ depth()--; }
+    static std::string tabs(){
+      std::ostringstream os;
+      for(int i=0;i<depth();i++) os << '\t';
+      return os.str();
+    }
+  };
   
 };
 
@@ -56,20 +86,15 @@ namespace parsers{
   parser(): parse(x3::TYPE##_){}		\
   }
   
-  template<>
-  struct parser<int>{
-    decltype( x3::int_ ) &parse;
-    
-    parser(): parse(x3::int_){}
-  };
-
+  DEF_X3_PARSER(int);
   DEF_X3_PARSER(double);
-
+  DEF_X3_PARSER(bool);
+  
   
   //For generic vector parse we can hack the parser interface to allow templating the underlying type by static instantiating the rule definition inside the parse_rule itself.
   template<typename U>
   struct vector_T_rule{};
-  
+
   template<typename T>
   struct parser< std::vector<T> >{
     x3::rule<class vector_T_rule<T>, std::vector<T> > const parse;
@@ -89,8 +114,25 @@ namespace parsers{
     static auto const def_ = (inst.parse = parse_def);
     return def_.parse(first, last, context, unused, attr);
   }
-
   
+  //Rule for std::string
+  class string_rule_{
+    template <typename Iterator, typename Exception, typename Context>
+    x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){
+      return parser_tools::on_error("string_rule",first,last,x,context);
+    }
+  };
+  
+  auto const quoted_string = x3::lexeme['"' > *(x3::char_ - '"') > '"'];
+  x3::rule<string_rule_, std::string> const string_rule = "string_rule";
+  auto const string_rule_def = quoted_string[parser_tools::set_equals];
+  BOOST_SPIRIT_DEFINE(string_rule);
+  
+  template<>
+  struct parser<std::string>{
+    decltype( string_rule ) &parse;
+    parser(): parse(string_rule){}
+  };
 
 };
 

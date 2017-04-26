@@ -5,6 +5,7 @@
 #include <boost/format.hpp>
 #include <map>
 #include <sstream>
+#include <utils.h>
 
 enum SetType{ DataSetType, ErrorBandType };
 
@@ -302,19 +303,6 @@ public:
 		  
   
 };
-
-
-class OstreamHook{
-public:
-  virtual void write(std::ostream &) const = 0;
-};
-
-inline std::ostream & operator<<(std::ostream &os, const OstreamHook &hk){
-  hk.write(os);
-  return os;
-}
-
-
 
 
 class KWargElem: public OstreamHook{
