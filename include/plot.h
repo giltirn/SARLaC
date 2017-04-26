@@ -233,12 +233,20 @@ public:
 
       object plotband = axes.attr("fill_between")(*make_tuple(x,lower,upper), **kwargs);
 
-      // if(boundary_lines){
-      //   object color = plt.attr("getp")(plotband,"facecolors");
-      //   chex = ColourPallete.toHex(colour[0][0]*255,colour[0][1]*255,colour[0][2]*255)
-      //         self.ax.plot(x,uy,marker='None',linestyle='--',linewidth=1.5,color=chex,zorder=boundary_lines_zorder)
-      //         self.ax.plot(x,ly,marker='None',linestyle='--',linewidth=1.5,color=chex,zorder=boundary_lines_zorder)
-
+      if(boundary_lines){
+        object color = plt.attr("getp")(plotband,"facecolors");
+        object chex = toHex(color[0][0]*255,color[0][1]*255,color[0][2]*255);
+	boost::python::dict args;
+	args["marker"] = "None";
+	args["linestyle"] = "--";
+	args["linewidth"] = 1.5;
+	args["color"] = chex;
+	args["zorder"] = boundary_lines_zorder;
+	
+	axes.attr("plot")(*make_tuple(x,upper), **args);
+	axes.attr("plot")(*make_tuple(x,lower), **args);
+      }
+	  
       return handleType(plotband, ErrorBandType);
     } catch( error_already_set ) {
       PyErr_Print();

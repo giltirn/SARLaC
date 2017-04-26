@@ -328,8 +328,8 @@ int main(void){
   std::cout << "Params: " << params.mean() << " " << params.standardError() << std::endl;
 
   //Plot result
-  typedef MatPlotLibScriptGenerate Plotter;  
-  //typedef MatPlotLibInterface Plotter;
+  //typedef MatPlotLibScriptGenerate Plotter;  
+  typedef MatPlotLibInterface Plotter;
   Plotter mpl;
   typedef SingleTypePlotAccessor<jackknifeTimeSeriesType> PlotDataAccessor;
 
@@ -382,20 +382,20 @@ int main(void){
   
   {
     PlotDataAccessor curveinterface(fit_0,0);
-    kwargsType args; args["alpha"] = 0.3; args["color"] = "r";
+    kwargsType args; args["alpha"] = 0.3; args["color"] = "r"; args["boundary_lines"] = true;
     handleType handle = mpl.errorBand(curveinterface,args);
     mpl.setLegend(handle,"fit to set 0");
   }
   {
     PlotDataAccessor curveinterface(fit_1,1);
-    kwargsType args; args["alpha"] = 0.3; args["color"] = "b";
+    kwargsType args; args["alpha"] = 0.3; args["color"] = "b"; args["boundary_lines"] = true;
     mpl.errorBand(curveinterface,args);
   }
 
   mpl.createLegend();
   
-  //mpl.write("plot.pdf");
-  mpl.write("test.py");
+  mpl.write("plot.pdf");
+  //mpl.write("test.py");
 
 
   
