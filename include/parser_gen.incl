@@ -66,12 +66,13 @@ std::ostream & operator<<(std::ostream &os, const STRUCT_TYPE &s){
 std::istream & operator>>(std::istream &is, STRUCT_TYPE &s){
   namespace ascii = boost::spirit::x3::ascii;
   namespace x3 = boost::spirit::x3;
-  
+
+  is >> std::noskipws;
   boost::spirit::istream_iterator f(is), l;
   parsers::parser<STRUCT_TYPE> vp;
 
   bool r = x3::phrase_parse(f, l, vp.parse, ascii::space, s);
-
+  
   if(!r){
     throw std::runtime_error("Parsing of type " TOSTR(STRUCT_TYPE) " failed\n");
   }

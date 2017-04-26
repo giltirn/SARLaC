@@ -49,7 +49,8 @@ struct TwoPointFunction{
   ELEM( TwoPointFunction, AP_LW )   \
   ELEM( int, traj_start ) \
   ELEM( int, traj_inc ) \
-  ELEM( int, traj_lessthan )
+  ELEM( int, traj_lessthan ) \
+  ELEM( std::complex<double>, test )
 
 struct Args{
 #define STRUCT_ARGS ARGS_MEMBERS
@@ -61,8 +62,19 @@ struct Args{
 #define STRUCT_ARGS ARGS_MEMBERS
 #include<parser_gen.incl>
 
+class ConfigData{
+  std::vector<std::vector<std::complex<double> > > d;
+  
+
+};
+// namespace read_grammar{
+//   namespace ascii = boost::spirit::x3::ascii;
+//   namespace x3 = boost::spirit::x3;
 
 
+
+
+  
 
 //Coordinate, parameters and param derivatives for aggregate fit func
 struct Coord{

@@ -21,6 +21,14 @@ namespace parser_tools{
       x3::_val(ctx).*ptr = x3::_attr(ctx); 
     }
   };
+
+  template<typename T, int reim>
+  struct set_reim{
+    template <typename Context>
+    void operator()(Context const& ctx) const{
+      reinterpret_cast<T(&)[2]>(x3::_val(ctx))[reim] = x3::_attr(ctx);
+    }
+  };
   
   //Error handler
   template <typename Iterator, typename Exception, typename Context>
@@ -89,6 +97,13 @@ namespace parsers{
   DEF_X3_PARSER(int);
   DEF_X3_PARSER(double);
   DEF_X3_PARSER(bool);
+
+#define DEF_CUSTOM_PARSER(TYPE, PARSER)		\
+  template<>		    \
+  struct parser<TYPE>{				\
+    decltype( PARSER ) &parse; \
+  parser(): parse(PARSER){}		\
+  }
   
   
   //For generic vector parse we can hack the parser interface to allow templating the underlying type by static instantiating the rule definition inside the parse_rule itself.
@@ -115,25 +130,16 @@ namespace parsers{
     return def_.parse(first, last, context, unused, attr);
   }
   
-  //Rule for std::string
-  class string_rule_{
-    template <typename Iterator, typename Exception, typename Context>
-    x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){
-      return parser_tools::on_error("string_rule",first,last,x,context);
-    }
-  };
-  
   auto const quoted_string = x3::lexeme['"' > *(x3::char_ - '"') > '"'];
-  x3::rule<string_rule_, std::string> const string_rule = "string_rule";
+  x3::rule<struct string_rule_, std::string> const string_rule = "string_rule";
   auto const string_rule_def = quoted_string[parser_tools::set_equals];
   BOOST_SPIRIT_DEFINE(string_rule);
-  
-  template<>
-  struct parser<std::string>{
-    decltype( string_rule ) &parse;
-    parser(): parse(string_rule){}
-  };
+  DEF_CUSTOM_PARSER(std::string, string_rule);
 
+  auto const complexD_rule_def = x3::no_skip[*x3::lit(' ') > x3::double_[parser_tools::set_reim<double,0>()] > x3::lit(' ') > x3::double_[parser_tools::set_reim<double,1>()]];
+  x3::rule<struct complexD_, std::complex<double> > const complexD_rule = "complexD_rule";
+  BOOST_SPIRIT_DEFINE(complexD_rule);
+  DEF_CUSTOM_PARSER(std::complex<double>, complexD_rule);
 };
 
 
