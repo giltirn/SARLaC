@@ -48,7 +48,7 @@ namespace parser_tools{
   }
   template<>
   void _parser_output_print<bool>::write(std::ostream &os) const{
-    os << val ? "true" : "false";
+    os << (val ? "true" : "false");
   }
 
   

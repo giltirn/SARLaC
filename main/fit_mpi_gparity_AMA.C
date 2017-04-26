@@ -55,6 +55,7 @@ struct Args{
 #define STRUCT_ARGS ARGS_MEMBERS
 #include<struct_gen.incl>
 
+  Args(): traj_start(0), traj_inc(1), traj_lessthan(2){}
 };
 #define STRUCT_TYPE Args
 #define STRUCT_ARGS ARGS_MEMBERS
