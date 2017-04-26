@@ -2,21 +2,43 @@
 #define _CPSFIT_PLOT_H
 
 #include <boost/python.hpp>
+#include <boost/format.hpp>
 #include <map>
 #include <sstream>
+
+enum SetType{ DataSetType, ErrorBandType };
 
 class MatPlotLibInterface{
 public:
   typedef boost::python::dict kwargsType;
-
+  typedef std::pair<boost::python::object,SetType> handleType;
 private:  
   boost::python::object Figure;
   boost::python::object FigureCanvas;
 
+  boost::python::object patches;
   boost::python::object plt;
   boost::python::object figure;
   boost::python::object axes;
   boost::python::object canvas;
+
+  std::vector<handleType> leg_handles;
+  std::vector<std::string> legends;
+
+  boost::python::object toHex(const boost::python::object &r, const boost::python::object &g, const boost::python::object &b){
+    double rcd = boost::python::extract<double>(r);
+    double gcd = boost::python::extract<double>(g);
+    double bcd = boost::python::extract<double>(b);
+    unsigned int rc(rcd);
+    unsigned int gc(gcd);
+    unsigned int bc(bcd);
+    
+    //std::ostringstream os; os << boost::format("#%02x%02x%02x") % rc % gc % bc;
+    char buf[100];
+    sprintf(buf,"#%02x%02x%02x",rc,gc,bc);    
+    return boost::python::object(buf);
+  }
+  
 public:
   MatPlotLibInterface(){
     using namespace boost::python;
@@ -31,7 +53,8 @@ public:
       FigureCanvas = object(handle<>(PyImport_ImportModule("matplotlib.backends.backend_pdf"))).attr("FigureCanvas");
 
       plt = import("matplotlib.pyplot");
-      
+      patches = import("matplotlib.patches");
+	
       figure = Figure();
       axes = figure.attr("add_subplot")(111);
       canvas = FigureCanvas(figure);
@@ -51,7 +74,7 @@ public:
   }
 
   template<typename Data>
-  void plotData(const Data &data){
+  handleType plotData(const Data &data){
     boost::python::dict kwargs;
     return plotData(data,kwargs);
   }
@@ -65,7 +88,7 @@ public:
   //double dym(const int),
   //double dyp(const int)
   template<typename Data>
-  void plotData(const Data &data, boost::python::dict &kwargs ){
+  handleType plotData(const Data &data, boost::python::dict &kwargs){
     using namespace boost::python;
     try {
       //Default arguments if not set
@@ -154,6 +177,8 @@ public:
 	if(!kwargs.has_key("markeredgewidth"))
 	  s.attr("set_markeredgewidth")(1.25);
       }
+
+      return handleType(plotset, DataSetType);
       
     } catch( error_already_set ) {
       PyErr_Print();
@@ -162,7 +187,7 @@ public:
 
 
   template<typename Band>
-  void errorBand(const Band &band){
+  handleType errorBand(const Band &band){
     boost::python::dict kwargs;
     return errorBand(band,kwargs);
   }
@@ -173,7 +198,7 @@ public:
   //double lower(const int i)
   //int size()
   template<typename Band>
-  void errorBand(const Band &band, boost::python::dict &kwargs){
+  handleType errorBand(const Band &band, boost::python::dict &kwargs){
     using namespace boost::python;
     try{
       int sz = band.size();
@@ -213,10 +238,61 @@ public:
       //   chex = ColourPallete.toHex(colour[0][0]*255,colour[0][1]*255,colour[0][2]*255)
       //         self.ax.plot(x,uy,marker='None',linestyle='--',linewidth=1.5,color=chex,zorder=boundary_lines_zorder)
       //         self.ax.plot(x,ly,marker='None',linestyle='--',linewidth=1.5,color=chex,zorder=boundary_lines_zorder)
+
+      return handleType(plotband, ErrorBandType);
     } catch( error_already_set ) {
       PyErr_Print();
     }
   }
+
+  void setLegend(const handleType &handle, const std::string &to){
+    leg_handles.push_back(handle);
+    legends.push_back(to);    
+  }
+  void createLegend(){
+    boost::python::dict kwargs;
+    createLegend(kwargs);
+  }
+  void createLegend(boost::python::dict &kwargs){
+    assert(leg_handles.size() == legends.size());
+    using namespace boost::python;
+    try{    
+      list phandles;
+      list plegends;
+      for(int i=0;i<leg_handles.size();i++){
+	if(leg_handles[i].second == ErrorBandType){
+#if 0
+	  object color = plt.attr("getp")(*make_tuple(leg_handles[i].first, "facecolors"));
+	  color = toHex(255*color[0][0],255*color[0][1],255*color[0][2]);
+	  boost::python::dict rargs; rargs["color"] = color;
+
+	  object zz = *make_tuple(0,0);	  
+	  object p = patches.attr("Rectangle")(*make_tuple(zz, 5.0, 10.0) , **rargs);
+	  phandles.append(p);
+#else
+	  phandles.append(leg_handles[i].first);
+#endif
+	}else{
+	  phandles.append(leg_handles[i].first[0]);
+	}
+	plegends.append(object(legends[i].c_str()));      
+      }
+
+      if(!kwargs.has_key("numpoints"))
+	kwargs["numpoints"] = 1;
+      if(!kwargs.has_key("shadow"))
+	kwargs["shadow"] = true;
+      if(!kwargs.has_key("fancybox"))
+	kwargs["fancybox"] = true;
+    
+      axes.attr("legend")(*make_tuple(phandles,plegends),**kwargs);
+    } catch( error_already_set ) {
+      PyErr_Print();
+    }      
+  }	   
+
+		  
+  
 };
 
 
@@ -265,22 +341,31 @@ public:
     val = os.str();
     return *this;
   }
+
+  KWargElem &operator=(const bool v){
+    val = v ? "True" : "False";
+    return *this;
+  }
   
   inline void write(std::ostream &os) const{
     os << val;
   }
 };
 
-
+template<typename T>
 struct ListPrint: public OstreamHook{
-  const std::vector<double> &lst;
-  ListPrint(const std::vector<double> &_lst): lst(_lst){}
+  const std::vector<T> &lst;
+  const std::string elem_enclose;
+  ListPrint(const std::vector<T> &_lst, const std::string _elem_enclose = ""): lst(_lst), elem_enclose(_elem_enclose){}
   void write(std::ostream &os) const{
-    os << "[";
-    for(int i=0;i<lst.size()-1; i++) os << lst[i] << ',';      
-    os << lst.back() << "]";
+    os << '[';
+    for(int i=0;i<lst.size()-1; i++) os << elem_enclose << lst[i] << elem_enclose << ',';      
+    os << elem_enclose << lst.back() << elem_enclose << ']';
   }
 };
+
+
+
 
 class PythonDataContainer{
   std::vector<double> x;
@@ -312,12 +397,12 @@ public:
 
   void write(std::ostream &os) const{
     os << set_tag << "= pyplot.DataSet()\n";
-    os << set_tag << ".x = " << ListPrint(x) << '\n';
-    os << set_tag << ".y = " << ListPrint(y) << '\n';
-    os << set_tag << ".dxm = " << ListPrint(dxm) << '\n';
-    os << set_tag << ".dxp = " << ListPrint(dxp) << '\n';
-    os << set_tag << ".dym = " << ListPrint(dym) << '\n';
-    os << set_tag << ".dyp = " << ListPrint(dyp) << "\n\n";
+    os << set_tag << ".x = " << ListPrint<double>(x) << '\n';
+    os << set_tag << ".y = " << ListPrint<double>(y) << '\n';
+    os << set_tag << ".dxm = " << ListPrint<double>(dxm) << '\n';
+    os << set_tag << ".dxp = " << ListPrint<double>(dxp) << '\n';
+    os << set_tag << ".dym = " << ListPrint<double>(dym) << '\n';
+    os << set_tag << ".dyp = " << ListPrint<double>(dyp) << "\n\n";
   }
 
   const std::string &tag() const{ return set_tag; }
@@ -347,9 +432,9 @@ public:
 
   void write(std::ostream &os) const{
     os << set_tag << "= pyplot.ErrorBand()\n";
-    os << set_tag << ".x = " << ListPrint(x) << '\n';
-    os << set_tag << ".upper = " << ListPrint(upper) << '\n';
-    os << set_tag << ".lower = " << ListPrint(lower) << '\n';
+    os << set_tag << ".x = " << ListPrint<double>(x) << '\n';
+    os << set_tag << ".upper = " << ListPrint<double>(upper) << '\n';
+    os << set_tag << ".lower = " << ListPrint<double>(lower) << '\n';
   }
 
   const std::string &tag() const{ return set_tag; }  
@@ -361,6 +446,7 @@ public:
 class MatPlotLibScriptGenerate{
 public:
   typedef std::map<std::string,KWargElem> kwargsType;
+  typedef std::pair<int,SetType> handleType;
 private:
   
   std::vector<PythonDataContainer> plotdata_sets;
@@ -369,6 +455,10 @@ private:
   std::vector<PythonErrorBandContainer> ploterrorband_sets;
   std::vector<kwargsType> ploterrorband_args;
 
+  std::vector<handleType> leg_handles;
+  std::vector<std::string> legends;
+  std::string leg_py;
+  
   struct kwargsPrint: public OstreamHook{
     const kwargsType &args;
     kwargsPrint(const kwargsType &_args): args(_args){}
@@ -390,11 +480,12 @@ public:
   //double dyp(const int)
   //int size()
   template<typename Data>
-  void plotData(const Data &data, kwargsType &kwargs = kwargsType()){
+  handleType plotData(const Data &data, kwargsType &kwargs = kwargsType()){
     std::ostringstream os; os << "dset" << plotdata_sets.size();
     plotdata_sets.push_back(PythonDataContainer());
     plotdata_sets.back().import(data, os.str());
     plotdata_args.push_back(kwargs);
+    return handleType(plotdata_sets.size()-1, DataSetType);
   }
 
   //Band is an accessor with methods:
@@ -403,11 +494,12 @@ public:
   //double lower(const int i)
   //int size()
   template<typename Band>
-  void errorBand(const Band &band, kwargsType &kwargs = kwargsType()){
+  handleType errorBand(const Band &band, kwargsType &kwargs = kwargsType()){
     std::ostringstream os; os << "band" << ploterrorband_sets.size();
     ploterrorband_sets.push_back(PythonErrorBandContainer());
     ploterrorband_sets.back().import(band, os.str());
     ploterrorband_args.push_back(kwargs);
+    return handleType(ploterrorband_sets.size()-1,ErrorBandType);
   }
   
   void write(std::ostream &os, const std::string &script_gen_filename = "plot.pdf") const{
@@ -427,6 +519,8 @@ public:
 
     for(int i=0;i<ploterrorband_sets.size();i++)
       os << "plot_" << ploterrorband_sets[i].tag() << " = " << "pyplot.plotErrorBand(ax, " << ploterrorband_sets[i].tag() << kwargsPrint(ploterrorband_args[i]) << ")\n";    
+
+    os << leg_py;
     
     os << "fig.canvas.draw()\n";
     os << "fig.savefig(\"" << script_gen_filename << "\")";
@@ -435,6 +529,45 @@ public:
     std::ofstream of(filename.c_str());
     write(of,script_gen_filename);
     of.close();
+  }
+
+  void setLegend(const handleType &handle, const std::string &to){
+    leg_handles.push_back(handle);
+    legends.push_back(to);    
+  }
+  inline void createLegend(){
+    kwargsType kwargs;
+    createLegend(kwargs);
+  }
+  
+  void createLegend(kwargsType &kwargs){
+    assert(leg_handles.size() == legends.size());
+    std::vector<std::string> handles_str;
+    
+    for(int i=0;i<leg_handles.size();i++){
+      int set_idx = leg_handles[i].first;
+      if(leg_handles[i].second == ErrorBandType){
+	const std::string pyhandle = "plot_" + ploterrorband_sets[set_idx].tag();
+	handles_str.push_back(pyhandle);
+      }else{
+	const std::string pyhandle = "plot_" + plotdata_sets[set_idx].tag() + "[0]";
+	handles_str.push_back(pyhandle);
+      }
+    }
+
+    std::ostringstream py;
+    py << "phandles = " << ListPrint<std::string>(handles_str) << '\n';
+    py << "plegends = " << ListPrint<std::string>(legends,"\"") << '\n';
+    
+    if(!kwargs.count("numpoints"))
+      kwargs["numpoints"] = 1;
+    if(!kwargs.count("shadow"))
+      kwargs["shadow"] = true;
+    if(!kwargs.count("fancybox"))
+      kwargs["fancybox"] = true;
+
+    py << "ax.legend(phandles,plegends" << kwargsPrint(kwargs) << ")\n";
+    leg_py = py.str();
   }
 };
 

@@ -332,14 +332,18 @@ int main(void){
   //typedef MatPlotLibInterface Plotter;
   Plotter mpl;
   typedef SingleTypePlotAccessor<jackknifeTimeSeriesType> PlotDataAccessor;
-  
+
+  typedef Plotter::handleType handleType;
+  typedef Plotter::kwargsType kwargsType;
+
   {
-    typename Plotter::kwargsType args; args["color"] = 'r';    
+    kwargsType args; args["color"] = 'r';    
     PlotDataAccessor datainterface(inrange_jackknife,0);
-    mpl.plotData(datainterface,args);    
+    handleType handle = mpl.plotData(datainterface,args);
+    mpl.setLegend(handle,"set 0");
   }
   {
-    typename Plotter::kwargsType args; args["color"] = 'b';    
+    kwargsType args; args["color"] = 'b';    
     PlotDataAccessor datainterface(inrange_jackknife,1);
     mpl.plotData(datainterface,args);    
   }
@@ -347,12 +351,12 @@ int main(void){
   
   {
     PlotDataAccessor datainterface(outofrange_jackknife,0);
-    typename Plotter::kwargsType args; args["hollowsymbol"] = 1; args["color"] = 'r';   
+    kwargsType args; args["hollowsymbol"] = 1; args["color"] = 'r';   
     mpl.plotData(datainterface,args);
   }
   {
     PlotDataAccessor datainterface(outofrange_jackknife,1);
-    typename Plotter::kwargsType args; args["hollowsymbol"] = 1; args["color"] = 'b';  
+    kwargsType args; args["hollowsymbol"] = 1; args["color"] = 'b';  
     mpl.plotData(datainterface,args);
   }
 
@@ -378,17 +382,19 @@ int main(void){
   
   {
     PlotDataAccessor curveinterface(fit_0,0);
-    typename Plotter::kwargsType args; args["alpha"] = 0.3; args["color"] = "r";
-    mpl.errorBand(curveinterface,args);
+    kwargsType args; args["alpha"] = 0.3; args["color"] = "r";
+    handleType handle = mpl.errorBand(curveinterface,args);
+    mpl.setLegend(handle,"fit to set 0");
   }
   {
     PlotDataAccessor curveinterface(fit_1,1);
-    typename Plotter::kwargsType args; args["alpha"] = 0.3; args["color"] = "b";
+    kwargsType args; args["alpha"] = 0.3; args["color"] = "b";
     mpl.errorBand(curveinterface,args);
   }
 
+  mpl.createLegend();
   
-  //mpl.write("test.pdf");
+  //mpl.write("plot.pdf");
   mpl.write("test.py");
 
 
