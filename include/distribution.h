@@ -64,7 +64,7 @@ protected:
 public:
   distribution(){}
   distribution(const distribution &r): _data(r._data){}
-  distribution(const int nsample): _data(nsample){}
+  explicit distribution(const int nsample): _data(nsample){}
   distribution(const int nsample, const DataType &init): _data(nsample,init){}
   distribution(distribution&& o) noexcept : _data(std::move(o._data)) { }
 
@@ -183,7 +183,7 @@ public:
   
   jackknifeDistribution(): distribution<DataType>(){}
   jackknifeDistribution(const jackknifeDistribution &r): distribution<DataType>(r){}
-  jackknifeDistribution(const int nsample): distribution<DataType>(nsample){}
+  explicit jackknifeDistribution(const int nsample): distribution<DataType>(nsample){}
   jackknifeDistribution(const int nsample, const DataType &init): distribution<DataType>(nsample,init){}
   jackknifeDistribution(jackknifeDistribution&& o) noexcept : distribution<DataType>(std::move(o)){}
 
@@ -240,7 +240,7 @@ public:
   doubleJackknifeDistribution(): distribution<jackknifeDistribution<BaseDataType> >(){}
   doubleJackknifeDistribution(const doubleJackknifeDistribution &r): distribution<jackknifeDistribution<BaseDataType> >(r){}
   
-  doubleJackknifeDistribution(const int nsample): distribution<jackknifeDistribution<BaseDataType> >(nsample){}
+  explicit doubleJackknifeDistribution(const int nsample): distribution<jackknifeDistribution<BaseDataType> >(nsample){}
   doubleJackknifeDistribution(const int nsample, const DataType &init): distribution<jackknifeDistribution<BaseDataType> >(nsample,init){}
   doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : distribution<jackknifeDistribution<BaseDataType> >(std::move(o)){}
 
