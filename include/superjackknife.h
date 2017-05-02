@@ -42,7 +42,6 @@ template<typename _DataType>
 class superJackknifeDistribution{
 public:
   typedef _DataType DataType;
-  typedef superJackknifeDistribution<DataType> Generic_ET_base_type;
 protected:
   std::vector< jackknifeDistribution<DataType> > ens_jacks;
   DataType avg;
@@ -69,13 +68,15 @@ public:
   superJackknifeDistribution(const superJackknifeDistribution &r): layout(r.layout), ens_jacks(r.ens_jacks), avg(r.avg){}
   superJackknifeDistribution(superJackknifeDistribution&& o) noexcept : layout(o.layout), ens_jacks(std::move(o.ens_jacks)), avg(o.avg){ }
 
-  template<typename Expr, IS_EXPRESSION_WITH_GENERIC_BASE_TYPE(Expr, superJackknifeDistribution<DataType>, superJackknifeDistribution<DataType>) > \
-  superJackknifeDistribution(const Expr &e){    
-    layout = &e.getLayout();
+  typedef superJackknifeDistribution<DataType> ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,superJackknifeDistribution<DataType> >::value, int>::type = 0>
+  superJackknifeDistribution(U&& expr){
+    layout = expr.common_properties();
     ens_jacks.resize(layout->nEnsembles());
     for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i) ); 
-    for(int i=0;i<this->size();i++) this->sample(i) = e.sample(i);
-    avg = e.mean();
+    
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+    avg = expr[-1];
   }
   
   superJackknifeDistribution & operator=(const superJackknifeDistribution &r){ layout = r.layout; ens_jacks = r.ens_jacks; avg = r.avg; return *this; }
@@ -89,8 +90,9 @@ public:
     return ens_jacks[ layout->sampleMap(idx).first ].sample( layout->sampleMap(idx).second );
   }
 
-  DataType mean() const{ return avg; }
-
+  const DataType & mean() const{ return avg; }
+  DataType &mean(){ return avg; }
+  
   DataType standardError() const{
     DataType v = 0;
     for(int i=0;i<ens_jacks.size();i++){
@@ -119,101 +121,12 @@ public:
   const superJackknifeLayout & getLayout() const{ return *layout; }
 };
 
-
-
-
-
-
-#define DEF_SJACK_BINOP(CLASS, OP, OP_ACTION_AB, OP_ACTION_MEAN)			\
-  template<typename T, typename U, BASE_TYPES_EQUAL_TO(T,U,superJackknifeDistribution<typename T::DataType>) > \
-class CLASS{ \
-public: \
-  typedef typename T::Generic_ET_base_type Generic_ET_base_type; \
-  typedef typename T::DataType DataType; \
-  T const& a; \
-  U const& b; \
-  CLASS(const T &aa, const U &bb): a(aa), b(bb){ assert(&a.getLayout() == &b.getLayout()); } \
-  \
-  inline auto sample(const int i) const ->decltype(OP_ACTION_AB){ return OP_ACTION_AB; } \
-  inline auto mean() const ->decltype(OP_ACTION_MEAN){ return OP_ACTION_MEAN; } \
-  inline int size() const{ return a.size(); } \
-  inline const superJackknifeLayout & getLayout() const{ return a.getLayout(); } \
-}; \
-\
-template<typename T, typename U, BASE_TYPES_EQUAL_TO(T,U,superJackknifeDistribution<typename T::DataType>) >  \
-CLASS<T,U> OP(const T &a, const U &b){		\
-  return CLASS<T,U>(a,b); \
-}  
-
-DEF_SJACK_BINOP(ETsjackPlus, operator+, a.sample(i) + b.sample(i), a.mean() + b.mean() );
-DEF_SJACK_BINOP(ETsjackMinus, operator-, a.sample(i) - b.sample(i), a.mean() - b.mean() );
-DEF_SJACK_BINOP(ETsjackTimes, operator*, a.sample(i)*b.sample(i), a.mean()*b.mean() );
-DEF_SJACK_BINOP(ETsjackDivide, operator/, a.sample(i)/b.sample(i), a.mean()/b.mean() );
-
-
-
-
-
-//The below are broken into a base and 2 ops because it doesn't always make sense to perform a vector-scalar binop in both orders  eg  vector/scalar but not scalar/vector
-
-//vector-scalar type
-#define DEF_SJACK_BINOP_VS_BASE(CLASS, OP, OP_ACTION_AB, OP_ACTION_MEAN) \
-template<typename T, typename U, BASE_TYPE_EQUAL_TO_VECTORSCALAR(T,U,superJackknifeDistribution<typename T::DataType>) > \
-class CLASS{ \
-public: \
-  typedef typename T::Generic_ET_base_type Generic_ET_base_type; \
-  typedef typename T::DataType DataType; \
-  T const& a; \
-  U const& b; \
-  CLASS(const T &aa, const U &bb): a(aa), b(bb){ } \
-  \
-  inline auto sample(const int i) const ->decltype(OP_ACTION_AB){ return OP_ACTION_AB; } \
-  inline auto mean() const ->decltype(OP_ACTION_MEAN){ return OP_ACTION_MEAN; } \
-  inline int size() const{ return a.size(); } \
-  inline const superJackknifeLayout & getLayout() const{ return a.getLayout(); } \
+template<typename A>
+struct getElem<superJackknifeDistribution<A> >{
+  static inline auto elem(const superJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.mean() : v.sample(i); }
+  static inline auto elem(superJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.mean() : v.sample(i); }
+  static inline superJackknifeLayout const* common_properties(const superJackknifeDistribution<A> &v){ return &v.getLayout(); }
 };
-
-//T is vector-type, U is scalar type
-#define DEF_SJACK_BINOP_VS(CLASS,OP)		     \
-template<typename T, typename U, BASE_TYPE_EQUAL_TO_VECTORSCALAR(T,U,superJackknifeDistribution<typename T::DataType>)>  \
-CLASS<T,U> OP(const T &a, const U &b){		\
-  return CLASS<T,U>(a,b); \
-}
-
-//T is scalar-type, U is vector type
-#define DEF_SJACK_BINOP_SV(CLASS,OP)		     \
-template<typename T, typename U, BASE_TYPE_EQUAL_TO_VECTORSCALAR(U,T,superJackknifeDistribution<typename U::DataType>) >  \
-CLASS<U,T> OP(const T &a, const U &b){		\
-  return CLASS<U,T>(b,a); \
-}
-
-DEF_SJACK_BINOP_VS_BASE( ETsjackScalarMult, operator*, a.sample(i)*b, a.mean()*b);
-DEF_SJACK_BINOP_VS(ETsjackScalarMult, operator*);
-DEF_SJACK_BINOP_SV(ETsjackScalarMult, operator*);
-DEF_SJACK_BINOP_VS_BASE( ETsjackScalarDiv, operator/, a.sample(i)/b, a.mean()/b);
-DEF_SJACK_BINOP_VS( ETsjackScalarDiv, operator/); 
-
-
-#define DEF_SJACK_UNOP(CLASS, OP, OP_ACTION, OP_ACTION_MEAN)				\
-template<typename T, BASE_TYPE_EQUAL_TO_UNOP(T,superJackknifeDistribution<typename T::DataType>) > \
-class CLASS{ \
-public: \
-  typedef typename T::Generic_ET_base_type Generic_ET_base_type; \
-  typedef typename T::DataType DataType;			 \
-  T const& a; \
-  CLASS(const T &aa): a(aa){ } \
-  \
-  inline auto sample(const int i) const ->decltype(OP_ACTION){ return OP_ACTION; } \
-  inline auto mean() const ->decltype(OP_ACTION_MEAN){ return OP_ACTION_MEAN; } \
-  inline int size() const{ return a.size(); } \
-  inline const superJackknifeLayout & getLayout() const{ return a.getLayout(); } \
-}; \
-template<typename T, BASE_TYPE_EQUAL_TO_UNOP(T,superJackknifeDistribution<typename T::DataType>) >  \
-CLASS<T> OP(const T &a){		\
-  return CLASS<T>(a); \
-}
-
-DEF_SJACK_UNOP( ETsjackSqrt, sqrt, sqrt(a.sample(i)), sqrt(a.mean()) );
 
 
 #endif

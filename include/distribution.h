@@ -11,7 +11,7 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 
-#include<distribution_ET.h>
+#include<generic_ET.h>
 #include<distribution_print.h>
 
 template<typename T>
@@ -52,7 +52,6 @@ template<typename _DataType>
 class distribution{
 public:
   typedef _DataType DataType;
-  typedef distribution<DataType> ET_base_type;
 protected:  
   std::vector<DataType> _data;
 
@@ -68,12 +67,7 @@ public:
   distribution(const int nsample, const DataType &init): _data(nsample,init){}
   distribution(distribution&& o) noexcept : _data(std::move(o._data)) { }
 
-  template<typename Expr, IS_EXPRESSION_WITH_SAME_BASE_TYPE(Expr, distribution<DataType>)>
-  distribution(const Expr &e): _data(e.size()){
-    for(int i=0;i<_data.size();i++)
-      _data[i] = e.sample(i);
-  }
-
+  ENABLE_GENERIC_ET(distribution, distribution<_DataType>);
   
   distribution & operator=(const distribution &r){ _data = r._data; return *this; }
   
@@ -130,7 +124,6 @@ public:
   
 };
 
-
 template<typename _DataType>
 class jackknifeDistribution: public distribution<_DataType>{
   _DataType variance() const{ assert(0); }
@@ -142,7 +135,6 @@ class jackknifeDistribution: public distribution<_DataType>{
   }
 public:
   typedef _DataType DataType;
-  typedef jackknifeDistribution<DataType> ET_base_type;
   
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in){
@@ -187,11 +179,7 @@ public:
   jackknifeDistribution(const int nsample, const DataType &init): distribution<DataType>(nsample,init){}
   jackknifeDistribution(jackknifeDistribution&& o) noexcept : distribution<DataType>(std::move(o)){}
 
-  template<typename Expr, IS_EXPRESSION_WITH_SAME_BASE_TYPE(Expr, jackknifeDistribution<DataType>)>
-  jackknifeDistribution(const Expr &e): distribution<DataType>(e.size()){
-    for(int i=0;i<this->size();i++)
-      this->sample(i) = e.sample(i);
-  }
+  ENABLE_GENERIC_ET(jackknifeDistribution, jackknifeDistribution<_DataType>);
   
   jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
 };
@@ -208,7 +196,6 @@ class doubleJackknifeDistribution: public distribution<jackknifeDistribution<Bas
   }
 public:
   typedef jackknifeDistribution<BaseDataType> DataType;
-  typedef doubleJackknifeDistribution<BaseDataType> ET_base_type;
 
   template<typename DistributionType> //Assumed to be a raw data distribution
   void resample(const DistributionType &in){
@@ -244,11 +231,7 @@ public:
   doubleJackknifeDistribution(const int nsample, const DataType &init): distribution<jackknifeDistribution<BaseDataType> >(nsample,init){}
   doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : distribution<jackknifeDistribution<BaseDataType> >(std::move(o)){}
 
-  template<typename Expr, IS_EXPRESSION_WITH_SAME_BASE_TYPE(Expr, doubleJackknifeDistribution<BaseDataType>)>
-  doubleJackknifeDistribution(const Expr &e): distribution<jackknifeDistribution<BaseDataType> >(e.size()){
-    for(int i=0;i<this->size();i++)
-      this->sample(i) = e.sample(i);
-  }
+  ENABLE_GENERIC_ET(doubleJackknifeDistribution, doubleJackknifeDistribution<BaseDataType>);
 
   doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<distribution<jackknifeDistribution<BaseDataType> >*>(this)->operator=(r); return *this; }
 
@@ -263,8 +246,6 @@ public:
   
 };
 
-
-
-
+#include<distribution_ET.h>
 
 #endif

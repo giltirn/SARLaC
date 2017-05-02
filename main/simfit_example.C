@@ -48,6 +48,7 @@ public:
 };
 
 
+
 class Params{
 public:
   double a;
@@ -92,14 +93,32 @@ public:
 
   Params(){}
 
-  ENABLE_GENERIC_ET(Params,Params);
+  typedef Params ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,Params>::value, int>::type = 0>
+  Params(U&& expr){
+    for(int i=0;i<4;i++) (*this)(i) = expr[i];
+  }
+  
 };
+
+template<>
+struct getElem<Params>{
+  static inline auto elem(const Params &v, const int i)->decltype(v(i)){ return v(i); }
+  static inline auto elem(Params &v, const int i)->decltype(v(i)){ return v(i); }
+  static int common_properties(const Params &v){ return 0; }
+};
+
+
+
+
+
+
+
 std::ostream & operator<<(std::ostream &os, const Params &p){
   os << p.print();
   return os;
 }
 
-DEF_GENERIC_ET(Params);
 
 
 struct ParamDerivs{

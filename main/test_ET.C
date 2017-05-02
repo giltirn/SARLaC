@@ -33,6 +33,19 @@ int main(void){
     }
   }
 
+  {
+    NumericMatrix<double> m1(2, 0.);
+    m1(0,1) = 1.;
+    m1(1,0) = 1.;
+    NumericMatrix<double> m2(2, 0.);
+    m2(0,0) = 2.;
+    m2(1,1) = 2.;
+
+    NumericMatrix<double> m3 = m1 * m2;
+
+    std::cout << m1 << "\n*\n" << m2 << "\n=\n" << m3 << std::endl;
+  }
+  
   std::cout << "Normal exit\n"; std::cout.flush();
   return 0;
 }

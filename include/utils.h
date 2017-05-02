@@ -1,6 +1,9 @@
 #ifndef _UTILS_H__
 #define _UTILS_H__
 
+#include <memory>
+#include <cxxabi.h>
+
 class OstreamHook{
 public:
   virtual void write(std::ostream &) const = 0;
@@ -34,5 +37,16 @@ inline std::string subsIdx(const std::string fmt, const int idx){
   return out;
 }
 
+std::string demangle( const char* mangled_name ) {
+
+  std::size_t len = 0 ;
+  int status = 0 ;
+  std::unique_ptr< char, decltype(&std::free) > ptr(
+						    __cxxabiv1::__cxa_demangle( mangled_name, nullptr, &len, &status ), &std::free ) ;
+  return ptr.get() ;
+}
+
+template<typename T>
+inline std::string printType(){ return demangle(typeid(T).name()); }
 
 #endif

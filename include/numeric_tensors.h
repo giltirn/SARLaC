@@ -2,8 +2,7 @@
 #define _NUMERIC_TENSORS_H
 
 #include<template_wizardry.h>
-#include<numeric_tensors_ET.h>
-
+#include<generic_ET.h>
 
 template<typename Numeric>
 class NumericVector{
@@ -13,13 +12,7 @@ public:
   explicit NumericVector(const int n):v(n){}
   NumericVector(const int n, const Numeric &def):v(n,def){}
 
-  template<typename Expr, IS_EXPRESSION_WITH_VECTOR_BASE_TYPE(Expr, NumericVector<Numeric>)>
-  NumericVector(const Expr &e): v(e.size()){
-    for(int i=0;i<e.size();i++)
-      v[i] = e[i];
-  }
-  
-  typedef VectorType<Numeric> Tensor_ET_base_type;
+  ENABLE_GENERIC_ET(NumericVector, NumericVector<Numeric>);
   
   int size() const{ return v.size(); }
   
@@ -69,9 +62,14 @@ public:
   explicit NumericMatrix(const int n): m(n, std::vector<Numeric>(n)){}
   NumericMatrix(const int n, const Numeric &init): m(n, std::vector<Numeric>(n,init)){}
 
-  typedef MatrixType<Numeric> Tensor_ET_base_type;
+  typedef NumericMatrix<Numeric,InvertPolicy> ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericMatrix<Numeric,InvertPolicy> >::value, int>::type = 0>
+  NumericMatrix(U&& expr): NumericMatrix(expr.common_properties()){
+    for(int i=0;i<this->size()*this->size();i++)
+      getElem<NumericMatrix<Numeric,InvertPolicy> >::elem(*this, i) = expr[i];
+  }
   
-  int size() const{ return m.size(); }
+  inline int size() const{ return m.size(); }
   
   void resize(const int n){
     m.resize(n);
@@ -102,6 +100,8 @@ public:
   Numeric & operator()(const int i, const int j){ return m[i][j]; }
   const Numeric & operator()(const int i, const int j) const { return m[i][j]; }
 };
+
+
 
 template<typename Numeric, typename StreamType, typename std::enable_if< isStreamType<StreamType>::value, int>::type = 0> 
 StreamType & operator<<(StreamType & stream, const NumericMatrix<Numeric> &mat){
@@ -145,5 +145,8 @@ public:
   template<typename U = NumericMatrixType>
   inline typename std::enable_if< !std::is_const<U>::value, SampleType& >::type operator()(const int i, const int j){ return M(i,j).sample(sample); }
 };
+
+
+#include<numeric_tensors_ET.h>
 
 #endif

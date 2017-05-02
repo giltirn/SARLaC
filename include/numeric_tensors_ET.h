@@ -2,134 +2,71 @@
 #define _NUMERIC_TENSORS_ET_H_
 
 #include<template_wizardry.h>
+#include<generic_ET.h>
 
-template<typename T>
-struct VectorType{};
-template<typename T>
-struct MatrixType{};
-
-template<class T>
-struct is_VectorType{ enum{value = 0}; };
-
-template<class T>
-struct is_VectorType< VectorType<T> >{ enum{value = 1}; };
-
-template<class T>
-struct is_MatrixType{ enum{value = 0}; };
-
-template<class T>
-struct is_MatrixType< MatrixType<T> >{ enum{value = 1}; };
-
-
-template<class T, class Fallback = void>
-struct base_type_is_vector{ enum{ value = 0 }; };
-
-template<class T>
-struct base_type_is_vector<T, typename Void<typename T::Tensor_ET_base_type>::type >{ enum{ value = is_VectorType<typename T::Tensor_ET_base_type>::value }; };
-
-template<class T, class Fallback = void>
-struct base_type_is_matrix{ enum{ value = 0 }; };
-
-template<class T>
-struct base_type_is_matrix<T, typename Void<typename T::Tensor_ET_base_type>::type >{ enum{ value = is_MatrixType<typename T::Tensor_ET_base_type>::value }; };
-
-#define IS_EXPRESSION_WITH_VECTOR_BASE_TYPE(EXPR, ME) typename std::enable_if<  \
-  !std::is_same<EXPR,ME>::value && \
-  base_type_is_vector<EXPR>::value	   \
-  , int>::type = 0
-
-#define IS_EXPRESSION_WITH_MATRIX_BASE_TYPE(EXPR, ME) typename std::enable_if<  \
-  !std::is_same<EXPR,ME>::value && \
-  base_type_is_matrix<EXPR>::value	   \
-  , int>::type = 0
-
-//Vector binary operators
-#define TYPES_VECTOR_VECTOR(T,U) typename std::enable_if<base_type_is_vector<T>::value && base_type_is_vector<U>::value, int>::type = 0
-#define TYPES_VECTOR_SCALAR(T,U) typename std::enable_if<base_type_is_vector<T>::value && is_scalar<U>::value, int>::type = 0
-
-#define DEF_VECTOR_BINOP_VV(CLASS, OP, OP_ACTION_AB) \
-template<typename T, typename U, TYPES_VECTOR_VECTOR(T,U) > \
-class CLASS{ \
-public: \
-  typedef typename T::Tensor_ET_base_type Tensor_ET_base_type; \
-  T const& a; \
-  U const& b; \
-  CLASS(const T &aa, const U &bb): a(aa), b(bb){ assert(aa.size() == bb.size()); } \
-  \
-  inline auto operator[](const int i) const ->decltype(OP_ACTION_AB){ return OP_ACTION_AB; } \
-  inline int size() const{ return a.size(); } \
-}; \
-\
-template<typename T, typename U, TYPES_VECTOR_VECTOR(T,U) >  \
-CLASS<T,U> OP(const T &a, const U &b){		\
-  return CLASS<T,U>(a,b); \
-}  
-
-DEF_VECTOR_BINOP_VV(ETvectorPlus, operator+, a[i] + b[i]);
-DEF_VECTOR_BINOP_VV(ETvectorMinus, operator-, a[i] - b[i]);
-DEF_VECTOR_BINOP_VV(ETvectorTimes, operator*, a[i] * b[i]);
-DEF_VECTOR_BINOP_VV(ETvectorDivide, operator/, a[i] / b[i]);
-
-#define DEF_VECTOR_BINOP_VS(CLASS, OP, OP_ACTION_AB) \
-template<typename T, typename U, TYPES_VECTOR_SCALAR(T,U) > \
-class CLASS{ \
-public: \
-  typedef typename T::Tensor_ET_base_type Tensor_ET_base_type; \
-  T const& a; \
-  U const& b; \
-  CLASS(const T &aa, const U &bb): a(aa), b(bb){ } \
-  \
-  inline auto operator[](const int i) const ->decltype(OP_ACTION_AB){ return OP_ACTION_AB; } \
-  inline int size() const{ return a.size(); } \
+template<typename Numeric>
+struct disableGenericETbinOp<ETtimes, NumericVector<Numeric> >{
+  enum {value = 1};
+};
+template<typename Numeric>
+struct disableGenericETbinOp<ETdivide, NumericVector<Numeric> >{
+  enum {value = 1};
 };
 
-#define DEF_VECTOR_BINOP_VS_VOPS(CLASS,OP)		     \
-template<typename T, typename U, TYPES_VECTOR_SCALAR(T,U) >  \
-CLASS<T,U> OP(const T &a, const U &b){		\
-  return CLASS<T,U>(a,b); \
+template<typename A,typename M>
+struct getElem<NumericMatrix<A,M> >{
+  static inline auto elem(const NumericMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
+  static inline auto elem(NumericMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
+  static inline int common_properties(const NumericMatrix<A,M> &v){ return v.size(); }
+};
+template<typename Numeric,typename InvPol>
+struct disableGenericETbinOp<ETtimes, NumericMatrix<Numeric,InvPol> >{
+  enum {value = 1};
+};
+template<typename Numeric,typename InvPol>
+struct disableGenericETbinOp<ETdivide, NumericMatrix<Numeric,InvPol> >{
+  enum {value = 1};
+};
+template<typename Tag>
+struct is_NumericMatrix_tag{
+  enum {value = 0};
+};
+template<typename A, typename M>
+struct is_NumericMatrix_tag<NumericMatrix<A,M> >{
+  enum {value = 1};
+};
+
+template<typename Leaf1, typename Leaf2>
+struct ETnumericMatrixMult{
+  typedef ETleafTag ET_leaf_mark;
+  Leaf1 a;
+  Leaf2 b;
+  typedef ENABLE_IF_TWO_ET_LEAF_EQUAL_TAG(Leaf1,Leaf2, typename Leaf1::ET_tag) ET_tag;
+  
+  ETnumericMatrixMult(Leaf1 &&aa, Leaf2 &&bb): a(std::move(aa)), b(std::move(bb)){
+    assert(aa.common_properties() == bb.common_properties());
+  }
+  template<typename T>
+  static inline auto elem(const T &m, const int i, const int j)->decltype(m[0]){ return m[j + m.common_properties()*i]; }
+  
+  inline typename std::decay<decltype(a[0])>::type operator[](const int i) const{
+    typedef typename std::decay<decltype(a[0])>::type type;
+    const int size = a.common_properties();
+    const int ai = i/size; const int bi = i%size;
+    type ret = 0.;
+    for(int ci=0;ci<size;ci++)
+      ret = ret + elem(a,ai,ci) * elem(b,ci,bi);
+    return ret;
+  }
+    
+  inline decltype(a.common_properties()) common_properties() const{ return a.common_properties(); }
+};
+template<typename T,typename U,
+         typename std::enable_if<
+	   is_NumericMatrix_tag<typename std::decay<T>::type::ET_tag>::value && is_NumericMatrix_tag<typename std::decay<U>::type::ET_tag>::value
+				    , int>::type = 0>
+inline auto operator*(T &&a, U &&b)->decltype( binaryHelper<ETnumericMatrixMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b)) ) {
+  return binaryHelper<ETnumericMatrixMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b));
 }
-
-#define DEF_VECTOR_BINOP_VS_SOPV(CLASS,OP)		     \
-template<typename T, typename U, TYPES_VECTOR_SCALAR(U,T) >  \
-CLASS<U,T> OP(const T &a, const U &b){		\
-  return CLASS<U,T>(b,a); \
-}
-
-DEF_VECTOR_BINOP_VS(ETvectorScalarMult, operator*, a[i]*b);
-DEF_VECTOR_BINOP_VS_VOPS(ETvectorScalarMult, operator*);
-DEF_VECTOR_BINOP_VS_SOPV(ETvectorScalarMult, operator*);
-
-DEF_VECTOR_BINOP_VS(ETvectorScalarDivide, operator/, a[i]/b);
-DEF_VECTOR_BINOP_VS_VOPS(ETvectorScalarDivide, operator/);
-
-
-//Matrix binary operators
-#define TYPES_MATRIX_MATRIX(T,U) typename std::enable_if<base_type_is_matrix<T>::value && base_type_is_matrix<U>::value, int>::type = 0
-#define TYPES_MATRIX_SCALAR(T,U) typename std::enable_if<base_type_is_matrix<T>::value && is_scalar<U>::value, int>::type = 0
-
-
-
-//Use function model for matrix because the operations aren't as uniform as vector
-#define DEF_MATRIX_BINOP_MM(CLASS, OP, OP_ACTION_AB_FUNC) \
-template<typename T, typename U, TYPES_MATRIX_MATRIX(T,U) > \
-class CLASS{ \
-public: \
-  typedef typename T::Tensor_ET_base_type Tensor_ET_base_type; \
-  T const& a; \
-  U const& b; \
-  CLASS(const T &aa, const U &bb): a(aa), b(bb){ assert(aa.size() == bb.size()); } \
-  \
-  inline auto operator()(const int i, const int j) const ->decltype(OP_ACTION_AB_FUNC(i,j,a,b)){ return OP_ACTION_AB_FUNC(i,j,a,b); } \
-  inline int size() const{ return a.size(); } \
-}; \
-\
-template<typename T, typename U, TYPES_MATRIX_MATRIX(T,U) >  \
-CLASS<T,U> OP(const T &a, const U &b){		\
-  return CLASS<T,U>(a,b); \
-}  
-
-template<typename T,typename U>
-inline auto _mat_mat_sum(const int i, const int j, const T &a, const U &b)->decltype(a(0,0)+a(0,0)){ return a(i,j)+b(i,j); }
-DEF_MATRIX_BINOP_MM(ETmatrixPlus, operator+, _mat_mat_sum);
 
 #endif
