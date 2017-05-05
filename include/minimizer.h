@@ -189,11 +189,11 @@ class MarquardtLevenbergMinimizer{
     
     for(int i=0; i<nparam; i++)
       for(int j=0;j<nparam;j++)
-	delta(i) += inv_M(i,j)*c(j);
+	delta(i) = delta(i) + inv_M(i,j)*c(j);
 
     MINPRINT << "delta : " << delta.print() << std::endl;
     
-    parameters += delta; //must have += operator
+    parameters = parameters + delta; //must have += operator
 
     MINPRINT << "Updated parameters: "<< parameters.print() << std::endl;
     ++iter;

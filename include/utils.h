@@ -49,4 +49,9 @@ std::string demangle( const char* mangled_name ) {
 template<typename T>
 inline std::string printType(){ return demangle(typeid(T).name()); }
 
+inline void error_exit(std::ostream &msg, const int code = -1){
+  msg.flush();
+  exit(code);
+}
+
 #endif

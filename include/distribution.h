@@ -22,10 +22,10 @@ T threadedSum(const std::vector<T> &v){
   T sum[nthread]; for(int i=0;i<nthread;i++) sum[i] = 0.;
 #pragma omp parallel for
   for(int i=0;i<N;i++)
-    sum[omp_get_thread_num()] += v[i];
+    sum[omp_get_thread_num()] = sum[omp_get_thread_num()] + v[i];
 
   for(int t=1;t<nthread;t++)
-    sum[0] += sum[t];
+    sum[0] = sum[0] + sum[t];
 
   return sum[0];
 }
@@ -39,10 +39,10 @@ auto threadedSum(const Operation &op)->decltype( op(0) ){
   T sum[nthread]; for(int i=0;i<nthread;i++) sum[i] = 0.;
 #pragma omp parallel for
   for(int i=0;i<N;i++)
-    sum[omp_get_thread_num()] += op(i);
+    sum[omp_get_thread_num()] = sum[omp_get_thread_num()] + op(i);
 
   for(int t=1;t<nthread;t++)
-    sum[0] += sum[t];
+    sum[0] = sum[0] + sum[t];
 
   return sum[0];
 }
@@ -65,7 +65,7 @@ public:
   distribution(const distribution &r): _data(r._data){}
   explicit distribution(const int nsample): _data(nsample){}
   distribution(const int nsample, const DataType &init): _data(nsample,init){}
-  distribution(distribution&& o) noexcept : _data(std::move(o._data)) { }
+  distribution(distribution&& o) noexcept : _data(std::move(o._data)){}
 
   ENABLE_GENERIC_ET(distribution, distribution<_DataType>);
   
@@ -133,6 +133,7 @@ class jackknifeDistribution: public distribution<_DataType>{
   void serialize(Archive & ar, const unsigned int version){
     ar & boost::serialization::base_object<distribution<_DataType> >(*this);
   }
+  typedef distribution<_DataType> baseType;
 public:
   typedef _DataType DataType;
   
@@ -174,10 +175,10 @@ public:
   }
   
   jackknifeDistribution(): distribution<DataType>(){}
-  jackknifeDistribution(const jackknifeDistribution &r): distribution<DataType>(r){}
-  explicit jackknifeDistribution(const int nsample): distribution<DataType>(nsample){}
-  jackknifeDistribution(const int nsample, const DataType &init): distribution<DataType>(nsample,init){}
-  jackknifeDistribution(jackknifeDistribution&& o) noexcept : distribution<DataType>(std::move(o)){}
+  jackknifeDistribution(const jackknifeDistribution &r): baseType(r){}
+  explicit jackknifeDistribution(const int nsample): baseType(nsample){}
+  jackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
+  jackknifeDistribution(jackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   ENABLE_GENERIC_ET(jackknifeDistribution, jackknifeDistribution<_DataType>);
   
@@ -194,13 +195,15 @@ class doubleJackknifeDistribution: public distribution<jackknifeDistribution<Bas
   void serialize(Archive & ar, const unsigned int version){
     ar & boost::serialization::base_object<distribution<jackknifeDistribution<BaseDataType> > >(*this);
   }
+  typedef distribution<jackknifeDistribution<BaseDataType> > baseType;
 public:
   typedef jackknifeDistribution<BaseDataType> DataType;
 
   template<typename DistributionType> //Assumed to be a raw data distribution
   void resample(const DistributionType &in){
     const int N = in.size();
-    this->_data.resize(N, jackknifeDistribution<BaseDataType>(N-1));
+    this->_data.resize(N);
+    for(int i=0;i<N;i++) this->_data[i].resize(N-1);
 
     struct Op{
       const DistributionType &in;
@@ -213,7 +216,7 @@ public:
 
     const BaseDataType den(N-2);
     const BaseDataType num = BaseDataType(1.)/den;
-    #pragma omp parallel for
+#pragma omp parallel for
     for(int i=0;i<N;i++){
       int jj=0;
       for(int j=0;j<N;j++){
@@ -224,16 +227,16 @@ public:
     }
   }
 
-  doubleJackknifeDistribution(): distribution<jackknifeDistribution<BaseDataType> >(){}
-  doubleJackknifeDistribution(const doubleJackknifeDistribution &r): distribution<jackknifeDistribution<BaseDataType> >(r){}
+  doubleJackknifeDistribution(): baseType(){}
+  doubleJackknifeDistribution(const doubleJackknifeDistribution &r): baseType(r){}
   
-  explicit doubleJackknifeDistribution(const int nsample): distribution<jackknifeDistribution<BaseDataType> >(nsample){}
-  doubleJackknifeDistribution(const int nsample, const DataType &init): distribution<jackknifeDistribution<BaseDataType> >(nsample,init){}
-  doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : distribution<jackknifeDistribution<BaseDataType> >(std::move(o)){}
+  explicit doubleJackknifeDistribution(const int nsample): baseType(nsample){}
+  doubleJackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
+  doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   ENABLE_GENERIC_ET(doubleJackknifeDistribution, doubleJackknifeDistribution<BaseDataType>);
 
-  doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<distribution<jackknifeDistribution<BaseDataType> >*>(this)->operator=(r); return *this; }
+  doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
 
   static jackknifeDistribution<BaseDataType> covariance(const doubleJackknifeDistribution<BaseDataType> &a, const doubleJackknifeDistribution<BaseDataType> &b){
     assert(a.size() == b.size());
