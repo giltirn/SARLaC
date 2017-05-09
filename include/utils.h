@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <cxxabi.h>
+#include<sstream>
+#include<omp.h>
 
 class OstreamHook{
 public:
@@ -52,6 +54,13 @@ inline std::string printType(){ return demangle(typeid(T).name()); }
 inline void error_exit(std::ostream &msg, const int code = -1){
   msg.flush();
   exit(code);
+}
+
+template<typename T>
+inline T strToAny(const std::string &str){
+  T out;
+  std::stringstream os(str); os >> out;
+  return out;
 }
 
 #endif

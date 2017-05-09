@@ -4,7 +4,7 @@
 #include<cassert>
 #include<vector>
 #include<numeric_tensors.h>
-
+#include<utils.h>
 /*
   The Marquardt-Levenberg algorithm is a combination of the Gauss-Newton method and gradient descent.
   Gradient descent updates along the direction - grad(f) where f is the fitness function, and thus doesnt need the second derivatives.
@@ -59,7 +59,7 @@ public:
   }
   
   void derivatives(CostDerivativeType &derivs, CostSecondDerivativeMatrixType &second_derivs, const ParameterType &params) const{
-    assert(params.size() == fitfunc.Nparams());
+    if(params.size() != fitfunc.Nparams()) error_exit(std::cout << "Error: Expected " << printType<ParameterType>() << " of size " << fitfunc.Nparams() << ", but size is " << params.size() << std::endl);
     const int nparams = params.size();
     const int ndata = data.size();
     

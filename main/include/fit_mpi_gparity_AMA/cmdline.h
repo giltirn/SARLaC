@@ -23,6 +23,9 @@ struct CMDline{
 	load_guess = true;
 	guess_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-nthread"){
+	omp_set_num_threads(strToAny<int>(sargv[i+1]));
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

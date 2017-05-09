@@ -130,12 +130,17 @@ int main(const int argc, const char** argv){
     guess.A_PP_LW = 1e3;
     guess.m = 0.5;
   }
+  
   std::cout << "Using guess: " << guess << std::endl;
   
+  
   //Do the fit
-  FitMpi fitfunc(2*args.Lt); //FF and BB are cosh-like in 2*Lt
+  //FitMpi fitfunc(2*args.Lt); //FF and BB are cosh-like in 2*Lt
+  FitMpiFrozen fitfunc(2*args.Lt);
+  fitfunc.freeze(2,-1);
+  
   typedef sampleSeries<const filteredJackknifeTimeSeries> sampleSeriesConstType; //const access
-  typedef UncorrelatedChisqCostFunction<FitMpi, sampleSeriesConstType, double, NumericVector<double> > CostFunctionType;
+  typedef UncorrelatedChisqCostFunction<decltype(fitfunc), sampleSeriesConstType, double, NumericVector<double> > CostFunctionType;
   typedef CostFunctionType::CostType CostType;
 
   //Setup minimizer
@@ -155,8 +160,11 @@ int main(const int argc, const char** argv){
     MinimizerType fitter(costfunc, mlparams);
     
     AllFitParams &pj = params.sample(j);
-    CostType cost = fitter.fit(pj);
+    typename FitMpiFrozen::ParameterType pjr;
+    fitfunc.reduce(pjr, pj);    
+    CostType cost = fitter.fit(pjr);
     assert(fitter.hasConverged());
+    fitfunc.expand(pj,pjr);
   }
 
   std::cout << "Params: " << params.mean() << " " << params.standardError() << std::endl;
