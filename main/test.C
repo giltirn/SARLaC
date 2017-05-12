@@ -11,22 +11,17 @@
 #include <sstream>
 
 #define TEST_FIT_ARGS_MEMBERS \
-  ELEM( int, nsample ) \
-  ELEM( int, npoints ) \
-  ELEM( double, x_min ) \
-  ELEM( double, x_max )
+  ( int, nsample ) \
+  ( int, npoints ) \
+  ( double, x_min ) \
+  ( double, x_max )
 
 struct TestFitArgs{
-  
-#define STRUCT_ARGS TEST_FIT_ARGS_MEMBERS
-#include<struct_gen.incl> //you don't have to use this, instead you can define the members separately. However seeing as you have gone to the trouble of writing the ...MEMBERS definition you may as well...
+  GENERATE_MEMBERS(TEST_FIT_ARGS_MEMBERS)  //you don't have to use this, instead you can define the members separately. However seeing as you have gone to the trouble of writing the ...MEMBERS definition you may as well...
 
   //other methods here if you want
 };
-
-#define STRUCT_TYPE TestFitArgs
-#define STRUCT_ARGS TEST_FIT_ARGS_MEMBERS
-#include<parser_gen.incl>
+GENERATE_PARSER(TestFitArgs, TEST_FIT_ARGS_MEMBERS)
 
 
 

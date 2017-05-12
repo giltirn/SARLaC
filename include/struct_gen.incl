@@ -1,4 +1,0 @@
-#define ELEM(TYPE,NAME) TYPE NAME;
-STRUCT_ARGS
-#undef ELEM
-#undef STRUCT_ARGS
