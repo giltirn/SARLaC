@@ -476,26 +476,36 @@ public:
   //double dyp(const int)
   //int size()
   template<typename Data>
-  handleType plotData(const Data &data, kwargsType &kwargs = kwargsType()){
+  handleType plotData(const Data &data, kwargsType &kwargs){
     std::ostringstream os; os << "dset" << plotdata_sets.size();
     plotdata_sets.push_back(PythonDataContainer());
     plotdata_sets.back().import(data, os.str());
     plotdata_args.push_back(kwargs);
     return handleType(plotdata_sets.size()-1, DataSetType);
   }
-
+  template<typename Data>
+  inline handleType plotData(const Data &data){
+    kwargsType kwargs;
+    return plotData(data,kwargs);
+  }
+    
   //Band is an accessor with methods:
   //double x(const int i)
   //double upper(const int i)
   //double lower(const int i)
   //int size()
   template<typename Band>
-  handleType errorBand(const Band &band, kwargsType &kwargs = kwargsType()){
+  handleType errorBand(const Band &band, kwargsType &kwargs){
     std::ostringstream os; os << "band" << ploterrorband_sets.size();
     ploterrorband_sets.push_back(PythonErrorBandContainer());
     ploterrorband_sets.back().import(band, os.str());
     ploterrorband_args.push_back(kwargs);
     return handleType(ploterrorband_sets.size()-1,ErrorBandType);
+  }
+  template<typename Band>
+  inline handleType errorBand(const Band &band){
+    kwargsType kwargs;
+    return errorBand(band,kwargs);
   }
   
   void write(std::ostream &os, const std::string &script_gen_filename = "plot.pdf") const{

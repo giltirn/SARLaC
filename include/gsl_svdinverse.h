@@ -23,6 +23,10 @@ struct _svd_inverse{
     
     int size = A.size();
     assert(Ainv.size() == size);
+    if(size == 1){
+      Ainv(0,0) = 1.0/A(0,0);
+      return 0;
+    }
     int ret;
 
     std::vector< std::vector<T> > U(size, std::vector<T>(size));

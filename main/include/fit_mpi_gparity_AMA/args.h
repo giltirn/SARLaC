@@ -2,55 +2,43 @@
 #define _FIT_MPI_GPARITY_AMA_ARGS_H
 
 #define SLOPPY_EXACT_MEMBERS \
-  ELEM( std::string, sloppy_fmt )     \
-  ELEM( std::string, exact_fmt )      \
-  ELEM( bool, include_data )
+  ( std::string, sloppy_fmt )     \
+  ( std::string, exact_fmt )      \
+  ( bool, include_data )
 
 struct SloppyExact{
-#define STRUCT_ARGS SLOPPY_EXACT_MEMBERS
-#include<struct_gen.incl>
-
+  GENERATE_MEMBERS(SLOPPY_EXACT_MEMBERS)
   SloppyExact(): include_data(false){}
 };
-#define STRUCT_TYPE SloppyExact
-#define STRUCT_ARGS SLOPPY_EXACT_MEMBERS
-#include<parser_gen.incl>
-
+GENERATE_PARSER(SloppyExact,SLOPPY_EXACT_MEMBERS)
 
 #define TWOPOINTFUNCTION_MEMBERS \
-  ELEM( SloppyExact, FF_data )     \
-  ELEM( SloppyExact, BB_data )
+  ( SloppyExact, FF_data )     \
+  ( SloppyExact, BB_data )
 
 struct TwoPointFunction{
-#define STRUCT_ARGS TWOPOINTFUNCTION_MEMBERS
-#include<struct_gen.incl>
-
+  GENERATE_MEMBERS(TWOPOINTFUNCTION_MEMBERS)
 };
-#define STRUCT_TYPE TwoPointFunction
-#define STRUCT_ARGS TWOPOINTFUNCTION_MEMBERS
-#include<parser_gen.incl>
+GENERATE_PARSER(TwoPointFunction, TWOPOINTFUNCTION_MEMBERS)
 
 
 #define ARGS_MEMBERS \
-  ELEM( TwoPointFunction, PP_LW )   \
-  ELEM( TwoPointFunction, AP_LW )   \
-  ELEM( int, Lt) \
-  ELEM( int, t_min) \
-  ELEM( int, t_max) \
-  ELEM( int, traj_start ) \
-  ELEM( int, traj_inc ) \
-  ELEM( int, traj_lessthan )
+  ( TwoPointFunction, PP_LW )   \
+  ( TwoPointFunction, AP_LW )   \
+  ( int, Lt) \
+  ( int, t_min) \
+  ( int, t_max) \
+  ( int, traj_start ) \
+  ( int, traj_inc ) \
+  ( int, traj_lessthan )
 
 
 struct Args{
-#define STRUCT_ARGS ARGS_MEMBERS
-#include<struct_gen.incl>
+  GENERATE_MEMBERS(ARGS_MEMBERS)
 
-Args(): traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32){}
+  Args(): traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32){}
 };
-#define STRUCT_TYPE Args
-#define STRUCT_ARGS ARGS_MEMBERS
-#include<parser_gen.incl>
+GENERATE_PARSER(Args, ARGS_MEMBERS)
 
 
 #endif

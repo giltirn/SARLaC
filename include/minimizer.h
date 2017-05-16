@@ -9,6 +9,7 @@
 #include<complex>
 
 #include<gsl_svdinverse.h>
+#include<utils.h>
 
 struct nullstream: std::ostream {
   nullstream(): std::ios(0), std::ostream(0) {}
@@ -24,6 +25,7 @@ struct MarquardtLevenbergParameters{
   CostType delta_cost_min;
   
   int max_iter;
+  bool verbose;
   std::ostream *output;
   
   MarquardtLevenbergParameters(){
@@ -34,6 +36,7 @@ struct MarquardtLevenbergParameters{
     delta_cost_min = 1e-05;
     max_iter = 10000;
     output = &std::cout;
+    verbose = false;
   }
 };
 
@@ -73,6 +76,12 @@ class MarquardtLevenbergMinimizer{
   bool use_derivs_from_last_step;
   CostDerivativeType derivs;
   CostSecondDerivativeMatrixType second_derivs;
+
+  //Temp data
+  CostSecondDerivativeMatrixType M;
+  CostSecondDerivativeInverseMatrixType inv_M;
+  CostDerivativeType c;
+  ParameterType delta;
   
   void initialize(const ParameterType &init_parameters){
     converged = false;
@@ -90,11 +99,14 @@ class MarquardtLevenbergMinimizer{
       prefix = os.str();
     }
     prefix = prefix + "MarquardtLevenbergMinimizer: ";
-    
-#define MINPRINT if(!me) (*mlparams.output) << prefix
+
+#define MINPRINT_NOPREFIX if(mlparams.verbose && !me) (*mlparams.output)
+#define MINPRINT MINPRINT_NOPREFIX << prefix
 
     init_precision = mlparams.output->precision();
     if(!me) mlparams.output->precision(14);
+
+    delta = init_parameters;
   }
 
   void restoreEnvironment(){
@@ -126,8 +138,7 @@ class MarquardtLevenbergMinimizer{
 	  converged=true;
 	  return;
 	}else{
-	  std::cout << prefix << "lambda value of " << lambda << " has reached the maximum of " << mlparams.lambda_max << " on iteration " << iter << ", could not find minima\n"; 	  
-	  std::cout.flush(); exit(-1);
+	  error_exit(std::cout << prefix << "lambda value of " << lambda << " has reached the maximum of " << mlparams.lambda_max << " on iteration " << iter << ", could not find minima\n"); 	  
 	  //this is the end. If we let it continue it will just get stuck in a loop repeatedly trying this step
 	  //with ever increasing lambda. If we let lambda continue to grow, the changes in the parameters 
 	  //will get smaller and smaller without finding the true minima (unless lambda_max is just too small)
@@ -159,8 +170,8 @@ class MarquardtLevenbergMinimizer{
   void updateParameters(){
     const int nparam = derivs.size(); //requires a size()
      
-    CostSecondDerivativeMatrixType M = second_derivs; //requires operator()(int,int) accessor
-    CostDerivativeType c = derivs; //requires operator()(int) accessor
+    M = second_derivs; //requires operator()(int,int) accessor
+    c = derivs; //requires operator()(int) accessor
     
     for(int i=0;i<nparam;i++){
       c(i) = -0.5*c(i);
@@ -176,15 +187,13 @@ class MarquardtLevenbergMinimizer{
       }
     }
 
-    CostSecondDerivativeInverseMatrixType inv_M;
     MINPRINT << "inverting update matrix\n";
-    if(!me) (*mlparams.output) << M.print() << std::endl;
+    MINPRINT_NOPREFIX << M.print() << std::endl;
     inv_M.invert(M);
 
     MINPRINT << "inverse matrix : " << std::endl;
-    if(!me) (*mlparams.output) << inv_M.print() << std::endl;
+    MINPRINT_NOPREFIX << inv_M.print() << std::endl;
     
-    ParameterType delta(parameters);
     delta.zero();
     
     for(int i=0; i<nparam; i++)
@@ -202,9 +211,7 @@ class MarquardtLevenbergMinimizer{
   void iterate(){ //'params' is the running set of parameters
     MINPRINT << "----------------------------------------------\n";
     MINPRINT << "calculating parameters on iteration " << iter << std::endl;
-    if(iter==mlparams.max_iter){
-      std::cout << prefix << "reached max iterations\n"; std::cout.flush(); exit(-1);
-    }
+    if(iter==mlparams.max_iter) error_exit(std::cout << prefix << "reached max iterations\n");
 
     MINPRINT << "Input parameters: "<< parameters.print() << std::endl;
     MINPRINT << parameters.size() << " free parameters\n";

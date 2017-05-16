@@ -18,6 +18,15 @@
 #include <fit_mpi_gparity_AMA/read_data.h>
 #include <fit_mpi_gparity_AMA/data_manipulations.h>
 #include <fit_mpi_gparity_AMA/cmdline.h>
+#include <fit_mpi_gparity_AMA/plot.h>
+
+#ifdef USE_CALLGRIND
+#include <valgrind/callgrind.h>
+#else
+#define CALLGRIND_START_INSTRUMENTATION
+#define CALLGRIND_STOP_INSTRUMENTATION
+#define CALLGRIND_DUMP_STATS
+#endif
 
 //Fit the pion mass from a simultaneous fit to multiple pseudoscalar two-point functions using AMA
 
@@ -127,7 +136,7 @@ int main(const int argc, const char** argv){
     f >> guess;
     f.close();
   }else{
-    guess.A_PP_LW = 1e3;
+    for(int i=1;i<guess.size();i++) guess(i) = 1e3;
     guess.m = 0.5;
   }
   
@@ -137,7 +146,7 @@ int main(const int argc, const char** argv){
   //Do the fit
   //FitMpi fitfunc(2*args.Lt); //FF and BB are cosh-like in 2*Lt
   FitMpiFrozen fitfunc(2*args.Lt);
-  fitfunc.freeze(2,-1);
+  for(int i=2;i<AllFitParams::size();i++) fitfunc.freeze(i,-1);
   
   typedef sampleSeries<const filteredJackknifeTimeSeries> sampleSeriesConstType; //const access
   typedef UncorrelatedChisqCostFunction<decltype(fitfunc), sampleSeriesConstType, double, NumericVector<double> > CostFunctionType;
@@ -161,7 +170,7 @@ int main(const int argc, const char** argv){
     
     AllFitParams &pj = params.sample(j);
     typename FitMpiFrozen::ParameterType pjr;
-    fitfunc.reduce(pjr, pj);    
+    fitfunc.reduce(pjr, pj); //get the subset of parameters that aren't frozen (those that are are stored internally when freeze is called above)
     CostType cost = fitter.fit(pjr);
     assert(fitter.hasConverged());
     fitfunc.expand(pj,pjr);
@@ -169,8 +178,23 @@ int main(const int argc, const char** argv){
 
   std::cout << "Params: " << params.mean() << " " << params.standardError() << std::endl;
 
+  //Plot some nice things
+  CALLGRIND_START_INSTRUMENTATION;
+  jackknifeTimeSeriesD effmass = effectiveMass(data_j, PP_LW_data, 2*args.Lt);
+  CALLGRIND_STOP_INSTRUMENTATION;
+  CALLGRIND_DUMP_STATS;
   
-  
+  MatPlotLibScriptGenerate plotter;
+  {
+    typedef DataSeriesAccessor<jackknifeTimeSeriesD, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > Accessor;
+    typedef MatPlotLibScriptGenerate::handleType Handle;
+    Accessor a(effmass);
+    Handle ah = plotter.plotData(a);
+
+    plotter.setLegend(ah, "PP_LW");
+    plotter.createLegend();
+    plotter.write("mpi_plot.py");
+  }
     
   return 0;
 }

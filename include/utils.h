@@ -62,5 +62,9 @@ inline T strToAny(const std::string &str){
   std::stringstream os(str); os >> out;
   return out;
 }
+template<typename T>
+inline std::string anyToStr(const T &p){
+  std::ostringstream os; os << p; return os.str();
+}
 
 #endif

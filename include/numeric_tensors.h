@@ -72,6 +72,7 @@ public:
   inline int size() const{ return m.size(); }
   
   void resize(const int n){
+    if(m.size() == n) return;
     m.resize(n);
     for(int i=0;i<n;i++)
       m[i].resize(n);      
