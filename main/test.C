@@ -185,6 +185,7 @@ int main(void){
   }
     
   //Plot result
+#ifdef HAVE_PYTHON
   MatPlotLibInterface mpl;
   typedef DataSeriesAccessor<JackknifeSeriesType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistribution<double> > > PlotDataAccessor;
   {
@@ -222,9 +223,8 @@ int main(void){
   mpl.errorBand(curveinterface,args);
   
   //mpl.plotData(curveinterface);
-  
-  
   mpl.write("test.pdf");
+#endif
   
   std::cout << "Normal exit\n"; std::cout.flush();
   return 0;

@@ -1,10 +1,31 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* define if the Boost library is available */
+#undef HAVE_BOOST
+
+/* Define to 1 if you have the <boost/format.hpp> header file. */
+#undef HAVE_BOOST_FORMAT_HPP
+
+/* Define to 1 if you have the <boost/spirit/home/x3.hpp> header file. */
+#undef HAVE_BOOST_SPIRIT_HOME_X3_HPP
+
+/* Define to 1 if you have the `fesetround' function. */
+#undef HAVE_FESETROUND
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `pow' function. */
+#undef HAVE_POW
+
+/* Use Python */
+#undef HAVE_PYTHON
+
+/* Define to 1 if you have the `rint' function. */
+#undef HAVE_RINT
 
 /* Define to 1 if you have the `sqrt' function. */
 #undef HAVE_SQRT
@@ -68,3 +89,6 @@
 #ifndef __cplusplus
 #undef inline
 #endif
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#undef size_t

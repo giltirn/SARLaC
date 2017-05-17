@@ -1,13 +1,17 @@
 #ifndef _CPSFIT_PLOT_H
 #define _CPSFIT_PLOT_H
 
-#include <boost/python.hpp>
 #include <boost/format.hpp>
 #include <map>
 #include <sstream>
 #include <utils.h>
+#include <config.h>
 
 enum SetType{ DataSetType, ErrorBandType };
+
+
+#ifdef HAVE_PYTHON
+#include <boost/python.hpp>
 
 class MatPlotLibInterface{
 public:
@@ -304,6 +308,7 @@ public:
   
 };
 
+#endif
 
 class KWargElem: public OstreamHook{
   std::string val;

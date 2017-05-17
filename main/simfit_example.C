@@ -347,8 +347,13 @@ int main(void){
   std::cout << "Params: " << params.mean() << " " << params.standardError() << std::endl;
 
   //Plot result
-  //typedef MatPlotLibScriptGenerate Plotter;  
+#define USE_MPL_INTERFACE
+#if defined(HAVE_PYTHON) && defined(USE_MPL_INTERFACE)
   typedef MatPlotLibInterface Plotter;
+#else
+  typedef MatPlotLibScriptGenerate Plotter;  
+#endif
+  
   Plotter mpl;
   typedef SingleTypePlotAccessor<jackknifeTimeSeriesType> PlotDataAccessor;
 
