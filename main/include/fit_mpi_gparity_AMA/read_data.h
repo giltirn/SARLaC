@@ -32,6 +32,7 @@ namespace configData_grammar{
 };
 
 std::istream & operator>>(std::istream &is, configData &s){
+#if 0
   namespace ascii = boost::spirit::x3::ascii;
   namespace x3 = boost::spirit::x3;
   
@@ -44,6 +45,18 @@ std::istream & operator>>(std::istream &is, configData &s){
   if(!r){
     throw std::runtime_error("Parsing ConfigData failed\n");
   }
+#else
+
+  const int nelems = s.getLt()*s.getLt();
+  int i,j;
+  double imag;
+  for(int e=0;e<nelems;e++){
+    if(!(is >> i >> j)) error_exit(std::cout << "configData failed to read indices for config" << s.conf << "\n");
+    double &to = s.all_data->operator()(i,j).sample(s.conf);
+    if(!(is >> to >> imag)) error_exit(std::cout << "configData failed to read indices for config " << s.conf << "\n");
+  }
+
+#endif
   return is;
 }
 
@@ -63,6 +76,8 @@ void read(distributionMatrix &exact, distributionMatrix &sloppy, const SloppyExa
     read(s, args.sloppy_fmt, traj);
   }
 }
+
+
 
 
 

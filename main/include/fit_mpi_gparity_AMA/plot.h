@@ -19,24 +19,23 @@ public:
 };
 
 
-
-
-template<typename DataSeriesType>
-jackknifeTimeSeriesD effectiveMass(const DataSeriesType &data, const DataType type, const double Lt){
+jackknifeTimeSeriesD effectiveMass(const jackknifeTimeSeriesD &data, const DataType type, const int Lt){
+  if(data.size() == 0) return jackknifeTimeSeriesD(0);
+  if(data.size() != Lt) error_exit(std::cout << "effectiveMass called with data of size " << data.size() << ". Expect 0 or Lt=" << Lt << std::endl);
+  
   const int nsample = data.value(0).size();
-  dataTypeFilter<DataSeriesType> filter(data, type);
-  dataSeries<double, jackknifeDistributionD> ratios(filter.size()-1);
-  for(int i=0;i<filter.size()-1;i++){
-    double t = filter.coord(i);
+  dataSeries<double, jackknifeDistributionD> ratios(Lt-1);
+  for(int i=0;i<Lt-1;i++){
+    double t = data.coord(i);
     assert(t == double(i));
-    assert(filter.coord(i+1) == t+1);
+    assert(data.coord(i+1) == t+1);
 
     ratios.coord(i) = t;
-    ratios.value(i) = filter.value(i)/filter.value(i+1);
+    ratios.value(i) = data.value(i)/data.value(i+1);
   }
   typedef UncorrelatedChisqCostFunction<FitEffectiveMass, dataSeries<double,double> > CostFunction;
   typedef MarquardtLevenbergMinimizer<CostFunction> MinimizerType;
-  FitEffectiveMass fiteffmass(Lt, type);
+  FitEffectiveMass fiteffmass(2*Lt, type);
   
   MarquardtLevenbergParameters<typename CostFunction::CostType> mlparams;
   mlparams.verbose = false;
@@ -64,7 +63,9 @@ jackknifeTimeSeriesD effectiveMass(const DataSeriesType &data, const DataType ty
   }
   return effmass;
 }
-  
+
+
+
 #endif
 
 

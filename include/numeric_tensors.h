@@ -11,7 +11,12 @@ public:
   NumericVector():v(){}
   explicit NumericVector(const int n):v(n){}
   NumericVector(const int n, const Numeric &def):v(n,def){}
+  NumericVector(const NumericVector &r) = default;
+  NumericVector(NumericVector &&r) = default;
 
+  NumericVector & operator=(const NumericVector &r) = default;
+  NumericVector & operator=(NumericVector &&r) = default;
+  
   ENABLE_GENERIC_ET(NumericVector, NumericVector<Numeric>);
   
   int size() const{ return v.size(); }
@@ -61,7 +66,12 @@ public:
   NumericMatrix():m(){}
   explicit NumericMatrix(const int n): m(n, std::vector<Numeric>(n)){}
   NumericMatrix(const int n, const Numeric &init): m(n, std::vector<Numeric>(n,init)){}
+  NumericMatrix(const NumericMatrix &r) = default;
+  NumericMatrix(NumericMatrix &&r) = default;
 
+  NumericMatrix & operator=(const NumericMatrix &r) = default;
+  NumericMatrix & operator=(NumericMatrix &&r) = default;
+  
   typedef NumericMatrix<Numeric,InvertPolicy> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericMatrix<Numeric,InvertPolicy> >::value, int>::type = 0>
   NumericMatrix(U&& expr): NumericMatrix(expr.common_properties()){

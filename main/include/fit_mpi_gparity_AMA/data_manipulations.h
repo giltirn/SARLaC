@@ -69,5 +69,70 @@ public:
   }
 };
 
+distributionVector readCombine(const Args &args, const DataType type){
+  const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
+  assert(ntraj > 0);
+
+  TwoPointFunction const* fargs;
+  switch(type){
+  case PP_LW_data:
+    fargs = &args.PP_LW; break;
+  case AP_LW_data:
+    fargs = &args.AP_LW; break;
+  default:
+    error_exit(std::cout << "readCombine undefined map for type " << toStr(type) << std::endl);
+  }
+  distributionVector corrected[2];
+  int FF=0, BB=1;
+  
+  for(int fb=0;fb<2;fb++){
+    bool include_data = fb == FF ? fargs->FF_data.include_data : fargs->BB_data.include_data;
+    if(!include_data) continue;
+
+    const SloppyExact &se = fb == FF ? fargs->FF_data : fargs->BB_data;
+    
+    distributionMatrix exact_data(args.Lt, distributionD(ntraj));
+    distributionMatrix sloppy_data(args.Lt, distributionD(ntraj));
+
+#pragma omp parallel for
+    for(int i=0;i<ntraj;i++){
+      const int c = args.traj_start + i*args.traj_inc;
+      read(exact_data, sloppy_data, se, c, i);
+    }
+
+    if(fb == BB){
+      exact_data = timeReflect(exact_data);
+      sloppy_data = timeReflect(sloppy_data);
+    }
+    
+    distributionVector sloppy_avg;
+    sloppy_avg = sourceTimeSliceAverage(sloppy_data);
+
+    distributionVector correction = computeAMAcorrection(sloppy_data, exact_data);
+
+    corrected[fb] = sloppy_avg + correction;
+  }
+  distributionVector out;
+  if(fargs->FF_data.include_data && fargs->BB_data.include_data) return (corrected[FF] + corrected[BB])/2.;
+  else if(fargs->FF_data.include_data) return corrected[FF];
+  else return corrected[BB];
+}
+
+
+
+jackknifeTimeSeriesD resampleVector(const distributionVector &data, const int Lt){
+  jackknifeTimeSeriesD out;
+  if(data.size() == 0) return out;
+  else if(data.size() != Lt) error_exit(std::cout << "resample called on data vector of size " << data.size() << ". Expected 0 or Lt=" << Lt << std::endl);
+
+  out.resize(Lt);
+  for(int t=0;t<Lt;t++){
+    out.value(t).resample(data[t]);
+    out.coord(t) = t;
+  }
+  return out;
+}
+
+
 
 #endif

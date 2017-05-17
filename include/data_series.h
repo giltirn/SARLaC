@@ -11,7 +11,7 @@ private:
   std::vector<std::pair<GeneralizedCoordinate, DataType> > series;
 public:
   dataSeries(){}
-  dataSeries(const int n): series(n){}
+  explicit dataSeries(const int n): series(n){}
   dataSeries(const int n, const int samples): series(n, std::pair<GeneralizedCoordinate,DataType>(GeneralizedCoordinate(), DataType(samples)) ){}; 
 
   inline void resize(const int n){ series.resize(n); }
