@@ -263,7 +263,7 @@ int main(void){
   double sigma_a = 0.7*sqrt(nsample);
   double sigma_b = 1.3*sqrt(nsample);
   
-  publicationPrint printer;
+  publicationPrint<> printer;
 
   typedef dataSeries<Coord, distributionD> rawTimeSeriesType;
 

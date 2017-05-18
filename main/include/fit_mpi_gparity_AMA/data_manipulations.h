@@ -120,8 +120,8 @@ distributionVector readCombine(const Args &args, const DataType type){
 
 
 
-jackknifeTimeSeriesD resampleVector(const distributionVector &data, const int Lt){
-  jackknifeTimeSeriesD out;
+jackknifeTimeSeriesType resampleVector(const distributionVector &data, const int Lt){
+  jackknifeTimeSeriesType out;
   if(data.size() == 0) return out;
   else if(data.size() != Lt) error_exit(std::cout << "resample called on data vector of size " << data.size() << ". Expected 0 or Lt=" << Lt << std::endl);
 

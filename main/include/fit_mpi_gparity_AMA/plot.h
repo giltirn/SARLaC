@@ -19,12 +19,12 @@ public:
 };
 
 
-jackknifeTimeSeriesD effectiveMass(const jackknifeTimeSeriesD &data, const DataType type, const int Lt){
-  if(data.size() == 0) return jackknifeTimeSeriesD(0);
+jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const DataType type, const int Lt){
+  if(data.size() == 0) return jackknifeTimeSeriesType(0);
   if(data.size() != Lt) error_exit(std::cout << "effectiveMass called with data of size " << data.size() << ". Expect 0 or Lt=" << Lt << std::endl);
   
   const int nsample = data.value(0).size();
-  dataSeries<double, jackknifeDistributionD> ratios(Lt-1);
+  dataSeries<double, jackknifeDistributionType> ratios(Lt-1);
   for(int i=0;i<Lt-1;i++){
     double t = data.coord(i);
     assert(t == double(i));
@@ -41,14 +41,14 @@ jackknifeTimeSeriesD effectiveMass(const jackknifeTimeSeriesD &data, const DataT
   mlparams.verbose = false;
   std::vector<double> sigma_j(1,1.);
 
-  jackknifeTimeSeriesD effmass(ratios.size(), nsample);
-  publicationPrint printer;
+  jackknifeTimeSeriesType effmass(ratios.size(), nsample);
+  publicationPrint<> printer;
   printer << "Effective mass for type " << toStr(type) << "\n";
   for(int i=0;i<ratios.size();i++){
     effmass.coord(i) = ratios.coord(i);
     
 #pragma omp parallel for
-    for(int j=0;j<nsample;j++){
+    for(int j=first_sample;j<nsample;j++){
       dataSeries<double, double> rat_t_sample_j(1);
       rat_t_sample_j.coord(0) = ratios.coord(i);
       rat_t_sample_j.value(0) = ratios.value(i).sample(j);

@@ -119,7 +119,7 @@ std::string toStr(const DataType d){
 #define _ALLFITPARAMS_MEM_ACCESSOR(r,data,elem) case BOOST_PP_TUPLE_ELEM(0,elem): return BOOST_PP_TUPLE_ELEM(1,elem);
 #define _ALLFITPARAMS_MEM_SET_R(rpt,data,elem) BOOST_PP_TUPLE_ELEM(1,elem) = r;
 #define _ALLFITPARAMS_GET_INDEX(rpt,str,elem) if(str == BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1,elem))) return BOOST_PP_TUPLE_ELEM(0,elem);
-  
+#define _ALLFITPARAMS_GET_NAME(r,data,elem) case BOOST_PP_TUPLE_ELEM(0,elem): return BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1,elem));
 //    The parameter class
 struct AllFitParams{
   GENERATE_MEMBERS(ALL_FIT_PARAMS_MEMBERS)
@@ -151,6 +151,13 @@ struct AllFitParams{
   static inline int getIndex(const std::string param){
     TUPLE_SEQUENCE_FOR_EACH(_ALLFITPARAMS_GET_INDEX,param,ALL_FIT_PARAMS_ENUMS)
     error_exit(std::cout << "Error AllFitParams::getIndex  unknown parameter string \"" << param << "\"\n");
+  }
+  static inline std::string getParamName(const int idx){
+    switch(idx){
+      TUPLE_SEQUENCE_FOR_EACH(_ALLFITPARAMS_GET_NAME,,ALL_FIT_PARAMS_ENUMS)
+    default:
+      error_exit(std::cout << "Error AllFitParams::getParamName unknown index " << idx<< "\n");
+    }
   }
 };
 

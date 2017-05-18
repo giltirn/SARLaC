@@ -13,6 +13,23 @@
 #include <common_defs.h>
 #include <sstream>
 
+#define FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
+
+#ifdef FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
+constexpr int first_sample = -1;
+template<typename T>
+using jackknifeDistributionT = jackknifeCdistribution<T>;
+typedef jackknifeCdistributionD jackknifeDistributionType;
+typedef jackknifeCtimeSeriesD jackknifeTimeSeriesType;
+#else
+template<typename T>
+using jackknifeDistributionT = jackknifeDistribution<T>;
+constexpr int first_sample = 0;
+typedef jackknifeDistribution jackknifeDistributionType;
+typedef jackknifeTimeSeriesD jackknifeTimeSeriesType;
+#endif
+
+
 #include <fit_mpi_gparity_AMA/fitfunc.h>
 #include <fit_mpi_gparity_AMA/args.h>
 #include <fit_mpi_gparity_AMA/read_data.h>
@@ -29,6 +46,16 @@
 #endif
 
 //Fit the pion mass from a simultaneous fit to multiple pseudoscalar two-point functions using AMA
+template<typename DistributionType>
+class ParameterPrint: public OstreamHook{
+  int idx;
+  const DistributionType &d;
+public:
+  ParameterPrint(const DistributionType &_d, const int _idx): d(_d), idx(_idx){}  
+  void write(std::ostream &os) const{
+    os << "(" << printStats<DistributionType>::centralValue(d)(idx) << " +- " << printStats<DistributionType>::error(d)(idx) << ")";
+  }
+};
 
 int main(const int argc, const char** argv){
   Args args;
@@ -54,19 +81,19 @@ int main(const int argc, const char** argv){
   distributionVector PP_LW_raw = readCombine(args, PP_LW_data);
   distributionVector AP_LW_raw = readCombine(args, AP_LW_data);
 
-  jackknifeTimeSeriesD PP_LW_jack = resampleVector(PP_LW_raw, args.Lt);
-  jackknifeTimeSeriesD AP_LW_jack = resampleVector(AP_LW_raw, args.Lt);
+  jackknifeTimeSeriesType PP_LW_jack = resampleVector(PP_LW_raw, args.Lt);
+  jackknifeTimeSeriesType AP_LW_jack = resampleVector(AP_LW_raw, args.Lt);
   
-  publicationPrint printer;
+  publicationPrint<> printer;
 
   const int ntypes = 2;
   const DataType type_map[ntypes] = {PP_LW_data, AP_LW_data};
   const distributionVector* data_map_raw[ntypes] = {&PP_LW_raw, &AP_LW_raw};
-  const jackknifeTimeSeriesD* data_map_jack[ntypes] = {&PP_LW_jack, &AP_LW_jack};
+  const jackknifeTimeSeriesType* data_map_jack[ntypes] = {&PP_LW_jack, &AP_LW_jack};
   const int nx = ntypes * args.Lt; //t + Lt*type
 
   typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;
-  typedef dataSeries<Coord, jackknifeDistributionD> jackknifeAllData;
+  typedef dataSeries<Coord, jackknifeDistributionType> jackknifeAllData;
   
   doubleJackknifeAllData data_dj(nx, ntraj);
   jackknifeAllData data_j(nx, ntraj);
@@ -80,7 +107,7 @@ int main(const int argc, const char** argv){
     data_dj.coord(tt) = data_j.coord(tt) = Coord(t,d);
     data_dj.value(tt).resample(vraw[t]);
 
-    const jackknifeTimeSeriesD &vjack = *data_map_jack[tt / args.Lt];
+    const jackknifeTimeSeriesType &vjack = *data_map_jack[tt / args.Lt];
     assert(vjack.size() == args.Lt);  
     data_j.value(tt) = vjack.value(t);
 
@@ -103,12 +130,17 @@ int main(const int argc, const char** argv){
   const int ndata_fit = inrange_data_j.size();
     
   //Uncorrelated fit
-  typedef NumericMatrix<jackknifeDistributionD> jackknifeMatrix;
-  jackknifeMatrix cov(ndata_fit,jackknifeDistributionD(ntraj,0.));
-  std::vector<jackknifeDistributionD> sigma(ndata_fit);
+  typedef NumericMatrix<jackknifeDistributionType> jackknifeMatrix;
+  jackknifeMatrix cov(ndata_fit,jackknifeDistributionType(ntraj,0.));
+  std::vector<jackknifeDistributionType> sigma(ndata_fit);
   NumericMatrix<double> corr(ndata_fit,0.);
   for(int x=0;x<ndata_fit;x++){
+#ifdef FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
+    jackknifeDistributionD tmp = doubleJackknifeDistributionD::covariance(data_dj.value(x), data_dj.value(x));
+    cov(x,x).import(tmp);
+#else
     cov(x,x) = doubleJackknifeDistributionD::covariance(data_dj.value(x), data_dj.value(x));
+#endif
     sigma[x] = sqrt(cov(x,x));
     corr(x,x) = 1.;
   }
@@ -141,10 +173,10 @@ int main(const int argc, const char** argv){
   typedef MarquardtLevenbergMinimizer<CostFunctionType> MinimizerType;
 
   MarquardtLevenbergParameters<CostType> mlparams;
-  jackknifeDistribution<AllFitParams> params(ntraj, guess);
+  jackknifeDistributionT<AllFitParams> params(ntraj, guess);
 
 #pragma omp parallel for
-  for(int j=0;j<ntraj;j++){    
+  for(int j=first_sample;j<ntraj;j++){    
     sampleSeriesConstType dsample(inrange_data_j, j);
     std::vector<double> sigma_j(sigma.size()); for(int p=0;p<sigma.size();p++) sigma_j[p] = sigma[p].sample(j);
     CostFunctionType costfunc(fitfunc, dsample, sigma_j);
@@ -159,15 +191,18 @@ int main(const int argc, const char** argv){
     fitfunc.expand(pj,pjr);
   }
 
-  std::cout << "Params: " << params.mean() << " " << params.standardError() << std::endl;
+  std::cout << "Fit results:\n";
+  for(int i=0;i<AllFitParams::size();i++){
+    std::cout << AllFitParams::getParamName(i) << " = " << ParameterPrint<decltype(params)>(params,i) << std::endl;
+  }
 
   //Plot some nice things  
   MatPlotLibScriptGenerate plotter;
   for(int type_idx=0;type_idx<ntypes;type_idx++){
     if(data_map_jack[type_idx]->size() == 0) continue;
-    typedef DataSeriesAccessor<jackknifeTimeSeriesD, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > Accessor;
+    typedef DataSeriesAccessor<jackknifeTimeSeriesType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionType> > Accessor;
     typedef MatPlotLibScriptGenerate::handleType Handle;
-    jackknifeTimeSeriesD effmass = effectiveMass(*data_map_jack[type_idx], type_map[type_idx], args.Lt);
+    jackknifeTimeSeriesType effmass = effectiveMass(*data_map_jack[type_idx], type_map[type_idx], args.Lt);
     Accessor a(effmass);
     Handle ah = plotter.plotData(a);
     std::string nm = toStr(type_map[type_idx]);

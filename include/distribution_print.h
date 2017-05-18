@@ -34,16 +34,33 @@ class printerBase{
   }
 
 };
-class basicPrint: public printerBase<basicPrint>{
-private:
-  friend class printerBase<basicPrint>;
-  template<typename Dist>
-  void print(std::ostream &os, const Dist &d){ os << "(" << d.mean() << " +- " << d.standardError() << ")"; }
-public:
-  basicPrint(std::ostream &_os = std::cout): printerBase<basicPrint>(_os){}
+
+//Allow manual override of source of central value and error by type
+template<typename DistributionType>
+struct printStats{
+  inline static auto centralValue(const DistributionType &d)->decltype(d.mean()){ return d.mean(); }
+  inline static auto error(const DistributionType &d)->decltype(d.standardError()){ return d.standardError(); }
+};
+template<typename T>
+struct printStats<jackknifeCdistribution<T> >{
+  inline static auto centralValue(const jackknifeCdistribution<T> &d)->decltype(d.best()){ return d.best(); }
+  inline static auto error(const jackknifeCdistribution<T> &d)->decltype(d.standardError()){ return d.standardError(); }
 };
 
-class publicationPrint: public printerBase<publicationPrint>{
+
+
+template< template<typename> class ValuePolicy = printStats>
+class basicPrint: public printerBase<basicPrint<ValuePolicy> >{
+private:
+  friend class printerBase<basicPrint<ValuePolicy> >;
+  template<typename Dist>
+  void print(std::ostream &os, const Dist &d){ os << "(" << printStats<Dist>::centralValue(d) << " +- " << printStats<Dist>::error(d) << ")"; }
+public:
+  basicPrint(std::ostream &_os = std::cout): printerBase<basicPrint<ValuePolicy> >(_os){}
+};
+
+template< template<typename> class ValuePolicy = printStats>
+class publicationPrint: public printerBase<publicationPrint<ValuePolicy> >{
 public:
   enum SigFigsSource { Central, Error, Largest };
   
@@ -52,7 +69,7 @@ private:
   SigFigsSource sfsrc; //whether the sig.figs specified is based on the error or the central value
   int min_width; //pad with trailing spaces if width < min_width. Use 0 for no padding
   
-  friend class printerBase<publicationPrint>;
+  friend class printerBase<publicationPrint<ValuePolicy> >;
   template<typename Dist>
   void print(std::ostream &os_out, const Dist &d){
     // std::ios oldState(nullptr);
@@ -63,9 +80,9 @@ private:
     
     std::ios::streampos init_pos = os.tellp();
     
-    typedef decltype(d.mean()) valueType;
-    valueType mu = d.mean();
-    valueType err = d.standardError();
+    typedef decltype(ValuePolicy<Dist>::centralValue(d)) valueType;
+    valueType mu = ValuePolicy<Dist>::centralValue(d);
+    valueType err = ValuePolicy<Dist>::error(d);
 
     SigFigsSource src = sfsrc;
     if(src == Largest) src = fabs(mu) > fabs(err) ? Central : Error;
@@ -102,7 +119,7 @@ private:
     //os.copyfmt(oldState);
   }
 public:
-  publicationPrint(const int _nsf = 3, const SigFigsSource _sfsrc = Largest, std::ostream &_os = std::cout): printerBase<publicationPrint>(_os), nsf(_nsf), sfsrc(_sfsrc), min_width(0){}
+  publicationPrint(const int _nsf = 3, const SigFigsSource _sfsrc = Largest, std::ostream &_os = std::cout): printerBase<publicationPrint<ValuePolicy> >(_os), nsf(_nsf), sfsrc(_sfsrc), min_width(0){}
 
   inline void setSigFigs(const int _nsf, const SigFigsSource _sfsrc = Largest){ nsf = _nsf; sfsrc  = _sfsrc; }
   inline void setMinWidth(const int _min_width){ min_width = _min_width; }

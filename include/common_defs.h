@@ -13,6 +13,9 @@ typedef distribution<float> distributionF;
 typedef jackknifeDistribution<double> jackknifeDistributionD;
 typedef jackknifeDistribution<float> jackknifeDistributionF;
 
+typedef jackknifeCdistribution<double> jackknifeCdistributionD;
+typedef jackknifeCdistribution<float> jackknifeCdistributionF;
+
 typedef doubleJackknifeDistribution<double> doubleJackknifeDistributionD;
 typedef doubleJackknifeDistribution<float> doubleJackknifeDistributionF;
 
@@ -22,6 +25,9 @@ typedef dataSeries<int, distribution<float> > rawTimeSeriesF;
 
 typedef dataSeries<int, jackknifeDistribution<double> > jackknifeTimeSeriesD; 
 typedef dataSeries<int, jackknifeDistribution<float> > jackknifeTimeSeriesF;
+
+typedef dataSeries<int, jackknifeCdistribution<double> > jackknifeCtimeSeriesD; 
+typedef dataSeries<int, jackknifeCdistribution<float> > jackknifeCtimeSeriesF;
 
 typedef dataSeries<int, doubleJackknifeDistribution<double> > doubleJackknifeTimeSeriesD; 
 typedef dataSeries<int, doubleJackknifeDistribution<float> > doubleJackknifeTimeSeriesF;

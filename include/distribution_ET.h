@@ -22,6 +22,14 @@ struct getElem<jackknifeDistribution<A> >{
 };
 
 template<typename A>
+struct getElem<jackknifeCdistribution<A> >{
+  static inline auto elem(const jackknifeCdistribution<A> &v, const int i)->decltype(v.sample(i)){ return v.sample(i); }
+  static inline auto elem(jackknifeCdistribution<A> &v, const int i)->decltype(v.sample(i)){ return v.sample(i); }
+  static inline size_t common_properties(const jackknifeCdistribution<A> &v){ return v.size(); }
+};
+
+
+template<typename A>
 struct getElem<doubleJackknifeDistribution<A> >{
   static inline auto elem(const doubleJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return v.sample(i); }
   static inline auto elem(doubleJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return v.sample(i); }

@@ -12,7 +12,6 @@
 #include <boost/serialization/vector.hpp>
 
 #include<generic_ET.h>
-#include<distribution_print.h>
 
 template<typename T>
 T threadedSum(const std::vector<T> &v){
@@ -78,8 +77,8 @@ public:
   
   const std::vector<DataType> &sampleVector() const{ return _data; }
   
-  const DataType & sample(const int idx) const{ return _data[idx]; }
-  DataType & sample(const int idx){ return _data[idx]; }
+  inline const DataType & sample(const int idx) const{ return _data[idx]; }
+  inline DataType & sample(const int idx){ return _data[idx]; }
 
   DataType mean() const{ return threadedSum(_data)/double(_data.size()); }
 
@@ -185,6 +184,68 @@ public:
   jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
 };
 
+//A jackknife distribution that independently propagates it's central value
+template<typename _DataType>
+class jackknifeCdistribution: public jackknifeDistribution<_DataType>{
+  _DataType cen;
+  typedef jackknifeDistribution<_DataType> baseType;
+public:
+  typedef _DataType DataType;
+  
+  jackknifeCdistribution() = default;
+  jackknifeCdistribution(const jackknifeCdistribution &r) = default;
+  explicit jackknifeCdistribution(const int nsample): baseType(nsample){}
+  jackknifeCdistribution(const int nsample, const DataType &init): baseType(nsample,init), cen(init){}
+  jackknifeCdistribution(jackknifeCdistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
+
+  typedef jackknifeCdistribution<DataType> ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
+  jackknifeCdistribution(U&& expr){
+    this->resize(expr.common_properties());
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+    cen = expr[-1];
+  }
+  
+  jackknifeCdistribution & operator=(const jackknifeCdistribution &r){ static_cast<baseType*>(this)->operator=(r); cen=r.cen; return *this; }
+  
+  inline const _DataType & best() const{ return cen; }
+  inline _DataType & best(){ return cen; }
+
+  inline const DataType & sample(const int idx) const{ return idx == -1 ? this->best() : this->baseType::sample(idx); }
+  inline DataType & sample(const int idx){ return idx == -1 ? this->best() : this->baseType::sample(idx); }
+
+  template<typename DistributionType>
+  void resample(const DistributionType &in){
+    this->jackknifeDistribution<_DataType>::resample(in);
+    cen = in.mean();
+  }
+  
+#ifdef UKVALENCE_COMPAT
+  //UKvalence uses the propagated central value when computing the standard error
+  DataType standardError() const{
+    const int N = this->size();
+
+    struct Op{
+      const DataType &avg;
+      const std::vector<DataType> &data;
+      Op(const DataType &_avg, const std::vector<DataType> &_data): data(_data), avg(_avg){}
+      inline int size() const{ return data.size(); }
+      inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return tmp * tmp;  }
+    };
+    Op op(this->cen,this->_data);
+    return sqrt( threadedSum(op) * (double(N-1)/N) );
+  }
+#endif
+
+  void import(const jackknifeDistribution<DataType> &jack){
+    this->resize(jack.size());
+    for(int i=0;i<this->size();i++) this->sample(i) = jack.sample(i);
+    cen = jack.mean();
+  }
+
+};
+
+
 
 template<typename BaseDataType>
 class doubleJackknifeDistribution: public distribution<jackknifeDistribution<BaseDataType> >{
@@ -250,5 +311,5 @@ public:
 };
 
 #include<distribution_ET.h>
-
+#include<distribution_print.h>
 #endif
