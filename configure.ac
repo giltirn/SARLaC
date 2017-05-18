@@ -79,6 +79,16 @@ AC_CHECK_LIB([boost_serialization], [main], [LIBS="-lboost_serialization $LIBS"]
 
 
 #AM_CONDITIONAL([USE_PYTHON], [test "x$with_python" = "xyes"])
+
+#Check for GSL
+AC_ARG_WITH([gsl], AS_HELP_STRING([--with-gsl], [Build with GSL]),[],[with_gsl=no])
+if test "x$with_gsl" = "xno"; then
+  AC_MSG_FAILURE([GSL is required])
+elif test "x$with_gsl" != "xyes"; then
+  CPPFLAGS="-I${with_gsl}/include $CPPFLAGS"
+  LDFLAGS="-L${with_gsl}/lib $LDFLAGS"
+fi
+
 AC_CHECK_LIB([gslcblas],[main], [LIBS="-lgslcblas $LIBS"], [AC_MSG_FAILURE([Could not link to gslcblas])])
 AC_CHECK_LIB([gsl],[main], [LIBS="-lgsl $LIBS"], [AC_MSG_FAILURE([Could not link to gsl])])
 
