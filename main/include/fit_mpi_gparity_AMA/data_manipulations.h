@@ -83,6 +83,12 @@ distributionVector readCombine(const Args &args, const DataType type){
     fargs = &args.PP_LW; break;
   case AP_LW_data:
     fargs = &args.AP_LW; break;
+  case AA_LW_data:
+    fargs = &args.AA_LW; break;
+  case PP_WW_data:
+    fargs = &args.PP_WW; break;
+  case AP_WW_data:
+    fargs = &args.AP_WW; break;    
   default:
     error_exit(std::cout << "readCombine undefined map for type " << toStr(type) << std::endl);
   }

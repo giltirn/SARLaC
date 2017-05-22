@@ -6,6 +6,7 @@
 #include <sstream>
 #include <utils.h>
 #include <config.h>
+#include <distribution.h>
 
 enum SetType{ DataSetType, ErrorBandType };
 
@@ -459,6 +460,7 @@ private:
   std::vector<handleType> leg_handles;
   std::vector<std::string> legends;
   std::string leg_py;
+  std::ostringstream user; //extra python code added by user
   
   struct kwargsPrint: public OstreamHook{
     const kwargsType &args;
@@ -531,8 +533,9 @@ public:
     for(int i=0;i<ploterrorband_sets.size();i++)
       os << "plot_" << ploterrorband_sets[i].tag() << " = " << "pyplot.plotErrorBand(ax, " << ploterrorband_sets[i].tag() << kwargsPrint(ploterrorband_args[i]) << ")\n";    
 
-    os << leg_py;
+    os << user.str(); //user code
     
+    os << leg_py;    
     os << "fig.canvas.draw()\n";
     os << "fig.savefig(\"" << script_gen_filename << "\")";
   }
@@ -579,6 +582,22 @@ public:
 
     py << "ax.legend(phandles,plegends" << kwargsPrint(kwargs) << ")\n";
     leg_py = py.str();
+  }
+
+  //Access an internal stream that can be used to provide arbitrary python commands that are included in the output file
+  inline std::ostringstream & invoke(){ return user; }
+
+  void setXlabel(const std::string &to, const std::string size = "x-large"){
+    invoke() << "ax.set_xlabel(r'" << to << "',size='" << size << "')\n";
+  }
+  void setYlabel(const std::string &to, const std::string size = "x-large"){
+    invoke() << "ax.set_ylabel(r'" << to << "',size='" << size << "')\n";
+  }
+  void setXaxisBounds(const double min, const double max){
+    invoke() << "ax.set_xlim(" << min << "," << max << ")\n";
+  }
+  void setYaxisBounds(const double min, const double max){
+    invoke() << "ax.set_ylim(" << min << "," << max << ")\n";
   }
 };
 
@@ -656,6 +675,14 @@ public:
   static inline double errplus(const DistributionType &d){ return d.standardError(); }
   static inline double errminus(const DistributionType &d){ return d.standardError(); }  
 };
+template<typename T>
+class DistributionPlotAccessor<jackknifeCdistribution<T> >{
+public:
+  static inline double value(const jackknifeCdistribution<T> &d){ return d.best(); }
+  static inline double errplus(const jackknifeCdistribution<T> &d){ return d.standardError(); }
+  static inline double errminus(const jackknifeCdistribution<T> &d){ return d.standardError(); }  
+};
+
 //Coordinate accessor that relies on implicit conversion of type to double
 template<typename T>
 class ScalarCoordinateAccessor{

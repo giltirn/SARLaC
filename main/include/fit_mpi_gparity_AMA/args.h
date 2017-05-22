@@ -25,6 +25,9 @@ GENERATE_PARSER(TwoPointFunction, TWOPOINTFUNCTION_MEMBERS)
 #define ARGS_MEMBERS \
   ( TwoPointFunction, PP_LW )   \
   ( TwoPointFunction, AP_LW )   \
+  ( TwoPointFunction, AA_LW )   \
+  ( TwoPointFunction, PP_WW )   \
+  ( TwoPointFunction, AP_WW )   \
   ( int, Lt) \
   ( int, t_min) \
   ( int, t_max) \

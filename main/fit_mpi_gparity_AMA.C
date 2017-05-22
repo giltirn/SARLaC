@@ -78,19 +78,21 @@ int main(const int argc, const char** argv){
   const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   assert(ntraj > 0);
 
-  distributionVector PP_LW_raw = readCombine(args, PP_LW_data);
-  distributionVector AP_LW_raw = readCombine(args, AP_LW_data);
+  const int ntypes = 5;
+  const DataType type_map[ntypes] = {PP_LW_data, AP_LW_data, AA_LW_data, PP_WW_data, AP_WW_data};
 
-  jackknifeTimeSeriesType PP_LW_jack = resampleVector(PP_LW_raw, args.Lt);
-  jackknifeTimeSeriesType AP_LW_jack = resampleVector(AP_LW_raw, args.Lt);
+  //Read and resample the data
+  std::vector<distributionVector> raw(ntypes);
+  std::vector<jackknifeTimeSeriesType> jack(ntypes);
+  for(int i=0;i<ntypes;i++){
+    raw[i] = readCombine(args, type_map[i]);
+    jack[i] = resampleVector(raw[i], args.Lt);
+  }
   
   //publicationPrint<> printer;
   basicPrint<> printer;
 
-  const int ntypes = 2;
-  const DataType type_map[ntypes] = {PP_LW_data, AP_LW_data};
-  const distributionVector* data_map_raw[ntypes] = {&PP_LW_raw, &AP_LW_raw};
-  const jackknifeTimeSeriesType* data_map_jack[ntypes] = {&PP_LW_jack, &AP_LW_jack};
+  //Combine data and double-jackknife resample
   const int nx = ntypes * args.Lt; //t + Lt*type
 
   typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;
@@ -102,13 +104,13 @@ int main(const int argc, const char** argv){
     const int t = tt % args.Lt;
     const DataType d = type_map[tt / args.Lt];
     
-    const distributionVector &vraw = *data_map_raw[tt / args.Lt];
+    const distributionVector &vraw = raw[tt / args.Lt];
     if(vraw.size() == 0) continue;
     assert(vraw.size() == args.Lt);    
     data_dj.coord(tt) = data_j.coord(tt) = Coord(t,d);
     data_dj.value(tt).resample(vraw[t]);
 
-    const jackknifeTimeSeriesType &vjack = *data_map_jack[tt / args.Lt];
+    const jackknifeTimeSeriesType &vjack = jack[tt / args.Lt];
     assert(vjack.size() == args.Lt);  
     data_j.value(tt) = vjack.value(t);
 
@@ -216,18 +218,41 @@ int main(const int argc, const char** argv){
 
   //Plot some nice things  
   MatPlotLibScriptGenerate plotter;
+  std::string pallete[] = {
+    "#ff0000",
+    "#00ff00",
+    "#0000ff",
+    "#ff9c00",
+    "#a3007f",
+    "#00a000",
+    "#ff00ff",
+    "#00ffff",
+    "#d38d4e"};
+
+  typename MatPlotLibScriptGenerate::kwargsType plot_args;
+  
   for(int type_idx=0;type_idx<ntypes;type_idx++){
-    if(data_map_jack[type_idx]->size() == 0) continue;
+    if(jack[type_idx].size() == 0) continue;
     typedef DataSeriesAccessor<jackknifeTimeSeriesType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionType> > Accessor;
     typedef MatPlotLibScriptGenerate::handleType Handle;
-    jackknifeTimeSeriesType effmass = effectiveMass(*data_map_jack[type_idx], type_map[type_idx], args.Lt);
+    jackknifeTimeSeriesType effmass = effectiveMass(jack[type_idx], type_map[type_idx], args.Lt);
     Accessor a(effmass);
-    Handle ah = plotter.plotData(a);
+    plot_args["color"] = pallete[type_idx];
+    Handle ah = plotter.plotData(a,plot_args);
     std::string nm = toStr(type_map[type_idx]);
     nm = nm.substr(0,nm.size()-5);    
     plotter.setLegend(ah, nm);
   }
   plotter.createLegend();
+  plotter.setXlabel("$t$");
+  plotter.setYlabel("$m_{\\rm eff}(t)$");
+  plotter.setXaxisBounds(-0.2,args.Lt+0.2);
+
+  double ymid = params.mean().m;
+  double yw = params.standardError().m * 20;
+  
+  plotter.setYaxisBounds(ymid-yw, ymid+yw);
+  
   plotter.write("mpi_plot.py");
 
   
