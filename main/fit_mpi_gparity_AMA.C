@@ -84,7 +84,8 @@ int main(const int argc, const char** argv){
   jackknifeTimeSeriesType PP_LW_jack = resampleVector(PP_LW_raw, args.Lt);
   jackknifeTimeSeriesType AP_LW_jack = resampleVector(AP_LW_raw, args.Lt);
   
-  publicationPrint<> printer;
+  //publicationPrint<> printer;
+  basicPrint<> printer;
 
   const int ntypes = 2;
   const DataType type_map[ntypes] = {PP_LW_data, AP_LW_data};
@@ -111,7 +112,7 @@ int main(const int argc, const char** argv){
     assert(vjack.size() == args.Lt);  
     data_j.value(tt) = vjack.value(t);
 
-    printer << "Resampled data " << data_j.coord(tt) << "  " << data_j.value(tt) << std::endl;
+    //printer << "Resampled data " << data_j.coord(tt) << "  " << data_j.value(tt) << std::endl;
   }
 
   //Setup fit range
@@ -136,14 +137,23 @@ int main(const int argc, const char** argv){
   NumericMatrix<double> corr(ndata_fit,0.);
   for(int x=0;x<ndata_fit;x++){
 #ifdef FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
-    jackknifeDistributionD tmp = doubleJackknifeDistributionD::covariance(data_dj.value(x), data_dj.value(x));
+    jackknifeDistributionD tmp = doubleJackknifeDistributionD::covariance(inrange_data_dj.value(x), inrange_data_dj.value(x));
     cov(x,x).import(tmp);
 #else
-    cov(x,x) = doubleJackknifeDistributionD::covariance(data_dj.value(x), data_dj.value(x));
+    cov(x,x) = doubleJackknifeDistributionD::covariance(inrange_data_dj.value(x), inrange_data_dj.value(x));
 #endif
+    cov(x,x) = cov(x,x) * double(ntraj-1); //properly normalize
+
     sigma[x] = sqrt(cov(x,x));
     corr(x,x) = 1.;
+    printer << inrange_data_dj.coord(x) << " cov " << cov(x,x) << " sigma " << sigma[x] << std::endl; 
   }
+
+  std::cout << "Data included in fit:\n";
+  for(int i=0;i<ndata_fit;i++){
+    printer << inrange_data_j.coord(i) << "  " << inrange_data_j.value(i) << " with sigma " << sigma[i] << std::endl;
+  }
+
 
   //Load guesses if applicable
   AllFitParams guess;
@@ -175,6 +185,10 @@ int main(const int argc, const char** argv){
   MarquardtLevenbergParameters<CostType> mlparams;
   jackknifeDistributionT<AllFitParams> params(ntraj, guess);
 
+  jackknifeDistributionT<CostType> chisq(ntraj);
+  jackknifeDistributionT<CostType> chisqperdof(ntraj);
+  int dof = ndata_fit - fitfunc.Nparams();
+
 #pragma omp parallel for
   for(int j=first_sample;j<ntraj;j++){    
     sampleSeriesConstType dsample(inrange_data_j, j);
@@ -189,7 +203,11 @@ int main(const int argc, const char** argv){
     CostType cost = fitter.fit(pjr);
     assert(fitter.hasConverged());
     fitfunc.expand(pj,pjr);
+
+    chisq.sample(j) = cost;
+    chisqperdof.sample(j) = cost/dof;
   }
+  printer << "chi^2 = " << chisq << "\nchi^2/dof = " << chisqperdof << " (" << dof << " degrees of freedom)\n";
 
   std::cout << "Fit results:\n";
   for(int i=0;i<AllFitParams::size();i++){

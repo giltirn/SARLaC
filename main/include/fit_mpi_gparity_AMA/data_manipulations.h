@@ -35,11 +35,15 @@ distributionVector computeAMAcorrection(const distributionMatrix &sloppy, const 
 }
 
 distributionMatrix timeReflect(const distributionMatrix &m){
+  //Boundary is *at* 0. 0->Lt=0, 1->Lt-1, 2->Lt-2 ... Lt-1 -> 1    
   const int Lt = m.size();
   distributionMatrix out(Lt);
   for(int tsrc=0;tsrc<Lt;tsrc++)
-    for(int tsep=0;tsep<Lt;tsep++)
-      out(tsrc,Lt-tsep-1) = m(tsrc,tsep);
+    for(int tsep=0;tsep<Lt;tsep++){
+      //int trefl = tsep == 0 ? 0 : Lt-tsep; 
+      int trefl = (Lt - tsep) % Lt;
+      out(tsrc,trefl) = m(tsrc,tsep);
+    }
   return out;
 }
 distributionVector sourceTimeSliceAverage(const distributionMatrix &m){
@@ -82,6 +86,7 @@ distributionVector readCombine(const Args &args, const DataType type){
   default:
     error_exit(std::cout << "readCombine undefined map for type " << toStr(type) << std::endl);
   }
+  basicPrint<> printer;
   distributionVector corrected[2];
   int FF=0, BB=1;
   
@@ -111,6 +116,14 @@ distributionVector readCombine(const Args &args, const DataType type){
     distributionVector correction = computeAMAcorrection(sloppy_data, exact_data);
 
     corrected[fb] = sloppy_avg + correction;
+
+    std::string nm = (fb == FF ? "FF" : "BB");
+
+    std::cout << toStr(type) << " " << nm << " sloppy data:\n";
+    for(int t=0;t<args.Lt;t++) printer << t << " " << sloppy_avg[t] << std::endl;
+
+    std::cout << toStr(type) << " " << nm << " corrected data:\n";
+    for(int t=0;t<args.Lt;t++) printer << t << " " << corrected[fb][t] << std::endl;
   }
   distributionVector out;
   if(fargs->FF_data.include_data && fargs->BB_data.include_data) return (corrected[FF] + corrected[BB])/2.;
