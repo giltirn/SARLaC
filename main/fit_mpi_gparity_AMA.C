@@ -246,7 +246,7 @@ int main(const int argc, const char** argv){
   }
   //   Plot the fitted mass as constant
   {
-    AllFitParams mn = params.mean();
+    AllFitParams mn = params.best();
     AllFitParams err = params.standardError();
     std::vector<double> x = {double(args.t_min), double(args.t_max)};
     std::vector<double> upper = {mn.m + err.m, mn.m + err.m};
@@ -263,7 +263,7 @@ int main(const int argc, const char** argv){
   plotter.setYlabel("$m_{\\rm eff}(t)$");
   plotter.setXaxisBounds(-0.2,args.Lt+0.2);
 
-  double ymid = params.mean().m;
+  double ymid = params.best().m;
   double yw = params.standardError().m * 20;
   
   plotter.setYaxisBounds(ymid-yw, ymid+yw);

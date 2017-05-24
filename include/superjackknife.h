@@ -44,20 +44,20 @@ public:
   typedef _DataType DataType;
 protected:
   std::vector< jackknifeDistribution<DataType> > ens_jacks;
-  DataType avg;
+  DataType cen;
   superJackknifeLayout const* layout;
 
   friend class boost::serialization::access;
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version){
     ar & ens_jacks;
-    ar & avg;
+    ar & cen;
   }
 
 public:
-  superJackknifeDistribution(const superJackknifeLayout &_layout, const DataType &mean): layout(&_layout), ens_jacks(_layout.nEnsembles()){
-    for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i), mean ); 
-    avg = mean;
+  superJackknifeDistribution(const superJackknifeLayout &_layout, const DataType &_central): layout(&_layout), ens_jacks(_layout.nEnsembles()){
+    for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i), _central ); 
+    cen = _central;
   }
 
   superJackknifeDistribution(const superJackknifeLayout &_layout, const int first_ens_idx, const jackknifeDistribution<DataType> &first): superJackknifeDistribution(_layout, first.mean()) {
@@ -65,8 +65,8 @@ public:
     ens_jacks[first_ens_idx] = first;
   }
   
-  superJackknifeDistribution(const superJackknifeDistribution &r): layout(r.layout), ens_jacks(r.ens_jacks), avg(r.avg){}
-  superJackknifeDistribution(superJackknifeDistribution&& o) noexcept : layout(o.layout), ens_jacks(std::move(o.ens_jacks)), avg(o.avg){ }
+  superJackknifeDistribution(const superJackknifeDistribution &r): layout(r.layout), ens_jacks(r.ens_jacks), cen(r.cen){}
+  superJackknifeDistribution(superJackknifeDistribution&& o) noexcept : layout(o.layout), ens_jacks(std::move(o.ens_jacks)), cen(o.cen){ }
 
   typedef superJackknifeDistribution<DataType> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,superJackknifeDistribution<DataType> >::value, int>::type = 0>
@@ -76,10 +76,10 @@ public:
     for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i) ); 
     
     for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
-    avg = expr[-1];
+    cen = expr[-1];
   }
   
-  superJackknifeDistribution & operator=(const superJackknifeDistribution &r){ layout = r.layout; ens_jacks = r.ens_jacks; avg = r.avg; return *this; }
+  superJackknifeDistribution & operator=(const superJackknifeDistribution &r){ layout = r.layout; ens_jacks = r.ens_jacks; cen = r.cen; return *this; }
   
   int size() const{ return layout->nSamplesTotal(); }
   
@@ -90,8 +90,21 @@ public:
     return ens_jacks[ layout->sampleMap(idx).first ].sample( layout->sampleMap(idx).second );
   }
 
-  const DataType & mean() const{ return avg; }
-  DataType &mean(){ return avg; }
+  const DataType & best() const{ return cen; }
+  DataType &best(){ return cen; }
+
+  //This is the naive mean of the superjackknife samples. Use best for the propagated central value
+  DataType mean(){
+    DataType out(0.);
+    int total_size = 0;    
+    for(int i=0;i<ens_jacks.size();i++){
+      int sz = ens_jacks[i].size();
+      total_size += sz;
+      out = out + ens_jacks[i]*double(sz);
+    }
+    out = out / double(total_size);
+    return out;      
+  }
   
   DataType standardError() const{
     DataType v = 0;
@@ -103,7 +116,7 @@ public:
   }
 
   void setEnsembleJackknife(const int ens_idx, const jackknifeDistribution<DataType> &j){
-    assert(j.mean() == avg);
+    assert(j.best() == cen);
     assert(j.size() == layout->nSamplesEns(ens_idx));
     ens_jacks[ens_idx] = j;    
   }
@@ -123,8 +136,8 @@ public:
 
 template<typename A>
 struct getElem<superJackknifeDistribution<A> >{
-  static inline auto elem(const superJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.mean() : v.sample(i); }
-  static inline auto elem(superJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.mean() : v.sample(i); }
+  static inline auto elem(const superJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.best() : v.sample(i); }
+  static inline auto elem(superJackknifeDistribution<A> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.best() : v.sample(i); }
   static inline superJackknifeLayout const* common_properties(const superJackknifeDistribution<A> &v){ return &v.getLayout(); }
 };
 

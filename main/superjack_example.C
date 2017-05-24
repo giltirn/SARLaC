@@ -23,9 +23,9 @@ void gaussianJackknifePreciseMean(jackknifeDistributionD &d, double mean, double
 
 inline std::string print(const superJackknifeDistribution<double> &sja){
   std::ostringstream os;
-  os << "(" << sja.mean() << "," << sja.standardError() << ") = ";
+  os << "(" << sja.best() << "," << sja.standardError() << ") = ";
   for(int i=0;i<3;i++)
-    os << "[" << sja.getLayout().nSamplesEns(i) << "](" << sja.getEnsembleJackknife(i).mean() << "," << sja.getEnsembleJackknife(i).standardError() << ") ";
+    os << "[" << sja.getLayout().nSamplesEns(i) << "](" << sja.getEnsembleJackknife(i).best() << "," << sja.getEnsembleJackknife(i).standardError() << ") ";
   return os.str();
 }
 
@@ -89,13 +89,13 @@ int main(void){
   }
   {
     superJackknifeDistribution<double> sjd = sqrt(sjc);
-    double err_expect = 0.5/sqrt(sjc.mean())*sjc.standardError();
+    double err_expect = 0.5/sqrt(sjc.best())*sjc.standardError();
     std::cout << "sqrt(sjc) = " << print(sjd) << " err expect " << err_expect << std::endl;
   }
   {
     superJackknifeDistribution<double> sjd = sqrt(sjc) - sjb;
     double err_expect = sqrt(
-  			       pow(  0.5/sqrt(sjc.mean())*sjc.standardError(),  2)
+  			       pow(  0.5/sqrt(sjc.best())*sjc.standardError(),  2)
   			     + pow(  sjb.standardError(),                       2)
   			     ); 
     std::cout << "sqrt(sjc) - sjb = " << print(sjd) << " err expect " << err_expect << std::endl;

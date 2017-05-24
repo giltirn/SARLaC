@@ -82,6 +82,8 @@ public:
 
   DataType mean() const{ return threadedSum(_data)/double(_data.size()); }
 
+  inline DataType best() const{ return mean(); } //"central value" of distribution used for printing/plotting
+  
   DataType variance() const{
     const int N = _data.size();
     const DataType avg = mean();
@@ -207,9 +209,12 @@ public:
   }
   
   jackknifeCdistribution & operator=(const jackknifeCdistribution &r){ static_cast<baseType*>(this)->operator=(r); cen=r.cen; return *this; }
+
+  inline const DataType & propagatedCentral() const{ return cen; }
+  inline DataType & propagatedCentral(){ return cen; }
   
-  inline const _DataType & best() const{ return cen; }
-  inline _DataType & best(){ return cen; }
+  inline const DataType & best() const{ return propagatedCentral(); } //"central value" of distribution used for printing/plotting
+  inline DataType & best(){ return propagatedCentral(); }
 
   inline const DataType & sample(const int idx) const{ return idx == -1 ? this->best() : this->baseType::sample(idx); }
   inline DataType & sample(const int idx){ return idx == -1 ? this->best() : this->baseType::sample(idx); }

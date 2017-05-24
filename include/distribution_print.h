@@ -38,15 +38,9 @@ class printerBase{
 //Allow manual override of source of central value and error by type
 template<typename DistributionType>
 struct printStats{
-  inline static auto centralValue(const DistributionType &d)->decltype(d.mean()){ return d.mean(); }
+  inline static auto centralValue(const DistributionType &d)->decltype(d.best()){ return d.best(); }
   inline static auto error(const DistributionType &d)->decltype(d.standardError()){ return d.standardError(); }
 };
-template<typename T>
-struct printStats<jackknifeCdistribution<T> >{
-  inline static auto centralValue(const jackknifeCdistribution<T> &d)->decltype(d.best()){ return d.best(); }
-  inline static auto error(const jackknifeCdistribution<T> &d)->decltype(d.standardError()){ return d.standardError(); }
-};
-
 
 
 template< template<typename> class ValuePolicy = printStats>
