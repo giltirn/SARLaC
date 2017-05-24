@@ -230,11 +230,12 @@ int main(const int argc, const char** argv){
     "#d38d4e"};
 
   typename MatPlotLibScriptGenerate::kwargsType plot_args;
+  typedef MatPlotLibScriptGenerate::handleType Handle;
   
   for(int type_idx=0;type_idx<ntypes;type_idx++){
     if(jack[type_idx].size() == 0) continue;
     typedef DataSeriesAccessor<jackknifeTimeSeriesType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionType> > Accessor;
-    typedef MatPlotLibScriptGenerate::handleType Handle;
+
     jackknifeTimeSeriesType effmass = effectiveMass(jack[type_idx], type_map[type_idx], args.Lt);
     Accessor a(effmass);
     plot_args["color"] = pallete[type_idx];
@@ -243,6 +244,20 @@ int main(const int argc, const char** argv){
     nm = nm.substr(0,nm.size()-5);    
     plotter.setLegend(ah, nm);
   }
+  //   Plot the fitted mass as constant
+  {
+    AllFitParams mn = params.mean();
+    AllFitParams err = params.standardError();
+    std::vector<double> x = {double(args.t_min), double(args.t_max)};
+    std::vector<double> upper = {mn.m + err.m, mn.m + err.m};
+    std::vector<double> lower = {mn.m - err.m, mn.m - err.m};    
+    BandVectorAccessor band(x,upper,lower);
+    plot_args["color"] = "r";
+    plot_args["alpha"] = 0.2;
+    Handle ah = plotter.errorBand(band, plot_args);
+    plotter.setLegend(ah,"Fit");
+  }
+  
   plotter.createLegend();
   plotter.setXlabel("$t$");
   plotter.setYlabel("$m_{\\rm eff}(t)$");
