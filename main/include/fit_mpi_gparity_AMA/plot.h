@@ -43,7 +43,7 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
 
   jackknifeTimeSeriesType effmass(ratios.size(), nsample);
   publicationPrint<> printer;
-  printer << "Effective mass for type " << toStr(type) << "\n";
+  printer << "Effective mass for type " << type << "\n";
   for(int i=0;i<ratios.size();i++){
     effmass.coord(i) = ratios.coord(i);
     

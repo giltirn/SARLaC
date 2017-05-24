@@ -293,17 +293,77 @@ std::istream & operator>>(std::istream &is, NAME &s){ \
 #define GENERATE_MEMBERS(structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_MEMBER_DEFINE,   ,structmembers)
 
 
+//Similar macros for generating parser for enums
+#define _GEN_ENUM_ENUMDEF(enumname, enummembers) enum enumname { BOOST_PP_SEQ_ENUM(enummembers) };
+
+#define _GEN_ENUM_STR_E(r,data,i,elem) BOOST_PP_COMMA_IF(i) BOOST_PP_STRINGIZE(elem)
+#define _GEN_ENUM_STR(enumname, enummembers) \
+  std::string toString(const enumname d){				\
+    const static std::vector<std::string> str = { BOOST_PP_SEQ_FOR_EACH_I(_GEN_ENUM_STR_E,  ,  enummembers) }; \
+    int dd(d); \
+    if(dd < 0 || dd >= str.size()){ \
+      std::ostringstream os; os << "Unknown " BOOST_PP_STRINGIZE(enumname) " idx " << dd; \
+      return os.str(); \
+    }else return str[int(d)]; \
+  }
+
+#define _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
+  struct BOOST_PP_CAT(enumname,_match){ \
+    template <typename Context> \
+    void operator()(Context const& ctx) const{ \
+      const static std::vector<std::string> str = { BOOST_PP_SEQ_FOR_EACH_I(_GEN_ENUM_STR_E,  ,  enummembers) }; \
+      std::string tag = x3::_attr(ctx); \
+      enumname &val = x3::_val(ctx);	\
+      for(int i=0;i<str.size();i++) \
+	if(tag == str[i]){ val = (enumname)i; return; }			\
+      error_exit(std::cout << "Unknown " BOOST_PP_STRINGIZE(enumname) " : " << tag << std::endl); \
+    } \
+  };
+
+#define _GEN_ENUM_PARSER_BODY(enumname, enummembers) \
+  namespace BOOST_PP_CAT(enumname,_parser){	     \
+    namespace ascii = boost::spirit::x3::ascii; \
+    namespace x3 = boost::spirit::x3;\
+    auto const enumparse = *x3::char_; \
+    _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
+    x3::rule<class BOOST_PP_CAT(enumname,_), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
+    auto const BOOST_PP_CAT(enumname, __def) = enumparse[BOOST_PP_CAT(enumname,_match)()]; \
+    BOOST_SPIRIT_DEFINE(BOOST_PP_CAT(enumname,_)); \
+  }; \
+  namespace parsers{ \
+    template<>		   \
+    struct parser<enumname>{						\
+      decltype( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ) &parse; \
+      parser(): parse( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ){} \
+    };									\
+  };
+
+#define _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers)	      \
+  std::ostream & operator<<(std::ostream &os, const enumname s){ \
+    os << toString(s); \
+    return os; \
+  }
+
+#define _GEN_ENUM_DEFINE_ISTREAM_READ(enumname, enummembers) \
+  _PARSER_DEF_DEFINE_ISTREAM_READ(enumname, ) 
 
 
-//Some useful macros
 
-//For a sequence of tuples, output a new sequence of tuples with element 'idx' removed 
-// #define _POPI(r,idx,elem) BOOST_PP_TUPLE_REMOVE(elem,idx)
-// #define SEQPOP(seq,idx) TUPLE_SEQUENCE_FOR_EACH(
+//Define a parser for an enum
+//To use GENERATE_ENUM_PARSER( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
+#define GENERATE_ENUM_PARSER(enumname, enummembers) \
+  _GEN_ENUM_STR(enumname, enummembers)		\
+  _GEN_ENUM_PARSER_BODY(enumname, enummembers) \
+  _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers) \
+  _GEN_ENUM_DEFINE_ISTREAM_READ(enumname, enummembers)
 
-// BOOST_PP_SEQ_FOR_EACH(_POP1, idx  , BOOST_PP_CAT(_PARSER_GEN_SEQUENCE_CREATOR_0 seq,_END) )
-
-
+//Define an enum and a parser to go along with it
+//To use  GENERATE_ENUM_AND_PARSER( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
+#define GENERATE_ENUM_AND_PARSER(enumname, enummembers) \
+  _GEN_ENUM_ENUMDEF(enumname, enummembers) \
+  GENERATE_ENUM_PARSER(enumname, enummembers)
+  
+      
 
 
 

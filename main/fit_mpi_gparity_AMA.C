@@ -57,6 +57,8 @@ public:
   }
 };
 
+
+
 int main(const int argc, const char** argv){
   Args args;
   if(argc < 2){
@@ -240,7 +242,7 @@ int main(const int argc, const char** argv){
     Accessor a(effmass);
     plot_args["color"] = pallete[type_idx];
     Handle ah = plotter.plotData(a,plot_args);
-    std::string nm = toStr(type_map[type_idx]);
+    std::string nm = toString(type_map[type_idx]);
     nm = nm.substr(0,nm.size()-5);    
     plotter.setLegend(ah, nm);
   }

@@ -90,7 +90,7 @@ distributionVector readCombine(const Args &args, const DataType type){
   case AP_WW_data:
     fargs = &args.AP_WW; break;    
   default:
-    error_exit(std::cout << "readCombine undefined map for type " << toStr(type) << std::endl);
+    error_exit(std::cout << "readCombine undefined map for type " << type << std::endl);
   }
   basicPrint<> printer;
   distributionVector corrected[2];
@@ -125,10 +125,10 @@ distributionVector readCombine(const Args &args, const DataType type){
 
     std::string nm = (fb == FF ? "FF" : "BB");
 
-    std::cout << toStr(type) << " " << nm << " sloppy data:\n";
+    std::cout << type << " " << nm << " sloppy data:\n";
     for(int t=0;t<args.Lt;t++) printer << t << " " << sloppy_avg[t] << std::endl;
 
-    std::cout << toStr(type) << " " << nm << " corrected data:\n";
+    std::cout << type << " " << nm << " corrected data:\n";
     for(int t=0;t<args.Lt;t++) printer << t << " " << corrected[fb][t] << std::endl;
   }
   distributionVector out;

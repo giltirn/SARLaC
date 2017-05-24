@@ -86,15 +86,10 @@ public:
 #define ALL_FIT_PARAMS_DATATYPE_DERIV_MAP TUPLE_SEQUENCE_FOR_EACH(_SETUP_DATATYPE_ELEM_DERIVMAP_E, , ALL_FIT_PARAMS_AMPL_TYPES)
 #define ALL_FIT_PARAMS_DATATYPE_AMP_FORM_MAP TUPLE_SEQUENCE_FOR_EACH(_SETUP_DATATYPE_ELEM_AMPFORMMAP_E, , ALL_FIT_PARAMS_AMPL_TYPES)
 
-enum DataType { ALL_FIT_PARAMS_DATATYPES, NDataType };
-std::string toStr(const DataType d){
-  const static std::vector<std::string> str = {ALL_FIT_PARAMS_DATATYPES_STR, "NDataType"};
-  int dd(d);
-  if(dd < 0 || dd >= str.size()){
-    std::ostringstream os; os << "Unknown DataType idx " << dd;
-    return os.str();
-  }else return str[int(d)];
-}
+#define _SETUP_DATATYPE_SEQ_E(r,data,elem) (BOOST_PP_CAT(_AFP_AMP elem,_data))
+#define ALL_FIT_PARAMS_DATATYPES_SEQ TUPLE_SEQUENCE_FOR_EACH(_SETUP_DATATYPE_SEQ_E, , ALL_FIT_PARAMS_AMPL_TYPES)
+
+GENERATE_ENUM_AND_PARSER(DataType, ALL_FIT_PARAMS_DATATYPES_SEQ)
 
 //Create the preprocessor tuple sequences containing the information needed to generate the parameter and derivative classes
 #define _SETUP_MEMBER_ELEM(I,AMP,FORM) (I,double,BOOST_PP_CAT(A_,AMP) )
@@ -203,7 +198,7 @@ struct AllFitParamDerivs{
     switch(type){
     TUPLE_SEQUENCE_FOR_EACH(ALL_FIT_PARAMS_ELEM_DCASE_MAP_E,,ALL_FIT_PARAMS_DATATYPE_DERIV_MAP)
     default:
-      std::cout << "Error: attempting to evaluate AllFitParamDerivs::import with data type " << toStr(type) << std::endl;
+      std::cout << "Error: attempting to evaluate AllFitParamDerivs::import with data type " << type << std::endl;
       exit(-1);
     }
   }
@@ -218,7 +213,7 @@ struct Coord{
   Coord(const double _t, const DataType _type): t(_t), type(_type){}
 };
 std::ostream & operator<<(std::ostream &os, const Coord &c){
-  os << "(" << c.t << "," << toStr(c.type) << ")";
+  os << "(" << c.t << "," << c.type << ")";
   return os;
 }
 
