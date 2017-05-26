@@ -73,34 +73,22 @@ public:
   }
 };
 
-distributionVector readCombine(const Args &args, const DataType type){
+distributionVector readCombine(const Args &args, const int type_idx){
   const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   assert(ntraj > 0);
 
-  TwoPointFunction const* fargs;
-  switch(type){
-  case PP_LW_data:
-    fargs = &args.PP_LW; break;
-  case AP_LW_data:
-    fargs = &args.AP_LW; break;
-  case AA_LW_data:
-    fargs = &args.AA_LW; break;
-  case PP_WW_data:
-    fargs = &args.PP_WW; break;
-  case AP_WW_data:
-    fargs = &args.AP_WW; break;    
-  default:
-    error_exit(std::cout << "readCombine undefined map for type " << type << std::endl);
-  }
+  TwoPointFunction const & fargs = args.data[type_idx];
+  DataType type = fargs.type;
+
   basicPrint<> printer;
   distributionVector corrected[2];
   int FF=0, BB=1;
   
   for(int fb=0;fb<2;fb++){
-    bool include_data = fb == FF ? fargs->FF_data.include_data : fargs->BB_data.include_data;
+    bool include_data = fb == FF ? fargs.FF_data.include_data : fargs.BB_data.include_data;
     if(!include_data) continue;
 
-    const SloppyExact &se = fb == FF ? fargs->FF_data : fargs->BB_data;
+    const SloppyExact &se = fb == FF ? fargs.FF_data : fargs.BB_data;
     
     distributionMatrix exact_data(args.Lt, distributionD(ntraj));
     distributionMatrix sloppy_data(args.Lt, distributionD(ntraj));
@@ -132,8 +120,8 @@ distributionVector readCombine(const Args &args, const DataType type){
     for(int t=0;t<args.Lt;t++) printer << t << " " << corrected[fb][t] << std::endl;
   }
   distributionVector out;
-  if(fargs->FF_data.include_data && fargs->BB_data.include_data) return (corrected[FF] + corrected[BB])/2.;
-  else if(fargs->FF_data.include_data) return corrected[FF];
+  if(fargs.FF_data.include_data && fargs.BB_data.include_data) return (corrected[FF] + corrected[BB])/2.;
+  else if(fargs.FF_data.include_data) return corrected[FF];
   else return corrected[BB];
 }
 

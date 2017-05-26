@@ -66,7 +66,6 @@ public:
 
 
 //Define the amplitudes, their enumerations (starting from 1) and their associated fit forms
-GENERATE_ENUM_AND_PARSER(DataType, (PP_LW_data)(AA_LW_data)(AP_LW_data)(PP_WW_data)(AP_WW_data) )
 GENERATE_ENUM_AND_PARSER(Params, (Mass)(A_PP_LW)(A_AA_LW)(A_AP_LW)(A_PP_WW)(A_AP_WW) )
 
 class AllParamMap{
@@ -83,14 +82,13 @@ public:
     upmap[0] = Mass;
 
     int idx = 1;
-    TwoPointFunction const* data_arg_map[5] = {&args.PP_LW, &args.AP_LW, &args.AA_LW, &args.PP_WW, &args.AP_WW};
-    Params amp_map[5] = { A_PP_LW, A_AP_LW, A_AA_LW, A_PP_WW, A_AP_WW };
-    for(int i=0;i<5;i++)
-      if(data_arg_map[i]->FF_data.include_data || data_arg_map[i]->BB_data.include_data){
-	Params amp = amp_map[i]; //which amplitude does this data type correspond to
+    for(int i=0;i<args.data.size();i++){
+      if(args.data[i].FF_data.include_data || args.data[i].BB_data.include_data){      
+	Params amp = this->amplitude(args.data[i].type);
 	pmap[(int)amp] = idx++;
 	upmap.push_back(amp);
       }
+    }
   }
   inline int map(const Params param) const{
     return pmap[(int)param];

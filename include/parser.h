@@ -324,7 +324,7 @@ std::istream & operator>>(std::istream &is, NAME &s){ \
   namespace BOOST_PP_CAT(enumname,_parser){	     \
     namespace ascii = boost::spirit::x3::ascii; \
     namespace x3 = boost::spirit::x3;\
-    auto const enumparse = *x3::char_; \
+    auto const enumparse = x3::lexeme[*(x3::char_ - ascii::space)]; \
     _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
     x3::rule<class BOOST_PP_CAT(enumname,_), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
     auto const BOOST_PP_CAT(enumname, __def) = enumparse[BOOST_PP_CAT(enumname,_match)()]; \
@@ -346,7 +346,6 @@ std::istream & operator>>(std::istream &is, NAME &s){ \
 
 #define _GEN_ENUM_DEFINE_ISTREAM_READ(enumname, enummembers) \
   _PARSER_DEF_DEFINE_ISTREAM_READ(enumname, ) 
-
 
 
 //Define a parser for an enum

@@ -79,25 +79,27 @@ int main(const int argc, const char** argv){
 
   AllParamMap param_map(args);
   
-  const int ntypes = 5;
-  const DataType type_map[ntypes] = {PP_LW_data, AP_LW_data, AA_LW_data, PP_WW_data, AP_WW_data};
-
   const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   assert(ntraj > 0);
 
   //Read and resample the data
-  std::vector<distributionVector> raw(ntypes);
-  std::vector<jackknifeTimeSeriesType> jack(ntypes);
-  for(int i=0;i<ntypes;i++){
-    raw[i] = readCombine(args, type_map[i]);
-    jack[i] = resampleVector(raw[i], args.Lt);
+  std::vector<DataType> types;
+  std::vector<distributionVector> raw;
+  std::vector<jackknifeTimeSeriesType> jack;
+  for(int i=0;i<args.data.size();i++){
+    if(args.data[i].FF_data.include_data || args.data[i].BB_data.include_data){
+      raw.push_back( readCombine(args, i) );
+      jack.push_back( resampleVector(raw.back(), args.Lt) );
+      types.push_back( args.data[i].type );
+    }
   }
+  const int ndata_types = raw.size();
   
   //publicationPrint<> printer;
   basicPrint<> printer;
 
   //Combine data and double-jackknife resample
-  const int nx = ntypes * args.Lt; //t + Lt*type
+  const int nx = ndata_types * args.Lt; //t + Lt*type
 
   typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;
   typedef dataSeries<Coord, jackknifeDistributionType> jackknifeAllData;
@@ -106,19 +108,17 @@ int main(const int argc, const char** argv){
   jackknifeAllData data_j(nx, ntraj);
   for(int tt=0;tt<nx;tt++){
     const int t = tt % args.Lt;
-    const DataType d = type_map[tt / args.Lt];
+    const int type_idx = tt / args.Lt;    
+    const DataType d = types[type_idx];
     
-    const distributionVector &vraw = raw[tt / args.Lt];
-    if(vraw.size() == 0) continue;
+    const distributionVector &vraw = raw[type_idx];
     assert(vraw.size() == args.Lt);    
     data_dj.coord(tt) = data_j.coord(tt) = Coord(t,d);
     data_dj.value(tt).resample(vraw[t]);
 
-    const jackknifeTimeSeriesType &vjack = jack[tt / args.Lt];
+    const jackknifeTimeSeriesType &vjack = jack[type_idx];
     assert(vjack.size() == args.Lt);  
     data_j.value(tt) = vjack.value(t);
-
-    //printer << "Resampled data " << data_j.coord(tt) << "  " << data_j.value(tt) << std::endl;
   }
 
   //Setup fit range
@@ -237,15 +237,14 @@ int main(const int argc, const char** argv){
   typename MatPlotLibScriptGenerate::kwargsType plot_args;
   typedef MatPlotLibScriptGenerate::handleType Handle;
   
-  for(int type_idx=0;type_idx<ntypes;type_idx++){
-    if(jack[type_idx].size() == 0) continue;
+  for(int type_idx=0;type_idx<ndata_types;type_idx++){
     typedef DataSeriesAccessor<jackknifeTimeSeriesType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionType> > Accessor;
 
-    jackknifeTimeSeriesType effmass = effectiveMass(jack[type_idx], type_map[type_idx], args.Lt);
+    jackknifeTimeSeriesType effmass = effectiveMass(jack[type_idx], types[type_idx], args.Lt);
     Accessor a(effmass);
     plot_args["color"] = pallete[type_idx];
     Handle ah = plotter.plotData(a,plot_args);
-    std::string nm = toString(type_map[type_idx]);
+    std::string nm = toString(types[type_idx]);
     nm = nm.substr(0,nm.size()-5);    
     plotter.setLegend(ah, nm);
   }
