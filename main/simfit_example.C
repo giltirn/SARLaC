@@ -181,6 +181,12 @@ struct ParamDerivsView{
   inline const double & operator()(const int i) const{ return const_cast<const double &>( const_cast<ParamDerivsView*>(this)->operator()(i)); }
 
   void resize(const int sz){ assert(sz == 2); }
+
+  ParamDerivsView & operator=(const NumericVector<double> &sub){
+    for(int i=0;i<sub.size();i++)
+      (*this)(i) = sub(i);
+    return *this;
+  }
 };
 
 
@@ -194,8 +200,8 @@ public:
   typedef Coord GeneralizedCoordinate;
 
 private:
-  NumericLinearFit<CoordTview,double,1, ParamView, ParamDerivsView> fitfunc_a; //a + b*t
-  NumericLinearFit<CoordTview,double,1, ParamView, ParamDerivsView> fitfunc_b; //c + d*t
+  NumericLinearFit<CoordTview,double,1, ParamView> fitfunc_a; //a + b*t
+  NumericLinearFit<CoordTview,double,1, ParamView> fitfunc_b; //c + d*t
 public:
   
   ValueType value(const GeneralizedCoordinate &coord, const ParameterType &params) const{
@@ -209,7 +215,8 @@ public:
       return fitfunc_b.value(c,p);
     };
   }
-  void parameterDerivatives(ValueDerivativeType &yderivs, const GeneralizedCoordinate &coord, const ParameterType &params) const{
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &coord, const ParameterType &params) const{
+    ValueDerivativeType yderivs;
     yderivs.zero();
     CoordTview c(coord);
     ParamView p(const_cast<ParameterType &>(params),coord.idx);
@@ -217,10 +224,11 @@ public:
     
     switch(coord.idx){
     case 0:
-      return fitfunc_a.parameterDerivatives(pd,c,p);      
+      pd = fitfunc_a.parameterDerivatives(c,p); break;
     case 1:
-      return fitfunc_b.parameterDerivatives(pd,c,p);
+      pd = fitfunc_b.parameterDerivatives(c,p); break;
     };
+    return yderivs;
   }
 
   inline int Nparams() const{ return fitfunc_a.Nparams() + fitfunc_b.Nparams(); }

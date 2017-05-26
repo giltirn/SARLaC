@@ -5,6 +5,7 @@
 #include<omp.h>
 #include<cassert>
 #include<cmath>
+#include<type_traits>
 #include<template_wizardry.h>
 
 #include <boost/archive/text_oarchive.hpp>
@@ -13,29 +14,58 @@
 
 #include<generic_ET.h>
 
-template<typename T>
-T threadedSum(const std::vector<T> &v){
-  const int N = v.size();
-  const int nthread = omp_get_max_threads();
-    
-  T sum[nthread]; for(int i=0;i<nthread;i++) sum[i] = 0.;
-#pragma omp parallel for
-  for(int i=0;i<N;i++)
-    sum[omp_get_thread_num()] = sum[omp_get_thread_num()] + v[i];
+template<typename Operation, typename T>
+struct _threadedSumHelper{
+  //For getting an initial zero optimally we consider several scenarios:
+  //1) It is constructible using a single double or float
+  //2) It is default constructible and has a "zero" method
+  //3) It is default constructible and does not have a "zero" method but has an operator=(double/float) method
+  //4) It is not default constructible and has a "zero" method
+  //5) It is not default constructible and does not have a "zero" method but has an operator=(double/float) method
 
-  for(int t=1;t<nthread;t++)
-    sum[0] = sum[0] + sum[t];
+  //Having a copy constructor is assumed
+  
+  enum { float_constructible = std::is_constructible<T,double>::value || std::is_constructible<T,float>::value,
+	 default_constructible = std::is_default_constructible<T>::value,
+	 has_zero_method = hasZeroMethod<T>::value,
+	 has_equals_method = hasEqualsMethod<T,double>::value || hasEqualsMethod<T,float>::value 
+  };
 
-  return sum[0];
-}
+  enum { class1 = float_constructible };
+  enum { class2 = !class1 && default_constructible && has_zero_method };
+  enum { class3 = !class1 && !class2 && default_constructible && has_equals_method };
+  enum { class4 = !class1 && !class2 && !class3 && !default_constructible && has_zero_method };
+  enum { class5 = !class1 && !class2 && !class3 && !class4 && !default_constructible && has_equals_method };
+
+  template<typename U>
+  struct _truewrap{ enum { value = 1 }; }; //SFINAE only works for deduced types
+  
+  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class1,int>::type = 0>
+    static inline T getZero(const Operation &op){ return T(0.); }
+
+  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class2,int>::type = 0>
+  static inline T getZero(const Operation &op){ T ret; ret.zero(); return ret; }
+
+  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class3,int>::type = 0>
+  static inline T getZero(const Operation &op){ T ret; ret = 0.; return ret; }
+  
+  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class4,int>::type = 0>
+  static inline T getZero(const Operation &op){ T ret(op(0)); ret.zero(); return ret; }
+
+  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class5,int>::type = 0>
+  static inline T getZero(const Operation &op){ T ret(op(0)); ret = 0.; return ret; }
+};
+
 
 template<typename Operation>
-auto threadedSum(const Operation &op)->decltype( op(0) ){
-  typedef decltype( op(0) ) T;
+auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::type{
+  typedef typename std::decay<decltype(op(0))>::type T;
   const int N = op.size();
   const int nthread = omp_get_max_threads();
-    
-  T sum[nthread]; for(int i=0;i<nthread;i++) sum[i] = 0.;
+ 
+  T init_zero = _threadedSumHelper<Operation,T>::getZero(op);
+  std::vector<T> sum(nthread, init_zero);
+
 #pragma omp parallel for
   for(int i=0;i<N;i++)
     sum[omp_get_thread_num()] = sum[omp_get_thread_num()] + op(i);
@@ -44,6 +74,18 @@ auto threadedSum(const Operation &op)->decltype( op(0) ){
     sum[0] = sum[0] + sum[t];
 
   return sum[0];
+}
+
+template<typename T>
+T threadedSum(const std::vector<T> &v){
+  struct Op{
+    const std::vector<T> &vv;
+    inline const T & operator()(const int idx) const{ return vv[idx]; }
+    inline size_t size() const{ return vv.size(); }
+    Op(const std::vector<T> &_vv): vv(_vv){}
+  };
+  Op op(v);
+  return threadedSum<Op>(op);
 }
 
 

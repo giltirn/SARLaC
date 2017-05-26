@@ -63,6 +63,24 @@ template<typename T>
 struct hasMeanMethod<T, typename Void<decltype( ((T*)(NULL))->mean() )>::type>{
   enum{ value = 1 };
 };
+template<typename T, typename U = void>
+struct hasZeroMethod{
+  enum{ value = 0 };
+};
+template<typename T>
+struct hasZeroMethod<T, typename Void<decltype( ((T*)(NULL))->zero() )>::type>{
+  enum{ value = 1 };
+};
+
+template<typename T, typename EqualsType, typename U = void>
+struct hasEqualsMethod{
+  enum{ value = 0 };
+};
+template<typename T, typename EqualsType>
+struct hasEqualsMethod<T, EqualsType, typename Void<decltype( ((T*)(NULL))->operator=( *((EqualsType*)(NULL)) ) )>::type>{
+  enum{ value = 1 };
+};
+
 
 template<class T, class Fallback = void>
 struct hasDataType{ enum{ value = 0 }; };
@@ -114,6 +132,5 @@ struct is_scalar<double>{ enum{value = 1}; };
 
 template<>
 struct is_scalar<float>{ enum{value = 1}; };
-
 
 #endif

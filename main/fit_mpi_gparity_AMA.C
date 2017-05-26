@@ -29,9 +29,8 @@ typedef jackknifeDistribution jackknifeDistributionType;
 typedef jackknifeTimeSeriesD jackknifeTimeSeriesType;
 #endif
 
-
-#include <fit_mpi_gparity_AMA/fitfunc.h>
 #include <fit_mpi_gparity_AMA/args.h>
+#include <fit_mpi_gparity_AMA/fitfunc.h>
 #include <fit_mpi_gparity_AMA/read_data.h>
 #include <fit_mpi_gparity_AMA/data_manipulations.h>
 #include <fit_mpi_gparity_AMA/cmdline.h>
@@ -77,11 +76,14 @@ int main(const int argc, const char** argv){
 
   std::cout << "Read arguments: \n" << args << std::endl;
 
-  const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
-  assert(ntraj > 0);
 
+  AllParamMap param_map(args);
+  
   const int ntypes = 5;
   const DataType type_map[ntypes] = {PP_LW_data, AP_LW_data, AA_LW_data, PP_WW_data, AP_WW_data};
+
+  const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
+  assert(ntraj > 0);
 
   //Read and resample the data
   std::vector<distributionVector> raw(ntypes);
@@ -160,24 +162,29 @@ int main(const int argc, const char** argv){
 
 
   //Load guesses if applicable
-  AllFitParams guess;
+  typedef typename FitMpi::ParameterType ParamContainer;
+  ParamContainer guess(param_map);
+
   if(cmdline.load_guess){
     std::ifstream f(cmdline.guess_file.c_str());
     assert(f.good());
-    f >> guess;
+    while(!f.eof()){
+      Params p; double v;
+      f >> p >> v;
+      assert(!f.bad() && !f.fail());
+      guess(p) = v;
+    }
     f.close();
   }else{
     for(int i=1;i<guess.size();i++) guess(i) = 1e3;
-    guess.m = 0.5;
+    guess(Mass) = 0.5;
   }
   
   std::cout << "Using guess: " << guess << std::endl;
   
   
   //Do the fit
-  //FitMpi fitfunc(2*args.Lt); //FF and BB are cosh-like in 2*Lt
-  FitMpiFrozen fitfunc(2*args.Lt);
-  for(int i=2;i<AllFitParams::size();i++) fitfunc.freeze(i,-1);
+  FitMpi fitfunc(2*args.Lt, param_map);
   
   typedef sampleSeries<const filteredJackknifeAllData> sampleSeriesConstType; //const access
   typedef UncorrelatedChisqCostFunction<decltype(fitfunc), sampleSeriesConstType, double, NumericVector<double> > CostFunctionType;
@@ -187,7 +194,7 @@ int main(const int argc, const char** argv){
   typedef MarquardtLevenbergMinimizer<CostFunctionType> MinimizerType;
 
   MarquardtLevenbergParameters<CostType> mlparams;
-  jackknifeDistributionT<AllFitParams> params(ntraj, guess);
+  jackknifeDistributionT<ParamContainer> params(ntraj, guess);
 
   jackknifeDistributionT<CostType> chisq(ntraj);
   jackknifeDistributionT<CostType> chisqperdof(ntraj);
@@ -201,21 +208,17 @@ int main(const int argc, const char** argv){
 
     MinimizerType fitter(costfunc, mlparams);
     
-    AllFitParams &pj = params.sample(j);
-    typename FitMpiFrozen::ParameterType pjr;
-    fitfunc.reduce(pjr, pj); //get the subset of parameters that aren't frozen (those that are are stored internally when freeze is called above)
-    CostType cost = fitter.fit(pjr);
+    ParamContainer &pj = params.sample(j);
+    CostType cost = fitter.fit(pj);
     assert(fitter.hasConverged());
-    fitfunc.expand(pj,pjr);
-
     chisq.sample(j) = cost;
     chisqperdof.sample(j) = cost/dof;
   }
   printer << "chi^2 = " << chisq << "\nchi^2/dof = " << chisqperdof << " (" << dof << " degrees of freedom)\n";
 
   std::cout << "Fit results:\n";
-  for(int i=0;i<AllFitParams::size();i++){
-    std::cout << AllFitParams::getParamName(i) << " = " << ParameterPrint<decltype(params)>(params,i) << std::endl;
+  for(int i=0;i<param_map.nParams();i++){
+    std::cout << param_map.paramName(i) << " = " << ParameterPrint<decltype(params)>(params,i) << std::endl;
   }
 
   //Plot some nice things  
@@ -248,11 +251,14 @@ int main(const int argc, const char** argv){
   }
   //   Plot the fitted mass as constant
   {
-    AllFitParams mn = params.best();
-    AllFitParams err = params.standardError();
+    ParamContainer mn = params.best();
+    ParamContainer err = params.standardError();
+    const double m = mn(Mass);
+    const double dm = err(Mass);
+    
     std::vector<double> x = {double(args.t_min), double(args.t_max)};
-    std::vector<double> upper = {mn.m + err.m, mn.m + err.m};
-    std::vector<double> lower = {mn.m - err.m, mn.m - err.m};    
+    std::vector<double> upper = {m + dm, m + dm};
+    std::vector<double> lower = {m - dm, m - dm};    
     BandVectorAccessor band(x,upper,lower);
     plot_args["color"] = "r";
     plot_args["alpha"] = 0.2;
@@ -265,8 +271,8 @@ int main(const int argc, const char** argv){
   plotter.setYlabel("$m_{\\rm eff}(t)$");
   plotter.setXaxisBounds(-0.2,args.Lt+0.2);
 
-  double ymid = params.best().m;
-  double yw = params.standardError().m * 20;
+  const double ymid = params.best()(Mass);
+  const double yw = params.standardError()(Mass) * 20;
   
   plotter.setYaxisBounds(ymid-yw, ymid+yw);
   

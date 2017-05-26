@@ -31,12 +31,13 @@ public:
       out += params(i) * getCoord(i-1,coord);    
     return out;
   }
-  void parameterDerivatives(ValueDerivativeType &yderivs, const GeneralizedCoordinate &coord, const ParameterType &params) const{
-    yderivs.resize(Nparams());
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &coord, const ParameterType &params) const{
+    ValueDerivativeType yderivs(Nparams());
     yderivs(0) = 1.;
     for(int i=1;i<=Dimension;i++){
       yderivs(i) = getCoord(i-1,coord);
     }
+    return yderivs;
   }
 
   inline int Nparams() const{ return Dimension+1; }

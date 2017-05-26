@@ -7,6 +7,7 @@
 #include<cstdlib>
 #include<type_traits>
 #include<complex>
+#include<memory>
 
 #include<gsl_svdinverse.h>
 #include<utils.h>
@@ -66,12 +67,12 @@ class MarquardtLevenbergMinimizer{
 
   //Cost function previous state
   CostType last_cost;
-  ParameterType last_params;
+  std::unique_ptr<ParameterType> last_params;
   CostDerivativeType last_derivs;
   CostSecondDerivativeMatrixType last_second_derivs;
   
   //Cost function current state
-  ParameterType parameters;
+  std::unique_ptr<ParameterType> parameters;
   CostType cost;
   bool use_derivs_from_last_step;
   CostDerivativeType derivs;
@@ -81,11 +82,14 @@ class MarquardtLevenbergMinimizer{
   CostSecondDerivativeMatrixType M;
   CostSecondDerivativeInverseMatrixType inv_M;
   CostDerivativeType c;
-  ParameterType delta;
+  std::unique_ptr<ParameterType> delta;
   
   void initialize(const ParameterType &init_parameters){
+    parameters = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
+    delta = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
+    last_params = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
+
     converged = false;
-    parameters = init_parameters;
     use_derivs_from_last_step = false;
 
     lambda = mlparams.lambda_start;
@@ -105,8 +109,6 @@ class MarquardtLevenbergMinimizer{
 
     init_precision = mlparams.output->precision();
     if(!me) mlparams.output->precision(14);
-
-    delta = init_parameters;
   }
 
   void restoreEnvironment(){
@@ -117,7 +119,7 @@ class MarquardtLevenbergMinimizer{
   void updateAlgorithmState(){
     use_derivs_from_last_step = false; //no point recalculating the derivatives again if we are restoring parameters to what they were before
     
-    cost = function.cost(parameters);   
+    cost = function.cost(*parameters);   
     MINPRINT << "current cost " << cost << std::endl;
     
     CostType cost_change = cost - last_cost; 
@@ -126,7 +128,7 @@ class MarquardtLevenbergMinimizer{
 
     if(cost_change >=0.0){
       MINPRINT << "cost increase " << last_cost << " -> " << cost << ", restoring parameters and increasing lambda\n";
-      parameters = last_params;
+      *parameters = *last_params;
       cost = last_cost;
       
       if(lambda >= mlparams.lambda_max){
@@ -151,7 +153,7 @@ class MarquardtLevenbergMinimizer{
       //test whether algorithm has converged
       if(fabs(cost_change) <= mlparams.delta_cost_min){
 	MINPRINT << "change within converge tolerance\n";
-	MINPRINT << "Final parameters : " << parameters.print() << std::endl;
+	MINPRINT << "Final parameters : " << parameters->print() << std::endl;
 	converged=true;
 	return;
       }
@@ -194,17 +196,17 @@ class MarquardtLevenbergMinimizer{
     MINPRINT << "inverse matrix : " << std::endl;
     MINPRINT_NOPREFIX << inv_M.print() << std::endl;
     
-    delta.zero();
+    delta->zero();
     
     for(int i=0; i<nparam; i++)
       for(int j=0;j<nparam;j++)
-	delta(i) = delta(i) + inv_M(i,j)*c(j);
+	(*delta)(i) = (*delta)(i) + inv_M(i,j)*c(j);
 
-    MINPRINT << "delta : " << delta.print() << std::endl;
+    MINPRINT << "delta : " << delta->print() << std::endl;
     
-    parameters = parameters + delta; //must have += operator
+    *parameters = *parameters + *delta; //must have += operator
 
-    MINPRINT << "Updated parameters: "<< parameters.print() << std::endl;
+    MINPRINT << "Updated parameters: "<< parameters->print() << std::endl;
     ++iter;
   }
 
@@ -213,8 +215,8 @@ class MarquardtLevenbergMinimizer{
     MINPRINT << "calculating parameters on iteration " << iter << std::endl;
     if(iter==mlparams.max_iter) error_exit(std::cout << prefix << "reached max iterations\n");
 
-    MINPRINT << "Input parameters: "<< parameters.print() << std::endl;
-    MINPRINT << parameters.size() << " free parameters\n";
+    MINPRINT << "Input parameters: "<< parameters->print() << std::endl;
+    MINPRINT << parameters->size() << " free parameters\n";
 
     if(iter>0){
       updateAlgorithmState(); //update lambda for next parameter update and check convergence if cost decreased since last iteration
@@ -228,12 +230,12 @@ class MarquardtLevenbergMinimizer{
       second_derivs = last_second_derivs;
     }else{   
       MINPRINT << "Computing derivs\n";
-      function.derivatives(derivs,second_derivs,parameters);
+      function.derivatives(derivs,second_derivs,*parameters);
     }
     MINPRINT << "derivatives " << derivs.print() << std::endl;
     
     //Store cost function state as 'old' state prior to update
-    last_params = parameters;  //input parameters to this cycle
+    *last_params = *parameters;  //input parameters to this cycle
     last_cost = cost; //cost with those inputs
     last_derivs = derivs; //derivatives of cost wrt input params
     last_second_derivs = second_derivs;
@@ -246,12 +248,13 @@ class MarquardtLevenbergMinimizer{
 public:
   MarquardtLevenbergMinimizer(const CostFunction &func, const MarquardtLevenbergParameters<CostType> &_mlparams): function(func), iter(0), mlparams(_mlparams){
   }
+  
   CostType fit(ParameterType &params){
     initialize(params);
     while(!converged)
       iterate();
     restoreEnvironment();
-    params = parameters;
+    params = *parameters;
     return cost;
   }
   inline bool hasConverged() const{ return converged; }

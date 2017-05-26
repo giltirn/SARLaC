@@ -152,10 +152,12 @@ public:
   inline ValueType value(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
     return fitfunc.value(coord, mapParamsSubsetToSuperset(params_subset));
   }
-  inline void parameterDerivatives(ValueDerivativeType &derivs_subset, const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
+    ValueDerivativeType derivs_subset;
     typename FitFunc::ValueDerivativeType derivs_superset;
     fitfunc.parameterDerivatives(derivs_superset, coord, mapParamsSubsetToSuperset(params_subset));
     mapDerivativesSupersetToSubset(derivs_subset, derivs_superset);
+    return derivs_subset;
   }
   
   int Nparams() const{ return deriv_subset_default.size(); } //number of parameters in subset
@@ -213,14 +215,14 @@ public:
   inline ValueType value(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
     return fitfunc.value(coord, mapParamsSubsetToSuperset(params_subset));
   }
-  inline void parameterDerivatives(ValueDerivativeType &derivs_subset, const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
-    derivs_subset.resize(Nparams());
-    ValueDerivativeType derivs_superset;
-    fitfunc.parameterDerivatives(derivs_superset, coord, mapParamsSubsetToSuperset(params_subset));
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
+    ValueDerivativeType derivs_subset(Nparams());
+    ValueDerivativeType derivs_superset = fitfunc.parameterDerivatives(coord, mapParamsSubsetToSuperset(params_subset));
     int subset_idx = 0;
     for(int i=0;i<fitfunc.Nparams();i++)
       if(!param_freeze[i])
 	derivs_subset[subset_idx++] = derivs_superset[i];
+    return derivs_subset;
   }
   
   int Nparams() const{ return fitfunc.Nparams()-n_frozen; }

@@ -1,8 +1,10 @@
 #ifndef _NUMERIC_TENSORS_H
 #define _NUMERIC_TENSORS_H
 
+#include<map>
 #include<template_wizardry.h>
 #include<generic_ET.h>
+
 
 template<typename Numeric>
 class NumericVector{
@@ -156,6 +158,74 @@ public:
   template<typename U = NumericMatrixType>
   inline typename std::enable_if< !std::is_const<U>::value, SampleType& >::type operator()(const int i, const int j){ return M(i,j).sample(sample); }
 };
+
+
+//A vector type with an additional global mapping between some generic tag and it's elements
+template<typename T, typename MapType>
+class mappedVector: public NumericVector<T>{
+  //MapType must conform to the following form
+  // struct MapTypeExample{
+  //   typedef std::string tagType;    //choose a tag type - here a string but can be anything
+  //   inline int map(const tagType &tag) const; //mapping between tag and index
+  //   inline tagType unmap(const int idx) const; //unmapping between index and tag
+  //   inline int size() const; //number of elements
+  // };
+
+  MapType const* mapping;
+
+public:
+  typedef typename MapType::tagType tagType;
+
+  mappedVector(const MapType & _mapping): mapping(&_mapping), NumericVector<T>(_mapping.size()){}
+  
+  typedef mappedVector<T,MapType> ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,mappedVector<T,MapType> >::value, int>::type = 0>
+  mappedVector(U&& expr){
+    mapping = expr.common_properties();
+    this->resize(mapping->size());
+    for(int i=0;i<mapping->size();i++) this->operator()(i) = expr[i];
+  }
+  
+  inline T & operator()(const tagType &tag){ return this->operator()(mapping->map(tag)); }
+  inline const T & operator()(const tagType &tag) const{ return this->operator()(mapping->map(tag)); }
+  inline T & operator()(const int idx){ return NumericVector<T>::operator()(idx); }
+  inline const T & operator()(const int idx) const{ return NumericVector<T>::operator()(idx); }
+  
+  const MapType & getMapping() const{ return *mapping; }
+};
+template<typename T, typename MapType>
+struct getElem<mappedVector<T,MapType> >{
+  static inline auto elem(const mappedVector<T,MapType> &v, const int i)->decltype(v(i)){ return v(i); }
+  // static inline auto elem(mappedVector<T,MapType> &v, const int i)->decltype(v(i)){ return v(i); }
+  static inline MapType const* common_properties(const mappedVector<T,MapType> &v){ return &v.getMapping(); }
+};
+
+template<typename T, typename MapType>
+inline void debug_print(const mappedVector<T,MapType> &v){ std::cout << &v.getMapping() << std::endl; std::cout.flush(); }
+
+
+class stringTagMap{
+  std::map<std::string,int> mp;
+  std::map<int,std::string> ump;
+public:
+  typedef std::string tagType; 
+  inline int map(const tagType &tag) const{
+    auto it = mp.find(tag);
+    assert(it != mp.end());
+    return it->second;
+  }
+  inline tagType unmap(const int idx) const{
+    auto it = ump.find(idx);
+    assert(it != ump.end());
+    return it->second;
+  }
+  void add(const std::string &tag, const int idx){
+    mp[tag] = idx;
+    ump[idx] = tag;
+  }
+  inline int size() const{ return mp.size(); }
+};
+
 
 
 #include<numeric_tensors_ET.h>

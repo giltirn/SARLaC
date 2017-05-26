@@ -256,6 +256,7 @@ ET_UNOP(ETexp, exp, exp);
 ET_UNOP(ETsqrt, sqrt, sqrt);
 
 //Put this inside your class to enable the ET
+//Tag is used to discriminate between classes of object; a binary op requires both ops have the same tag
 #define ENABLE_GENERIC_ET(CLASS, TAG)					\
   typedef TAG ET_tag;							\
   static auto _ET_self() -> typename std::remove_reference<decltype(*this)>::type; \

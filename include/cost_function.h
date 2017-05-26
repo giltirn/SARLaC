@@ -3,6 +3,7 @@
 
 #include<cassert>
 #include<vector>
+#include<memory>
 #include<numeric_tensors.h>
 #include<utils.h>
 /*
@@ -71,8 +72,7 @@ public:
     
     for(int d=0;d<ndata;d++){
       ValueType yfit = fitfunc.value(data.coord(d), params);
-      ValueDerivativeType yderivs;
-      fitfunc.parameterDerivatives(yderivs, data.coord(d), params);
+      ValueDerivativeType yderivs = fitfunc.parameterDerivatives(data.coord(d), params);
       
       ValueType dfw = ( data.value(d) - yfit ) / sigma[d];
             
@@ -164,32 +164,36 @@ public:
     second_derivs.zero();
 
     std::vector<ValueType> dfw(ndata);
-    std::vector<ValueDerivativeType> yderivs(ndata);
+    std::vector<std::unique_ptr<ValueDerivativeType> > yderivs(ndata); //storage but without assuming default constructible
 
     for(int a=0;a<ndata;a++){
       ValueType yfit_a = fitfunc.value(data.coord(a), params);
-      fitfunc.parameterDerivatives(yderivs[a], data.coord(a), params);
+      yderivs[a] = std::unique_ptr<ValueDerivativeType>(new ValueDerivativeType(fitfunc.parameterDerivatives(data.coord(a), params) ) );
       dfw[a] = ( data.value(a) - yfit_a ) / sigma[a];
 
+      const ValueDerivativeType & yderivs_a = *yderivs[a];
+      
       //b==a
       for(int i=0;i<nparams;i++){
-	derivs(i) +=  -2.0 * dfw[a] * yderivs[a](i)/sigma[a];
+	derivs(i) +=  -2.0 * dfw[a] * (*yderivs[a])(i)/sigma[a];
 	
 	for(int j=0;j<=i;j++){
-	  ValueType change = 2.0 * yderivs[a](i)/sigma[a] * yderivs[a](j)/sigma[a];
+	  ValueType change = 2.0 * yderivs_a(i)/sigma[a] * yderivs_a(j)/sigma[a];
 	  second_derivs(i,j) += change;
 	  if(i!=j) second_derivs(j,i) += change;
 	}
       }
       //b<a
-      for(int b=0;b<a;b++){
+      for(int b=0;b<a;b++){	
 	if(inv_corr(a,b)==0.0) continue;
 
+	const ValueDerivativeType & yderivs_b = *yderivs[b];
+	
 	for(int i=0;i<nparams;i++){
-	  derivs(i) +=  -2.0*inv_corr(a,b)*( yderivs[a](i)/sigma[a]*dfw[b] + dfw[a]*yderivs[b](i)/sigma[b] );
+	  derivs(i) +=  -2.0*inv_corr(a,b)*( yderivs_a(i)/sigma[a]*dfw[b] + dfw[a]* yderivs_b(i)/sigma[b] );
 	
 	  for(int j=0;j<=i;j++){
-	    ValueType change = 2.0*inv_corr(a,b)*( yderivs[a](i)/sigma[a]*yderivs[b](j)/sigma[b] + yderivs[a](j)/sigma[a]*yderivs[b](i)/sigma[b] );
+	    ValueType change = 2.0*inv_corr(a,b)*( yderivs_a(i)/sigma[a]* yderivs_b(j)/sigma[b] + yderivs_a(j)/sigma[a]*yderivs_b(i)/sigma[b] );
 	    second_derivs(i,j) += change;
 	    if(i!=j) second_derivs(j,i) += change;
 	  }
