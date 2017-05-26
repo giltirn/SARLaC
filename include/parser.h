@@ -4,6 +4,7 @@
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/include/support_istream_iterator.hpp>
 #include <utils.h>
+#include <parser_macros.h>
 
 namespace parser_tools{
   namespace ascii = boost::spirit::x3::ascii;
@@ -87,25 +88,10 @@ namespace parsers{
   template<typename T>
   struct parser{};
 
-#define DEF_X3_PARSER(TYPE) \
-  template<>		    \
-  struct parser<TYPE>{				\
-    decltype( x3::TYPE##_ ) &parse; \
-  parser(): parse(x3::TYPE##_){}		\
-  }
-  
   DEF_X3_PARSER(int);
   DEF_X3_PARSER(double);
   DEF_X3_PARSER(bool);
 
-#define DEF_CUSTOM_PARSER(TYPE, PARSER)		\
-  template<>		    \
-  struct parser<TYPE>{				\
-    decltype( PARSER ) &parse; \
-  parser(): parse(PARSER){}		\
-  }
-  
-  
   //For generic vector parse we can hack the parser interface to allow templating the underlying type by static instantiating the rule definition inside the parse_rule itself.
   template<typename U>
   struct vector_T_rule{};
@@ -151,218 +137,26 @@ std::ostream & operator<<(std::ostream &os, const std::vector<T> &s){
   return os;
 }
 
-#include<boost/preprocessor/tuple/elem.hpp>
-#include<boost/preprocessor/cat.hpp>
 
-#define _PARSER_GEN_SEQUENCE_CREATOR_0(...)  ((__VA_ARGS__)) _PARSER_GEN_SEQUENCE_CREATOR_1
-#define _PARSER_GEN_SEQUENCE_CREATOR_1(...)  ((__VA_ARGS__)) _PARSER_GEN_SEQUENCE_CREATOR_0
-#define _PARSER_GEN_SEQUENCE_CREATOR_0_END
-#define _PARSER_GEN_SEQUENCE_CREATOR_1_END
-
-//Use for each for tuples
-#define TUPLE_SEQUENCE_FOR_EACH(cmd, data, seq) BOOST_PP_SEQ_FOR_EACH(cmd, data , BOOST_PP_CAT(_PARSER_GEN_SEQUENCE_CREATOR_0 seq,_END) )
-#define TUPLE_SEQUENCE_FOR_EACH_I(cmd, data, seq) BOOST_PP_SEQ_FOR_EACH_I(cmd, data , BOOST_PP_CAT(_PARSER_GEN_SEQUENCE_CREATOR_0 seq,_END) )
-#define TUPLE_SEQUENCE_SIZE(seq) BOOST_PP_SEQ_SIZE(BOOST_PP_CAT(_PARSER_GEN_SEQUENCE_CREATOR_0 seq,_END))
-
-#define _PARSER_MEMBER_GETNAME(elem) BOOST_PP_TUPLE_ELEM(1,elem)
-#define _PARSER_MEMBER_GETTYPE(elem) BOOST_PP_TUPLE_ELEM(0,elem)
-#define _PARSER_MEMBER_GETNAMESTR(elem) BOOST_PP_STRINGIZE(_PARSER_MEMBER_GETNAME(elem))
-
-#define _PARSER_DEF_GRAMMAR_NAME(structname) BOOST_PP_CAT(structname,_grammar)
-
-//Define parsers for the member types
-#define _PARSER_MEMBER_TYPE_PARSER(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem), _type_parse)
-#define _PARSER_MEMBER_DEF_TYPE_PARSER(r,structname,elem) parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
-#define _PARSER_DEF_TYPE_PARSERS(structname, structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_TYPE_PARSER, , structmembers)
-
-//Define and specify the rules for parsing the members
-#define _PARSER_MEMBER_TAG(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse_)
-#define _PARSER_MEMBER_RULE(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse)
-#define _PARSER_MEMBER_RULESTR(elem) _PARSER_MEMBER_GETNAMESTR(elem) "_parse"
-#define _PARSER_MEMBER_RULE_DEF(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse_def)
-
-#define _PARSER_MEMBER_DEF_RULE(r,structname,elem) \
-  struct _PARSER_MEMBER_TAG(elem){					\
-  template <typename Iterator, typename Exception, typename Context>	\
-    x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
-    return parser_tools::on_error(BOOST_PP_STRINGIZE(structname) "." _PARSER_MEMBER_GETNAMESTR(elem),first,last,x,context); \
-    }									\
-  };									\
-  \
-  x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > _PARSER_MEMBER_RULE(elem) = _PARSER_MEMBER_RULESTR(elem); \
-  \
-  auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) >> '=' >> _PARSER_MEMBER_TYPE_PARSER(elem).parse[parser_tools::set_equals]; \
-  \
-  template <typename Iterator, typename Context, typename Attribute> \
-  inline bool parse_rule( decltype(_PARSER_MEMBER_RULE(elem)) rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
-    using boost::spirit::x3::unused; \
-    static auto const def_ = (_PARSER_MEMBER_RULE(elem) = _PARSER_MEMBER_RULE_DEF(elem)); \
-    return def_.parse(first, last, context, unused, attr);		\
-  };
-
-#define _PARSER_DEF_MEMBER_RULES(structname, structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_RULE, structname, structmembers)
-
-//Define the rule for the main structure
-#define _PARSER_STRUCT_RULE_TAG(name) BOOST_PP_CAT(name,_)
-#define _PARSER_STRUCT_RULE(name) BOOST_PP_CAT(name,_)
-#define _PARSER_STRUCT_RULE_DEF(name) BOOST_PP_CAT(name,__def)
-
-#define _PARSER_DEF_STRUCT_RULE_MEMBER_GEN(r,structname,elem) \
-  >> _PARSER_MEMBER_RULE(elem)[parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
-
-#define _PARSER_DEF_STRUCT_RULE_DEF(NAME)\
-  struct _PARSER_STRUCT_RULE_TAG(NAME){\
-    template <typename Iterator, typename Exception, typename Context>	\
-      x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
-      return parser_tools::on_error(BOOST_PP_STRINGIZE(NAME),first,last,x,context); \
-    }									\
-  };									\
-									\
-									\
-  x3::rule<_PARSER_STRUCT_RULE_TAG(NAME), NAME> const _PARSER_STRUCT_RULE(NAME) = BOOST_PP_STRINGIZE(_PARSER_STRUCT_RULE(NAME));
-
-//Specify the rules for parsing the structure
-#define _PARSER_DEF_STRUCT_RULE_IMPL(NAME,MEMSEQ) \
-  auto const _PARSER_STRUCT_RULE_DEF(NAME) = x3::eps > '{'		\
-  TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_STRUCT_RULE_MEMBER_GEN, NAME, MEMSEQ) \
-    > '}'; \
-  BOOST_SPIRIT_DEFINE(_PARSER_STRUCT_RULE(NAME));
-
-//Register the parser
-#define _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(NAME) \
-  namespace parsers{ \
-  template<> \
-  struct parser<NAME>{\
-    decltype( _PARSER_DEF_GRAMMAR_NAME(NAME)::_PARSER_STRUCT_RULE(NAME) ) &parse; \
-    parser(): parse(_PARSER_DEF_GRAMMAR_NAME(NAME)::_PARSER_STRUCT_RULE(NAME) ){} \
-  }; \
-};
-
-//Write operator<< and operator>>
-#define _PARSER_DEF_OSTREAM_MEMBER_WRITE(r,structname,elem)  os << parser_tools::tabbing::tabs() << BOOST_PP_STRINGIZE(_PARSER_MEMBER_GETNAME(elem)) " = " << parser_tools::parser_output_print(s._PARSER_MEMBER_GETNAME(elem)) << std::endl;
-
-#define _PARSER_DEF_DEFINE_OSTREAM_WRITE(NAME, MEMSEQ) \
-  std::ostream & operator<<(std::ostream &os, const NAME &s){ \
-  os << "{\n"; parser_tools::tabbing::increment(); \
-  TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_OSTREAM_MEMBER_WRITE, NAME, MEMSEQ) \
-  parser_tools::tabbing::decrement(); os << parser_tools::tabbing::tabs() << "}";  \
-  return os; \
-}
-
-#define _PARSER_DEF_DEFINE_ISTREAM_READ(NAME, MEMSEQ) \
-std::istream & operator>>(std::istream &is, NAME &s){ \
-  namespace ascii = boost::spirit::x3::ascii; \
-  namespace x3 = boost::spirit::x3; \
-  \
-  is >> std::noskipws; \
-  boost::spirit::istream_iterator f(is), l; \
-  parsers::parser<NAME> vp; \
-  \
-  bool r = x3::phrase_parse(f, l, vp.parse, ascii::space, s); \
-  \
-  if(!r){ \
-    throw std::runtime_error("Parsing of type " BOOST_PP_STRINGIZE(NAME) " failed\n"); \
-  } \
-  return is; \
-}
 
 //Combine all the above the specify a parser
-//To use, define a structure as
-// GENERATE_PARSER( <STRUCT_NAME> ,
-// 		 (TYPE1, MEMBER1)
-// 		 (TYPE2, MEMBER2).... )
+//Usage: GENERATE_PARSER( MY_STRUCT_NAME ,  (MY_TYPE1, MY_MEMBER1)(MY_TYPE2, MY_MEMBER2).... )
+#define GENERATE_PARSER(structname, structmembers) _GENERATE_PARSER(structname, structmembers)
 
-#define GENERATE_PARSER(structname, structmembers)					 \
-  namespace _PARSER_DEF_GRAMMAR_NAME(structname){				\
-    namespace ascii = boost::spirit::x3::ascii; \
-    namespace x3 = boost::spirit::x3; \
-    _PARSER_DEF_TYPE_PARSERS(structname, structmembers) \
-    _PARSER_DEF_MEMBER_RULES(structname, structmembers) \
-   \
-   _PARSER_DEF_STRUCT_RULE_DEF(structname) \
-   \
-   _PARSER_DEF_STRUCT_RULE_IMPL(structname,structmembers) \
-  }; \
-  _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname) \
-  _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers) \
-  _PARSER_DEF_DEFINE_ISTREAM_READ(structname,structmembers)
-
-
-//Convenience function for generating members using the same struct as the parser
-#define _PARSER_DEF_MEMBER_DEFINE(r,data,elem) _PARSER_MEMBER_GETTYPE(elem) _PARSER_MEMBER_GETNAME(elem);
-#define GENERATE_MEMBERS(structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_MEMBER_DEFINE,   ,structmembers)
-
-
-//Similar macros for generating parser for enums
-#define _GEN_ENUM_ENUMDEF(enumname, enummembers) enum enumname { BOOST_PP_SEQ_ENUM(enummembers) };
-
-#define _GEN_ENUM_STR_E(r,data,i,elem) BOOST_PP_COMMA_IF(i) BOOST_PP_STRINGIZE(elem)
-#define _GEN_ENUM_STR(enumname, enummembers) \
-  std::string toString(const enumname d){				\
-    const static std::vector<std::string> str = { BOOST_PP_SEQ_FOR_EACH_I(_GEN_ENUM_STR_E,  ,  enummembers) }; \
-    int dd(d); \
-    if(dd < 0 || dd >= str.size()){ \
-      std::ostringstream os; os << "Unknown " BOOST_PP_STRINGIZE(enumname) " idx " << dd; \
-      return os.str(); \
-    }else return str[int(d)]; \
-  }
-
-#define _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
-  struct BOOST_PP_CAT(enumname,_match){ \
-    template <typename Context> \
-    void operator()(Context const& ctx) const{ \
-      const static std::vector<std::string> str = { BOOST_PP_SEQ_FOR_EACH_I(_GEN_ENUM_STR_E,  ,  enummembers) }; \
-      std::string tag = x3::_attr(ctx); \
-      enumname &val = x3::_val(ctx);	\
-      for(int i=0;i<str.size();i++) \
-	if(tag == str[i]){ val = (enumname)i; return; }			\
-      error_exit(std::cout << "Unknown " BOOST_PP_STRINGIZE(enumname) " : " << tag << std::endl); \
-    } \
-  };
-
-#define _GEN_ENUM_PARSER_BODY(enumname, enummembers) \
-  namespace BOOST_PP_CAT(enumname,_parser){	     \
-    namespace ascii = boost::spirit::x3::ascii; \
-    namespace x3 = boost::spirit::x3;\
-    auto const enumparse = x3::lexeme[*(x3::char_ - ascii::space)]; \
-    _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
-    x3::rule<class BOOST_PP_CAT(enumname,_), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
-    auto const BOOST_PP_CAT(enumname, __def) = enumparse[BOOST_PP_CAT(enumname,_match)()]; \
-    BOOST_SPIRIT_DEFINE(BOOST_PP_CAT(enumname,_)); \
-  }; \
-  namespace parsers{ \
-    template<>		   \
-    struct parser<enumname>{						\
-      decltype( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ) &parse; \
-      parser(): parse( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ){} \
-    };									\
-  };
-
-#define _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers)	      \
-  std::ostream & operator<<(std::ostream &os, const enumname s){ \
-    os << toString(s); \
-    return os; \
-  }
-
-#define _GEN_ENUM_DEFINE_ISTREAM_READ(enumname, enummembers) \
-  _PARSER_DEF_DEFINE_ISTREAM_READ(enumname, ) 
-
+//Convenience call for generating the class members using the same interface as for the parser (optional)
+//Usage: GENERATE_MEMBERS( (MY_TYPE1, MY_MEMBER1)(MY_TYPE2, MY_MEMBER2).... )
+#define GENERATE_MEMBERS(structmembers) _GENERATE_MEMBERS(structmembers) 
 
 //Define a parser for an enum
-//To use GENERATE_ENUM_PARSER( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
-#define GENERATE_ENUM_PARSER(enumname, enummembers) \
-  _GEN_ENUM_STR(enumname, enummembers)		\
-  _GEN_ENUM_PARSER_BODY(enumname, enummembers) \
-  _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers) \
-  _GEN_ENUM_DEFINE_ISTREAM_READ(enumname, enummembers)
+//Usage: GENERATE_ENUM_PARSER( MY_ENUM NAME, (MY_ELEM1)(MY_ELEM2)(MY_ELEM3)... )
+#define GENERATE_ENUM_PARSER(enumname, enummembers) _GENERATE_ENUM_PARSER(enumname, enummembers) 
 
 //Define an enum and a parser to go along with it
-//To use  GENERATE_ENUM_AND_PARSER( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
-#define GENERATE_ENUM_AND_PARSER(enumname, enummembers) \
-  _GEN_ENUM_ENUMDEF(enumname, enummembers) \
-  GENERATE_ENUM_PARSER(enumname, enummembers)
+//Usage: GENERATE_ENUM_AND_PARSER( MY_ENUM NAME, (MY_ELEM1)(MY_ELEM2)(MY_ELEM3)......   )
+#define GENERATE_ENUM_AND_PARSER(enumname, enummembers) _GENERATE_ENUM_AND_PARSER(enumname, enummembers) 
   
-      
+
+
 
 
 
