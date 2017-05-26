@@ -28,6 +28,8 @@ struct MarquardtLevenbergParameters{
   int max_iter;
   bool verbose;
   std::ostream *output;
+
+  bool exit_on_convergence_fail; //exit with error if failed to converge
   
   MarquardtLevenbergParameters(){
     lambda_factor = 10.;
@@ -38,6 +40,7 @@ struct MarquardtLevenbergParameters{
     max_iter = 10000;
     output = &std::cout;
     verbose = false;
+    exit_on_convergence_fail = true;
   }
 };
 
@@ -64,6 +67,7 @@ class MarquardtLevenbergMinimizer{
   int iter;
   double lambda;
   bool converged;
+  bool fail;
 
   //Cost function previous state
   CostType last_cost;
@@ -90,6 +94,7 @@ class MarquardtLevenbergMinimizer{
     last_params = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
 
     converged = false;
+    fail = false;
     use_derivs_from_last_step = false;
 
     lambda = mlparams.lambda_start;
@@ -140,10 +145,17 @@ class MarquardtLevenbergMinimizer{
 	  converged=true;
 	  return;
 	}else{
-	  error_exit(std::cout << prefix << "lambda value of " << lambda << " has reached the maximum of " << mlparams.lambda_max << " on iteration " << iter << ", could not find minima\n"); 	  
-	  //this is the end. If we let it continue it will just get stuck in a loop repeatedly trying this step
+	  //This is the end. If we let it continue it will just get stuck in a loop repeatedly trying this step
 	  //with ever increasing lambda. If we let lambda continue to grow, the changes in the parameters 
 	  //will get smaller and smaller without finding the true minima (unless lambda_max is just too small)
+
+	  if(mlparams.exit_on_convergence_fail){
+	    error_exit(std::cout << prefix << "lambda value of " << lambda << " has reached the maximum of " << mlparams.lambda_max << " on iteration " << iter << ", could not find minima\n"); 
+	  }else{
+	    fail = true;
+	    return;
+	  }
+ 
 	}
       }else{
 	lambda *= mlparams.lambda_factor;
@@ -213,14 +225,16 @@ class MarquardtLevenbergMinimizer{
   void iterate(){ //'params' is the running set of parameters
     MINPRINT << "----------------------------------------------\n";
     MINPRINT << "calculating parameters on iteration " << iter << std::endl;
-    if(iter==mlparams.max_iter) error_exit(std::cout << prefix << "reached max iterations\n");
+    if(iter==mlparams.max_iter)
+      if(mlparams.exit_on_convergence_fail) error_exit(std::cout << prefix << "reached max iterations\n");
+      else{ fail = true; return; }
 
     MINPRINT << "Input parameters: "<< parameters->print() << std::endl;
     MINPRINT << parameters->size() << " free parameters\n";
 
     if(iter>0){
       updateAlgorithmState(); //update lambda for next parameter update and check convergence if cost decreased since last iteration
-      if(converged) return;
+      if(converged || fail) return;
     }
 
     //Compute cost function derivatives if necessary
@@ -251,7 +265,7 @@ public:
   
   CostType fit(ParameterType &params){
     initialize(params);
-    while(!converged)
+    while(!converged && !fail)
       iterate();
     restoreEnvironment();
     params = *parameters;

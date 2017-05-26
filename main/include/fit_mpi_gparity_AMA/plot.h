@@ -39,14 +39,20 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
   
   MarquardtLevenbergParameters<typename CostFunction::CostType> mlparams;
   mlparams.verbose = false;
+  mlparams.exit_on_convergence_fail = false;
   std::vector<double> sigma_j(1,1.);
 
   jackknifeTimeSeriesType effmass(ratios.size(), nsample);
   publicationPrint<> printer;
   printer << "Effective mass for type " << type << "\n";
+
+  std::vector<bool> erase(ratios.size(),false);
+  bool erase_required = false;
+
   for(int i=0;i<ratios.size();i++){
-    effmass.coord(i) = ratios.coord(i);
+    effmass.coord(i) = ratios.coord(i);    
     
+    std::vector<int> fail(omp_get_max_threads(),0); //sometimes the fit func inversion can fail on noisy data
 #pragma omp parallel for
     for(int j=first_sample;j<nsample;j++){
       dataSeries<double, double> rat_t_sample_j(1);
@@ -56,12 +62,30 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
       MinimizerType fitter(costfunc, mlparams);
       FitEffectiveMass::ParameterType p(0.5);
       fitter.fit(p);
-      effmass.value(i).sample(j) = *p;
+      if(!fitter.hasConverged()) fail[omp_get_thread_num()] = 1;
+      else effmass.value(i).sample(j) = *p;
     }
-
-    printer << effmass.coord(i) << " " << effmass.value(i) << std::endl;
+    int did_fail = 0; for(int i=0;i<fail.size();i++) did_fail += fail[i];
+    if(did_fail){
+      printer << "Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
+      erase[i] = true;
+      erase_required = true;
+    }else{
+      printer << effmass.coord(i) << " " << effmass.value(i) << std::endl;
+    }
   }
-  return effmass;
+  if(erase_required){
+    int nkeep = 0; for(int i=0;i<ratios.size();i++) if(!erase[i]) nkeep++;
+    jackknifeTimeSeriesType tokeep(nkeep);
+    int elem = 0;
+    for(int i=0;i<ratios.size();i++)
+      if(!erase[i]){
+	tokeep.coord(elem) = std::move(effmass.coord(i));
+	tokeep.value(elem) = std::move(effmass.value(i));
+	elem++;
+      }
+    return tokeep;
+  }else return effmass;
 }
 
 

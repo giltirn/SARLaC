@@ -102,6 +102,10 @@ distributionVector readCombine(const Args &args, const int type_idx){
     if(fb == BB){
       exact_data = timeReflect(exact_data);
       sloppy_data = timeReflect(sloppy_data);
+      if(type == AP_LW_data || type == AP_WW_data){ //sinh-form data pick up - sign under reflection
+	exact_data = -exact_data;
+	sloppy_data = -sloppy_data;
+      }
     }
     
     distributionVector sloppy_avg;
