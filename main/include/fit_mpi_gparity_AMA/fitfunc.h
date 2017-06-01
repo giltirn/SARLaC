@@ -14,9 +14,20 @@ struct FitParamDerivs{
   inline const double &operator()(const int i) const{ return i == 1 ? dm : dA; }
   inline size_t size() const{ return 2;}
 };
-  
 
-class FitCosh{
+struct FitFuncBase{
+  typedef double ValueType;
+  typedef FitParams ParameterType;
+  typedef FitParamDerivs ValueDerivativeType; //derivative wrt parameters
+  typedef double GeneralizedCoordinate; //time coord
+
+  virtual ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const = 0;
+  virtual ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const = 0;
+  virtual int Nparams() const = 0;
+};
+
+
+class FitCosh: public FitFuncBase{
   const double Lt;
 public:
   typedef double ValueType;
@@ -39,7 +50,7 @@ public:
 
   inline int Nparams() const{ return 2; }
 };
-class FitSinh{
+class FitSinh: public FitFuncBase{
   const double Lt;
 public:
   typedef double ValueType;
@@ -66,7 +77,46 @@ public:
 
 
 //Define the amplitudes, their enumerations (starting from 1) and their associated fit forms
-GENERATE_ENUM_AND_PARSER(Params, (Mass)(A_PP_LW)(A_AA_LW)(A_AP_LW)(A_PP_WW)(A_AP_WW) )
+GENERATE_ENUM_AND_PARSER(Params, (Mass)(A_PP_LW)(A_AA_LW)(A_AP_LW)(A_PP_WW)(A_AP_WW)(Params_size) )
+
+struct FitControls{
+
+  //Get the amplitude enum associated with a particular data type
+  static inline Params amplitude(const DataType type){
+    switch(type){
+    case PP_LW_data:
+      return A_PP_LW;
+    case AA_LW_data:
+      return A_AA_LW;
+    case AP_LW_data:
+      return A_AP_LW;
+    case PP_WW_data:
+      return A_PP_WW;
+    case AP_WW_data:
+      return A_AP_WW;
+    default:
+      error_exit(std::cout << "FitControls::amplitude invalid type " << type << std::endl);
+    };
+  }
+  static inline FitFuncBase const* baseFitFunc(const DataType type, FitFuncBase const* fcosh, FitFuncBase const* fsinh){
+    switch(type){
+    case PP_LW_data:
+    case AA_LW_data:
+    case PP_WW_data:
+      return fcosh;
+    case AP_LW_data:
+    case AP_WW_data:
+      return fsinh;
+    default:
+      error_exit(std::cout << "FitControls::baseFitFunc invalid type\n");
+    }
+  }
+
+};
+
+
+
+
 
 class AllParamMap{
 public:
@@ -77,14 +127,14 @@ private:
   std::vector<Params> upmap; //index -> Params
 
 public:
-  AllParamMap(const Args &args): pmap(5), upmap(1){
+  AllParamMap(const Args &args): pmap((int)Params_size), upmap(1){
     pmap[(int)Mass] = 0;
     upmap[0] = Mass;
 
     int idx = 1;
     for(int i=0;i<args.data.size();i++){
       if(args.data[i].FF_data.include_data || args.data[i].BB_data.include_data){      
-	Params amp = this->amplitude(args.data[i].type);
+	Params amp = FitControls::amplitude(args.data[i].type);
 	pmap[(int)amp] = idx++;
 	upmap.push_back(amp);
       }
@@ -98,22 +148,6 @@ public:
   }
   inline int size() const{ return upmap.size(); }
   
-  inline Params amplitude(const DataType type) const{
-    switch(type){
-    case PP_LW_data:
-      return A_PP_LW;
-    case AA_LW_data:
-      return A_AA_LW;
-    case AP_LW_data:
-      return A_AP_LW;
-    case PP_WW_data:
-      return A_PP_WW;
-    case AP_WW_data:
-      return A_AP_WW;
-    default:
-      error_exit(std::cout << "AllParamMap::amplitudeIdx invalid type " << type << std::endl);
-    };
-  }
   inline std::string paramName(const int idx) const{
     return toString(upmap[idx]);
   }
@@ -143,9 +177,9 @@ public:
 private:
   FitCosh fcosh;
   FitSinh fsinh;
-
+    
   inline FitParams reduce(const ParameterType &p, const DataType type) const{
-    const double &A = p(p.getMapping().amplitude(type));
+    const double &A = p(FitControls::amplitude(type));
     const double &m = p(Mass);
     return FitParams(A,m);
   }
@@ -154,37 +188,16 @@ public:
 
   FitMpi(const double _Lt, const AllParamMap &param_map): fcosh(_Lt), fsinh(_Lt), nparams(param_map.nParams()){  }
   
-  ValueType value(const GeneralizedCoordinate &c, const ParameterType &p) const{
-    switch(c.type){
-    case PP_LW_data:
-    case AA_LW_data:
-    case PP_WW_data:
-      return fcosh.value(c.t, reduce(p,c.type));
-    case AP_LW_data:
-    case AP_WW_data:
-      return fsinh.value(c.t, reduce(p,c.type));
-    default:
-      error_exit(std::cout << "FitMpiFlex::value invalid type\n");
-    }
+  inline ValueType value(const GeneralizedCoordinate &c, const ParameterType &p) const{
+    return FitControls::baseFitFunc(c.type, &fcosh, &fsinh)->value(c.t,reduce(p,c.type));
   }
 
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &c, const ParameterType &p) const{
     ValueDerivativeType yderivs(p.getMapping());
     yderivs.zero();
-    FitParamDerivs subderivs;
-    switch(c.type){
-    case PP_LW_data:
-    case AA_LW_data:
-    case PP_WW_data:
-      subderivs = fcosh.parameterDerivatives(c.t, reduce(p,c.type)); break;
-    case AP_LW_data:
-    case AP_WW_data:
-      subderivs = fsinh.parameterDerivatives(c.t, reduce(p,c.type)); break;
-    default:
-      error_exit(std::cout << "FitMpiFlex::parameterDerivatives invalid type\n");
-    }
+    FitParamDerivs subderivs = FitControls::baseFitFunc(c.type, &fcosh, &fsinh)->parameterDerivatives(c.t,reduce(p,c.type));
     yderivs(Mass) = subderivs.dm;
-    yderivs(yderivs.getMapping().amplitude(c.type)) = subderivs.dA;
+    yderivs(FitControls::amplitude(c.type)) = subderivs.dA;
     return yderivs;
   }
 
@@ -218,55 +231,36 @@ struct getElem<MLwrapper<T> >{
 };
 
 
+
+
 class FitEffectiveMass{
   FitCosh fcosh;
   FitSinh fsinh;
   DataType type;
+  FitFuncBase const* fitfunc;
 public:
   typedef double ValueType;
   typedef MLwrapper<double> ParameterType;
   typedef MLwrapper<double> ValueDerivativeType;
   typedef double GeneralizedCoordinate;
 
-  FitEffectiveMass(const double _Lt, const DataType _type): fcosh(_Lt), fsinh(_Lt), type(_type){}
+  FitEffectiveMass(const double _Lt, const DataType _type): fcosh(_Lt), fsinh(_Lt), type(_type), fitfunc(FitControls::baseFitFunc(_type, &fcosh, &fsinh)){}
 
-  double value(const double t, const ParameterType &params) const{    
+  inline double value(const double t, const ParameterType &params) const{    
     FitParams p(1000, *params);
-    
-    switch(type){
-    case PP_LW_data:
-    case AA_LW_data:
-    case PP_WW_data:
-      return fcosh.value(t,p)/fcosh.value(t+1,p);
-    case AP_LW_data:
-    case AP_WW_data:
-      return fsinh.value(t,p)/fsinh.value(t+1,p);
-    default:
-      error_exit(std::cout << "FitEffectiveMass::value unknown type\n");
-    }
+    return fitfunc->value(t,p)/fitfunc->value(t+1,p);
   }
   
   ValueDerivativeType parameterDerivatives(const double t, const ParameterType &params) const{
     ValueDerivativeType yderivs;
     FitParams p(1000, *params);
-    FitParamDerivs subderivs_t;
-    FitParamDerivs subderivs_tp1;
-    double value_t, value_tp1;
-    switch(type){
-    case PP_LW_data:
-    case AA_LW_data:
-    case PP_WW_data:
-      value_t = fcosh.value(t,p); value_tp1 = fcosh.value(t+1,p);
-      subderivs_t = fcosh.parameterDerivatives(t,p); subderivs_tp1 = fcosh.parameterDerivatives(t+1,p); 
-      break;
-    case AP_LW_data:
-    case AP_WW_data:
-      value_t = fsinh.value(t,p); value_tp1 = fsinh.value(t+1,p);
-      subderivs_t = fsinh.parameterDerivatives(t,p); subderivs_tp1 = fsinh.parameterDerivatives(t+1,p); 
-      break;
-    default:
-      error_exit(std::cout << "FitEffectiveMass::parameterDerivatives unknown type\n");
-    };    
+    
+    double value_t = fitfunc->value(t,p);
+    FitParamDerivs subderivs_t = fitfunc->parameterDerivatives(t,p);
+
+    double value_tp1 = fitfunc->value(t+1,p);
+    FitParamDerivs subderivs_tp1 = fitfunc->parameterDerivatives(t+1,p);
+ 
     *yderivs = subderivs_t.dm/value_tp1 - value_t/value_tp1/value_tp1 * subderivs_tp1.dm;
     return yderivs;
   }

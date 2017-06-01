@@ -1,7 +1,7 @@
 #ifndef _FIT_MPI_GPARITY_AMA_ARGS_H
 #define _FIT_MPI_GPARITY_AMA_ARGS_H
 
-GENERATE_ENUM_AND_PARSER(DataType, (PP_LW_data)(AA_LW_data)(AP_LW_data)(PP_WW_data)(AP_WW_data) )
+GENERATE_ENUM_AND_PARSER(DataType, (PP_LW_data)(AA_LW_data)(AP_LW_data)(PP_WW_data)(AP_WW_data)(DataType_size) )
 
 #define SLOPPY_EXACT_MEMBERS \
   ( std::string, sloppy_fmt )     \
