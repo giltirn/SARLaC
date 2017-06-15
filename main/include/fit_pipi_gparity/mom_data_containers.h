@@ -13,12 +13,19 @@ inline std::string momStr(const threeMomentum &p){
     os << (p[i] < 0 ? "_" : "") << abs(p[i]);
   return os.str();
 }
+inline sinkSourceMomenta momComb(const int snkx, const int snky, const int snkz,
+				 const int srcx, const int srcy, const int srcz){
+  return sinkSourceMomenta( {snkx,snky,snkz}, {srcx,srcy,srcz} );
+}
+inline sinkSourceMomenta momComb(const threeMomentum &snk, const threeMomentum &src){
+  return sinkSourceMomenta(snk,src);
+}
 
 
-template<typename DataPolicies>
+template<typename _ContainerType>
 class figureDataAllMomentaBase{
 public:
-  typedef typename DataPolicies::ContainerType ContainerType;
+  typedef _ContainerType ContainerType;
   typedef typename std::map<sinkSourceMomenta, ContainerType>::const_iterator const_iterator;  
 private:
   typedef std::map<sinkSourceMomenta, ContainerType> MapType;
@@ -48,7 +55,7 @@ private:
       if(lock) error_exit(std::cout << "figureDataAllMomenta::get Could not find requested momentum\n");
 
       it = mp->insert(std::make_pair(mom, figureData())).first;
-      DataPolicies::setup(it->second, Lt, Nsample);
+      it->second.setup(Lt, Nsample);
     }
     return it->second;
   }
@@ -61,7 +68,7 @@ public:
   }
   
   const ContainerType &operator()(const char fig, const sinkSourceMomenta &mom) const{
-    figureDataAllMomentaBase<DataPolicies> *t = const_cast<figureDataAllMomentaBase<DataPolicies> *>(this);
+    figureDataAllMomentaBase<ContainerType> *t = const_cast<figureDataAllMomentaBase<ContainerType> *>(this);
     return const_cast<const ContainerType &>( t->get(fig,mom,true) );
   }
   ContainerType &operator()(const char fig, const sinkSourceMomenta &mom){
@@ -72,74 +79,16 @@ public:
 };
 
 
-struct doubleJackDataPolicy{
-  typedef std::vector<doubleJackknifeDistribution<complexD> > ContainerType;
-  static void setup(ContainerType &con, const int Lt, const int Nsample){ con.resize(Lt, doubleJackknifeDistribution<complexD>(Nsample)); }
-};
-struct figureDataPolicy{
-  typedef figureData ContainerType;
-  static void setup(ContainerType &con, const int Lt, const int Nsample){ con.setup(Lt,Nsample); }
-};
-
-typedef figureDataAllMomentaBase<figureDataPolicy> figureDataAllMomenta;
-typedef figureDataAllMomentaBase<doubleJackDataPolicy> figureDataDoubleJackAllMomenta;
+typedef figureDataAllMomentaBase<figureData> figureDataAllMomenta;
+typedef figureDataAllMomentaBase<figureDoubleJackData> figureDataDoubleJackAllMomenta;
 
 
 
-// class figureDataAllMomenta{
-//   std::map<sinkSourceMomenta, figureData> C;
-//   std::map<sinkSourceMomenta, figureData> D;
-//   std::map<sinkSourceMomenta, figureData> R;
-//   std::map<sinkSourceMomenta, figureData> V;
-//   int Lt;
-//   int Nsample;
-  
-//   figureData & get(const char fig, const sinkSourceMomenta &mom, bool lock){
-//     std::map<sinkSourceMomenta, figureData>* mp;
-//     switch(fig){
-//     case 'C':
-//       mp = &C; break;
-//     case 'D':
-//       mp = &D; break;
-//     case 'R':
-//       mp = &R; break;
-//     case 'V':
-//       mp = &V; break;
-//     default:
-//       error_exit(std::cout << "figureDataAllMomenta::get invalid figure " << fig << std::endl);
-//     }
-//     std::map<sinkSourceMomenta, figureData>::iterator it = mp->find(mom);
-//     if(it == mp->end()){
-//       if(lock) error_exit(std::cout << "figureDataAllMomenta::get Could not find requested momentum\n");
 
-//       it = mp->insert(std::make_pair(mom, figureData())).first;
-//       it->second.setup(Lt,Nsample);
-//     }
-//     return it->second;
-//   }
-// public:
-//   figureDataAllMomenta(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
-//   figureDataAllMomenta(){}
-
-//   void setup(const int _Lt, const int _Nsample){
-//     Lt = _Lt; Nsample = _Nsample;
-//   }
-  
-//   const figureData &operator()(const char fig, const sinkSourceMomenta &mom) const{
-//     figureDataAllMomenta *t = const_cast<figureDataAllMomenta *>(this);
-//     return const_cast<const figureData &>( t->get(fig,mom,true) );
-//   }
-//   figureData &operator()(const char fig, const sinkSourceMomenta &mom){
-//     return this->get(fig,mom,false);
-//   }
-//   inline int getLt() const{ return Lt; }
-//   inline int getNsample() const{ return Nsample; }
-// };
-
-template<typename DataPolicies>
+template<typename _ContainerType>
 class bubbleDataAllMomentaBase{
 public:
-  typedef typename DataPolicies::ContainerType ContainerType;
+  typedef _ContainerType ContainerType;
   typedef typename std::map<threeMomentum, ContainerType>::const_iterator const_iterator;  
 private:
   std::map<threeMomentum, ContainerType> B;
@@ -152,7 +101,7 @@ private:
       if(lock) error_exit(std::cout << "bubbleDataAllMomenta::get Could not find requested momentum\n");
 
       it = B.insert(std::make_pair(mom, ContainerType())).first;
-      DataPolicies::setup(it->second,Lt,Nsample);
+      it->second.setup(Lt,Nsample);
     }
     return it->second;
   }
@@ -165,7 +114,7 @@ public:
   }
   
   const ContainerType &operator()(const threeMomentum &mom) const{
-    bubbleDataAllMomentaBase<DataPolicies> *t = const_cast<bubbleDataAllMomentaBase<DataPolicies> *>(this);
+    bubbleDataAllMomentaBase<ContainerType> *t = const_cast<bubbleDataAllMomentaBase<ContainerType> *>(this);
     return const_cast<const ContainerType &>( t->get(mom,true) );
   }
   ContainerType &operator()(const threeMomentum &mom){
@@ -178,21 +127,10 @@ public:
   inline const_iterator end() const{ return B.end(); }
 };
 
-struct bubbleDataPolicy{
-  typedef bubbleData ContainerType;
-  static void setup(ContainerType &con, const int Lt, const int Nsample){ con.setup(Lt,Nsample); }
-};
 
-typedef bubbleDataAllMomentaBase<bubbleDataPolicy> bubbleDataAllMomenta;
-typedef bubbleDataAllMomentaBase<doubleJackDataPolicy> bubbleDataDoubleJackAllMomenta;
+typedef bubbleDataAllMomentaBase<bubbleData> bubbleDataAllMomenta;
+typedef bubbleDataAllMomentaBase<bubbleDoubleJackData> bubbleDataDoubleJackAllMomenta;
 
 
-inline sinkSourceMomenta momComb(const int snkx, const int snky, const int snkz,
-				 const int srcx, const int srcy, const int srcz){
-  return sinkSourceMomenta( {snkx,snky,snkz}, {srcx,srcy,srcz} );
-}
-inline sinkSourceMomenta momComb(const threeMomentum &snk, const threeMomentum &src){
-  return sinkSourceMomenta(snk,src);
-}
 
 #endif

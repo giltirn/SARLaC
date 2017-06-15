@@ -42,7 +42,7 @@ bubbleDataDoubleJackAllMomenta doubleJackknifeResampleBubble(const bubbleDataAll
   for(auto it = bubbles.begin(); it != bubbles.end(); it++){
     const threeMomentum & mom = it->first;
     const typename bubbleDataAllMomenta::ContainerType & raw = it->second;
-    for(int t=0;t<Lt;t++) out(mom)[t].resample(raw(t));
+    for(int t=0;t<Lt;t++) out(mom)(t).resample(raw(t));
   }
   return out;
 }
