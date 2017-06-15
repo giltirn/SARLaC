@@ -7,14 +7,29 @@ class dataSeries{
 public:
   typedef _GeneralizedCoordinate GeneralizedCoordinate;
   typedef _DataType DataType;
+  typedef std::pair<GeneralizedCoordinate, DataType> ElementType;
 private:
-  std::vector<std::pair<GeneralizedCoordinate, DataType> > series;
+  std::vector<ElementType> series;
 public:
   dataSeries(){}
   explicit dataSeries(const int n): series(n){}
-  dataSeries(const int n, const int samples): series(n, std::pair<GeneralizedCoordinate,DataType>(GeneralizedCoordinate(), DataType(samples)) ){}; 
+  dataSeries(const int n, const int samples): series(n, ElementType(GeneralizedCoordinate(), DataType(samples)) ){}; 
 
   inline void resize(const int n){ series.resize(n); }
+  inline void resize(const int n, const ElementType &init){ series.resize(n,init); }
+
+  //Resize where the elements are populated according to an initializer object
+  //Initializer must have   ElementType operator()(const int i) const   where 0<=i<n
+  template<typename Initializer>
+  inline void resize(const int n, const Initializer &initializer){
+    series.resize(n);
+    for(int i=0;i<n;i++) series[i] = initializer(i);
+  }
+  //Constructor version of the above
+  template<typename Initializer>
+  inline dataSeries(const int n, const Initializer &initializer): series(n){
+    for(int i=0;i<n;i++) series[i] = initializer(i);
+  }
   
   inline int size() const{ return series.size(); }
   
@@ -23,6 +38,9 @@ public:
 
   inline GeneralizedCoordinate &coord(const int i){ return series[i].first; }
   inline const GeneralizedCoordinate &coord(const int i) const{ return series[i].first; }
+
+  inline const ElementType &operator[](const int i) const{ return series[i]; }
+  inline ElementType &operator[](const int i){ return series[i]; }
 };
 
 //Generic filter interface for a data series, allowing for example restriction of data for fitting

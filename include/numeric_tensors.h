@@ -26,6 +26,9 @@ public:
   void resize(const int n){
     v.resize(n);
   }
+  void resize(const int n, const Numeric &init){
+    v.resize(n,init);
+  }
   void zero(){ for(int i=0;i<v.size();i++) v[i] = 0.; }
 
   std::string print() const{
@@ -88,6 +91,12 @@ public:
     m.resize(n);
     for(int i=0;i<n;i++)
       m[i].resize(n);      
+  }
+  void resize(const int n, const Numeric &init){
+    if(m.size() == n) return;
+    m.resize(n);
+    for(int i=0;i<n;i++)
+      m[i].resize(n,init);     
   }
   void zero(){
     const int n = m.size();
