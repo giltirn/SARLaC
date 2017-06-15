@@ -1,0 +1,198 @@
+#ifndef PIPI_MOM_DATA_CONTAINERS_H
+#define PIPI_MOM_DATA_CONTAINERS_H
+
+typedef std::array<int,3> threeMomentum;
+typedef std::pair<threeMomentum, threeMomentum> sinkSourceMomenta;
+
+inline threeMomentum operator-(const threeMomentum &p){
+  return threeMomentum({-p[0],-p[1],-p[2]});
+}
+inline std::string momStr(const threeMomentum &p){
+  std::ostringstream os;
+  for(int i=0;i<3;i++)
+    os << (p[i] < 0 ? "_" : "") << abs(p[i]);
+  return os.str();
+}
+
+
+template<typename DataPolicies>
+class figureDataAllMomentaBase{
+public:
+  typedef typename DataPolicies::ContainerType ContainerType;
+  typedef typename std::map<sinkSourceMomenta, ContainerType>::const_iterator const_iterator;  
+private:
+  typedef std::map<sinkSourceMomenta, ContainerType> MapType;
+  MapType C;
+  MapType D;
+  MapType R;
+  MapType V;
+  int Lt;
+  int Nsample;
+  
+  ContainerType & get(const char fig, const sinkSourceMomenta &mom, bool lock){
+    MapType* mp;
+    switch(fig){
+    case 'C':
+      mp = &C; break;
+    case 'D':
+      mp = &D; break;
+    case 'R':
+      mp = &R; break;
+    case 'V':
+      mp = &V; break;
+    default:
+      error_exit(std::cout << "figureDataAllMomenta::get invalid figure " << fig << std::endl);
+    }
+    typename MapType::iterator it = mp->find(mom);
+    if(it == mp->end()){
+      if(lock) error_exit(std::cout << "figureDataAllMomenta::get Could not find requested momentum\n");
+
+      it = mp->insert(std::make_pair(mom, figureData())).first;
+      DataPolicies::setup(it->second, Lt, Nsample);
+    }
+    return it->second;
+  }
+public:
+  figureDataAllMomentaBase(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
+  figureDataAllMomentaBase(){}
+
+  void setup(const int _Lt, const int _Nsample){
+    Lt = _Lt; Nsample = _Nsample;
+  }
+  
+  const ContainerType &operator()(const char fig, const sinkSourceMomenta &mom) const{
+    figureDataAllMomentaBase<DataPolicies> *t = const_cast<figureDataAllMomentaBase<DataPolicies> *>(this);
+    return const_cast<const ContainerType &>( t->get(fig,mom,true) );
+  }
+  ContainerType &operator()(const char fig, const sinkSourceMomenta &mom){
+    return this->get(fig,mom,false);
+  }
+  inline int getLt() const{ return Lt; }
+  inline int getNsample() const{ return Nsample; }
+};
+
+
+struct doubleJackDataPolicy{
+  typedef std::vector<doubleJackknifeDistribution<complexD> > ContainerType;
+  static void setup(ContainerType &con, const int Lt, const int Nsample){ con.resize(Lt, doubleJackknifeDistribution<complexD>(Nsample)); }
+};
+struct figureDataPolicy{
+  typedef figureData ContainerType;
+  static void setup(ContainerType &con, const int Lt, const int Nsample){ con.setup(Lt,Nsample); }
+};
+
+typedef figureDataAllMomentaBase<figureDataPolicy> figureDataAllMomenta;
+typedef figureDataAllMomentaBase<doubleJackDataPolicy> figureDataDoubleJackAllMomenta;
+
+
+
+// class figureDataAllMomenta{
+//   std::map<sinkSourceMomenta, figureData> C;
+//   std::map<sinkSourceMomenta, figureData> D;
+//   std::map<sinkSourceMomenta, figureData> R;
+//   std::map<sinkSourceMomenta, figureData> V;
+//   int Lt;
+//   int Nsample;
+  
+//   figureData & get(const char fig, const sinkSourceMomenta &mom, bool lock){
+//     std::map<sinkSourceMomenta, figureData>* mp;
+//     switch(fig){
+//     case 'C':
+//       mp = &C; break;
+//     case 'D':
+//       mp = &D; break;
+//     case 'R':
+//       mp = &R; break;
+//     case 'V':
+//       mp = &V; break;
+//     default:
+//       error_exit(std::cout << "figureDataAllMomenta::get invalid figure " << fig << std::endl);
+//     }
+//     std::map<sinkSourceMomenta, figureData>::iterator it = mp->find(mom);
+//     if(it == mp->end()){
+//       if(lock) error_exit(std::cout << "figureDataAllMomenta::get Could not find requested momentum\n");
+
+//       it = mp->insert(std::make_pair(mom, figureData())).first;
+//       it->second.setup(Lt,Nsample);
+//     }
+//     return it->second;
+//   }
+// public:
+//   figureDataAllMomenta(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
+//   figureDataAllMomenta(){}
+
+//   void setup(const int _Lt, const int _Nsample){
+//     Lt = _Lt; Nsample = _Nsample;
+//   }
+  
+//   const figureData &operator()(const char fig, const sinkSourceMomenta &mom) const{
+//     figureDataAllMomenta *t = const_cast<figureDataAllMomenta *>(this);
+//     return const_cast<const figureData &>( t->get(fig,mom,true) );
+//   }
+//   figureData &operator()(const char fig, const sinkSourceMomenta &mom){
+//     return this->get(fig,mom,false);
+//   }
+//   inline int getLt() const{ return Lt; }
+//   inline int getNsample() const{ return Nsample; }
+// };
+
+template<typename DataPolicies>
+class bubbleDataAllMomentaBase{
+public:
+  typedef typename DataPolicies::ContainerType ContainerType;
+  typedef typename std::map<threeMomentum, ContainerType>::const_iterator const_iterator;  
+private:
+  std::map<threeMomentum, ContainerType> B;
+  int Lt;
+  int Nsample;
+  
+  ContainerType & get(const threeMomentum &mom, bool lock){
+    typename std::map<threeMomentum, ContainerType>::iterator it = B.find(mom);
+    if(it == B.end()){
+      if(lock) error_exit(std::cout << "bubbleDataAllMomenta::get Could not find requested momentum\n");
+
+      it = B.insert(std::make_pair(mom, ContainerType())).first;
+      DataPolicies::setup(it->second,Lt,Nsample);
+    }
+    return it->second;
+  }
+public:
+  bubbleDataAllMomentaBase(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
+  bubbleDataAllMomentaBase(){}
+
+  void setup(const int _Lt, const int _Nsample){
+    Lt = _Lt; Nsample = _Nsample;
+  }
+  
+  const ContainerType &operator()(const threeMomentum &mom) const{
+    bubbleDataAllMomentaBase<DataPolicies> *t = const_cast<bubbleDataAllMomentaBase<DataPolicies> *>(this);
+    return const_cast<const ContainerType &>( t->get(mom,true) );
+  }
+  ContainerType &operator()(const threeMomentum &mom){
+    return this->get(mom,false);
+  }
+  inline int getLt() const{ return Lt; }
+  inline int getNsample() const{ return Nsample; }
+
+  inline const_iterator begin() const{ return B.begin(); }
+  inline const_iterator end() const{ return B.end(); }
+};
+
+struct bubbleDataPolicy{
+  typedef bubbleData ContainerType;
+  static void setup(ContainerType &con, const int Lt, const int Nsample){ con.setup(Lt,Nsample); }
+};
+
+typedef bubbleDataAllMomentaBase<bubbleDataPolicy> bubbleDataAllMomenta;
+typedef bubbleDataAllMomentaBase<doubleJackDataPolicy> bubbleDataDoubleJackAllMomenta;
+
+
+inline sinkSourceMomenta momComb(const int snkx, const int snky, const int snkz,
+				 const int srcx, const int srcy, const int srcz){
+  return sinkSourceMomenta( {snkx,snky,snkz}, {srcx,srcy,srcz} );
+}
+inline sinkSourceMomenta momComb(const threeMomentum &snk, const threeMomentum &src){
+  return sinkSourceMomenta(snk,src);
+}
+
+#endif
