@@ -37,32 +37,6 @@ struct getElem<correlationFunction<DistributionType> >{
   }
 };
 
-correlationFunction<distribution<double> > realSourceAverage(const figureData & data){
-  int Lt = data.getLt();
-  int nsample = data.getNsample();
-  correlationFunction<distribution<double> > into(data.getLt(),
-						  [nsample](int i) {  return correlationFunction<distribution<double> >::ElementType(i, distribution<double>(nsample,0.)); }
-						  );
-  std::vector<int> tsrc_include;
-  for(int tsrc=0;tsrc<Lt;tsrc++){
-    bool is_nonzero = !data.isZero(tsrc);
-    if(is_nonzero)
-      tsrc_include.push_back(tsrc);
-  }
-  double N(tsrc_include.size());
-    
-  for(int tsep=0;tsep<Lt;tsep++){
-    for(int s=0;s<data.getNsample();s++){
-      double &v = into.value(tsep).sample(s);
-      v = 0.;
-      for(int i=0;i<tsrc_include.size();i++)
-	v += data(tsrc_include[i],tsep).sample(s).real();
-      v /= N;
-    }
-  }
-  return into;
-}
-
 typedef std::pair<tagged<double, correlationFunction<distribution<double> > >, distribution<double> >  CFDpair;
 
 inline CFDpair operator*(const int a, const CFDpair &e){

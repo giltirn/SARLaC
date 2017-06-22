@@ -41,7 +41,22 @@ struct printStats{
   inline static auto centralValue(const DistributionType &d)->decltype(d.best()){ return d.best(); }
   inline static auto error(const DistributionType &d)->decltype(d.standardError()){ return d.standardError(); }
 };
+template<typename T>
+struct printStats< doubleJackknifeDistribution<T> >{
+  inline static std::string centralValue(const doubleJackknifeDistribution<T> &d){
+    std::ostringstream os; os << "[";
+    for(int s=0;s<d.size()-1;s++) os << d.sample(s).best() << ", ";
+    os << d.sample(d.size()-1).best() << "]";
+    return os.str();
+  }
+  inline static std::string error(const doubleJackknifeDistribution<T> &d){ 
+    std::ostringstream os; os << "[";
+    for(int s=0;s<d.size()-1;s++) os << d.sample(s).standardError() << ", ";
+    os << d.sample(d.size()-1).standardError() << "]";
+    return os.str();
+  }
 
+};
 
 template< template<typename> class ValuePolicy = printStats>
 class basicPrint: public printerBase<basicPrint<ValuePolicy> >{

@@ -42,6 +42,9 @@ template<typename _DataType>
 class superJackknifeDistribution{
 public:
   typedef _DataType DataType;
+
+  template<typename T>
+  using rebase = superJackknifeDistribution<T>;
 protected:
   std::vector< jackknifeDistribution<DataType> > ens_jacks;
   DataType cen;
@@ -132,6 +135,13 @@ public:
   }
   
   const superJackknifeLayout & getLayout() const{ return *layout; }
+
+  template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
+  superJackknifeDistribution<typename U::value_type> real() const{
+    superJackknifeDistribution<typename U::value_type> out(*layout, this->best().real());
+    for(int i=0;i<size();i++) out.sample(i) = this->sample(i).real();
+    return out;
+  }
 };
 
 template<typename A>

@@ -49,16 +49,18 @@ public:
 };
 
 typedef bubbleDataBase<distribution<complexD>, bubbleDataPolicies> bubbleData;
-typedef bubbleDataBase<doubleJackknifeDistribution<complexD> > bubbleDoubleJackData;
+typedef bubbleDataBase<doubleJackknifeDistribution<complexD> > bubbleDataDoubleJack;
 
-template<typename DistributionType, typename Policies = null_type>
+template<typename _DistributionType, typename Policies = null_type>
 class figureDataBase: public Policies{
+public:
+  typedef _DistributionType DistributionType;
+private:
   NumericMatrix<DistributionType> d; //(tsrc,tsep).sample(cfg)
   int Lt;
   template<typename T,typename P>
   friend std::ostream & operator<<(std::ostream &os, const figureDataBase<T,P> &f);
 public:
-  
   typedef figureDataBase<DistributionType,Policies> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,figureDataBase<DistributionType,Policies> >::value, int>::type = 0>
   figureDataBase<DistributionType,Policies>(U&& expr): d(expr.common_properties()), Lt(expr.common_properties()){
@@ -77,8 +79,7 @@ public:
   void zero(){
     for(int i=0;i<Lt;i++)
       for(int j=0;j<Lt;j++)
-	for(int s=0;s<d(i,j).size();s++)
-	  d(i,j).sample(s) = complexD(0.);
+	zeroit(d(i,j));
   }
     
   
@@ -155,8 +156,29 @@ public:
   }
 };
 
+class figureDataDoubleJackPolicies{
+  inline figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> & upcast(){ return *static_cast< figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies>* >(this); }
+  inline const figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> & upcast() const{ return *static_cast< figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> const* >(this); }
+
+public:
+  bool isZero(const int tsrc) const{
+    const figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> &me = upcast();
+    
+    for(int tsep=0;tsep<me.getLt();tsep++)
+      for(int sample=0;sample<me.getNsample();sample++){
+	for(int sub_sample=0;sub_sample<me.getNsample();sub_sample++){	
+	  const complexD & v = me.at(tsrc,tsep).sample(sample).sample(sub_sample);
+	  if(v.real() != 0.0 || v.imag() != 0.0) return false;
+	}
+      }
+    return true;
+  }
+};
+
+  
+
 typedef figureDataBase<distribution<complexD> , figureDataPolicies> figureData;
-typedef figureDataBase<doubleJackknifeDistribution<complexD> > figureDoubleJackData;
+typedef figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies > figureDataDoubleJack;
 
 
 

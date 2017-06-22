@@ -25,7 +25,7 @@ int main(int argc, char* argv[]){
   const std::string data_dir = "/home/ckelly/CPS/build/CPSfit/pipi_data";
   const int tsep_pipi = 4;
   const int Lt = 64;
-  const int traj_start = 988;
+  const int traj_start = 984;
   const int traj_inc = 4;
   const int traj_lessthan = 996;
   const int nsample = (traj_lessthan - traj_start)/traj_inc;
@@ -60,8 +60,10 @@ int main(int argc, char* argv[]){
 								    }
 								    );
   bubbleDataDoubleJackAllMomenta dj_bubble_data = doubleJackknifeResampleBubble(raw_bubble_data);
-
-
+  figureDataDoubleJackAllMomenta dj_data;  
+  computeV(dj_data, dj_bubble_data, tsep_pipi);
+  figureDataDoubleJack A2_V_dj = projectA2('V', dj_data);
+  auto A2_realavg_V_dj = realSourceAverage(A2_V_dj);
 
   
   return 0;

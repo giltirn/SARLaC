@@ -6,6 +6,8 @@
 #include<sstream>
 #include<omp.h>
 
+#include<template_wizardry.h>
+
 class OstreamHook{
 public:
   virtual void write(std::ostream &) const = 0;
@@ -66,5 +68,24 @@ template<typename T>
 inline std::string anyToStr(const T &p){
   std::ostringstream os; os << p; return os.str();
 }
+
+
+
+template<typename T, typename std::enable_if<hasZeroMethod<T>::value, int>::type = 0>
+inline void zeroit(T &v){
+  v.zero();
+}
+template<typename T, typename std::enable_if<!hasZeroMethod<T>::value && (hasEqualsMethod<T,double>::value || hasEqualsMethod<T,float>::value), int>::type = 0>
+inline void zeroit(T &v){
+  v = 0.;
+}
+inline void zeroit(double &v){
+  v = 0.;
+}
+inline void zeroit(float &v){
+  v = 0.;
+}
+
+
 
 #endif

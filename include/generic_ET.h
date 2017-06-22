@@ -1,6 +1,8 @@
 #ifndef _GENERIC_ET_H
 #define _GENERIC_ET_H
 
+#include<utils.h>
+
 //An expression template engine for any class with an operator()(int) and size() method
 template<class T, class Fallback = void>
 struct has_ET_tag{ enum{ value = 0 }; };
@@ -45,6 +47,7 @@ struct ETeval{
   inline decltype(getElem<A>::common_properties(rf)) common_properties() const{ return getElem<A>::common_properties(rf); }
   static inline auto elem(A &v, const int i)->decltype(getElem<A>::elem(v,i)){ return getElem<A>::elem(v,i); } //used for accessing element in final loop
 };
+
 //Store rvalue operands
 template<typename A>
 struct ETstore{
@@ -52,7 +55,7 @@ struct ETstore{
   A rf;
   typedef ENABLE_IF_NOT_ET_LEAF(A, typename A::ET_tag) ET_tag;
   
-  ETstore(A &&r): rf(std::move(r)){}
+  ETstore(A &&r): rf(std::move(r)){  }
   inline decltype(getElem<A>::elem(const_cast<const A &>(rf),0)) operator[](const int i) const{ return getElem<A>::elem(const_cast<const A &>(rf),i); }
   inline decltype(getElem<A>::common_properties(rf)) common_properties() const{ return getElem<A>::common_properties(rf); }
   static inline auto elem(A &v, const int i)->decltype(getElem<A>::elem(v,i)){ return getElem<A>::elem(v,i); } //used for accessing element in final loop
@@ -102,7 +105,7 @@ struct NAME{ \
   typedef ENABLE_IF_TWO_ET_LEAF_EQUAL_TAG(Leaf1,Leaf2, typename Leaf1::ET_tag) ET_tag; \
   \
   NAME(Leaf1 &&aa, Leaf2 &&bb): a(std::move(aa)), b(std::move(bb)){ \
-    assert(aa.common_properties() == bb.common_properties()); \
+    if(a.common_properties() != b.common_properties()) error_exit(std::cout << "Error: binop operands have different common_properties: " << a.common_properties() << ":" << b.common_properties() << std::endl); \
   } \
   \
   inline decltype(a[0] OP b[0]) operator[](const int i) const{ return a[i] OP b[i]; } \

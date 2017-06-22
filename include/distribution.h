@@ -93,6 +93,9 @@ template<typename _DataType>
 class distribution{
 public:
   typedef _DataType DataType;
+
+  template<typename T>
+  using rebase = distribution<T>;
 protected:  
   std::vector<DataType> _data;
 
@@ -164,6 +167,17 @@ public:
     Op op(avg_a,avg_b,a.sampleVector(),b.sampleVector());
     return threadedSum(op)/double(a.size());
   }
+
+  template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
+  distribution<typename U::value_type> real() const{
+    distribution<typename U::value_type> out(this->size());
+    for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
+    return out;
+  }
+
+  inline void zero(){
+    for(int i=0;i<this->size();i++) zeroit(this->sample(i));
+  }
   
 };
 
@@ -179,6 +193,9 @@ class jackknifeDistribution: public distribution<_DataType>{
   typedef distribution<_DataType> baseType;
 public:
   typedef _DataType DataType;
+  
+  template<typename T>
+  using rebase = jackknifeDistribution<T>;
   
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in){
@@ -226,6 +243,13 @@ public:
   ENABLE_GENERIC_ET(jackknifeDistribution, jackknifeDistribution<_DataType>);
   
   jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
+
+  template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
+  jackknifeDistribution<typename U::value_type> real() const{
+    jackknifeDistribution<typename U::value_type> out(this->size());
+    for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
+    return out;
+  }
 };
 
 //A jackknife distribution that independently propagates it's central value
@@ -235,6 +259,9 @@ class jackknifeCdistribution: public jackknifeDistribution<_DataType>{
   typedef jackknifeDistribution<_DataType> baseType;
 public:
   typedef _DataType DataType;
+  
+  template<typename T>
+  using rebase = jackknifeCdistribution<T>;
   
   jackknifeCdistribution() = default;
   jackknifeCdistribution(const jackknifeCdistribution &r) = default;
@@ -289,7 +316,12 @@ public:
     for(int i=0;i<this->size();i++) this->sample(i) = jack.sample(i);
     cen = jack.mean();
   }
-
+  template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
+  jackknifeCdistribution<typename U::value_type> real() const{
+    jackknifeCdistribution<typename U::value_type> out(this->size());
+    for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
+    return out;
+  }
 };
 
 
@@ -306,7 +338,10 @@ class doubleJackknifeDistribution: public distribution<jackknifeDistribution<Bas
   typedef distribution<jackknifeDistribution<BaseDataType> > baseType;
 public:
   typedef jackknifeDistribution<BaseDataType> DataType;
-
+  
+  template<typename T>
+  using rebase = doubleJackknifeDistribution<T>;
+  
   template<typename DistributionType> //Assumed to be a raw data distribution
   void resample(const DistributionType &in){
     const int N = in.size();
@@ -321,9 +356,8 @@ public:
     };
     Op op(in);
     BaseDataType sum = threadedSum(op);
-
-    const BaseDataType den(N-2);
-    const BaseDataType num = BaseDataType(1.)/den;
+    
+    const double num = 1./double(N-2);
 #pragma omp parallel for
     for(int i=0;i<N;i++){
       int jj=0;
@@ -338,8 +372,9 @@ public:
   doubleJackknifeDistribution(): baseType(){}
   doubleJackknifeDistribution(const doubleJackknifeDistribution &r): baseType(r){}
   
-  explicit doubleJackknifeDistribution(const int nsample): baseType(nsample){}
+  explicit doubleJackknifeDistribution(const int nsample): baseType(nsample, DataType(nsample-1)){}
   doubleJackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
+  doubleJackknifeDistribution(const int nsample, const BaseDataType &init): baseType(nsample,DataType(nsample-1,init)){}
   doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   ENABLE_GENERIC_ET(doubleJackknifeDistribution, doubleJackknifeDistribution<BaseDataType>);
@@ -354,7 +389,14 @@ public:
       out.sample(i) = jackknifeDistribution<BaseDataType>::covariance(a.sample(i),b.sample(i));
     return out;
   }
-  
+  template<typename U=BaseDataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
+  doubleJackknifeDistribution<typename U::value_type> real() const{
+    doubleJackknifeDistribution<typename U::value_type> out(this->size());
+    for(int i=0;i<this->size();i++)
+      for(int j=0;j<this->size()-1;j++)
+	out.sample(i).sample(j) = this->sample(i).sample(j).real();
+    return out;
+  }
 };
 
 #include<distribution_ET.h>

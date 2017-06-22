@@ -4,6 +4,11 @@
 typedef std::array<int,3> threeMomentum;
 typedef std::pair<threeMomentum, threeMomentum> sinkSourceMomenta;
 
+std::ostream & operator<<(std::ostream &os, const threeMomentum &mom){
+  os << "(" << mom[0] << ", " << mom[1] << ", " << mom[2] << ")";
+  return os;
+}
+
 inline threeMomentum operator-(const threeMomentum &p){
   return threeMomentum({-p[0],-p[1],-p[2]});
 }
@@ -54,7 +59,7 @@ private:
     if(it == mp->end()){
       if(lock) error_exit(std::cout << "figureDataAllMomenta::get Could not find requested momentum\n");
 
-      it = mp->insert(std::make_pair(mom, figureData())).first;
+      it = mp->insert(std::make_pair(mom, ContainerType())).first;
       it->second.setup(Lt, Nsample);
     }
     return it->second;
@@ -80,7 +85,7 @@ public:
 
 
 typedef figureDataAllMomentaBase<figureData> figureDataAllMomenta;
-typedef figureDataAllMomentaBase<figureDoubleJackData> figureDataDoubleJackAllMomenta;
+typedef figureDataAllMomentaBase<figureDataDoubleJack> figureDataDoubleJackAllMomenta;
 
 
 
@@ -129,7 +134,7 @@ public:
 
 
 typedef bubbleDataAllMomentaBase<bubbleData> bubbleDataAllMomenta;
-typedef bubbleDataAllMomentaBase<bubbleDoubleJackData> bubbleDataDoubleJackAllMomenta;
+typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
 
 
 
