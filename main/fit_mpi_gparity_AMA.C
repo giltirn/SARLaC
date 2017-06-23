@@ -95,9 +95,6 @@ int main(const int argc, const char** argv){
   }
   const int ndata_types = raw.size();
   
-  //publicationPrint<> printer;
-  basicPrint<> printer;
-
   //Combine data and double-jackknife resample
   const int nx = ndata_types * args.Lt; //t + Lt*type
 
@@ -152,12 +149,12 @@ int main(const int argc, const char** argv){
 
     sigma[x] = sqrt(cov(x,x));
     corr(x,x) = 1.;
-    printer << inrange_data_dj.coord(x) << " cov " << cov(x,x) << " sigma " << sigma[x] << std::endl; 
+    std::cout << inrange_data_dj.coord(x) << " cov " << cov(x,x) << " sigma " << sigma[x] << std::endl; 
   }
 
   std::cout << "Data included in fit:\n";
   for(int i=0;i<ndata_fit;i++){
-    printer << inrange_data_j.coord(i) << "  " << inrange_data_j.value(i) << " with sigma " << sigma[i] << std::endl;
+    std::cout << inrange_data_j.coord(i) << "  " << inrange_data_j.value(i) << " with sigma " << sigma[i] << std::endl;
   }
 
 
@@ -214,7 +211,7 @@ int main(const int argc, const char** argv){
     chisq.sample(j) = cost;
     chisqperdof.sample(j) = cost/dof;
   }
-  printer << "chi^2 = " << chisq << "\nchi^2/dof = " << chisqperdof << " (" << dof << " degrees of freedom)\n";
+  std::cout << "chi^2 = " << chisq << "\nchi^2/dof = " << chisqperdof << " (" << dof << " degrees of freedom)\n";
 
   std::cout << "Fit results:\n";
   for(int i=0;i<param_map.nParams();i++){

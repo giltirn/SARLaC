@@ -271,8 +271,6 @@ int main(void){
   double sigma_a = 0.7*sqrt(nsample);
   double sigma_b = 1.3*sqrt(nsample);
   
-  publicationPrint<> printer;
-
   typedef dataSeries<Coord, distributionD> rawTimeSeriesType;
 
   rawTimeSeriesType data(2*npoints, nsample);
@@ -306,11 +304,13 @@ int main(void){
   jackknifeTimeSeriesType outofrange_jackknife;   resample(outofrange_jackknife, outofrange_data);
 
   const int ndata_in_range = inrange_jackknife.size();
+
+  distributionPrint<jackknifeDistribution<double> >::printer(new publicationDistributionPrinter<jackknifeDistribution<double> >);
   
   std::cout << "Resampled data in range:\n";
   
   for(int i=0;i<ndata_in_range;i++){
-    printer << "t=" << inrange_jackknife.coord(i).t << " idx=" << inrange_jackknife.coord(i).idx  << " value=" << inrange_jackknife.value(i) << std::endl;    
+    std::cout << "t=" << inrange_jackknife.coord(i).t << " idx=" << inrange_jackknife.coord(i).idx  << " value=" << inrange_jackknife.value(i) << std::endl;    
   }
 
   //Setup fit function

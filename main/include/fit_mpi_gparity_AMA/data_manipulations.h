@@ -80,7 +80,6 @@ distributionVector readCombine(const Args &args, const int type_idx){
   TwoPointFunction const & fargs = args.data[type_idx];
   DataType type = fargs.type;
 
-  basicPrint<> printer;
   distributionVector corrected[2];
   int FF=0, BB=1;
   
@@ -118,10 +117,10 @@ distributionVector readCombine(const Args &args, const int type_idx){
     std::string nm = (fb == FF ? "FF" : "BB");
 
     std::cout << type << " " << nm << " sloppy data:\n";
-    for(int t=0;t<args.Lt;t++) printer << t << " " << sloppy_avg[t] << std::endl;
+    for(int t=0;t<args.Lt;t++) std::cout << t << " " << sloppy_avg[t] << std::endl;
 
     std::cout << type << " " << nm << " corrected data:\n";
-    for(int t=0;t<args.Lt;t++) printer << t << " " << corrected[fb][t] << std::endl;
+    for(int t=0;t<args.Lt;t++) std::cout << t << " " << corrected[fb][t] << std::endl;
   }
   distributionVector out;
   if(fargs.FF_data.include_data && fargs.BB_data.include_data) return (corrected[FF] + corrected[BB])/2.;

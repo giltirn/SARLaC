@@ -151,5 +151,11 @@ struct getElem<superJackknifeDistribution<A> >{
   static inline superJackknifeLayout const* common_properties(const superJackknifeDistribution<A> &v){ return &v.getLayout(); }
 };
 
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const superJackknifeDistribution<T> &d){
+  assert(distributionPrint<superJackknifeDistribution<T> >::printer() != NULL); distributionPrint<superJackknifeDistribution<T> >::printer()->print(os, d);
+  return os;
+}
+
 
 #endif

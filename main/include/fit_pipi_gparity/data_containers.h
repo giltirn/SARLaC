@@ -105,8 +105,7 @@ struct getElem<figureDataBase<DistributionType,Policies> >{
 
 template<typename DistributionType,typename Policies>
 std::ostream & operator<<(std::ostream &os, const figureDataBase<DistributionType,Policies> &f){
-  basicPrint<> p(os);
-  p << f.d;
+  os << f.d;
   return os;
 }
 

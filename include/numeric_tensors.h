@@ -50,8 +50,8 @@ public:
   }
 };
 
-template<typename Numeric, typename StreamType, typename std::enable_if< isStreamType<StreamType>::value, int>::type = 0> 
-StreamType & operator<<(StreamType & stream, const NumericVector<Numeric> &vec){
+template<typename Numeric> 
+std::ostream & operator<<(std::ostream & stream, const NumericVector<Numeric> &vec){
   stream << "(";
   for(int i=0;i<vec.size();i++)
     stream << vec[i] << (i != vec.size()-1 ? " " : ")");

@@ -43,8 +43,9 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
   std::vector<double> sigma_j(1,1.);
 
   jackknifeTimeSeriesType effmass(ratios.size(), nsample);
-  publicationPrint<> printer;
-  printer << "Effective mass for type " << type << "\n";
+  auto orig_printer = distributionPrint<jackknifeDistributionType>::printer();
+  distributionPrint<jackknifeDistributionType>::printer(new publicationDistributionPrinter<jackknifeDistributionType>,false);  
+  std::cout << "Effective mass for type " << type << "\n";
 
   std::vector<bool> erase(ratios.size(),false);
   bool erase_required = false;
@@ -67,13 +68,15 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
     }
     int did_fail = 0; for(int i=0;i<fail.size();i++) did_fail += fail[i];
     if(did_fail){
-      printer << "Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
+      std::cout << "Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
       erase[i] = true;
       erase_required = true;
     }else{
-      printer << effmass.coord(i) << " " << effmass.value(i) << std::endl;
+      std::cout << effmass.coord(i) << " " << effmass.value(i) << std::endl;
     }
   }
+  distributionPrint<jackknifeDistributionType>::printer(orig_printer);
+    
   if(erase_required){
     int nkeep = 0; for(int i=0;i<ratios.size();i++) if(!erase[i]) nkeep++;
     jackknifeTimeSeriesType tokeep(nkeep);

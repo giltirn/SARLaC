@@ -7,76 +7,38 @@
 #include<cassert>
 #include<sstream>
 
-/* template<typename DistributionType> */
-/* struct distributionPrinter{ */
-/*   virtual void print(std::ostream &os, const DistributionType &dist) const = 0; */
-/* }; */
-
-
-
-//Base type for printers that use the mean and standard error of a distribution
-template<typename Derived>
-class printerBase{
-  std::ostream &os;
- public:
-  printerBase(std::ostream &_os = std::cout): os(_os){}
-
-  template<typename DistributionType, typename std::enable_if< hasSampleMethod<DistributionType>::value && hasMeanMethod<DistributionType>::value, int>::type = 0>
-  Derived &operator<<(const DistributionType &d){
-    Derived* td = (Derived*)(this);
-    td->print(os,d);
-    return *td;
-  }
-  template<typename OtherType, typename std::enable_if< !hasSampleMethod<OtherType>::value || !hasMeanMethod<OtherType>::value, int>::type = 0>
-  Derived &operator<<(const OtherType &d){
-    Derived* td = (Derived*)(this);
-    ::operator<<(os,d);
-    //os << d;
-    return *td;
-  }
-  Derived & operator<<( std::ostream& (*fp)(std::ostream&) ){
-    Derived* td = (Derived*)(this);
-    os << fp;
-    return *td;
-  }
-
-};
-
-//Allow manual override of source of central value and error by type
+//Allow manual compile-time override of source of central value and error by type
 template<typename DistributionType>
 struct printStats{
   inline static auto centralValue(const DistributionType &d)->decltype(d.best()){ return d.best(); }
   inline static auto error(const DistributionType &d)->decltype(d.standardError()){ return d.standardError(); }
 };
-template<typename T>
-struct printStats< doubleJackknifeDistribution<T> >{
-  inline static std::string centralValue(const doubleJackknifeDistribution<T> &d){
-    std::ostringstream os; os << "[";
-    for(int s=0;s<d.size()-1;s++) os << d.sample(s).best() << ", ";
-    os << d.sample(d.size()-1).best() << "]";
-    return os.str();
-  }
-  inline static std::string error(const doubleJackknifeDistribution<T> &d){ 
-    std::ostringstream os; os << "[";
-    for(int s=0;s<d.size()-1;s++) os << d.sample(s).standardError() << ", ";
-    os << d.sample(d.size()-1).standardError() << "]";
-    return os.str();
-  }
 
+//Objects that control how distributions are printed
+template<typename DistributionType>
+struct distributionPrinter{
+  virtual void print(std::ostream &os, const DistributionType &dist) const = 0;
 };
 
-template< template<typename> class ValuePolicy = printStats>
-class basicPrint: public printerBase<basicPrint<ValuePolicy> >{
-private:
-  friend class printerBase<basicPrint<ValuePolicy> >;
-  template<typename Dist>
-  void print(std::ostream &os, const Dist &d){ os << "(" << printStats<Dist>::centralValue(d) << " +- " << printStats<Dist>::error(d) << ")"; }
-public:
-  basicPrint(std::ostream &_os = std::cout): printerBase<basicPrint<ValuePolicy> >(_os){}
+//( Central value +- error )
+template<typename DistributionType, typename ValuePolicy = printStats<DistributionType> >
+struct basicDistributionPrinter: public distributionPrinter<DistributionType>{
+  void print(std::ostream &os, const DistributionType &dist) const{
+    os << "(" << ValuePolicy::centralValue(dist) << " +- " << ValuePolicy::error(dist) << ")";
+  }
 };
 
-template< template<typename> class ValuePolicy = printStats>
-class publicationPrint: public printerBase<publicationPrint<ValuePolicy> >{
+//Central value
+template<typename DistributionType, typename ValuePolicy = printStats<DistributionType> >
+struct centralValueDistributionPrinter: public distributionPrinter<DistributionType>{
+  void print(std::ostream &os, const DistributionType &dist) const{
+    os << ValuePolicy::centralValue(dist);
+  }
+};
+
+//Central value (error)
+template<typename DistributionType, typename ValuePolicy = printStats<DistributionType> >
+struct publicationDistributionPrinter: public distributionPrinter<DistributionType>{
 public:
   enum SigFigsSource { Central, Error, Largest };
   
@@ -84,10 +46,9 @@ private:
   int nsf; //number of sig figs
   SigFigsSource sfsrc; //whether the sig.figs specified is based on the error or the central value
   int min_width; //pad with trailing spaces if width < min_width. Use 0 for no padding
-  
-  friend class printerBase<publicationPrint<ValuePolicy> >;
-  template<typename Dist>
-  void print(std::ostream &os_out, const Dist &d){
+
+public:
+  void print(std::ostream &os_out, const DistributionType &d) const{
     // std::ios oldState(nullptr);
     // oldState.copyfmt(os);
     const auto oldRound = std::fegetround();
@@ -96,9 +57,9 @@ private:
     
     std::ios::streampos init_pos = os.tellp();
     
-    typedef decltype(ValuePolicy<Dist>::centralValue(d)) valueType;
-    valueType mu = ValuePolicy<Dist>::centralValue(d);
-    valueType err = ValuePolicy<Dist>::error(d);
+    typedef decltype(ValuePolicy::centralValue(d)) valueType;
+    valueType mu = ValuePolicy::centralValue(d);
+    valueType err = ValuePolicy::error(d);
 
     SigFigsSource src = sfsrc;
     if(src == Largest) src = fabs(mu) > fabs(err) ? Central : Error;
@@ -134,14 +95,25 @@ private:
     
     //os.copyfmt(oldState);
   }
-public:
-  publicationPrint(const int _nsf = 3, const SigFigsSource _sfsrc = Largest, std::ostream &_os = std::cout): printerBase<publicationPrint<ValuePolicy> >(_os), nsf(_nsf), sfsrc(_sfsrc), min_width(0){}
+
+  publicationDistributionPrinter(const int _nsf = 3, const SigFigsSource _sfsrc = Largest): nsf(_nsf), sfsrc(_sfsrc), min_width(0){}
 
   inline void setSigFigs(const int _nsf, const SigFigsSource _sfsrc = Largest){ nsf = _nsf; sfsrc  = _sfsrc; }
   inline void setMinWidth(const int _min_width){ min_width = _min_width; }
 };
 
+//A class that stores a singleton copy of the printer for a given type. The current printer is used in the stream operators for the distributions. The printer can be overridden at arbitrary time
+template<typename DistributionType>
+struct distributionPrint{
+  static distributionPrinter<DistributionType>* printer(distributionPrinter<DistributionType>* change = NULL, bool delete_old = true){
+    static distributionPrinter<DistributionType>* p = NULL;
+    static bool initialized = false;
+    if(!initialized){ p = new basicDistributionPrinter<DistributionType>; initialized = true; }
 
+    if(change != NULL){ if(p!=NULL && delete_old) delete p; p = change; }
+    return p;
+  }
+};
 
 
 #endif

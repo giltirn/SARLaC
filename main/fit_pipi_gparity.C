@@ -69,9 +69,9 @@ int main(int argc, char* argv[]){
   pipi_dj = fold(pipi_dj, tsep_pipi);
   A2_realavg_V_dj = fold(A2_realavg_V_dj, tsep_pipi);
 
-  //basicPrint<> printer;
-  //printer << "pipi_dj: " << pipi_dj << std::endl;
-  //printer << "V_dj: " << A2_realavg_V_dj << std::endl;
+  distributionPrint<doubleJackknifeDistributionD>::printer(new centralValueDistributionPrinter<doubleJackknifeDistributionD>);
+  std::cout << "pipi_dj: " << pipi_dj << std::endl;
+  std::cout << "V_dj: " << A2_realavg_V_dj << std::endl;
   
   doubleJackCorrelationFunction pipi_dj_vacsubbed = pipi_dj - 3*A2_realavg_V_dj;
 

@@ -43,8 +43,6 @@ int main(void){
   std::cout << "Read arguments: \n" << fit_args << std::endl;
 
   //Generate some random data
-  publicationPrint<> printer;
-
   typedef dataSeries<double, distribution<double> > RawDataSeriesType;
   RawDataSeriesType data(fit_args.npoints, fit_args.nsample);
   
@@ -92,27 +90,30 @@ int main(void){
   typedef dataSeries<double, doubleJackknifeDistribution<double> > doubleJackknifeSeriesType;
   doubleJackknifeSeriesType inrange_doublejacknife; resample(inrange_doublejacknife, inrange_data);
 
-  printer.setMinWidth(20);
+  auto printer = new publicationDistributionPrinter<jackknifeDistribution<double> >;
+  printer->setMinWidth(20);  
+  distributionPrint<jackknifeDistribution<double> >::printer(printer);
+
 
   typedef NumericMatrix<jackknifeDistribution<double> >  jackknifeMatrixD;
   jackknifeMatrixD cov(ndata_in_range);
   for(int i=0;i<ndata_in_range;i++)
     for(int j=0;j<ndata_in_range;j++)
       cov(i,j) = doubleJackknifeDistribution<double>::covariance(inrange_doublejacknife.value(i), inrange_doublejacknife.value(j));
-  printer << "double Jackknife covariance matrix:\n" << cov;
+  std::cout << "double Jackknife covariance matrix:\n" << cov;
 
   //Normalize covariance matrix to get correlation matrix
   jackknifeMatrixD corr(ndata_in_range);
   for(int i=0;i<ndata_in_range;i++)
     for(int j=0;j<ndata_in_range;j++)
       corr(i,j) = cov(i,j)/sqrt(cov(i,i))/sqrt(cov(j,j));
-  printer << "double Jackknife correlation matrix:\n" << corr;
+  std::cout << "double Jackknife correlation matrix:\n" << corr;
   
   //Generate inverse correlation matrix
   jackknifeMatrixD inv_corr(ndata_in_range, jackknifeDistribution<double>(fit_args.nsample));
   svd_inverse(inv_corr, corr);
 
-  printer << "double Jackknife inverse correlation matrix:\n" << inv_corr;
+  std::cout << "double Jackknife inverse correlation matrix:\n" << inv_corr;
 
   //Test the inverse
   jackknifeMatrixD inv_test(ndata_in_range, jackknifeDistribution<double>(fit_args.nsample));
@@ -123,7 +124,7 @@ int main(void){
 	inv_test(i,j) = inv_test(i,j) + corr(i,k)*inv_corr(k,j);
     }
   }
-  printer << "inverse test:\n" << inv_test;
+  std::cout << "inverse test:\n" << inv_test;
 
   
   typedef sampleSeries<const JackknifeSeriesType> SampleSeriesConstType; //const access

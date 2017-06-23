@@ -13,50 +13,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include<generic_ET.h>
-
-
-// template<typename Operation, typename T>
-// struct _threadedSumHelper{
-//   //For getting an initial zero optimally we consider several scenarios:
-//   //1) It is constructible using a single double or float
-//   //2) It is default constructible and has a "zero" method
-//   //3) It is default constructible and does not have a "zero" method but has an operator=(double/float) method
-//   //4) It is not default constructible and has a "zero" method
-//   //5) It is not default constructible and does not have a "zero" method but has an operator=(double/float) method
-
-//   //Having a copy constructor is assumed
-  
-//   enum { float_constructible = std::is_constructible<T,double>::value || std::is_constructible<T,float>::value,
-// 	 default_constructible = std::is_default_constructible<T>::value,
-// 	 has_zero_method = hasZeroMethod<T>::value,
-// 	 has_equals_method = hasEqualsMethod<T,double>::value || hasEqualsMethod<T,float>::value 
-//   };
-
-//   enum { class1 = float_constructible };
-//   enum { class2 = !class1 && default_constructible && has_zero_method };
-//   enum { class3 = !class1 && !class2 && default_constructible && has_equals_method };
-//   enum { class4 = !class1 && !class2 && !class3 && !default_constructible && has_zero_method };
-//   enum { class5 = !class1 && !class2 && !class3 && !class4 && !default_constructible && has_equals_method };
-
-//   template<typename U>
-//   struct _truewrap{ enum { value = 1 }; }; //SFINAE only works for deduced types
-  
-//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class1,int>::type = 0>
-//   static inline T getZero(const Operation &op){ return T(0.); }
-
-//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class2,int>::type = 0>
-//   static inline T getZero(const Operation &op){ T ret; ret.zero(); return ret; }
-
-//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class3,int>::type = 0>
-//   static inline T getZero(const Operation &op){ T ret; ret = 0.; return ret; }
-  
-//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class4,int>::type = 0>
-//   static inline T getZero(const Operation &op){ T ret(op(0)); ret.zero(); return ret; }
-
-//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class5,int>::type = 0>
-//   static inline T getZero(const Operation &op){ T ret(op(0)); ret = 0.; return ret; }
-// };
-
+#include<distribution_print.h>
 
 template<typename Operation>
 auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::type{
@@ -179,8 +136,15 @@ public:
   inline void zero(){
     for(int i=0;i<this->size();i++) zeroit(this->sample(i));
   }
-  
 };
+
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
+  assert(distributionPrint<distribution<T> >::printer() != NULL); distributionPrint<distribution<T> >::printer()->print(os, d);
+  return os;
+}
+
+
 
 template<typename _DataType>
 class jackknifeDistribution: public distribution<_DataType>{
@@ -252,6 +216,13 @@ public:
     return out;
   }
 };
+
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const jackknifeDistribution<T> &d){
+  assert(distributionPrint<jackknifeDistribution<T> >::printer() != NULL); distributionPrint<jackknifeDistribution<T> >::printer()->print(os, d);
+  return os;
+}
+
 
 //A jackknife distribution that independently propagates it's central value
 template<typename _DataType>
@@ -325,6 +296,11 @@ public:
   }
 };
 
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const jackknifeCdistribution<T> &d){
+  assert(distributionPrint<jackknifeCdistribution<T> >::printer() != NULL); distributionPrint<jackknifeCdistribution<T> >::printer()->print(os, d);
+  return os;
+}
 
 
 template<typename BaseDataType>
@@ -415,9 +391,32 @@ public:
     }
     return out;
   }
-    
 };
 
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const doubleJackknifeDistribution<T> &d){
+  assert(distributionPrint<doubleJackknifeDistribution<T> >::printer() != NULL); distributionPrint<doubleJackknifeDistribution<T> >::printer()->print(os, d);
+  return os;
+}
+
+template<typename T>
+struct printStats< doubleJackknifeDistribution<T> >{
+  inline static std::string centralValue(const doubleJackknifeDistribution<T> &d){
+    std::ostringstream os; os << "[";
+    for(int s=0;s<d.size()-1;s++) os << d.sample(s).best() << ", ";
+    os << d.sample(d.size()-1).best() << "]";
+    return os.str();
+  }
+  inline static std::string error(const doubleJackknifeDistribution<T> &d){ 
+    std::ostringstream os; os << "[";
+    for(int s=0;s<d.size()-1;s++) os << d.sample(s).standardError() << ", ";
+    os << d.sample(d.size()-1).standardError() << "]";
+    return os.str();
+  }
+
+};
+
+
 #include<distribution_ET.h>
-#include<distribution_print.h>
+
 #endif

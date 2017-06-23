@@ -96,7 +96,10 @@ inline correlationFunction<T> fold(const correlationFunction<T> &f, const int ts
   const int Lt = f.size();
   correlationFunction<T> out(Lt);
   const int Tref = Lt-2*tsep_pipi;
-  for(int t=0;t<Lt;t++) out.value(t) = ( f.value(t) + f.value( (Tref-t+Lt) % Lt ) )/2.;
+  for(int t=0;t<Lt;t++){
+    out.coord(t) = f.coord(t);
+    out.value(t) = ( f.value(t) + f.value( (Tref-t+Lt) % Lt ) )/2.;
+  }
   return out;
 }
 
