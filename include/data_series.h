@@ -43,6 +43,15 @@ public:
   inline ElementType &operator[](const int i){ return series[i]; }
 };
 
+template<typename _GeneralizedCoordinate, typename _DataType, typename StreamType, typename std::enable_if< isStreamType<StreamType>::value, int>::type = 0> 
+StreamType & operator<<(StreamType & stream, const dataSeries<_GeneralizedCoordinate,_DataType> &series){
+  stream << "(";
+  for(int i=0;i<series.size();i++)
+    stream << "{" << series.coord(i) << " " << series.value(i) << "}" << (i != series.size()-1 ? " " : ")");
+  return stream;
+}
+
+
 //Generic filter interface for a data series, allowing for example restriction of data for fitting
 //Prepend const to SeriesType if const access required
 template<typename SeriesType>

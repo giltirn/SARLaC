@@ -14,47 +14,48 @@
 
 #include<generic_ET.h>
 
-template<typename Operation, typename T>
-struct _threadedSumHelper{
-  //For getting an initial zero optimally we consider several scenarios:
-  //1) It is constructible using a single double or float
-  //2) It is default constructible and has a "zero" method
-  //3) It is default constructible and does not have a "zero" method but has an operator=(double/float) method
-  //4) It is not default constructible and has a "zero" method
-  //5) It is not default constructible and does not have a "zero" method but has an operator=(double/float) method
 
-  //Having a copy constructor is assumed
+// template<typename Operation, typename T>
+// struct _threadedSumHelper{
+//   //For getting an initial zero optimally we consider several scenarios:
+//   //1) It is constructible using a single double or float
+//   //2) It is default constructible and has a "zero" method
+//   //3) It is default constructible and does not have a "zero" method but has an operator=(double/float) method
+//   //4) It is not default constructible and has a "zero" method
+//   //5) It is not default constructible and does not have a "zero" method but has an operator=(double/float) method
+
+//   //Having a copy constructor is assumed
   
-  enum { float_constructible = std::is_constructible<T,double>::value || std::is_constructible<T,float>::value,
-	 default_constructible = std::is_default_constructible<T>::value,
-	 has_zero_method = hasZeroMethod<T>::value,
-	 has_equals_method = hasEqualsMethod<T,double>::value || hasEqualsMethod<T,float>::value 
-  };
+//   enum { float_constructible = std::is_constructible<T,double>::value || std::is_constructible<T,float>::value,
+// 	 default_constructible = std::is_default_constructible<T>::value,
+// 	 has_zero_method = hasZeroMethod<T>::value,
+// 	 has_equals_method = hasEqualsMethod<T,double>::value || hasEqualsMethod<T,float>::value 
+//   };
 
-  enum { class1 = float_constructible };
-  enum { class2 = !class1 && default_constructible && has_zero_method };
-  enum { class3 = !class1 && !class2 && default_constructible && has_equals_method };
-  enum { class4 = !class1 && !class2 && !class3 && !default_constructible && has_zero_method };
-  enum { class5 = !class1 && !class2 && !class3 && !class4 && !default_constructible && has_equals_method };
+//   enum { class1 = float_constructible };
+//   enum { class2 = !class1 && default_constructible && has_zero_method };
+//   enum { class3 = !class1 && !class2 && default_constructible && has_equals_method };
+//   enum { class4 = !class1 && !class2 && !class3 && !default_constructible && has_zero_method };
+//   enum { class5 = !class1 && !class2 && !class3 && !class4 && !default_constructible && has_equals_method };
 
-  template<typename U>
-  struct _truewrap{ enum { value = 1 }; }; //SFINAE only works for deduced types
+//   template<typename U>
+//   struct _truewrap{ enum { value = 1 }; }; //SFINAE only works for deduced types
   
-  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class1,int>::type = 0>
-    static inline T getZero(const Operation &op){ return T(0.); }
+//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class1,int>::type = 0>
+//   static inline T getZero(const Operation &op){ return T(0.); }
 
-  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class2,int>::type = 0>
-  static inline T getZero(const Operation &op){ T ret; ret.zero(); return ret; }
+//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class2,int>::type = 0>
+//   static inline T getZero(const Operation &op){ T ret; ret.zero(); return ret; }
 
-  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class3,int>::type = 0>
-  static inline T getZero(const Operation &op){ T ret; ret = 0.; return ret; }
+//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class3,int>::type = 0>
+//   static inline T getZero(const Operation &op){ T ret; ret = 0.; return ret; }
   
-  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class4,int>::type = 0>
-  static inline T getZero(const Operation &op){ T ret(op(0)); ret.zero(); return ret; }
+//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class4,int>::type = 0>
+//   static inline T getZero(const Operation &op){ T ret(op(0)); ret.zero(); return ret; }
 
-  template<typename U=T, typename std::enable_if<_truewrap<U>::value && class5,int>::type = 0>
-  static inline T getZero(const Operation &op){ T ret(op(0)); ret = 0.; return ret; }
-};
+//   template<typename U=T, typename std::enable_if<_truewrap<U>::value && class5,int>::type = 0>
+//   static inline T getZero(const Operation &op){ T ret(op(0)); ret = 0.; return ret; }
+// };
 
 
 template<typename Operation>
@@ -63,7 +64,7 @@ auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::typ
   const int N = op.size();
   const int nthread = omp_get_max_threads();
  
-  T init_zero = _threadedSumHelper<Operation,T>::getZero(op);
+  T init_zero(op(0)); zeroit(init_zero);    //_threadedSumHelper<Operation,T>::getZero(op);
   std::vector<T> sum(nthread, init_zero);
 
 #pragma omp parallel for
@@ -397,6 +398,24 @@ public:
 	out.sample(i).sample(j) = this->sample(i).sample(j).real();
     return out;
   }
+
+  jackknifeDistribution<BaseDataType> toJackknife() const{
+    jackknifeDistribution<BaseDataType> out(this->size());
+    double den = 1./(this->size() - 1);
+
+    struct Op{
+      const jackknifeDistribution<BaseDataType> &vv;
+      inline const BaseDataType & operator()(const int idx) const{ return vv.sample(idx); }
+      inline size_t size() const{ return vv.size(); }
+      Op(const jackknifeDistribution<BaseDataType> &_vv): vv(_vv){}
+    };
+    for(int j=0;j<this->size();j++){
+      Op op(this->sample(j));
+      out.sample(j) = threadedSum<Op>(op)*den;
+    }
+    return out;
+  }
+    
 };
 
 #include<distribution_ET.h>

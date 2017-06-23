@@ -7,6 +7,12 @@
 #include<cassert>
 #include<sstream>
 
+/* template<typename DistributionType> */
+/* struct distributionPrinter{ */
+/*   virtual void print(std::ostream &os, const DistributionType &dist) const = 0; */
+/* }; */
+
+
 
 //Base type for printers that use the mean and standard error of a distribution
 template<typename Derived>
@@ -24,7 +30,8 @@ class printerBase{
   template<typename OtherType, typename std::enable_if< !hasSampleMethod<OtherType>::value || !hasMeanMethod<OtherType>::value, int>::type = 0>
   Derived &operator<<(const OtherType &d){
     Derived* td = (Derived*)(this);
-    os << d;
+    ::operator<<(os,d);
+    //os << d;
     return *td;
   }
   Derived & operator<<( std::ostream& (*fp)(std::ostream&) ){

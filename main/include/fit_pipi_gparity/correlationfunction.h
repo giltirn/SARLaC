@@ -22,10 +22,13 @@ public:
    for(int i=0;i<this->size();i++)
      (*this)[i] = expr[i];
   }
-
+  explicit correlationFunction(const int n): Parent(n){}
   correlationFunction(correlationFunction &&r) = default;
   template<typename Initializer>
   inline correlationFunction(const int n, const Initializer &initializer): Parent(n,initializer){}
+
+  correlationFunction<DistributionType> & operator=(const correlationFunction<DistributionType> &) = default;
+  correlationFunction<DistributionType> & operator=(correlationFunction<DistributionType> &&) = default;
 };
 
 template<typename DistributionType>
@@ -37,18 +40,22 @@ struct getElem<correlationFunction<DistributionType> >{
   }
 };
 
-typedef std::pair<tagged<double, correlationFunction<distribution<double> > >, distribution<double> >  CFDpair;
+template<typename Dist>
+using CFDpair = std::pair<tagged<double, correlationFunction<Dist> >, Dist>;
 
-inline CFDpair operator*(const int a, const CFDpair &e){
-  return CFDpair(e.first, a*e.second);
+template<typename Dist>
+inline CFDpair<Dist> operator*(const int a, const CFDpair<Dist> &e){
+  return CFDpair<Dist>(e.first, a*e.second);
 }
-inline CFDpair operator+(const CFDpair &d, const CFDpair &e){
+template<typename Dist>
+inline CFDpair<Dist> operator+(const CFDpair<Dist> &d, const CFDpair<Dist> &e){
   assert(e.first == d.first);
-  return CFDpair(e.first, d.second+e.second);
+  return CFDpair<Dist>(e.first, d.second+e.second);
 }
-inline CFDpair operator-(const CFDpair &d, const CFDpair &e){
+template<typename Dist>
+inline CFDpair<Dist> operator-(const CFDpair<Dist> &d, const CFDpair<Dist> &e){
   assert(e.first == d.first);
-  return CFDpair(e.first, d.second-e.second);
+  return CFDpair<Dist>(e.first, d.second-e.second);
 }
 
 #endif

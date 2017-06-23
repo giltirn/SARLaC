@@ -91,5 +91,14 @@ bubbleDataDoubleJackAllMomenta doubleJackknifeResampleBubble(const bubbleDataAll
   return out;
 }
 
+template<typename T>
+inline correlationFunction<T> fold(const correlationFunction<T> &f, const int tsep_pipi){
+  const int Lt = f.size();
+  correlationFunction<T> out(Lt);
+  const int Tref = Lt-2*tsep_pipi;
+  for(int t=0;t<Lt;t++) out.value(t) = ( f.value(t) + f.value( (Tref-t+Lt) % Lt ) )/2.;
+  return out;
+}
+
 
 #endif
