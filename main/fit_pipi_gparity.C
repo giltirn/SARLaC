@@ -12,6 +12,7 @@
 #include <common_defs.h>
 #include <sstream>
 
+#include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/correlationfunction.h>
@@ -21,20 +22,25 @@
 #include <fit_pipi_gparity/main.h>
 
 int main(const int argc, const char* argv[]){
-  CMDline cmdline(argc,argv,1);
+  Args args;
+  if(argc < 2){
+    std::ofstream of("template.args");
+    of << args;
+    std::cout << "Wrote template argument file to template.args\n";
+    return 0;
+  }
+  {
+    const std::string arg_file = argv[1];
+    std::ifstream arg_f(arg_file.c_str());
+    assert(arg_f.good());
+    arg_f >> args;
+    assert(!arg_f.bad() && !arg_f.fail());
+    arg_f.close();
+    std::cout << "Read arguments: \n" << args << std::endl;
+  }
   
-  const std::string data_dir = "/home/ckelly/CPS/build/CPSfit/pipi_data";
-  const int tsep_pipi = 4;
-  const int Lt = 64;
-  const int traj_start = 984;
-  const int traj_inc = 4;
-  const int traj_lessthan = 996;
-  const int nsample = (traj_lessthan - traj_start)/traj_inc;
-  const int t_min = 6;
-  const int t_max = 25;
-  const double Ascale = 1e13;
-  const double Cscale = 1e13;
-
+  CMDline cmdline(argc,argv,2);
+  
   typedef FitCoshPlusConstant FitFunc;
   FitFunc::Params guess;
   if(cmdline.load_guess){
@@ -50,15 +56,16 @@ int main(const int argc, const char* argv[]){
     guess.E = 0.3;
     guess.C = 0;
   }
-  
+
+  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   figureDataAllMomenta raw_data;
-  readFigure(raw_data, 'C', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
-  readFigure(raw_data, 'D', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
-  readFigure(raw_data, 'R', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
+  readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  readFigure(raw_data, 'R', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
   
   bubbleDataAllMomenta raw_bubble_data;
-  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
-  computeV(raw_data, raw_bubble_data, tsep_pipi);
+  readBubble(raw_bubble_data, args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  computeV(raw_data, raw_bubble_data, args.tsep_pipi);
 
   figureData A2_C = projectA2('C', raw_data);
   figureData A2_D = projectA2('D', raw_data);
@@ -76,7 +83,7 @@ int main(const int argc, const char* argv[]){
 
   typedef correlationFunction<doubleJackknifeDistributionD> doubleJackCorrelationFunction;
   
-  doubleJackCorrelationFunction pipi_dj(Lt,
+  doubleJackCorrelationFunction pipi_dj(args.Lt,
 					[&pipi_raw,nsample](const int t)
 					{
 					  typename doubleJackCorrelationFunction::ElementType out(t, doubleJackknifeDistributionD(nsample));
@@ -86,12 +93,12 @@ int main(const int argc, const char* argv[]){
 					);
   bubbleDataDoubleJackAllMomenta dj_bubble_data = doubleJackknifeResampleBubble(raw_bubble_data);
   figureDataDoubleJackAllMomenta dj_data;  
-  computeV(dj_data, dj_bubble_data, tsep_pipi);
+  computeV(dj_data, dj_bubble_data, args.tsep_pipi);
   figureDataDoubleJack A2_V_dj = projectA2('V', dj_data);
   doubleJackCorrelationFunction A2_realavg_V_dj = realSourceAverage(A2_V_dj);
 
-  pipi_dj = fold(pipi_dj, tsep_pipi);
-  A2_realavg_V_dj = fold(A2_realavg_V_dj, tsep_pipi);
+  pipi_dj = fold(pipi_dj, args.tsep_pipi);
+  A2_realavg_V_dj = fold(A2_realavg_V_dj, args.tsep_pipi);
 
   distributionPrint<doubleJackknifeDistributionD>::printer(new centralValueDistributionPrinter<doubleJackknifeDistributionD>);
   std::cout << "pipi_dj: " << pipi_dj << std::endl;
@@ -99,7 +106,7 @@ int main(const int argc, const char* argv[]){
   
   doubleJackCorrelationFunction pipi_dj_vacsubbed = pipi_dj - 3*A2_realavg_V_dj;
 
-  filterXrange<double> trange(t_min,t_max);
+  filterXrange<double> trange(args.t_min,args.t_max);
   
   filteredDataSeries<doubleJackCorrelationFunction> pipi_dj_vacsubbed_inrange(pipi_dj_vacsubbed, trange);
 
@@ -137,7 +144,7 @@ int main(const int argc, const char* argv[]){
   NumericMatrix<jackknifeDistributionD> inv_corr(ndata_fit, jackknifeDistributionD(nsample));
   svd_inverse(inv_corr, corr);
 
-  FitFunc fitfunc(Lt, tsep_pipi, Ascale, Cscale);
+  FitFunc fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
 
   jackknifeDistribution<FitFunc::Params> params(nsample, guess);
   jackknifeDistributionD chisq(nsample);
