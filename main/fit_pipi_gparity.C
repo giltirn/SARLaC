@@ -17,9 +17,12 @@
 #include <fit_pipi_gparity/correlationfunction.h>
 #include <fit_pipi_gparity/read_data.h>
 #include <fit_pipi_gparity/fitfunc.h>
+#include <fit_pipi_gparity/cmdline.h>
 #include <fit_pipi_gparity/main.h>
 
-int main(int argc, char* argv[]){
+int main(const int argc, const char* argv[]){
+  CMDline cmdline(argc,argv,1);
+  
   const std::string data_dir = "/home/ckelly/CPS/build/CPSfit/pipi_data";
   const int tsep_pipi = 4;
   const int Lt = 64;
@@ -34,10 +37,19 @@ int main(int argc, char* argv[]){
 
   typedef FitCoshPlusConstant FitFunc;
   FitFunc::Params guess;
-  guess.A = 1;
-  guess.E = 0.3;
-  guess.C = 0;
+  if(cmdline.load_guess){
+    std::ifstream f(cmdline.guess_file.c_str());
+    assert(f.good());
+    f >> guess;
+    assert(!f.bad() && !f.fail());
+    f.close();
 
+    std::cout << "Loaded guess: " << guess << std::endl;
+  }else{
+    guess.A = 1;
+    guess.E = 0.3;
+    guess.C = 0;
+  }
   
   figureDataAllMomenta raw_data;
   readFigure(raw_data, 'C', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);

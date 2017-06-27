@@ -62,8 +62,8 @@
 
 //Define parsers for the member types
 #define _PARSER_MEMBER_TYPE_PARSER(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem), _type_parse)
-#define _PARSER_MEMBER_DEF_TYPE_PARSER(r,structname,elem) parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
-#define _PARSER_DEF_TYPE_PARSERS(structname, structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_TYPE_PARSER, , structmembers)
+#define _PARSER_MEMBER_DEF_TYPE_PARSER(r,dummy,elem) parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
+#define _PARSER_DEF_TYPE_PARSERS(structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_TYPE_PARSER, , structmembers)
 
 //Define and specify the rules for parsing the members
 #define _PARSER_MEMBER_TAG(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse_)
@@ -93,15 +93,11 @@
 #define _PARSER_DEF_MEMBER_RULES(structname, structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_RULE, structname, structmembers)
 
 //Define the rule for the main structure
-#define _PARSER_STRUCT_RULE_TAG(name) BOOST_PP_CAT(name,_)
-#define _PARSER_STRUCT_RULE(name) BOOST_PP_CAT(name,_)
-#define _PARSER_STRUCT_RULE_DEF(name) BOOST_PP_CAT(name,__def)
-
 #define _PARSER_DEF_STRUCT_RULE_MEMBER_GEN(r,structname,elem) \
   >> _PARSER_MEMBER_RULE(elem)[parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
 
 #define _PARSER_DEF_STRUCT_RULE_DEF(NAME)\
-  struct _PARSER_STRUCT_RULE_TAG(NAME){\
+  struct main_rule_handler{\
     template <typename Iterator, typename Exception, typename Context>	\
       x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
       return parser_tools::on_error(BOOST_PP_STRINGIZE(NAME),first,last,x,context); \
@@ -109,22 +105,22 @@
   };									\
 									\
 									\
-  x3::rule<_PARSER_STRUCT_RULE_TAG(NAME), NAME> const _PARSER_STRUCT_RULE(NAME) = BOOST_PP_STRINGIZE(_PARSER_STRUCT_RULE(NAME));
+  x3::rule<main_rule_handler, NAME> const main_rule = BOOST_PP_STRINGIZE(NAME);
 
 //Specify the rules for parsing the structure
 #define _PARSER_DEF_STRUCT_RULE_IMPL(NAME,MEMSEQ) \
-  auto const _PARSER_STRUCT_RULE_DEF(NAME) = x3::eps > '{'		\
+  auto const main_rule_def = x3::eps > '{'		\
   TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_STRUCT_RULE_MEMBER_GEN, NAME, MEMSEQ) \
     > '}'; \
-  BOOST_SPIRIT_DEFINE(_PARSER_STRUCT_RULE(NAME));
+  BOOST_SPIRIT_DEFINE(main_rule);
 
 //Register the parser
-#define _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(NAME) \
-  namespace parsers{ \
+#define _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(NAME,GRAMMAR)	\
+  namespace parsers{						\
   template<> \
   struct parser<NAME>{\
-    decltype( _PARSER_DEF_GRAMMAR_NAME(NAME)::_PARSER_STRUCT_RULE(NAME) ) &parse; \
-    parser(): parse(_PARSER_DEF_GRAMMAR_NAME(NAME)::_PARSER_STRUCT_RULE(NAME) ){} \
+    decltype( GRAMMAR::main_rule ) &parse; \
+    parser(): parse(GRAMMAR::main_rule ){} \
   }; \
 };
 
@@ -156,21 +152,22 @@ std::istream & operator>>(std::istream &is, NAME &s){ \
   return is; \
 }
 
-#define _GENERATE_PARSER(structname, structmembers)					 \
-  namespace _PARSER_DEF_GRAMMAR_NAME(structname){				\
+#define _GENERATE_PARSER_GM(structname, grammar, structmembers)		\
+  namespace grammar{				\
     namespace ascii = boost::spirit::x3::ascii; \
     namespace x3 = boost::spirit::x3; \
-    _PARSER_DEF_TYPE_PARSERS(structname, structmembers) \
+    _PARSER_DEF_TYPE_PARSERS(structmembers) \
     _PARSER_DEF_MEMBER_RULES(structname, structmembers) \
    \
    _PARSER_DEF_STRUCT_RULE_DEF(structname) \
    \
    _PARSER_DEF_STRUCT_RULE_IMPL(structname,structmembers) \
   }; \
-  _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname) \
+  _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname,grammar)	     \
   _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers) \
   _PARSER_DEF_DEFINE_ISTREAM_READ(structname,structmembers)
 
+#define _GENERATE_PARSER(structname, structmembers) _GENERATE_PARSER_GM(structname, _PARSER_DEF_GRAMMAR_NAME(structname), structmembers)
 
 
 

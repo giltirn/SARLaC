@@ -143,6 +143,9 @@ std::ostream & operator<<(std::ostream &os, const std::vector<T> &s){
 //Usage: GENERATE_PARSER( MY_STRUCT_NAME ,  (MY_TYPE1, MY_MEMBER1)(MY_TYPE2, MY_MEMBER2).... )
 #define GENERATE_PARSER(structname, structmembers) _GENERATE_PARSER(structname, structmembers)
 
+//Same as the above but with the grammar namespace manually specified
+#define GENERATE_PARSER_GM(structname, grammar, structmembers) _GENERATE_PARSER_GM(structname, grammar, structmembers)
+
 //Convenience call for generating the class members using the same interface as for the parser (optional)
 //Usage: GENERATE_MEMBERS( (MY_TYPE1, MY_MEMBER1)(MY_TYPE2, MY_MEMBER2).... )
 #define GENERATE_MEMBERS(structmembers) _GENERATE_MEMBERS(structmembers) 

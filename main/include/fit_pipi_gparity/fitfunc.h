@@ -1,6 +1,7 @@
 #ifndef _PIPI_FITFUNC_H_
 #define _PIPI_FITFUNC_H_
 
+#include<parser.h>
 
 class FitCoshPlusConstant{
 public:
@@ -27,7 +28,7 @@ public:
 
     typedef FitCoshPlusConstant::Params ET_tag;
     template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,FitCoshPlusConstant::Params>::value, int>::type = 0>
-    Params(U&& expr);
+											      Params(U&& expr);
   };
 
   struct Derivs{
@@ -53,6 +54,7 @@ public:
     inline const double &operator()(const int i) const{ return const_cast<const double &>( const_cast<Derivs*>(this)->operator()(i) ); }      
   };
 private:
+    
   const double Lt;
   const double tsep_pipi;
   const double Ascale;
@@ -63,8 +65,8 @@ public:
   typedef Derivs ValueDerivativeType; //derivative wrt parameters
   typedef double GeneralizedCoordinate; //time coord
 
- FitCoshPlusConstant(const double _Lt, const double _tsep_pipi, const double _Ascale = 1e13, const double _Cscale = 1e13):
-  Lt(_Lt), tsep_pipi(_tsep_pipi), Ascale(_Ascale), Cscale(_Cscale){}
+  FitCoshPlusConstant(const double _Lt, const double _tsep_pipi, const double _Ascale = 1e13, const double _Cscale = 1e13):
+    Lt(_Lt), tsep_pipi(_tsep_pipi), Ascale(_Ascale), Cscale(_Cscale){}
   
   //Params are A, m  
   ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
@@ -81,6 +83,7 @@ public:
   inline int Nparams() const{ return 3; }
 };
 
+  
 template<>
 struct getElem<FitCoshPlusConstant::Params>{
   static inline auto elem(const FitCoshPlusConstant::Params &v, const int i)->decltype(v(i)){ return v(i); }
@@ -94,8 +97,7 @@ FitCoshPlusConstant::Params::Params(U&& expr){
   this->C = expr[2];  
 }
 
-//GENERATE_PARSER(FitCoshPlusConstant::Params, (double, A)(double, E)(double, C) )
-
+GENERATE_PARSER_GM(FitCoshPlusConstant::Params, FitCoshPlusConstant_Params_grammar, (double, A)(double, E)(double, C) )
 
 template<>
 struct printStats<jackknifeDistribution<FitCoshPlusConstant::Params> >{
