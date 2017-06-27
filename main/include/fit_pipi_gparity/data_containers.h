@@ -9,6 +9,12 @@ template<typename DistributionType, typename Policies = null_type>
 class bubbleDataBase: public Policies{
   NumericVector<DistributionType> d; //(t).sample(cfg)
   int Lt;
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & d & Lt;
+  }
 public:
   void setup(const int _Lt, const int _Nsample){ Lt = _Lt; d.resize(_Lt, DistributionType(_Nsample)); }
   
@@ -60,6 +66,12 @@ private:
   int Lt;
   template<typename T,typename P>
   friend std::ostream & operator<<(std::ostream &os, const figureDataBase<T,P> &f);
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & d & Lt;
+  }
 public:
   typedef figureDataBase<DistributionType,Policies> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,figureDataBase<DistributionType,Policies> >::value, int>::type = 0>

@@ -2,6 +2,10 @@
 #define _NUMERIC_TENSORS_H
 
 #include<map>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+
 #include<template_wizardry.h>
 #include<generic_ET.h>
 
@@ -9,6 +13,12 @@
 template<typename Numeric>
 class NumericVector{
   std::vector<Numeric> v;
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & v;
+  }
 public:
   NumericVector():v(){}
   explicit NumericVector(const int n):v(n){}
@@ -67,6 +77,12 @@ class SVDinvertPolicy;
 template<typename Numeric, typename InvertPolicy = SVDinvertPolicy<Numeric> >
 class NumericMatrix: public InvertPolicy{ //square matrix
   std::vector<std::vector<Numeric> > m;
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & m;
+  }
 public:
   NumericMatrix():m(){}
   explicit NumericMatrix(const int n): m(n, std::vector<Numeric>(n)){}

@@ -12,6 +12,9 @@
 #include <common_defs.h>
 #include <sstream>
 
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
@@ -59,12 +62,27 @@ int main(const int argc, const char* argv[]){
 
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   figureDataAllMomenta raw_data;
-  readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
-  readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
-  readFigure(raw_data, 'R', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
-  
   bubbleDataAllMomenta raw_bubble_data;
-  readBubble(raw_bubble_data, args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+
+  if(cmdline.load_data_checkpoint){
+    std::ifstream ifs(cmdline.load_data_checkpoint_file,std::ios::binary);
+    boost::archive::binary_iarchive ia(ifs);    
+    ia >> raw_data;
+    ia >> raw_bubble_data;
+  }else{
+    readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    readFigure(raw_data, 'R', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    readBubble(raw_bubble_data, args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  }
+
+  if(cmdline.save_data_checkpoint){
+    std::ofstream ofs(cmdline.save_data_checkpoint_file,std::ios::binary);
+    boost::archive::binary_oarchive oa(ofs);    
+    oa << raw_data;
+    oa << raw_bubble_data;
+  }
+  
   computeV(raw_data, raw_bubble_data, args.tsep_pipi);
 
   figureData A2_C = projectA2('C', raw_data);

@@ -1,6 +1,9 @@
 #ifndef PIPI_MOM_DATA_CONTAINERS_H
 #define PIPI_MOM_DATA_CONTAINERS_H
 
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/complex.hpp>
+
 typedef std::array<int,3> threeMomentum;
 typedef std::pair<threeMomentum, threeMomentum> sinkSourceMomenta;
 
@@ -64,6 +67,12 @@ private:
     }
     return it->second;
   }
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & C & D & R & V & Lt & Nsample;
+  }
 public:
   figureDataAllMomentaBase(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
   figureDataAllMomentaBase(){}
@@ -109,6 +118,12 @@ private:
       it->second.setup(Lt,Nsample);
     }
     return it->second;
+  }
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & B & Lt & Nsample;
   }
 public:
   bubbleDataAllMomentaBase(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
