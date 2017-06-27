@@ -2,12 +2,12 @@
 #define _DATA_SERIES_H
 
 //A class containing a series of data, for example a time series
-template<typename _GeneralizedCoordinate, typename _DataType>
+template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType = std::pair>
 class dataSeries{
 public:
   typedef _GeneralizedCoordinate GeneralizedCoordinate;
   typedef _DataType DataType;
-  typedef std::pair<GeneralizedCoordinate, DataType> ElementType;
+  typedef _PairType<GeneralizedCoordinate, DataType> ElementType;
 private:
   std::vector<ElementType> series;
 public:
@@ -43,8 +43,8 @@ public:
   inline ElementType &operator[](const int i){ return series[i]; }
 };
 
-template<typename _GeneralizedCoordinate, typename _DataType> 
-std::ostream & operator<<(std::ostream & stream, const dataSeries<_GeneralizedCoordinate,_DataType> &series){
+template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType> 
+std::ostream & operator<<(std::ostream & stream, const dataSeries<_GeneralizedCoordinate,_DataType,_PairType> &series){
   stream << "(";
   for(int i=0;i<series.size();i++)
     stream << "{" << series.coord(i) << " " << series.value(i) << "}" << (i != series.size()-1 ? " " : ")");

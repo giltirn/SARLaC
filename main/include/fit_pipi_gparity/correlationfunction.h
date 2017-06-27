@@ -11,9 +11,15 @@ struct tagged{
   inline tagged(){}
 };
 
+template<typename A, typename B>
+struct FitPiPiTaggedPair: public std::pair<A,B>{
+  using std::pair<A,B>::pair;
+};
+
+
 template<typename DistributionType>
-class correlationFunction: public dataSeries< tagged<double,correlationFunction<DistributionType> > , DistributionType>{
-  typedef dataSeries< tagged<double,correlationFunction<DistributionType> > , DistributionType> Parent;
+class correlationFunction: public dataSeries<double, DistributionType, FitPiPiTaggedPair>{
+  typedef dataSeries<double, DistributionType, FitPiPiTaggedPair> Parent;
 public:
   typedef typename Parent::ElementType ElementType;
   typedef correlationFunction<DistributionType> ET_tag;
@@ -41,7 +47,7 @@ struct getElem<correlationFunction<DistributionType> >{
 };
 
 template<typename Dist>
-using CFDpair = std::pair<tagged<double, correlationFunction<Dist> >, Dist>;
+using CFDpair = FitPiPiTaggedPair<double, Dist>;
 
 template<typename Dist>
 inline CFDpair<Dist> operator*(const int a, const CFDpair<Dist> &e){

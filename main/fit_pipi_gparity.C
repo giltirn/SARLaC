@@ -16,6 +16,7 @@
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/correlationfunction.h>
 #include <fit_pipi_gparity/read_data.h>
+#include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/main.h>
 
 int main(int argc, char* argv[]){
@@ -26,6 +27,17 @@ int main(int argc, char* argv[]){
   const int traj_inc = 4;
   const int traj_lessthan = 996;
   const int nsample = (traj_lessthan - traj_start)/traj_inc;
+  const int t_min = 6;
+  const int t_max = 25;
+  const double Ascale = 1e13;
+  const double Cscale = 1e13;
+
+  typedef FitCoshPlusConstant FitFunc;
+  FitFunc::Params guess;
+  guess.A = 1;
+  guess.E = 0.3;
+  guess.C = 0;
+
   
   figureDataAllMomenta raw_data;
   readFigure(raw_data, 'C', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
@@ -75,15 +87,78 @@ int main(int argc, char* argv[]){
   
   doubleJackCorrelationFunction pipi_dj_vacsubbed = pipi_dj - 3*A2_realavg_V_dj;
 
+  filterXrange<double> trange(t_min,t_max);
+  
+  filteredDataSeries<doubleJackCorrelationFunction> pipi_dj_vacsubbed_inrange(pipi_dj_vacsubbed, trange);
+
+  const int ndata_fit = pipi_dj_vacsubbed_inrange.size();
+  
   typedef correlationFunction<jackknifeDistributionD> jackknifeCorrelationFunction;
 
-  jackknifeCorrelationFunction pipi_j_vacsubbed(Lt,
-						[&pipi_dj_vacsubbed,nsample](const int t)
-						{
-						  typename jackknifeCorrelationFunction::ElementType out(t, jackknifeDistributionD(nsample));
-						  out.second = pipi_dj_vacsubbed.value(t).toJackknife();
-						  return out;
-						}
-						); 
+  jackknifeCorrelationFunction pipi_j_vacsubbed_inrange(ndata_fit,
+							[&pipi_dj_vacsubbed_inrange](const int i)
+							{
+							  return typename jackknifeCorrelationFunction::ElementType(double(pipi_dj_vacsubbed_inrange.coord(i)), pipi_dj_vacsubbed_inrange.value(i).toJackknife());
+							}
+							);
+  
+  NumericMatrix<jackknifeDistributionD> cov(ndata_fit);
+  NumericVector<jackknifeDistributionD> sigma(ndata_fit);
+  for(int i=0;i<ndata_fit;i++){
+    cov(i,i) = doubleJackknifeDistributionD::covariance(pipi_dj_vacsubbed_inrange.value(i),  pipi_dj_vacsubbed_inrange.value(i));
+    sigma(i) = sqrt(cov(i,i));
+    
+    for(int j=i+1;j<ndata_fit;j++)
+      cov(i,j) = cov(j,i) = doubleJackknifeDistributionD::covariance(pipi_dj_vacsubbed_inrange.value(i),  pipi_dj_vacsubbed_inrange.value(j));
+  }
+
+
+  NumericMatrix<jackknifeDistributionD> corr(ndata_fit);
+
+  for(int i=0;i<ndata_fit;i++){
+    corr(i,i) = jackknifeDistributionD(nsample,1.);
+    
+    for(int j=i+1;j<ndata_fit;j++)
+      corr(i,j) = corr(j,i) = cov(i,j)/sigma(i)/sigma(j);
+  }
+
+  NumericMatrix<jackknifeDistributionD> inv_corr(ndata_fit, jackknifeDistributionD(nsample));
+  svd_inverse(inv_corr, corr);
+
+  FitFunc fitfunc(Lt, tsep_pipi, Ascale, Cscale);
+
+  jackknifeDistribution<FitFunc::Params> params(nsample, guess);
+  jackknifeDistributionD chisq(nsample);
+  
+  typedef sampleSeries<const decltype(pipi_j_vacsubbed_inrange)> sampleSeriesType;
+  typedef NumericMatrixSampleView<const decltype(inv_corr)> sampleInvCorrType;
+  typedef CorrelatedChisqCostFunction<FitFunc, sampleSeriesType, sampleInvCorrType> costFunctionType;
+  typedef MarquardtLevenbergMinimizer<costFunctionType> minimizerType;
+  typedef minimizerType::AlgorithmParameterType minimizerParamsType;
+
+  minimizerParamsType min_params;
+  
+#pragma omp parallel for
+  for(int s=0;s<nsample;s++){
+    sampleSeriesType data_s(pipi_j_vacsubbed_inrange, s);
+    sampleInvCorrType inv_corr_s(inv_corr, s);
+  
+    std::vector<double> sigma_s(ndata_fit);
+    for(int d=0;d<ndata_fit;d++) sigma_s[d] = sigma[d].sample(s);
+    
+    costFunctionType cost_func(fitfunc, data_s, sigma_s, inv_corr_s);
+    minimizerType minimizer(cost_func,min_params);
+    assert(minimizer.hasConverged());
+  }
+
+  int dof = ndata_fit - fitfunc.Nparams();
+  jackknifeDistributionD chisq_per_dof = chisq/double(dof);
+
+  distributionPrint<decltype(params)>::printer(new pipiParamsPrinter);
+
+  std::cout << "Params: " << params << std::endl;
+  std::cout << "Chisq: " << chisq << std::endl;
+  std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
+  
   return 0;
 }

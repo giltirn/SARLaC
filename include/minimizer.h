@@ -47,14 +47,16 @@ struct MarquardtLevenbergParameters{
 
 //Run on a single thread
 template<typename CostFunction> 
-class MarquardtLevenbergMinimizer{
+class MarquardtLevenbergMinimizer{  
   typedef typename CostFunction::CostType CostType;
   typedef typename CostFunction::ParameterType ParameterType;
   typedef typename CostFunction::CostDerivativeType CostDerivativeType;
   typedef typename CostFunction::CostSecondDerivativeMatrixType CostSecondDerivativeMatrixType;
   typedef typename CostFunction::CostSecondDerivativeInverseMatrixType CostSecondDerivativeInverseMatrixType;
-  
-  MarquardtLevenbergParameters<CostType> mlparams;
+public:
+  typedef MarquardtLevenbergParameters<CostType> AlgorithmParameterType;
+private:
+  AlgorithmParameterType mlparams;
   
   const CostFunction &function;
 
@@ -216,7 +218,7 @@ class MarquardtLevenbergMinimizer{
 
     MINPRINT << "delta : " << delta->print() << std::endl;
     
-    *parameters = *parameters + *delta; //must have += operator
+    *parameters = *parameters + *delta; //must have + operator
 
     MINPRINT << "Updated parameters: "<< parameters->print() << std::endl;
     ++iter;
@@ -260,7 +262,7 @@ class MarquardtLevenbergMinimizer{
   }
     
 public:
-  MarquardtLevenbergMinimizer(const CostFunction &func, const MarquardtLevenbergParameters<CostType> &_mlparams): function(func), iter(0), mlparams(_mlparams){
+  MarquardtLevenbergMinimizer(const CostFunction &func, const AlgorithmParameterType &_mlparams): function(func), iter(0), mlparams(_mlparams){
   }
   
   CostType fit(ParameterType &params){
