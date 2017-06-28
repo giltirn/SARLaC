@@ -72,6 +72,7 @@ public:
   superJackknifeDistribution(superJackknifeDistribution&& o) noexcept : layout(o.layout), ens_jacks(std::move(o.ens_jacks)), cen(o.cen){ }
 
   typedef superJackknifeDistribution<DataType> ET_tag;
+  
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,superJackknifeDistribution<DataType> >::value, int>::type = 0>
   superJackknifeDistribution(U&& expr){
     layout = expr.common_properties();
@@ -81,20 +82,31 @@ public:
     for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
     cen = expr[-1];
   }
+
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,superJackknifeDistribution<DataType> >::value, int>::type = 0>
+  superJackknifeDistribution<DataType> & operator=(U&& expr){
+    layout = expr.common_properties();
+    ens_jacks.resize(layout->nEnsembles());
+    for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i) ); 
+    
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+    cen = expr[-1];
+    return *this;
+  }
   
-  superJackknifeDistribution & operator=(const superJackknifeDistribution &r){ layout = r.layout; ens_jacks = r.ens_jacks; cen = r.cen; return *this; }
+  inline superJackknifeDistribution & operator=(const superJackknifeDistribution &r){ layout = r.layout; ens_jacks = r.ens_jacks; cen = r.cen; return *this; }
   
-  int size() const{ return layout->nSamplesTotal(); }
+  inline int size() const{ return layout->nSamplesTotal(); }
   
-  const DataType & sample(const int idx) const{
+  inline const DataType & sample(const int idx) const{
     return ens_jacks[ layout->sampleMap(idx).first ].sample( layout->sampleMap(idx).second );
   }
-  DataType & sample(const int idx){
+  inline DataType & sample(const int idx){
     return ens_jacks[ layout->sampleMap(idx).first ].sample( layout->sampleMap(idx).second );
   }
 
-  const DataType & best() const{ return cen; }
-  DataType &best(){ return cen; }
+  inline const DataType & best() const{ return cen; }
+  inline DataType &best(){ return cen; }
 
   //This is the naive mean of the superjackknife samples. Use best for the propagated central value
   DataType mean(){

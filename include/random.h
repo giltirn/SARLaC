@@ -53,8 +53,29 @@ inline typename std::enable_if<std::is_floating_point<T>::value, void>::type gau
   reinterpret_cast<T(&)[2]>(v)[1] = dis(RNG());
 }
 template<typename T>
+inline typename std::enable_if<std::is_floating_point<T>::value, void>::type gaussianRandom(std::complex<T> &v, const std::complex<T> mean, const std::complex<T> stddev){ //real and complex from same distribution. 
+  std::normal_distribution<> redis(mean.real(), stddev.real());
+  std::normal_distribution<> imdis(mean.imag(), stddev.imag());
+  reinterpret_cast<T(&)[2]>(v)[0] = redis(RNG());
+  reinterpret_cast<T(&)[2]>(v)[1] = redis(RNG());
+}
+
+
+template<typename T>
 inline typename std::enable_if<hasSampleMethod<T>::value && hasDataType<T>::value, void>::type gaussianRandom(T &v, const typename T::DataType mean, const typename T::DataType stddev){ //for distribution types
   for(int i=0;i<v.size();i++) gaussianRandom(v.sample(i),mean,stddev);
+}
+template<typename T>
+inline void gaussianRandom(std::vector<T> &v, const T mean, const T stddev){
+  for(int i=0;i<v.size();i++) gaussianRandom(v[i],mean,stddev);
+}
+template<typename T>
+inline void gaussianRandom(std::vector<std::complex<T> > &v, const std::complex<T> mean, const std::complex<T> stddev){
+  for(int i=0;i<v.size();i++) gaussianRandom(v[i],mean,stddev);
+}
+template<typename T>
+inline void gaussianRandom(std::vector<std::complex<T> > &v, const T mean, const T stddev){
+  for(int i=0;i<v.size();i++) gaussianRandom(v[i],mean,stddev);
 }
 
 

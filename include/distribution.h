@@ -244,14 +244,23 @@ public:
   jackknifeCdistribution(jackknifeCdistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   typedef jackknifeCdistribution<DataType> ET_tag;
+  
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
-  jackknifeCdistribution(U&& expr){
-    this->resize(expr.common_properties());
+  jackknifeCdistribution(U&& expr): jackknifeCdistribution(expr.common_properties()){
 #pragma omp parallel for
     for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
     cen = expr[-1];
   }
   
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
+  jackknifeCdistribution<DataType> & operator=(U&& expr){
+    this->resize(expr.common_properties());
+#pragma omp parallel for
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+    cen = expr[-1];
+    return *this;
+  }
+
   jackknifeCdistribution & operator=(const jackknifeCdistribution &r){ static_cast<baseType*>(this)->operator=(r); cen=r.cen; return *this; }
 
   inline const DataType & propagatedCentral() const{ return cen; }

@@ -270,10 +270,19 @@ inline void thread_eval(T &obj, U &&expr){
 #define ENABLE_GENERIC_ET(CLASS, TAG)					\
   typedef TAG ET_tag;							\
   static auto _ET_self() -> typename std::remove_reference<decltype(*this)>::type; \
+  \
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,decltype(_ET_self())>::value, int>::type = 0> \
   CLASS(U&& expr): CLASS(expr.common_properties()){			\
    thread_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
-  }															     
+  }\
+  \
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,decltype(_ET_self())>::value, int>::type = 0> \
+  decltype(_ET_self()) & operator=(U && expr){ \
+    this->resize(expr.common_properties());    \
+    thread_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
+    return *this; \
+  }
+
 
 
 
