@@ -76,6 +76,7 @@ public:
   typedef figureDataBase<DistributionType,Policies> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,figureDataBase<DistributionType,Policies> >::value, int>::type = 0>
   figureDataBase<DistributionType,Policies>(U&& expr): d(expr.common_properties()), Lt(expr.common_properties()){
+#pragma omp parallel for
     for(int i=0;i<Lt*Lt;i++)
       getElem<figureDataBase<DistributionType,Policies> >::elem(*this, i) = expr[i];    
   }

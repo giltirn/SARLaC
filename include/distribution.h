@@ -129,6 +129,7 @@ public:
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   distribution<typename U::value_type> real() const{
     distribution<typename U::value_type> out(this->size());
+#pragma omp parallel for
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
@@ -212,6 +213,7 @@ public:
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   jackknifeDistribution<typename U::value_type> real() const{
     jackknifeDistribution<typename U::value_type> out(this->size());
+#pragma omp parallel for
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
@@ -245,6 +247,7 @@ public:
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
   jackknifeCdistribution(U&& expr){
     this->resize(expr.common_properties());
+#pragma omp parallel for
     for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
     cen = expr[-1];
   }
@@ -291,6 +294,7 @@ public:
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   jackknifeCdistribution<typename U::value_type> real() const{
     jackknifeCdistribution<typename U::value_type> out(this->size());
+#pragma omp parallel for
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
@@ -369,6 +373,7 @@ public:
   template<typename U=BaseDataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   doubleJackknifeDistribution<typename U::value_type> real() const{
     doubleJackknifeDistribution<typename U::value_type> out(this->size());
+#pragma omp parallel for
     for(int i=0;i<this->size();i++)
       for(int j=0;j<this->size()-1;j++)
 	out.sample(i).sample(j) = this->sample(i).sample(j).real();

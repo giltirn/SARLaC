@@ -258,6 +258,13 @@ ET_UNOP(ETnegate, negate, operator-);
 ET_UNOP(ETexp, exp, exp);
 ET_UNOP(ETsqrt, sqrt, sqrt);
 
+template<typename T, typename U>
+inline void thread_eval(T &obj, U &&expr){
+#pragma omp parallel for
+    for(int i=0;i<obj.size();i++) ETeval<T>::elem(obj,i) = expr[i];
+}
+
+
 //Put this inside your class to enable the ET
 //Tag is used to discriminate between classes of object; a binary op requires both ops have the same tag
 #define ENABLE_GENERIC_ET(CLASS, TAG)					\
@@ -265,8 +272,13 @@ ET_UNOP(ETsqrt, sqrt, sqrt);
   static auto _ET_self() -> typename std::remove_reference<decltype(*this)>::type; \
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,decltype(_ET_self())>::value, int>::type = 0> \
   CLASS(U&& expr): CLASS(expr.common_properties()){			\
-    for(int i=0;i<this->size();i++) ETeval<decltype(_ET_self())>::elem(*this,i) = expr[i]; \
-  }
+   thread_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
+  }															     
+
+
+
+//#pragma omp parallel for
+//  for(int i=0;i<this->size();i++) ETeval<decltype(_ET_self())>::elem(*this,i) = expr[i]; \
 
 
 #endif

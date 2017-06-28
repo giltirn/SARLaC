@@ -96,6 +96,7 @@ public:
   typedef NumericMatrix<Numeric,InvertPolicy> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericMatrix<Numeric,InvertPolicy> >::value, int>::type = 0>
   NumericMatrix(U&& expr): NumericMatrix(expr.common_properties()){
+#pragma omp parallel for
     for(int i=0;i<this->size()*this->size();i++)
       getElem<NumericMatrix<Numeric,InvertPolicy> >::elem(*this, i) = expr[i];
   }

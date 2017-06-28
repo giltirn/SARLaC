@@ -65,7 +65,7 @@ int main(const int argc, const char* argv[]){
   bubbleDataAllMomenta raw_bubble_data;
 
   if(cmdline.load_data_checkpoint){
-    std::cout << "Loading data checkpoint\n"; boost::timer::auto_cpu_timer t("Report: Loaded data checkpoint in %w s\n");
+    (std::cout << "Loading data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Loaded data checkpoint in %w s\n");
     std::ifstream ifs(cmdline.load_data_checkpoint_file,std::ios::binary);
     boost::archive::binary_iarchive ia(ifs);    
     ia >> raw_data;
@@ -78,6 +78,7 @@ int main(const int argc, const char* argv[]){
   }
 
   if(cmdline.save_data_checkpoint){
+    (std::cout << "Saving data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Saved data checkpoint in %w s\n");
     std::ofstream ofs(cmdline.save_data_checkpoint_file,std::ios::binary);
     boost::archive::binary_oarchive oa(ofs);    
     oa << raw_data;

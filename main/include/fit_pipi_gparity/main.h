@@ -22,7 +22,7 @@ typename DataAllMomentumType::ContainerType projectA2(const char fig, const Data
 
 template<typename DataAllMomentumType, typename BubbleDataType>
 void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_data, const int tsep_pipi){
-  std::cout << "Computing V diagrams with BubbleDataType = " << printType<BubbleDataType>() << "\n"; 
+  (std::cout << "Computing V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
 				 
   threeMomentum R[8] = { {1,1,1}, {-1,-1,-1},
@@ -40,7 +40,6 @@ void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_da
       const auto &Bp1_src  = raw_bubble_data(  R[psrc] );
 
       auto &into = raw_data('V',momComb(R[psnk],R[psrc]));
-      
       for(int tsrc=0;tsrc<Lt;tsrc++)
 	for(int tsep=0;tsep<Lt;tsep++)
 	  into(tsrc,tsep) = Bmp1_snk( (tsrc + tsep + tsep_pipi) % Lt ) * Bp1_src( tsrc );
@@ -71,12 +70,8 @@ auto realSourceAverage(const FigureDataType & data)->correlationFunction<typenam
   for(int tsep=0;tsep<Lt;tsep++){
     auto & v = into.value(tsep);
     v.zero();
-    for(int i=0;i<tsrc_include.size();i++){
-      //auto re = data(tsrc_include[i],tsep).real();
-      //v = v + re;
-
-      v = v + data(tsrc_include[i],tsep).real();      
-    }
+    for(int i=0;i<tsrc_include.size();i++)
+      v = v + data(tsrc_include[i],tsep).real();          
     v = v/N;
   }
   return into;
