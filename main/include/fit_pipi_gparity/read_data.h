@@ -9,6 +9,7 @@ std::string figureFile(const std::string &data_dir, const char fig, const int tr
 
 void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::string &data_dir, const int tsep_pipi, const int Lt,
 		 const int traj_start, const int traj_inc, const int traj_lessthan){
+  std::cout << "Reading figure " << fig << "\n"; boost::timer::auto_cpu_timer t(std::string("Report: Read figure ") + fig + " in %w s\n");
   int nsample = (traj_lessthan - traj_start)/traj_inc;
 
   raw_data.setup(Lt,nsample);
@@ -39,6 +40,7 @@ std::string bubbleFile(const std::string &data_dir, const int traj, const threeM
 
 void readBubble(bubbleDataAllMomenta &raw_data, const std::string &data_dir, const int tsep_pipi, const int Lt,
 		 const int traj_start, const int traj_inc, const int traj_lessthan){
+  std::cout << "Reading bubble\n"; boost::timer::auto_cpu_timer t("Report: Read bubble in %w s\n");
   int nsample = (traj_lessthan - traj_start)/traj_inc;
 
   raw_data.setup(Lt,nsample);

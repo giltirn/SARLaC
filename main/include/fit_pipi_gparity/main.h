@@ -3,6 +3,8 @@
 
 template<typename DataAllMomentumType>
 typename DataAllMomentumType::ContainerType projectA2(const char fig, const DataAllMomentumType &raw_data){
+  std::cout << "Computing A2 projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 
+  boost::timer::auto_cpu_timer t(std::string("Report: Computed A2 projection of figure ") + fig + " with DataAllMomentumType = " + printType<DataAllMomentumType>() + " in %w s\n");
   threeMomentum R[8] = { {1,1,1}, {-1,-1,-1},
 			 {1,1,-1}, {-1,-1,1},
 			 {1,-1,1}, {-1,1,-1},
@@ -20,6 +22,9 @@ typename DataAllMomentumType::ContainerType projectA2(const char fig, const Data
 
 template<typename DataAllMomentumType, typename BubbleDataType>
 void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_data, const int tsep_pipi){
+  std::cout << "Computing V diagrams with BubbleDataType = " << printType<BubbleDataType>() << "\n"; 
+  boost::timer::auto_cpu_timer t(std::string("Report: Computed V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
+				 
   threeMomentum R[8] = { {1,1,1}, {-1,-1,-1},
 			 {1,1,-1}, {-1,-1,1},
 			 {1,-1,1}, {-1,1,-1},

@@ -76,7 +76,9 @@ fi
 AC_CHECK_LIB([boost_serialization], [main], [LIBS="-lboost_serialization $LIBS"],
              [AC_MSG_FAILURE([Could not link to boost_serialization])])
 
-
+#Check for boost timer
+AC_CHECK_LIB([boost_timer], [main], [LIBS="-lboost_timer $LIBS"],
+             [AC_MSG_FAILURE([Could not link to boost_timer])])
 
 #AM_CONDITIONAL([USE_PYTHON], [test "x$with_python" = "xyes"])
 

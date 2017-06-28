@@ -11,7 +11,7 @@
 #include <parser.h>
 #include <common_defs.h>
 #include <sstream>
-
+#include <boost/timer/timer.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
@@ -65,6 +65,7 @@ int main(const int argc, const char* argv[]){
   bubbleDataAllMomenta raw_bubble_data;
 
   if(cmdline.load_data_checkpoint){
+    std::cout << "Loading data checkpoint\n"; boost::timer::auto_cpu_timer t("Report: Loaded data checkpoint in %w s\n");
     std::ifstream ifs(cmdline.load_data_checkpoint_file,std::ios::binary);
     boost::archive::binary_iarchive ia(ifs);    
     ia >> raw_data;
