@@ -3,6 +3,7 @@
 
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/complex.hpp>
+#include <boost/serialization/array.hpp>
 
 typedef std::array<int,3> threeMomentum;
 typedef std::pair<threeMomentum, threeMomentum> sinkSourceMomenta;
