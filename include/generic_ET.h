@@ -258,12 +258,19 @@ ET_UNOP(ETnegate, negate, operator-);
 ET_UNOP(ETexp, exp, exp);
 ET_UNOP(ETsqrt, sqrt, sqrt);
 
+//PARALLELIZE_DISTRIBUTION_ET disabled by default because it makes performance worse in most cases (better with very larger, O(10000) configs)
+#ifdef PARALLELIZE_DISTRIBUTION_ET
 template<typename T, typename U>
-inline void thread_eval(T &obj, U &&expr){
+inline void loop_eval(T &obj, U &&expr){
 #pragma omp parallel for
     for(int i=0;i<obj.size();i++) ETeval<T>::elem(obj,i) = expr[i];
 }
-
+#else
+template<typename T, typename U>
+inline void loop_eval(T &obj, U &&expr){
+    for(int i=0;i<obj.size();i++) ETeval<T>::elem(obj,i) = expr[i];
+}
+#endif
 
 //Put this inside your class to enable the ET
 //Tag is used to discriminate between classes of object; a binary op requires both ops have the same tag
@@ -273,21 +280,16 @@ inline void thread_eval(T &obj, U &&expr){
   \
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,decltype(_ET_self())>::value, int>::type = 0> \
   CLASS(U&& expr): CLASS(expr.common_properties()){			\
-   thread_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
+   loop_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
   }\
   \
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,decltype(_ET_self())>::value, int>::type = 0> \
   decltype(_ET_self()) & operator=(U && expr){ \
     this->resize(expr.common_properties());    \
-    thread_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
+    loop_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
     return *this; \
   }
 
-
-
-
-//#pragma omp parallel for
-//  for(int i=0;i<this->size();i++) ETeval<decltype(_ET_self())>::elem(*this,i) = expr[i]; \
 
 
 #endif

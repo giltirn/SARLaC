@@ -247,16 +247,24 @@ public:
   
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
   jackknifeCdistribution(U&& expr): jackknifeCdistribution(expr.common_properties()){
+#ifdef PARALLELIZE_DISTRIBUTION_ET
 #pragma omp parallel for
     for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+#else
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+#endif
     cen = expr[-1];
   }
   
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
   jackknifeCdistribution<DataType> & operator=(U&& expr){
     this->resize(expr.common_properties());
+#ifdef PARALLELIZE_DISTRIBUTION_ET
 #pragma omp parallel for
     for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+#else
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+#endif
     cen = expr[-1];
     return *this;
   }

@@ -61,11 +61,31 @@ struct add_flops<std::complex<T> >{
   enum {value = 2};
 };
 
+template<typename T>
+inline void gaussianRandom(doubleJackknifeDistribution<T> &v, const double mean, const double stddev){ 
+  for(int i=0;i<v.size();i++) gaussianRandom(v.sample(i),mean,stddev);
+}
+
+//Number of elements in loop, not necessarily equal to nsample
+template< template<typename> class DistributionType >
+struct num_elements{
+  static inline size_t value(const int nsample){
+    return nsample;
+  }
+};
+template< >
+struct num_elements<doubleJackknifeDistribution>{
+  static inline size_t value(const int nsample){
+    return nsample * (nsample - 1);
+  }
+};
 
 
 
 template< template<typename> class DistributionType, typename T >
 void benchmarkDistribution(const size_t nsample, const size_t ntest){
+  size_t nelem = num_elements<DistributionType>::value(nsample);
+  
   DistributionType<T> a(nsample);
   DistributionType<T> b(nsample);
   DistributionType<T> c(nsample);
@@ -75,30 +95,30 @@ void benchmarkDistribution(const size_t nsample, const size_t ntest){
   gaussianRandom(c,-1,9.0);
   gaussianRandom(d,3.14,0.12);
 
-  std::vector<T> av(nsample);
-  std::vector<T> bv(nsample);
+  std::vector<T> av(nelem);
+  std::vector<T> bv(nelem);
   gaussianRandom(av, -133.1, 2.1);
   gaussianRandom(bv, 44.5, 12.1);
   {
     performance perf;
-    std::vector<T> out(nsample);
+    std::vector<T> out(nelem);
     for(size_t i=0;i<ntest;i++){	  
-      for(int s=0;s<nsample;s++)
+      for(int s=0;s<nelem;s++)
 	out[s] = av[s] * bv[s];
     }
-    double Gflops = perf.Gflops(ntest * nsample * double(mul_flops<T>::value));
-    std::cout << "No threading " << printType<decltype(av)>() << " * " << printType<decltype(bv)>() << " with nsample=" << nsample << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
+    double Gflops = perf.Gflops(ntest * nelem * double(mul_flops<T>::value));
+    std::cout << "No threading " << printType<decltype(av)>() << " * " << printType<decltype(bv)>() << " with nelem=" << nelem << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
   }
   {
     performance perf;
-    std::vector<T> out(nsample);
+    std::vector<T> out(nelem);
     for(size_t i=0;i<ntest;i++){
 #pragma omp parallel for
-      for(int s=0;s<nsample;s++)
+      for(int s=0;s<nelem;s++)
 	out[s] = av[s] * bv[s];
     }
-    double Gflops = perf.Gflops(ntest * nsample * double(mul_flops<T>::value));
-    std::cout << "Threaded " << printType<decltype(av)>() << " * " << printType<decltype(bv)>() << " with nsample=" << nsample << " and ntest=" << ntest  <<" : " << Gflops << " Gflops\n";
+    double Gflops = perf.Gflops(ntest * nelem * double(mul_flops<T>::value));
+    std::cout << "Threaded " << printType<decltype(av)>() << " * " << printType<decltype(bv)>() << " with nelem=" << nelem << " and ntest=" << ntest  <<" : " << Gflops << " Gflops\n";
   }
   {
     performance perf;
@@ -106,18 +126,18 @@ void benchmarkDistribution(const size_t nsample, const size_t ntest){
     for(size_t i=0;i<ntest;i++){
       out = a * b;
     }
-    double Gflops = perf.Gflops(ntest * nsample * double(mul_flops<T>::value));
-    std::cout << printType<decltype(a)>() << " * " << printType<decltype(b)>() << " with nsample=" << nsample << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
+    double Gflops = perf.Gflops(ntest * nelem * double(mul_flops<T>::value));
+    std::cout << printType<decltype(a)>() << " * " << printType<decltype(b)>() << " with nelem=" << nelem << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
   }
   {
     performance perf;
     DistributionType<T> out(nsample);
        
     for(size_t i=0;i<ntest;i++){
-      out = a * b + b;
+      out = a * b + c;
     }
-    double Gflops = perf.Gflops(ntest * nsample * double( mul_flops<T>::value + add_flops<T>::value ) );      
-    std::cout << printType<decltype(a)>() << " * " << printType<decltype(b)>() << " + " << printType<decltype(b)>() << " with nsample=" << nsample << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
+    double Gflops = perf.Gflops(ntest * nelem * double( mul_flops<T>::value + add_flops<T>::value ) );      
+    std::cout << printType<decltype(a)>() << " * " << printType<decltype(b)>() << " + " << printType<decltype(c)>() << " with nelem=" << nelem << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
   }  
 }
 
@@ -134,9 +154,8 @@ int main(const int argc, const char* argv[]){
     std::cout << "Number of threads " << omp_get_max_threads() << std::endl;
 
     benchmarkDistribution<distribution, double>(nsample, ntest);
-    benchmarkDistribution<distribution, std::complex<double> >(nsample, ntest);
-
-      
+    benchmarkDistribution<distribution, std::complex<double> >(nsample, ntest);    
+    benchmarkDistribution<doubleJackknifeDistribution, double>(nsample, ntest);
     
 
   }
