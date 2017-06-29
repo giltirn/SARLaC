@@ -12,6 +12,11 @@ std::ostream & operator<<(std::ostream &os, const threeMomentum &mom){
   os << "(" << mom[0] << ", " << mom[1] << ", " << mom[2] << ")";
   return os;
 }
+std::ostream & operator<<(std::ostream &os, const sinkSourceMomenta &mom){
+  os << "Snk:" << mom.first << " Src:" << mom.second;
+  return os;
+}
+
 
 inline threeMomentum operator-(const threeMomentum &p){
   return threeMomentum({-p[0],-p[1],-p[2]});
