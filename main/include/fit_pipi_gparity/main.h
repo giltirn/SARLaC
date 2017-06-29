@@ -32,9 +32,19 @@ void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_da
   const int Lt = raw_bubble_data.getLt();
   const int Nsample = raw_bubble_data.getNsample();
   raw_data.setup(Lt,Nsample);
-
+  
+  //Populate output
   for(int psnk=0;psnk<8;psnk++)
-    for(int psrc=0;psrc<8;psrc++){  
+    for(int psrc=0;psrc<8;psrc++)
+      auto &into = raw_data('V',momComb(R[psnk],R[psrc]));
+
+#pragma omp parallel for
+  for(int pp=0;pp<8*8;pp++){
+    int psnk = pp / 8;
+    int psrc = pp % 8;
+
+    //for(int psnk=0;psnk<8;psnk++)
+    //for(int psrc=0;psrc<8;psrc++){  
       //B(tsrc + tsep + tsep_pipi, -p1_snk) B(tsrc, p1_src)
       const auto &Bmp1_snk = raw_bubble_data( -R[psnk] );
       const auto &Bp1_src  = raw_bubble_data(  R[psrc] );
@@ -43,7 +53,7 @@ void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_da
       for(int tsrc=0;tsrc<Lt;tsrc++)
 	for(int tsep=0;tsep<Lt;tsep++)
 	  into(tsrc,tsep) = Bmp1_snk( (tsrc + tsep + tsep_pipi) % Lt ) * Bp1_src( tsrc );
-    }
+  }
 }
 
 
