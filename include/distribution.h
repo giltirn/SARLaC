@@ -145,7 +145,8 @@ std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
   return os;
 }
 
-
+template<typename _DataType>
+class doubleJackknifeDistribution;
 
 template<typename _DataType>
 class jackknifeDistribution: public distribution<_DataType>{
@@ -217,6 +218,8 @@ public:
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
+
+  doubleJackknifeDistribution<DataType> toDoubleJacknife() const;
 };
 
 template<typename T>
@@ -437,6 +440,19 @@ struct printStats< doubleJackknifeDistribution<T> >{
   }
 
 };
+
+template<typename DataType>
+doubleJackknifeDistribution<DataType> jackknifeDistribution<DataType>::toDoubleJacknife() const{
+  DataType Jbar = this->mean();
+  int N = this->size();
+  doubleJackknifeDistribution<DataType> out(N);
+  for(int j=0;j<N;j++)
+    for(int k=0;k<N-1;k++){
+      int kp = k < j ? k : k+1;      
+      out.sample(j).sample(k) = double(N-1)/(N-2) * ( this->sample(j) + this->sample(kp) - double(N)/(N-1)*Jbar );
+    }
+  return out;  
+}
 
 
 #include<distribution_ET.h>
