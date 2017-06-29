@@ -117,10 +117,6 @@ int main(const int argc, const char* argv[]){
   pipi_dj = fold(pipi_dj, args.tsep_pipi);
   A2_realavg_V_dj = fold(A2_realavg_V_dj, args.tsep_pipi);
 
-  distributionPrint<doubleJackknifeDistributionD>::printer(new centralValueDistributionPrinter<doubleJackknifeDistributionD>);
-  std::cout << "pipi_dj: " << pipi_dj << std::endl;
-  std::cout << "V_dj: " << A2_realavg_V_dj << std::endl;
-  
   doubleJackCorrelationFunction pipi_dj_vacsubbed = pipi_dj - 3*A2_realavg_V_dj;
 
   filterXrange<double> trange(args.t_min,args.t_max);
@@ -173,8 +169,8 @@ int main(const int argc, const char* argv[]){
   typedef minimizerType::AlgorithmParameterType minimizerParamsType;
 
   minimizerParamsType min_params;
-  
-#pragma omp parallel for
+  min_params.verbose = true;
+  //#pragma omp parallel for
   for(int s=0;s<nsample;s++){
     sampleSeriesType data_s(pipi_j_vacsubbed_inrange, s);
     sampleInvCorrType inv_corr_s(inv_corr, s);

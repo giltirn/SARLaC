@@ -30,6 +30,7 @@ public:
   }
   explicit correlationFunction(const int n): Parent(n){}
   correlationFunction(correlationFunction &&r) = default;
+  correlationFunction(const correlationFunction &r) = default;
   template<typename Initializer>
   inline correlationFunction(const int n, const Initializer &initializer): Parent(n,initializer){}
 

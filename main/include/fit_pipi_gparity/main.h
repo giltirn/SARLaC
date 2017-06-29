@@ -89,6 +89,9 @@ auto sourceAverage(const FigureDataType & data)->correlationFunction<typename st
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
 auto computeVprojectA2sourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi)->correlationFunction<typename std::decay<decltype(raw_bubble_data(*((threeMomentum*)NULL))(0))>::type>{
+  (std::cout << "Computing A2-projected, src-averaged V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
+  boost::timer::auto_cpu_timer t(std::string("Report: Computed A2-projected, src-averaged V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
+
   threeMomentum R[8] = { {1,1,1}, {-1,-1,-1},
 			 {1,1,-1}, {-1,-1,1},
 			 {1,-1,1}, {-1,1,-1},
@@ -103,8 +106,12 @@ auto computeVprojectA2sourceAvg(const BubbleDataType &raw_bubble_data, const int
 					      return typename correlationFunction<DistributionType>::ElementType(double(t), DistributionType(Nsample,0.));
 					    }
 					    );
+  int nthr = omp_get_max_threads();
+  std::vector<correlationFunction<DistributionType> > thr_sum(nthr, out);
   
+#pragma omp parallel for
   for(int pp=0;pp<8*8;pp++){
+    int me = omp_get_thread_num();
     int psnk = pp / 8;
     int psrc = pp % 8;
 
@@ -113,10 +120,13 @@ auto computeVprojectA2sourceAvg(const BubbleDataType &raw_bubble_data, const int
 
     for(int tsrc=0;tsrc<Lt;tsrc++)
       for(int tsep=0;tsep<Lt;tsep++)
-	out.value(tsep) = out.value(tsep) + Bmp1_snk( (tsrc + tsep + tsep_pipi) % Lt ) * Bp1_src( tsrc );
+	thr_sum[me].value(tsep) = thr_sum[me].value(tsep) + Bmp1_snk( (tsrc + tsep + tsep_pipi) % Lt ) * Bp1_src( tsrc );
   }
-  for(int tsep=0;tsep<Lt;tsep++)
+  for(int tsep=0;tsep<Lt;tsep++){
+    for(int thr=0;thr<nthr;thr++)
+      out.value(tsep) = out.value(tsep) + thr_sum[thr].value(tsep);
     out.value(tsep) = out.value(tsep)/double(8*8*Lt);
+  }
   return out;  
 }
   
