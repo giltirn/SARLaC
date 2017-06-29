@@ -1,8 +1,6 @@
 #ifndef PIPI_DATA_CONTAINERS_H
 #define PIPI_DATA_CONTAINERS_H
 
-typedef std::complex<double> complexD;
-
 struct null_type{};
 
 template<typename DistributionType, typename Policies = null_type>
@@ -29,19 +27,19 @@ public:
 };
 
 class bubbleDataPolicies{
-  inline bubbleDataBase<distribution<complexD>, bubbleDataPolicies> & upcast(){ return *static_cast< bubbleDataBase<distribution<complexD>, bubbleDataPolicies>* >(this); }
-  inline const bubbleDataBase<distribution<complexD>, bubbleDataPolicies> & upcast() const{ return *static_cast< bubbleDataBase<distribution<complexD>, bubbleDataPolicies> const* >(this); }
+  inline bubbleDataBase<distributionD, bubbleDataPolicies> & upcast(){ return *static_cast< bubbleDataBase<distributionD, bubbleDataPolicies>* >(this); }
+  inline const bubbleDataBase<distributionD, bubbleDataPolicies> & upcast() const{ return *static_cast< bubbleDataBase<distributionD, bubbleDataPolicies> const* >(this); }
 
 public:
   void parse(std::istream &in, const int sample){
-    bubbleDataBase<distribution<complexD>, bubbleDataPolicies> & me = upcast();
+    bubbleDataBase<distributionD, bubbleDataPolicies> & me = upcast();
     int t;
     for(int t_expect=0;t_expect<me.getLt();t_expect++){
       if(!(in >> t)) error_exit(std::cout << "bubbleData::parse failed to read t for config " << sample << "\n");
       if(t != t_expect) error_exit(std::cout << "bubbleData::parse t doesn't match expectations: " << t << ":" << t_expect << " for config " << sample << "\n");
 
-      double &re = reinterpret_cast<double(&)[2]>( me(t).sample(sample) )[0];
-      double &im = reinterpret_cast<double(&)[2]>( me(t).sample(sample) )[1];
+      double &re = me(t).sample(sample);
+      double im; //discard because it is zero
       if(!(in >> re >> im)) error_exit(std::cout << "bubbleData::parse failed to real values for config " << sample << "\n");
     }
   }
@@ -54,8 +52,8 @@ public:
   }    
 };
 
-typedef bubbleDataBase<distribution<complexD>, bubbleDataPolicies> bubbleData;
-typedef bubbleDataBase<doubleJackknifeDistribution<complexD> > bubbleDataDoubleJack;
+typedef bubbleDataBase<distributionD, bubbleDataPolicies> bubbleData;
+typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
 
 template<typename _DistributionType, typename Policies = null_type>
 class figureDataBase: public Policies{
@@ -123,12 +121,12 @@ std::ostream & operator<<(std::ostream &os, const figureDataBase<DistributionTyp
 }
 
 class figureDataPolicies{
-  inline figureDataBase<distribution<complexD>, figureDataPolicies> & upcast(){ return *static_cast< figureDataBase<distribution<complexD>, figureDataPolicies>* >(this); }
-  inline const figureDataBase<distribution<complexD>, figureDataPolicies> & upcast() const{ return *static_cast< figureDataBase<distribution<complexD>, figureDataPolicies> const* >(this); }
+  inline figureDataBase<distributionD, figureDataPolicies> & upcast(){ return *static_cast< figureDataBase<distributionD, figureDataPolicies>* >(this); }
+  inline const figureDataBase<distributionD, figureDataPolicies> & upcast() const{ return *static_cast< figureDataBase<distributionD, figureDataPolicies> const* >(this); }
 
 public:
   void parseCDR(std::istream &in, const int sample){
-    figureDataBase<distribution<complexD>, figureDataPolicies> &me = upcast();
+    figureDataBase<distributionD, figureDataPolicies> &me = upcast();
     
     const int Lt = me.getLt();
     const int nelems = Lt*Lt;
@@ -142,9 +140,9 @@ public:
       if(tsep != tsep_expect || tsrc != tsrc_expect) error_exit(std::cout << "FigureData tsrc tsep don't match expectations: "
 								<< tsrc << ":" << tsrc_expect << " " << tsep << ":" << tsep_expect
 								<< " for config " << sample << "\n");
-      double &re = reinterpret_cast<double(&)[2]>( me.at(tsrc,tsep).sample(sample) )[0];
-      double &im = reinterpret_cast<double(&)[2]>( me.at(tsrc,tsep).sample(sample) )[1];
-      if(!(in >> re >> im)) error_exit(std::cout << "FigureData::parseCDR failed to real values for config " << sample << "\n");
+      double &re = me.at(tsrc,tsep).sample(sample);
+      double im; //discard because it averages to zero
+      if(!(in >> re >> im)) error_exit(std::cout << "FigureData::parseCDR failed to read values for config " << sample << "\n");
     }
   }
   void parseCDR(const std::string &filename, const int sample){
@@ -157,40 +155,36 @@ public:
 
   //Data not measured on every tsrc usually
   bool isZero(const int tsrc) const{
-    const figureDataBase<distribution<complexD>, figureDataPolicies> &me = upcast();
+    const figureDataBase<distributionD, figureDataPolicies> &me = upcast();
     
     for(int tsep=0;tsep<me.getLt();tsep++)
-      for(int sample=0;sample<me.getNsample();sample++){
-	const complexD & v = me.at(tsrc,tsep).sample(sample);
-	if(v.real() != 0.0 || v.imag() != 0.0) return false;
-      }
+      for(int sample=0;sample<me.getNsample();sample++)
+	if( me.at(tsrc,tsep).sample(sample) != 0.0 ) return false;
     return true;
   }
 };
 
 class figureDataDoubleJackPolicies{
-  inline figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> & upcast(){ return *static_cast< figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies>* >(this); }
-  inline const figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> & upcast() const{ return *static_cast< figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> const* >(this); }
+  inline figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> & upcast(){ return *static_cast< figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies>* >(this); }
+  inline const figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> & upcast() const{ return *static_cast< figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> const* >(this); }
 
 public:
   bool isZero(const int tsrc) const{
-    const figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies> &me = upcast();
+    const figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> &me = upcast();
     
     for(int tsep=0;tsep<me.getLt();tsep++)
-      for(int sample=0;sample<me.getNsample();sample++){
-	for(int sub_sample=0;sub_sample<me.getNsample();sub_sample++){	
-	  const complexD & v = me.at(tsrc,tsep).sample(sample).sample(sub_sample);
-	  if(v.real() != 0.0 || v.imag() != 0.0) return false;
-	}
-      }
+      for(int sample=0;sample<me.getNsample();sample++)
+	for(int sub_sample=0;sub_sample<me.getNsample()-1;sub_sample++)
+	  if( me.at(tsrc,tsep).sample(sample).sample(sub_sample) != 0. ) return false;
+      
     return true;
   }
 };
 
   
 
-typedef figureDataBase<distribution<complexD> , figureDataPolicies> figureData;
-typedef figureDataBase<doubleJackknifeDistribution<complexD>, figureDataDoubleJackPolicies > figureDataDoubleJack;
+typedef figureDataBase<distributionD , figureDataPolicies> figureData;
+typedef figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies > figureDataDoubleJack;
 
 
 

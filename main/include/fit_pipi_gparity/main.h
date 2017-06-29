@@ -50,15 +50,14 @@ void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_da
 
   
 template<typename FigureDataType>
-auto realSourceAverage(const FigureDataType & data)->correlationFunction<typename std::decay<decltype(data(0,0).real())>::type>{
-  typedef typename std::decay<decltype(data(0,0).real())>::type RealDistributionType;
-
+auto sourceAverage(const FigureDataType & data)->correlationFunction<typename std::decay<decltype(data(0,0))>::type>{
+  typedef typename std::decay<decltype(data(0,0))>::type DistributionType;
 
   int Lt = data.getLt();
   int nsample = data.getNsample();
-  correlationFunction<RealDistributionType> into(data.getLt(),
-						  [nsample](int i) {  return typename correlationFunction<RealDistributionType>::ElementType(i, RealDistributionType(nsample,0.)); }
-						  );
+  correlationFunction<DistributionType> into(data.getLt(),
+					     [nsample](int i) {  return typename correlationFunction<DistributionType>::ElementType(i, DistributionType(nsample,0.)); }
+					     );
   std::vector<int> tsrc_include;
   for(int tsrc=0;tsrc<Lt;tsrc++){
     bool is_nonzero = !data.isZero(tsrc);
@@ -71,7 +70,7 @@ auto realSourceAverage(const FigureDataType & data)->correlationFunction<typenam
     auto & v = into.value(tsep);
     v.zero();
     for(int i=0;i<tsrc_include.size();i++)
-      v = v + data(tsrc_include[i],tsep).real();          
+      v = v + data(tsrc_include[i],tsep);
     v = v/N;
   }
   return into;
