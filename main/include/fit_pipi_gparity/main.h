@@ -86,6 +86,42 @@ auto sourceAverage(const FigureDataType & data)->correlationFunction<typename st
   return into;
 }
 
+//Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
+template<typename BubbleDataType>
+auto computeVprojectA2sourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi)->correlationFunction<typename std::decay<decltype(raw_bubble_data(*((threeMomentum*)NULL))(0))>::type>{
+  threeMomentum R[8] = { {1,1,1}, {-1,-1,-1},
+			 {1,1,-1}, {-1,-1,1},
+			 {1,-1,1}, {-1,1,-1},
+			 {-1,1,1}, {1,-1,-1} };
+  const int Lt = raw_bubble_data.getLt();
+  const int Nsample = raw_bubble_data.getNsample();
+
+  typedef typename std::decay<decltype(raw_bubble_data(*((threeMomentum*)NULL))(0))>::type  DistributionType;
+  correlationFunction<DistributionType> out(Lt,
+					    [&](const int t)
+					    {
+					      return typename correlationFunction<DistributionType>::ElementType(double(t), DistributionType(Nsample,0.));
+					    }
+					    );
+  
+  for(int pp=0;pp<8*8;pp++){
+    int psnk = pp / 8;
+    int psrc = pp % 8;
+
+    const auto &Bmp1_snk = raw_bubble_data( -R[psnk] );
+    const auto &Bp1_src  = raw_bubble_data(  R[psrc] );
+
+    for(int tsrc=0;tsrc<Lt;tsrc++)
+      for(int tsep=0;tsep<Lt;tsep++)
+	out.value(tsep) = out.value(tsep) + Bmp1_snk( (tsrc + tsep + tsep_pipi) % Lt ) * Bp1_src( tsrc );
+  }
+  for(int tsep=0;tsep<Lt;tsep++)
+    out.value(tsep) = out.value(tsep)/double(8*8*Lt);
+  return out;  
+}
+  
+
+
 
 bubbleDataDoubleJackAllMomenta doubleJackknifeResampleBubble(const bubbleDataAllMomenta &bubbles){
   int Lt = bubbles.getLt();

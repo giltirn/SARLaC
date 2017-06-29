@@ -112,11 +112,8 @@ int main(const int argc, const char* argv[]){
 					}
 					);
   bubbleDataDoubleJackAllMomenta dj_bubble_data = doubleJackknifeResampleBubble(raw_bubble_data);
-  figureDataDoubleJackAllMomenta dj_data;  
-  computeV(dj_data, dj_bubble_data, args.tsep_pipi);
-  figureDataDoubleJack A2_V_dj = projectA2('V', dj_data);
-  doubleJackCorrelationFunction A2_realavg_V_dj = sourceAverage(A2_V_dj);
-
+  doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectA2sourceAvg(dj_bubble_data,args.tsep_pipi);     //sourceAverage(A2_V_dj);
+  
   pipi_dj = fold(pipi_dj, args.tsep_pipi);
   A2_realavg_V_dj = fold(A2_realavg_V_dj, args.tsep_pipi);
 
