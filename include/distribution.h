@@ -219,7 +219,7 @@ public:
     return out;
   }
 
-  doubleJackknifeDistribution<DataType> toDoubleJacknife() const;
+  doubleJackknifeDistribution<DataType> toDoubleJackknife() const;
 };
 
 template<typename T>
@@ -402,18 +402,8 @@ public:
 
   jackknifeDistribution<BaseDataType> toJackknife() const{
     jackknifeDistribution<BaseDataType> out(this->size());
-    double den = 1./(this->size() - 1);
-
-    struct Op{
-      const jackknifeDistribution<BaseDataType> &vv;
-      inline const BaseDataType & operator()(const int idx) const{ return vv.sample(idx); }
-      inline size_t size() const{ return vv.size(); }
-      Op(const jackknifeDistribution<BaseDataType> &_vv): vv(_vv){}
-    };
-    for(int j=0;j<this->size();j++){
-      Op op(this->sample(j));
-      out.sample(j) = threadedSum<Op>(op)*den;
-    }
+    for(int j=0;j<this->size();j++)
+      out.sample(j) = this->sample(j).mean();
     return out;
   }
 };
@@ -442,7 +432,7 @@ struct printStats< doubleJackknifeDistribution<T> >{
 };
 
 template<typename DataType>
-doubleJackknifeDistribution<DataType> jackknifeDistribution<DataType>::toDoubleJacknife() const{
+doubleJackknifeDistribution<DataType> jackknifeDistribution<DataType>::toDoubleJackknife() const{
   DataType Jbar = this->mean();
   int N = this->size();
   doubleJackknifeDistribution<DataType> out(N);

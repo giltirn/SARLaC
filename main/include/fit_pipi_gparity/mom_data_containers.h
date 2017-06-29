@@ -49,21 +49,26 @@ private:
   MapType V;
   int Lt;
   int Nsample;
-  
-  ContainerType & get(const char fig, const sinkSourceMomenta &mom, bool lock){
-    MapType* mp;
+
+  MapType* getMap(const char fig){
     switch(fig){
     case 'C':
-      mp = &C; break;
+      return &C;
     case 'D':
-      mp = &D; break;
+      return &D;
     case 'R':
-      mp = &R; break;
+      return &R;
     case 'V':
-      mp = &V; break;
+      return &V;
     default:
-      error_exit(std::cout << "figureDataAllMomenta::get invalid figure " << fig << std::endl);
+      error_exit(std::cout << "figureDataAllMomenta::getMap invalid figure " << fig << std::endl);
     }
+  }
+  MapType const* getMap(const char fig) const{
+    return const_cast<MapType const*>( const_cast<figureDataAllMomentaBase<_ContainerType>* >(this)->getMap(fig) );
+  }
+  ContainerType & get(const char fig, const sinkSourceMomenta &mom, bool lock){
+    MapType* mp = getMap(fig);
     typename MapType::iterator it = mp->find(mom);
     if(it == mp->end()){
       if(lock) error_exit(std::cout << "figureDataAllMomenta::get Could not find requested momentum\n");
@@ -96,6 +101,15 @@ public:
   }
   inline int getLt() const{ return Lt; }
   inline int getNsample() const{ return Nsample; }
+
+  const_iterator begin(const char fig) const{
+    return getMap(fig)->begin();
+  }
+  const_iterator end(const char fig) const{
+    return getMap(fig)->end();
+  }
+
+    
 };
 
 
