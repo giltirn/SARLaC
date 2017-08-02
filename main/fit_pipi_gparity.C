@@ -90,23 +90,6 @@ int main(const int argc, const char* argv[]){
   zeroUnmeasuredSourceTimeslices(raw_data, 'D', args.tstep_pipi);
   zeroUnmeasuredSourceTimeslices(raw_data, 'R', args.tstep_pipi);
 
-
-
-  // //TEST
-  // {
-  //   for(figureDataAllMomenta::const_iterator it = raw_data.begin('C'); it != raw_data.end('C'); it++){
-  //     const sinkSourceMomenta mom = it->first;
-  //     const figureData &f = it->second;
-
-  //     std::cout << "\n\n" << mom << ":\n";
-  //     for(int tsrc=0;tsrc<args.Lt;tsrc++)
-  // 	for(int tsep=0;tsep<args.Lt;tsep++)
-  // 	  std::cout << tsrc << " " << tsep << " " << f(tsrc,tsep) << std::endl;  	
-  //   }
-  // }
-  // exit(0);
-  // //TEST
-
   computeV(raw_data, raw_bubble_data, args.tsep_pipi);
 
   figureData A2_C = projectA2('C', raw_data);
@@ -117,7 +100,7 @@ int main(const int argc, const char* argv[]){
   std::cout << "A2_C figureData:\n" << A2_C << std::endl;
   
 
-  typedef correlationFunction<distributionD> rawCorrelationFunction;
+  typedef correlationFunction<rawDataDistributionD> rawCorrelationFunction;
   
   rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
   rawCorrelationFunction A2_realavg_D = sourceAverage(A2_D);

@@ -271,7 +271,7 @@ int main(void){
   double sigma_a = 0.7*sqrt(nsample);
   double sigma_b = 1.3*sqrt(nsample);
   
-  typedef dataSeries<Coord, distributionD> rawTimeSeriesType;
+  typedef dataSeries<Coord, rawDataDistributionD> rawTimeSeriesType;
 
   rawTimeSeriesType data(2*npoints, nsample);
   

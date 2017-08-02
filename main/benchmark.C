@@ -153,8 +153,8 @@ int main(const int argc, const char* argv[]){
     omp_set_num_threads(thr[t]);
     std::cout << "Number of threads " << omp_get_max_threads() << std::endl;
 
-    benchmarkDistribution<distribution, double>(nsample, ntest);
-    benchmarkDistribution<distribution, std::complex<double> >(nsample, ntest);    
+    benchmarkDistribution<rawDataDistribution, double>(nsample, ntest);
+    benchmarkDistribution<rawDataDistribution, std::complex<double> >(nsample, ntest);    
     benchmarkDistribution<doubleJackknifeDistribution, double>(nsample, ntest);
     
 

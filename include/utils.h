@@ -86,6 +86,36 @@ inline void zeroit(float &v){
   v = 0.;
 }
 
+template<typename Operation>
+auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::type{
+  typedef typename std::decay<decltype(op(0))>::type T;
+  const int N = op.size();
+  const int nthread = omp_get_max_threads();
+ 
+  T init_zero(op(0)); zeroit(init_zero);    //_threadedSumHelper<Operation,T>::getZero(op);
+  std::vector<T> sum(nthread, init_zero);
+
+#pragma omp parallel for
+  for(int i=0;i<N;i++)
+    sum[omp_get_thread_num()] = sum[omp_get_thread_num()] + op(i);
+
+  for(int t=1;t<nthread;t++)
+    sum[0] = sum[0] + sum[t];
+
+  return sum[0];
+}
+
+template<typename T>
+T threadedSum(const std::vector<T> &v){
+  struct Op{
+    const std::vector<T> &vv;
+    inline const T & operator()(const int idx) const{ return vv[idx]; }
+    inline size_t size() const{ return vv.size(); }
+    Op(const std::vector<T> &_vv): vv(_vv){}
+  };
+  Op op(v);
+  return threadedSum<Op>(op);
+}
 
 
 #endif

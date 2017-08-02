@@ -14,19 +14,19 @@ int main(void){
   int nsample = 4;
 
   {
-    distribution<double> a(nsample, 9.0);
-    distribution<double> b = sqrt(a);
+    rawDataDistribution<double> a(nsample, 9.0);
+    rawDataDistribution<double> b = sqrt(a);
     for(int i=0;i<nsample;i++){
       printf("sqrt(%f) = %f\n",a.sample(i),b.sample(i)); fflush(stdout);
       assert(b.sample(i) == 3.);
     }
   }
   {
-    distribution<double> a(nsample, 1.0);
-    distribution<double> b(nsample, 2.0);
-    distribution<double> c(nsample, 3.0);
+    rawDataDistribution<double> a(nsample, 1.0);
+    rawDataDistribution<double> b(nsample, 2.0);
+    rawDataDistribution<double> c(nsample, 3.0);
     
-    distribution<double> d = a + b * c;
+    rawDataDistribution<double> d = a + b * c;
     for(int i=0;i<nsample;i++){
       printf("%f + %f * %f = %f\n",a.sample(i),b.sample(i),c.sample(i),d.sample(i)); fflush(stdout);
       assert(d.sample(i) == 7.);

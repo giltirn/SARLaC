@@ -12,39 +12,9 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include<utils.h>
 #include<generic_ET.h>
 #include<distribution_print.h>
-
-template<typename Operation>
-auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::type{
-  typedef typename std::decay<decltype(op(0))>::type T;
-  const int N = op.size();
-  const int nthread = omp_get_max_threads();
- 
-  T init_zero(op(0)); zeroit(init_zero);    //_threadedSumHelper<Operation,T>::getZero(op);
-  std::vector<T> sum(nthread, init_zero);
-
-#pragma omp parallel for
-  for(int i=0;i<N;i++)
-    sum[omp_get_thread_num()] = sum[omp_get_thread_num()] + op(i);
-
-  for(int t=1;t<nthread;t++)
-    sum[0] = sum[0] + sum[t];
-
-  return sum[0];
-}
-
-template<typename T>
-T threadedSum(const std::vector<T> &v){
-  struct Op{
-    const std::vector<T> &vv;
-    inline const T & operator()(const int idx) const{ return vv[idx]; }
-    inline size_t size() const{ return vv.size(); }
-    Op(const std::vector<T> &_vv): vv(_vv){}
-  };
-  Op op(v);
-  return threadedSum<Op>(op);
-}
 
 
 template<typename _DataType>
@@ -84,8 +54,6 @@ public:
   inline DataType & sample(const int idx){ return _data[idx]; }
 
   DataType mean() const{ return threadedSum(_data)/double(_data.size()); }
-
-  inline DataType best() const{ return mean(); } //"central value" of distribution used for printing/plotting
   
   DataType variance() const{
     const int N = _data.size();
@@ -108,8 +76,6 @@ public:
     return sqrt(variance()); //need sqrt defined, obviously
   }
   
-  DataType standardError() const{ return standardDeviation()/sqrt(double(_data.size()-1)); }
-
   static DataType covariance(const distribution<DataType> &a, const distribution<DataType> &b){
     assert(a.size() == b.size());
     DataType avg_a = a.mean();
@@ -145,6 +111,50 @@ std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
   return os;
 }
 
+
+template<typename _DataType>
+class rawDataDistribution: public distribution<_DataType>{
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version){
+    ar & boost::serialization::base_object<distribution<_DataType> >(*this);
+  }
+  typedef distribution<_DataType> baseType;
+public:
+  typedef _DataType DataType;
+  
+  template<typename T>
+  using rebase = rawDataDistribution<T>;
+
+  inline DataType best() const{ return this->mean(); } //"central value" of distribution used for printing/plotting
+  DataType standardError() const{ return this->standardDeviation()/sqrt(double(this->size()-1)); }
+  
+  rawDataDistribution(): distribution<DataType>(){}
+  rawDataDistribution(const rawDataDistribution &r): baseType(r){}
+  explicit rawDataDistribution(const int nsample): baseType(nsample){}
+  rawDataDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
+  rawDataDistribution(rawDataDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
+
+  ENABLE_GENERIC_ET(rawDataDistribution, rawDataDistribution<_DataType>);
+  
+  rawDataDistribution & operator=(const rawDataDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
+
+  template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
+  rawDataDistribution<typename U::value_type> real() const{
+    rawDataDistribution<typename U::value_type> out(this->size());
+#pragma omp parallel for
+    for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
+    return out;
+  }
+};
+
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const rawDataDistribution<T> &d){
+  assert(distributionPrint<rawDataDistribution<T> >::printer() != NULL); distributionPrint<rawDataDistribution<T> >::printer()->print(os, d);
+  return os;
+}
+
+
 template<typename _DataType>
 class doubleJackknifeDistribution;
 
@@ -163,6 +173,8 @@ public:
   
   template<typename T>
   using rebase = jackknifeDistribution<T>;
+
+  inline DataType best() const{ return this->mean(); }
   
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in){

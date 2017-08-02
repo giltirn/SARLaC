@@ -1,14 +1,14 @@
 #ifndef _FIT_MPI_GPARITY_AMA_READ_DATA_H
 #define _FIT_MPI_GPARITY_AMA_READ_DATA_H
 
-typedef NumericMatrix<distribution<double> > distributionMatrix;
-typedef NumericVector<distribution<double> > distributionVector;
+typedef NumericMatrix<rawDataDistribution<double> > rawDataDistributionMatrix;
+typedef NumericVector<rawDataDistribution<double> > rawDataDistributionVector;
 
 struct configData{
-  distributionMatrix *all_data;
+  rawDataDistributionMatrix *all_data;
   int conf;
 
-  configData(distributionMatrix &ad, const int c): all_data(&ad), conf(c){}
+  configData(rawDataDistributionMatrix &ad, const int c): all_data(&ad), conf(c){}
   inline int getLt() const{ return all_data->size(); }
 };
 namespace configData_grammar{
@@ -68,7 +68,7 @@ void read(configData &into, const std::string &fmt, const int traj){
   if(is.fail() || is.bad()){ std::cout << "Error reading file \"" << file << "\"\n"; std::cout.flush(); exit(-1); }
   is.close();
 }
-void read(distributionMatrix &exact, distributionMatrix &sloppy, const SloppyExact &args, const int traj, const int sample_idx){
+void read(rawDataDistributionMatrix &exact, rawDataDistributionMatrix &sloppy, const SloppyExact &args, const int traj, const int sample_idx){
   if(args.include_data){
     configData e(exact, sample_idx);
     configData s(sloppy, sample_idx);    

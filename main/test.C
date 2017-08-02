@@ -43,7 +43,7 @@ int main(void){
   std::cout << "Read arguments: \n" << fit_args << std::endl;
 
   //Generate some random data
-  typedef dataSeries<double, distribution<double> > RawDataSeriesType;
+  typedef dataSeries<double, rawDataDistribution<double> > RawDataSeriesType;
   RawDataSeriesType data(fit_args.npoints, fit_args.nsample);
   
   for(int i=0;i<fit_args.npoints;i++){

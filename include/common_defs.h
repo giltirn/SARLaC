@@ -10,6 +10,9 @@
 typedef distribution<double> distributionD;
 typedef distribution<float> distributionF;
 
+typedef rawDataDistribution<double> rawDataDistributionD;
+typedef rawDataDistribution<float> rawDataDistributionF;
+
 typedef jackknifeDistribution<double> jackknifeDistributionD;
 typedef jackknifeDistribution<float> jackknifeDistributionF;
 
@@ -20,8 +23,8 @@ typedef doubleJackknifeDistribution<double> doubleJackknifeDistributionD;
 typedef doubleJackknifeDistribution<float> doubleJackknifeDistributionF;
 
 //Series types
-typedef dataSeries<int, distribution<double> > rawTimeSeriesD; //time, dist(value)
-typedef dataSeries<int, distribution<float> > rawTimeSeriesF;
+typedef dataSeries<int, rawDataDistribution<double> > rawTimeSeriesD; //time, dist(value)
+typedef dataSeries<int, rawDataDistribution<float> > rawTimeSeriesF;
 
 typedef dataSeries<int, jackknifeDistribution<double> > jackknifeTimeSeriesD; 
 typedef dataSeries<int, jackknifeDistribution<float> > jackknifeTimeSeriesF;

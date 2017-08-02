@@ -84,7 +84,7 @@ int main(const int argc, const char** argv){
 
   //Read and resample the data
   std::vector<DataType> types;
-  std::vector<distributionVector> raw;
+  std::vector<rawDataDistributionVector> raw;
   std::vector<jackknifeTimeSeriesType> jack;
   for(int i=0;i<args.data.size();i++){
     if(args.data[i].FF_data.include_data || args.data[i].BB_data.include_data){
@@ -108,7 +108,7 @@ int main(const int argc, const char** argv){
     const int type_idx = tt / args.Lt;    
     const DataType d = types[type_idx];
     
-    const distributionVector &vraw = raw[type_idx];
+    const rawDataDistributionVector &vraw = raw[type_idx];
     assert(vraw.size() == args.Lt);    
     data_dj.coord(tt) = data_j.coord(tt) = Coord(t,d);
     data_dj.value(tt).resample(vraw[t]);

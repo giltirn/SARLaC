@@ -27,12 +27,12 @@ public:
 };
 
 class bubbleDataPolicies{
-  inline bubbleDataBase<distributionD, bubbleDataPolicies> & upcast(){ return *static_cast< bubbleDataBase<distributionD, bubbleDataPolicies>* >(this); }
-  inline const bubbleDataBase<distributionD, bubbleDataPolicies> & upcast() const{ return *static_cast< bubbleDataBase<distributionD, bubbleDataPolicies> const* >(this); }
+  inline bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & upcast(){ return *static_cast< bubbleDataBase<rawDataDistributionD, bubbleDataPolicies>* >(this); }
+  inline const bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & upcast() const{ return *static_cast< bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> const* >(this); }
 
 public:
   void parse(std::istream &in, const int sample){
-    bubbleDataBase<distributionD, bubbleDataPolicies> & me = upcast();
+    bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & me = upcast();
     int t;
     for(int t_expect=0;t_expect<me.getLt();t_expect++){
       if(!(in >> t)) error_exit(std::cout << "bubbleData::parse failed to read t for config " << sample << "\n");
@@ -52,7 +52,7 @@ public:
   }    
 };
 
-typedef bubbleDataBase<distributionD, bubbleDataPolicies> bubbleData;
+typedef bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> bubbleData;
 typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
 
 template<typename _DistributionType, typename Policies = null_type>
@@ -123,12 +123,12 @@ std::ostream & operator<<(std::ostream &os, const figureDataBase<DistributionTyp
 }
 
 class figureDataPolicies{
-  inline figureDataBase<distributionD, figureDataPolicies> & upcast(){ return *static_cast< figureDataBase<distributionD, figureDataPolicies>* >(this); }
-  inline const figureDataBase<distributionD, figureDataPolicies> & upcast() const{ return *static_cast< figureDataBase<distributionD, figureDataPolicies> const* >(this); }
+  inline figureDataBase<rawDataDistributionD, figureDataPolicies> & upcast(){ return *static_cast< figureDataBase<rawDataDistributionD, figureDataPolicies>* >(this); }
+  inline const figureDataBase<rawDataDistributionD, figureDataPolicies> & upcast() const{ return *static_cast< figureDataBase<rawDataDistributionD, figureDataPolicies> const* >(this); }
 
 public:
   void parseCDR(std::istream &in, const int sample){
-    figureDataBase<distributionD, figureDataPolicies> &me = upcast();
+    figureDataBase<rawDataDistributionD, figureDataPolicies> &me = upcast();
     
     const int Lt = me.getLt();
     const int nelems = Lt*Lt;
@@ -157,7 +157,7 @@ public:
 
   //Data not measured on every tsrc usually
   bool isZero(const int tsrc) const{
-    const figureDataBase<distributionD, figureDataPolicies> &me = upcast();
+    const figureDataBase<rawDataDistributionD, figureDataPolicies> &me = upcast();
     
     for(int tsep=0;tsep<me.getLt();tsep++)
       for(int sample=0;sample<me.getNsample();sample++)
@@ -185,7 +185,7 @@ public:
 
   
 
-typedef figureDataBase<distributionD , figureDataPolicies> figureData;
+typedef figureDataBase<rawDataDistributionD , figureDataPolicies> figureData;
 typedef figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies > figureDataDoubleJack;
 
 

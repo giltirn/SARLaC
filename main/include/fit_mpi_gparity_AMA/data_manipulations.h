@@ -1,7 +1,7 @@
 #ifndef _FIT_MPI_GPARITY_AMA_DATA_MANIPULATIONS_H
 #define _FIT_MPI_GPARITY_AMA_DATA_MANIPULATIONS_H
 
-std::vector<int> nonZeroSourceTimeSlices(const distributionMatrix &M, const int conf){
+std::vector<int> nonZeroSourceTimeSlices(const rawDataDistributionMatrix &M, const int conf){
   const int Lt = M.size();
   std::vector<int> nonzero_slices;
   for(int tsrc=0;tsrc<Lt;tsrc++){
@@ -13,10 +13,10 @@ std::vector<int> nonZeroSourceTimeSlices(const distributionMatrix &M, const int 
   return nonzero_slices;
 }
 
-distributionVector computeAMAcorrection(const distributionMatrix &sloppy, const distributionMatrix &exact){
+rawDataDistributionVector computeAMAcorrection(const rawDataDistributionMatrix &sloppy, const rawDataDistributionMatrix &exact){
   const int Lt = exact.size();
   const int nsample = sloppy(0,0).size();
-  distributionVector out(Lt,distributionD(nsample,0.));
+  rawDataDistributionVector out(Lt,rawDataDistributionD(nsample,0.));
 
   for(int conf=0;conf<nsample;conf++){
     std::vector<int> nonzero_slices = nonZeroSourceTimeSlices(exact, conf);
@@ -34,10 +34,10 @@ distributionVector computeAMAcorrection(const distributionMatrix &sloppy, const 
   return out;
 }
 
-distributionMatrix timeReflect(const distributionMatrix &m){
+rawDataDistributionMatrix timeReflect(const rawDataDistributionMatrix &m){
   //Boundary is *at* 0. 0->Lt=0, 1->Lt-1, 2->Lt-2 ... Lt-1 -> 1    
   const int Lt = m.size();
-  distributionMatrix out(Lt);
+  rawDataDistributionMatrix out(Lt);
   for(int tsrc=0;tsrc<Lt;tsrc++)
     for(int tsep=0;tsep<Lt;tsep++){
       //int trefl = tsep == 0 ? 0 : Lt-tsep; 
@@ -46,10 +46,10 @@ distributionMatrix timeReflect(const distributionMatrix &m){
     }
   return out;
 }
-distributionVector sourceTimeSliceAverage(const distributionMatrix &m){
+rawDataDistributionVector sourceTimeSliceAverage(const rawDataDistributionMatrix &m){
   const int Lt = m.size();
   const int nsample = m(0,0).size();
-  distributionVector out(Lt,distributionD(nsample));
+  rawDataDistributionVector out(Lt,rawDataDistributionD(nsample));
   for(int tsrc=0;tsrc<Lt;tsrc++)
     for(int tsep=0;tsep<Lt;tsep++)
       out(tsep) = out(tsep) + m(tsrc,tsep);
@@ -73,14 +73,14 @@ public:
   }
 };
 
-distributionVector readCombine(const Args &args, const int type_idx){
+rawDataDistributionVector readCombine(const Args &args, const int type_idx){
   const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   assert(ntraj > 0);
 
   TwoPointFunction const & fargs = args.data[type_idx];
   DataType type = fargs.type;
 
-  distributionVector corrected[2];
+  rawDataDistributionVector corrected[2];
   int FF=0, BB=1;
   
   for(int fb=0;fb<2;fb++){
@@ -89,8 +89,8 @@ distributionVector readCombine(const Args &args, const int type_idx){
 
     const SloppyExact &se = fb == FF ? fargs.FF_data : fargs.BB_data;
     
-    distributionMatrix exact_data(args.Lt, distributionD(ntraj));
-    distributionMatrix sloppy_data(args.Lt, distributionD(ntraj));
+    rawDataDistributionMatrix exact_data(args.Lt, rawDataDistributionD(ntraj));
+    rawDataDistributionMatrix sloppy_data(args.Lt, rawDataDistributionD(ntraj));
 
 #pragma omp parallel for
     for(int i=0;i<ntraj;i++){
@@ -107,10 +107,10 @@ distributionVector readCombine(const Args &args, const int type_idx){
       }
     }
     
-    distributionVector sloppy_avg;
+    rawDataDistributionVector sloppy_avg;
     sloppy_avg = sourceTimeSliceAverage(sloppy_data);
 
-    distributionVector correction = computeAMAcorrection(sloppy_data, exact_data);
+    rawDataDistributionVector correction = computeAMAcorrection(sloppy_data, exact_data);
 
     corrected[fb] = sloppy_avg + correction;
 
@@ -122,7 +122,7 @@ distributionVector readCombine(const Args &args, const int type_idx){
     std::cout << type << " " << nm << " corrected data:\n";
     for(int t=0;t<args.Lt;t++) std::cout << t << " " << corrected[fb][t] << std::endl;
   }
-  distributionVector out;
+  rawDataDistributionVector out;
   if(fargs.FF_data.include_data && fargs.BB_data.include_data) return (corrected[FF] + corrected[BB])/2.;
   else if(fargs.FF_data.include_data) return corrected[FF];
   else return corrected[BB];
@@ -130,7 +130,7 @@ distributionVector readCombine(const Args &args, const int type_idx){
 
 
 
-jackknifeTimeSeriesType resampleVector(const distributionVector &data, const int Lt){
+jackknifeTimeSeriesType resampleVector(const rawDataDistributionVector &data, const int Lt){
   jackknifeTimeSeriesType out;
   if(data.size() == 0) return out;
   else if(data.size() != Lt) error_exit(std::cout << "resample called on data vector of size " << data.size() << ". Expected 0 or Lt=" << Lt << std::endl);
