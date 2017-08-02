@@ -97,9 +97,6 @@ int main(const int argc, const char* argv[]){
   figureData A2_R = projectA2('R', raw_data);
   figureData A2_V = projectA2('V', raw_data);
 
-  std::cout << "A2_C figureData:\n" << A2_C << std::endl;
-  
-
   typedef correlationFunction<rawDataDistributionD> rawCorrelationFunction;
   
   rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
@@ -107,16 +104,11 @@ int main(const int argc, const char* argv[]){
   rawCorrelationFunction A2_realavg_R = sourceAverage(A2_R);
   rawCorrelationFunction A2_realavg_V = sourceAverage(A2_V);
 
-  {
-    std::ofstream of("raw_data_Cpart.dat");
-    of << std::setprecision(11) << std::scientific;
-    for(int t=0;t<args.Lt;t++)
-      for(int s=0;s<nsample;s++)
-	of << t << " " << s << " " << A2_realavg_C.value(t).sample(s) << " " << 0. << std::endl;
-    of.close();
-  }
-
-
+  outputRawData("raw_data_Cpart.dat", A2_realavg_C, 1.);
+  outputRawData("raw_data_Dpart.dat", A2_realavg_D, 2.);
+  outputRawData("raw_data_Rpart.dat", A2_realavg_R, -6.);
+  outputRawData("raw_data_Vpart.dat", A2_realavg_V, 3.);
+  
   rawCorrelationFunction pipi_raw = 2*A2_realavg_D + A2_realavg_C - 6*A2_realavg_R + 3*A2_realavg_V;
 
   std::cout << "Raw data:\n" << pipi_raw << std::endl;
@@ -200,18 +192,14 @@ int main(const int argc, const char* argv[]){
 
   minimizerParamsType min_params;
   min_params.verbose = true;
-  //#pragma omp parallel for
+#pragma omp parallel for
   for(int s=0;s<nsample;s++){
     sampleSeriesType data_s(pipi_j_vacsubbed_inrange, s);
     sampleInvCorrType inv_corr_s(inv_corr, s);
   
-    std::cout << "Sigma for sample " << s << " : ";
     std::vector<double> sigma_s(ndata_fit);
-    for(int d=0;d<ndata_fit;d++){
+    for(int d=0;d<ndata_fit;d++)
       sigma_s[d] = sigma[d].sample(s);
-      std::cout << sigma_s[d] << " ";
-    }
-    std::cout << "\n";
     
     costFunctionType cost_func(fitfunc, data_s, sigma_s, inv_corr_s);
     //costFunctionType cost_func(fitfunc, data_s, sigma_s);

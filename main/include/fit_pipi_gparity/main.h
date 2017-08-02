@@ -169,5 +169,17 @@ inline correlationFunction<T> fold(const correlationFunction<T> &f, const int ts
   return out;
 }
 
+void outputRawData(const std::string &filename, const correlationFunction<rawDataDistributionD> &data, const double coeff){
+  std::ofstream of(filename.c_str());
+  of << std::setprecision(11) << std::scientific;
+  int Lt = data.size();
+  int nsample = data.value(0).size();
+
+  for(int t=0;t<data.size();t++)
+    for(int s=0;s<nsample;s++)
+      of << t << " " << s << " " << coeff * data.value(t).sample(s) << " " << 0. << std::endl;
+  of.close();
+}
+
 
 #endif
