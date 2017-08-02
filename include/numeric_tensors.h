@@ -140,6 +140,16 @@ public:
   const Numeric & operator()(const int i, const int j) const { return m[i][j]; }
 };
 
+template<typename T, typename U>
+T mod2(const NumericMatrix<T,U> &m){
+  assert(m.size() > 0);
+  T out(m(0,0));
+  zeroit(out);
+  for(int i=0;i<m.size();i++)
+    for(int j=0;j<m.size();j++)
+      out = out + m(i,j)*m(i,j); //only correct for real matrices!
+  return out;
+}
 
 
 template<typename Numeric, typename StreamType, typename std::enable_if< isStreamType<StreamType>::value, int>::type = 0> 

@@ -220,6 +220,13 @@ public:
   }
 
   doubleJackknifeDistribution<DataType> toDoubleJackknife() const;
+
+  static DataType covariance(const jackknifeDistribution<DataType> &a, const jackknifeDistribution<DataType> &b){
+    assert(a.size() == b.size());
+    return distribution<DataType>::covariance(a,b) * double(a.size()-1);  //like the standard error, the covariance of the jackknife samples is related to the covariance of the underlying distribution by a constant factor
+  }
+
+
 };
 
 template<typename T>

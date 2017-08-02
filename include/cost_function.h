@@ -144,7 +144,7 @@ public:
       ValueType yfit_a = fitfunc.value(data.coord(a), params);
       dfw[a] = ( data.value(a) - yfit_a ) / sigma[a];
 
-      chisq += dfw[a] * dfw[a];
+      chisq += dfw[a] * dfw[a] * inv_corr(a,a);
 
       for(int b=0;b<a;b++)
 	chisq += 2*dfw[a] * dfw[b] * inv_corr(a,b); //matrix is symmetric
@@ -175,10 +175,10 @@ public:
       
       //b==a
       for(int i=0;i<nparams;i++){
-	derivs(i) +=  -2.0 * dfw[a] * (*yderivs[a])(i)/sigma[a];
+	derivs(i) +=  -2.0 * inv_corr(a,a) * dfw[a] * yderivs_a(i)/sigma[a];
 	
 	for(int j=0;j<=i;j++){
-	  ValueType change = 2.0 * yderivs_a(i)/sigma[a] * yderivs_a(j)/sigma[a];
+	  ValueType change = 2.0 * inv_corr(a,a) * yderivs_a(i)/sigma[a] * yderivs_a(j)/sigma[a];
 	  second_derivs(i,j) += change;
 	  if(i!=j) second_derivs(j,i) += change;
 	}

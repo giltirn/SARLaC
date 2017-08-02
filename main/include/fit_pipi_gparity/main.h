@@ -1,6 +1,17 @@
 #ifndef _PIPI_MAIN_H__
 #define _PIPI_MAIN_H__
 
+void zeroUnmeasuredSourceTimeslices(figureDataAllMomenta &data, const char fig, const int tstep_pipi){
+  for(figureDataAllMomenta::iterator it = data.begin(fig); it != data.end(fig); it++){
+    figureData &f = it->second;
+    int Lt = f.getLt();
+    for(int tsrc=0;tsrc<Lt;tsrc++)
+      if(tsrc % tstep_pipi != 0)	  
+	for(int tsep=0;tsep<Lt;tsep++) zeroit(f(tsrc,tsep));
+
+  }    
+}
+
 template<typename DataAllMomentumType>
 typename DataAllMomentumType::ContainerType projectA2(const char fig, const DataAllMomentumType &raw_data){
   std::cout << "Computing A2 projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 

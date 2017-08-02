@@ -41,6 +41,7 @@ class figureDataAllMomentaBase{
 public:
   typedef _ContainerType ContainerType;
   typedef typename std::map<sinkSourceMomenta, ContainerType>::const_iterator const_iterator;  
+  typedef typename std::map<sinkSourceMomenta, ContainerType>::iterator iterator;  
 private:
   typedef std::map<sinkSourceMomenta, ContainerType> MapType;
   MapType C;
@@ -108,7 +109,12 @@ public:
   const_iterator end(const char fig) const{
     return getMap(fig)->end();
   }
-
+  iterator begin(const char fig){
+    return getMap(fig)->begin();
+  }
+  iterator end(const char fig){
+    return getMap(fig)->end();
+  }
     
 };
 
@@ -123,6 +129,7 @@ template<typename _ContainerType>
 class bubbleDataAllMomentaBase{
 public:
   typedef _ContainerType ContainerType;
+  typedef typename std::map<threeMomentum, ContainerType>::iterator iterator;  
   typedef typename std::map<threeMomentum, ContainerType>::const_iterator const_iterator;  
 private:
   std::map<threeMomentum, ContainerType> B;
@@ -165,6 +172,9 @@ public:
 
   inline const_iterator begin() const{ return B.begin(); }
   inline const_iterator end() const{ return B.end(); }
+
+  inline iterator begin(){ return B.begin(); }
+  inline iterator end(){ return B.end(); }
 };
 
 

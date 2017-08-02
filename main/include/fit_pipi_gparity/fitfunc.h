@@ -75,7 +75,7 @@ public:
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
     ValueDerivativeType yderivs;
     yderivs.dA = Ascale * ( exp(-p.E*t) + exp(-p.E*(Lt-2.*tsep_pipi-t)) );
-    yderivs.dE = p.A * Ascale * ( (-t)*exp(-p.E*t) + (Lt-2.*tsep_pipi-t)*exp(-p.E*(Lt-2.*tsep_pipi-t)) );
+    yderivs.dE = p.A * Ascale * ( (-t)*exp(-p.E*t) - (Lt-2.*tsep_pipi-t)*exp(-p.E*(Lt-2.*tsep_pipi-t)) );
     yderivs.dC = Cscale;    
     return yderivs;
   }

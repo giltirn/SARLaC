@@ -53,7 +53,9 @@ struct ETnumericMatrixMult{
     typedef typename std::decay<decltype(a[0])>::type type;
     const int size = a.common_properties();
     const int ai = i/size; const int bi = i%size;
-    type ret = 0.;
+    //type ret = 0.;
+    type ret(a[0]);
+    zeroit(ret);
     for(int ci=0;ci<size;ci++)
       ret = ret + elem(a,ai,ci) * elem(b,ci,bi);
     return ret;

@@ -85,12 +85,37 @@ int main(const int argc, const char* argv[]){
     oa << raw_bubble_data;
   }
   
+  //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
+  zeroUnmeasuredSourceTimeslices(raw_data, 'C', args.tstep_pipi);
+  zeroUnmeasuredSourceTimeslices(raw_data, 'D', args.tstep_pipi);
+  zeroUnmeasuredSourceTimeslices(raw_data, 'R', args.tstep_pipi);
+
+
+
+  // //TEST
+  // {
+  //   for(figureDataAllMomenta::const_iterator it = raw_data.begin('C'); it != raw_data.end('C'); it++){
+  //     const sinkSourceMomenta mom = it->first;
+  //     const figureData &f = it->second;
+
+  //     std::cout << "\n\n" << mom << ":\n";
+  //     for(int tsrc=0;tsrc<args.Lt;tsrc++)
+  // 	for(int tsep=0;tsep<args.Lt;tsep++)
+  // 	  std::cout << tsrc << " " << tsep << " " << f(tsrc,tsep) << std::endl;  	
+  //   }
+  // }
+  // exit(0);
+  // //TEST
+
   computeV(raw_data, raw_bubble_data, args.tsep_pipi);
 
   figureData A2_C = projectA2('C', raw_data);
   figureData A2_D = projectA2('D', raw_data);
   figureData A2_R = projectA2('R', raw_data);
   figureData A2_V = projectA2('V', raw_data);
+
+  std::cout << "A2_C figureData:\n" << A2_C << std::endl;
+  
 
   typedef correlationFunction<distributionD> rawCorrelationFunction;
   
@@ -99,7 +124,19 @@ int main(const int argc, const char* argv[]){
   rawCorrelationFunction A2_realavg_R = sourceAverage(A2_R);
   rawCorrelationFunction A2_realavg_V = sourceAverage(A2_V);
 
+  {
+    std::ofstream of("raw_data_Cpart.dat");
+    of << std::setprecision(11) << std::scientific;
+    for(int t=0;t<args.Lt;t++)
+      for(int s=0;s<nsample;s++)
+	of << t << " " << s << " " << A2_realavg_C.value(t).sample(s) << " " << 0. << std::endl;
+    of.close();
+  }
+
+
   rawCorrelationFunction pipi_raw = 2*A2_realavg_D + A2_realavg_C - 6*A2_realavg_R + 3*A2_realavg_V;
+
+  std::cout << "Raw data:\n" << pipi_raw << std::endl;
 
   typedef correlationFunction<doubleJackknifeDistributionD> doubleJackCorrelationFunction;
   
@@ -156,6 +193,13 @@ int main(const int argc, const char* argv[]){
 
   NumericMatrix<jackknifeDistributionD> inv_corr(ndata_fit, jackknifeDistributionD(nsample));
   svd_inverse(inv_corr, corr);
+  std::cout << "Correlation matrix:\n" << corr << std::endl;
+  std::cout << "Inverse correlation matrix:\n" << inv_corr << std::endl;
+
+  NumericMatrix<jackknifeDistributionD> test = corr * inv_corr;
+  for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistributionD(nsample,1.0);
+
+  std::cout << "|CorrMat * CorrMat^{-1} - 1|^2 = " << mod2(test) << std::endl;
 
   FitFunc fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
 
@@ -165,8 +209,11 @@ int main(const int argc, const char* argv[]){
   typedef sampleSeries<const decltype(pipi_j_vacsubbed_inrange)> sampleSeriesType;
   typedef NumericMatrixSampleView<const decltype(inv_corr)> sampleInvCorrType;
   typedef CorrelatedChisqCostFunction<FitFunc, sampleSeriesType, sampleInvCorrType> costFunctionType;
+  //typedef UncorrelatedChisqCostFunction<FitFunc, sampleSeriesType> costFunctionType;
   typedef MarquardtLevenbergMinimizer<costFunctionType> minimizerType;
   typedef minimizerType::AlgorithmParameterType minimizerParamsType;
+  
+  std::cout << "Starting fit with guess " << params << std::endl;
 
   minimizerParamsType min_params;
   min_params.verbose = true;
@@ -175,11 +222,18 @@ int main(const int argc, const char* argv[]){
     sampleSeriesType data_s(pipi_j_vacsubbed_inrange, s);
     sampleInvCorrType inv_corr_s(inv_corr, s);
   
+    std::cout << "Sigma for sample " << s << " : ";
     std::vector<double> sigma_s(ndata_fit);
-    for(int d=0;d<ndata_fit;d++) sigma_s[d] = sigma[d].sample(s);
+    for(int d=0;d<ndata_fit;d++){
+      sigma_s[d] = sigma[d].sample(s);
+      std::cout << sigma_s[d] << " ";
+    }
+    std::cout << "\n";
     
     costFunctionType cost_func(fitfunc, data_s, sigma_s, inv_corr_s);
+    //costFunctionType cost_func(fitfunc, data_s, sigma_s);
     minimizerType minimizer(cost_func,min_params);
+    chisq.sample(s) = minimizer.fit(params.sample(s));
     assert(minimizer.hasConverged());
   }
 

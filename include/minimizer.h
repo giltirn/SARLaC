@@ -116,6 +116,8 @@ private:
 
     init_precision = mlparams.output->precision();
     if(!me) mlparams.output->precision(14);
+
+    if(cost < 0.) error_exit(std::cout << prefix << "Cost " << cost << " cannot be negative!\n");
   }
 
   void restoreEnvironment(){
@@ -127,6 +129,7 @@ private:
     use_derivs_from_last_step = false; //no point recalculating the derivatives again if we are restoring parameters to what they were before
     
     cost = function.cost(*parameters);   
+    if(cost < 0.) error_exit(std::cout << prefix << "Cost " << cost << " cannot be negative!\n");
     MINPRINT << "current cost " << cost << std::endl;
     
     CostType cost_change = cost - last_cost; 
