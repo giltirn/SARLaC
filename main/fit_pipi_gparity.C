@@ -43,8 +43,11 @@ int main(const int argc, const char* argv[]){
   }
   
   CMDline cmdline(argc,argv,2);
+
+  //typedef FitCoshPlusConstant FitFunc;
+  typedef FitCoshPlusConstantDoubleExp FitFunc;
+
   
-  typedef FitCoshPlusConstant FitFunc;
   FitFunc::Params guess;
   if(cmdline.load_guess){
     std::ifstream f(cmdline.guess_file.c_str());
@@ -54,10 +57,6 @@ int main(const int argc, const char* argv[]){
     f.close();
 
     std::cout << "Loaded guess: " << guess << std::endl;
-  }else{
-    guess.A = 1;
-    guess.E = 0.3;
-    guess.C = 0;
   }
 
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
@@ -211,7 +210,7 @@ int main(const int argc, const char* argv[]){
   int dof = ndata_fit - fitfunc.Nparams();
   jackknifeDistributionD chisq_per_dof = chisq/double(dof);
 
-  distributionPrint<decltype(params)>::printer(new pipiParamsPrinter);
+  distributionPrint<decltype(params)>::printer(new pipiParamsPrinter<FitFunc>);
 
   std::cout << "Params: " << params << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
