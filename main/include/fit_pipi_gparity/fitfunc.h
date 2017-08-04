@@ -156,9 +156,7 @@ struct MaxBoundedMapping{
 };
 
 
-
-
-
+//#define PIPI_2EXP_E1BOUNDED
 
 class FitCoshPlusConstantDoubleExp{
 public:
@@ -240,17 +238,26 @@ public:
   
   //Params are A, m  
   ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
+#ifdef PIPI_2EXP_E1BOUNDED
     double E1_true = MinBoundedMapping::map(p.E1, p.E0); //force E1 to be > E0
-    
+#else 
+    double E1_true = p.E1;
+#endif
+
     return
       p.A0 * Ascale * ( exp(-p.E0*t) + exp(-p.E0*(Lt-2.*tsep_pipi-t)) ) +
       p.A1 * Ascale * ( exp(-E1_true*t) + exp(-E1_true*(Lt-2.*tsep_pipi-t)) ) +
       p.C * Cscale;
   }
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
+#ifdef PIPI_2EXP_E1BOUNDED
     double E1_true = MinBoundedMapping::map(p.E1, p.E0);
     double dE1_true_by_dE1 = MinBoundedMapping::deriv(p.E1, p.E0);
-    
+#else
+    double E1_true = p.E1;
+    double dE1_true_by_dE1 = 1;
+#endif
+
     ValueDerivativeType yderivs;
     yderivs.dA0 = Ascale * ( exp(-p.E0*t) + exp(-p.E0*(Lt-2.*tsep_pipi-t)) );
     yderivs.dE0 = p.A0 * Ascale * ( (-t)*exp(-p.E0*t) - (Lt-2.*tsep_pipi-t)*exp(-p.E0*(Lt-2.*tsep_pipi-t)) );
@@ -302,7 +309,11 @@ struct pipiParamsPrinter<FitCoshPlusConstantDoubleExp>: public distributionPrint
   void print(std::ostream &os, const jackknifeDistribution<FitCoshPlusConstantDoubleExp::Params> &dist) const{
     int nsample = dist.size();
     jackknifeDistribution<double> E1(dist.size());
+#ifdef PIPI_2EXP_E1BOUNDED
     for(int s=0;s<nsample;s++) E1.sample(s) = MinBoundedMapping::map(dist.sample(s).E1, dist.sample(s).E0);
+#else
+    for(int s=0;s<nsample;s++) E1.sample(s) = dist.sample(s).E1;
+#endif
 
     FitCoshPlusConstantDoubleExp::Params cen = dist.best();
     FitCoshPlusConstantDoubleExp::Params err = dist.standardError();
