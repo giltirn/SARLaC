@@ -12,8 +12,6 @@
 #include <common_defs.h>
 #include <sstream>
 #include <boost/timer/timer.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>
@@ -64,11 +62,9 @@ int main(const int argc, const char* argv[]){
   bubbleDataAllMomenta raw_bubble_data;
 
   if(cmdline.load_data_checkpoint){
-    (std::cout << "Loading data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Loaded data checkpoint in %w s\n");
-    std::ifstream ifs(cmdline.load_data_checkpoint_file,std::ios::binary);
-    boost::archive::binary_iarchive ia(ifs);    
-    ia >> raw_data;
-    ia >> raw_bubble_data;
+    loadCheckpoint<boost::archive::binary_iarchive>(raw_data, raw_bubble_data, cmdline.load_data_checkpoint_file);
+  }else if(cmdline.load_text_data_checkpoint){
+    loadCheckpoint<boost::archive::text_iarchive>(raw_data, raw_bubble_data, cmdline.load_text_data_checkpoint_file);    
   }else{
     readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
     readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
@@ -77,12 +73,12 @@ int main(const int argc, const char* argv[]){
   }
 
   if(cmdline.save_data_checkpoint){
-    (std::cout << "Saving data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Saved data checkpoint in %w s\n");
-    std::ofstream ofs(cmdline.save_data_checkpoint_file,std::ios::binary);
-    boost::archive::binary_oarchive oa(ofs);    
-    oa << raw_data;
-    oa << raw_bubble_data;
+    saveCheckpoint<boost::archive::binary_oarchive>(raw_data, raw_bubble_data, cmdline.save_data_checkpoint_file);
   }
+  if(cmdline.save_text_data_checkpoint){
+    saveCheckpoint<boost::archive::text_oarchive>(raw_data, raw_bubble_data, cmdline.save_text_data_checkpoint_file);
+  }
+  
   
   //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
   zeroUnmeasuredSourceTimeslices(raw_data, 'C', args.tstep_pipi);

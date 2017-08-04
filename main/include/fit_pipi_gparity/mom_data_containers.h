@@ -4,6 +4,9 @@
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/complex.hpp>
 #include <boost/serialization/array.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
 
 typedef std::array<int,3> threeMomentum;
 typedef std::pair<threeMomentum, threeMomentum> sinkSourceMomenta;
@@ -181,6 +184,45 @@ public:
 typedef bubbleDataAllMomentaBase<bubbleData> bubbleDataAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
 
+template<typename archiver>
+struct archiveStream{};
 
+template<>
+struct archiveStream<boost::archive::binary_oarchive>{
+  std::ofstream ofs;
+  archiveStream(const std::string &file): ofs(file.c_str(),std::ios::binary){}
+};
+template<>
+struct archiveStream<boost::archive::text_oarchive>{
+  std::ofstream ofs;
+  archiveStream(const std::string &file): ofs(file.c_str()){}
+};
+template<>
+struct archiveStream<boost::archive::binary_iarchive>{
+  std::ifstream ifs;
+  archiveStream(const std::string &file): ifs(file.c_str(),std::ios::binary){}
+};
+template<>
+struct archiveStream<boost::archive::text_iarchive>{
+  std::ifstream ifs;
+  archiveStream(const std::string &file): ifs(file.c_str()){}
+};
 
+template<typename archiver>
+void saveCheckpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
+  (std::cout << "Saving data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Saved data checkpoint in %w s\n");
+  archiveStream<archiver> st(file);
+  archiver oa(st.ofs);    
+  oa << raw_data;
+  oa << raw_bubble_data;
+}
+template<typename archiver>
+void loadCheckpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
+  (std::cout << "Loading data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Loaded data checkpoint in %w s\n");
+  archiveStream<archiver> st(file);
+  archiver ia(st.ifs);
+  ia >> raw_data;
+  ia >> raw_bubble_data;
+}
+  
 #endif
