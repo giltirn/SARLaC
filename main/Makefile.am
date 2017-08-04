@@ -1,5 +1,5 @@
-bin_PROGRAMS = test test_ET simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity benchmark
-test_SOURCES = test.C
+bin_PROGRAMS = fit_example test_ET simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity benchmark
+fit_example_SOURCES = fit_example.C
 test_ET_SOURCES = test_ET.C
 simfit_example_SOURCES = simfit_example.C
 superjack_example_SOURCES = superjack_example.C
