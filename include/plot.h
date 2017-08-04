@@ -4,6 +4,7 @@
 #include <boost/format.hpp>
 #include <map>
 #include <sstream>
+#include <fstream>
 #include <utils.h>
 #include <config.h>
 #include <distribution.h>

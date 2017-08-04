@@ -131,10 +131,11 @@ private:
     return out;
   }
   
-  inline void mapDerivativesSupersetToSubset(ValueDerivativeSubsetType &derivs_subset, const ValueDerivativeSupersetType &derivs_superset) const{
-    derivs_subset = deriv_subset_default;
+  inline ValueDerivativeSubsetType mapDerivativesSupersetToSubset(const ValueDerivativeSupersetType &derivs_superset) const{
+    ValueDerivativeSubsetType derivs_subset = deriv_subset_default;
     for(int i=0;i<deriv_map.size();i++)
-      deriv_map[i].copy(derivs_subset, derivs_superset);    
+      deriv_map[i].copy(derivs_subset, derivs_superset);
+    return derivs_subset;
   }
   
 public:
@@ -153,11 +154,7 @@ public:
     return fitfunc.value(coord, mapParamsSubsetToSuperset(params_subset));
   }
   inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
-    ValueDerivativeType derivs_subset;
-    typename FitFunc::ValueDerivativeType derivs_superset;
-    fitfunc.parameterDerivatives(derivs_superset, coord, mapParamsSubsetToSuperset(params_subset));
-    mapDerivativesSupersetToSubset(derivs_subset, derivs_superset);
-    return derivs_subset;
+    return mapDerivativesSupersetToSubset(fitfunc.parameterDerivatives(coord, mapParamsSubsetToSuperset(params_subset)));
   }
   
   int Nparams() const{ return deriv_subset_default.size(); } //number of parameters in subset
