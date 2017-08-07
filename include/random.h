@@ -3,6 +3,7 @@
 
 #include <random>
 #include <complex>
+#include <template_wizardry.h>
 
 class RNGstore{
 public:

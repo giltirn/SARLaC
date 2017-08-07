@@ -5,6 +5,10 @@
 //It uses a policy-based approach allowing a significant amount of flexibility
 
 #include<correlationfunction.h>
+#include<common_defs.h>
+#include<fitfunc_mapping.h>
+#include<cost_function.h>
+#include<minimizer.h>
 
 struct baseFitTypedefs{
   typedef correlationFunction<jackknifeDistributionD> jackknifeCorrelationFunction;

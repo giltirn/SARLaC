@@ -1,6 +1,9 @@
 #ifndef _DATA_SERIES_H
 #define _DATA_SERIES_H
 
+#include<ostream>
+#include<template_wizardry.h>
+
 //A class containing a series of data, for example a time series
 template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType = std::pair>
 class dataSeries{

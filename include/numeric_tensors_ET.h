@@ -3,6 +3,7 @@
 
 #include<template_wizardry.h>
 #include<generic_ET.h>
+#include<numeric_tensors.h>
 
 template<typename Numeric>
 struct disableGenericETbinOp<ETtimes, NumericVector<Numeric> >{

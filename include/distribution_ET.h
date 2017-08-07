@@ -6,6 +6,7 @@
 #include<type_traits>
 #include<cassert>
 #include<generic_ET.h>
+#include<distribution.h>
 
 template<typename A>
 struct getElem<distribution<A> >{

@@ -2,6 +2,12 @@
 #define _FITFUNC_MAPPING_H
 
 #include<type_traits>
+#include<vector>
+#include<memory>
+#include<iostream>
+
+#include<utils.h>
+#include<numeric_tensors.h>
 
 //A generic wrapper for a fitfunction allowing mapping between different parameter types. Can be used to implement frozen fits for example.
 template<typename DataStructTo, typename DataStructFrom>

@@ -1,8 +1,9 @@
 #ifndef _UTILS_H__
 #define _UTILS_H__
 
-#include <memory>
-#include <cxxabi.h>
+#include<memory>
+#include<iostream>
+#include<cxxabi.h>
 #include<sstream>
 #include<omp.h>
 
