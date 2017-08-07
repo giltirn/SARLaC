@@ -1,7 +1,10 @@
-#ifndef PIPI_CORRELATION_FUNCTION_H
-#define PIPI_CORRELATION_FUNCTION_H
+#ifndef CORRELATION_FUNCTION_H
+#define CORRELATION_FUNCTION_H
 
+//correlationFunction is a time series built on dataSeries but which has an expression-template engine for algebraic manipulations.
+//User can modify how the ETE acts upon the underlying elements of the time series by changing the 
 
+#include<data_series.h>
 
 template<typename T, typename Tag>
 struct tagged{
@@ -12,18 +15,18 @@ struct tagged{
 };
 
 template<typename A, typename B>
-struct FitPiPiTaggedPair: public std::pair<A,B>{
+struct CorrFuncTaggedPair: public std::pair<A,B>{
   using std::pair<A,B>::pair;
 };
 
 
-template<typename DistributionType>
-class correlationFunction: public dataSeries<double, DistributionType, FitPiPiTaggedPair>{
-  typedef dataSeries<double, DistributionType, FitPiPiTaggedPair> Parent;
+template<typename DistributionType, template<typename,typename> class PairType = CorrFuncTaggedPair>
+class correlationFunction: public dataSeries<double, DistributionType, PairType>{
+  typedef dataSeries<double, DistributionType, PairType> Parent;
 public:
   typedef typename Parent::ElementType ElementType;
-  typedef correlationFunction<DistributionType> ET_tag;
-  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,correlationFunction<DistributionType> >::value, int>::type = 0>
+  typedef correlationFunction<DistributionType,PairType> ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,correlationFunction<DistributionType,PairType> >::value, int>::type = 0>
   correlationFunction(U&& expr) : Parent(expr.common_properties()){
    for(int i=0;i<this->size();i++)
      (*this)[i] = expr[i];
@@ -34,21 +37,21 @@ public:
   template<typename Initializer>
   inline correlationFunction(const int n, const Initializer &initializer): Parent(n,initializer){}
 
-  correlationFunction<DistributionType> & operator=(const correlationFunction<DistributionType> &) = default;
-  correlationFunction<DistributionType> & operator=(correlationFunction<DistributionType> &&) = default;
+  correlationFunction<DistributionType,PairType> & operator=(const correlationFunction<DistributionType,PairType> &) = default;
+  correlationFunction<DistributionType,PairType> & operator=(correlationFunction<DistributionType,PairType> &&) = default;
 };
 
-template<typename DistributionType>
-struct getElem<correlationFunction<DistributionType> >{
-  static inline auto elem(correlationFunction<DistributionType> &v, const int i)->decltype(v[0]){ return v[i]; }
-  static inline auto elem(const correlationFunction<DistributionType> &v, const int i)->decltype(v[0]){ return v[i]; }
-  static inline int common_properties(const correlationFunction<DistributionType> &v){
+template<typename DistributionType,template<typename,typename> class PairType>
+struct getElem<correlationFunction<DistributionType,PairType> >{
+  static inline auto elem(correlationFunction<DistributionType,PairType> &v, const int i)->decltype(v[0]){ return v[i]; }
+  static inline auto elem(const correlationFunction<DistributionType,PairType> &v, const int i)->decltype(v[0]){ return v[i]; }
+  static inline int common_properties(const correlationFunction<DistributionType,PairType> &v){
     return v.size();
   }
 };
 
 template<typename Dist>
-using CFDpair = FitPiPiTaggedPair<double, Dist>;
+using CFDpair = CorrFuncTaggedPair<double, Dist>;
 
 template<typename Dist>
 inline CFDpair<Dist> operator*(const int a, const CFDpair<Dist> &e){
