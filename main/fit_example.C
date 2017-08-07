@@ -147,8 +147,11 @@ int main(void){
 
 #pragma omp parallel for
   for(int j=0;j<fit_args.nsample;j++){
-    FrozenFitFunction func_frozen(func); //provide defaults (can freeze here too)
-    //func_frozen.freeze(0, param[0].sample(j));
+    FrozenFitFunction func_frozen(func);
+    NumericVector<double> freeze(2);
+    freeze[0] = param[0].sample(j);
+    
+    func_frozen.freeze({0}, freeze);
     
     SampleSeriesConstType dsample(inrange_jackknife, j);
 

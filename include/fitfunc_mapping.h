@@ -1,7 +1,7 @@
 #ifndef _FITFUNC_MAPPING_H
 #define _FITFUNC_MAPPING_H
 
-
+#include<type_traits>
 
 //A generic wrapper for a fitfunction allowing mapping between different parameter types. Can be used to implement frozen fits for example.
 template<typename DataStructTo, typename DataStructFrom>
@@ -160,53 +160,78 @@ public:
   int Nparams() const{ return deriv_subset_default.size(); } //number of parameters in subset
 };
 
+namespace _FrozenFitFunc_helper{
+  template<typename T, bool default_constructible>
+  struct _construct{};
+
+  template<typename T>
+  struct _construct<T, true>{
+    inline static T construct(const std::unique_ptr<T> &freeze_vals){ return T(); }
+  };
+  template<typename T>
+  struct _construct<T, false>{
+    inline static T construct(const std::unique_ptr<T> &freeze_vals){
+      if(!freeze_vals) error_exit(std::cout << "FrozenFitFunc::construct If the parameter type is not default constructible user must call 'freeze' with a value that can be copied (its contents do not matter)\n");
+      return T(*freeze_vals);
+    }
+  };
+};
 
 
-//Implement frozen fits as wrapper around fit function with mapping
-//This version is only for fit functions with parameters and derivatives stored in numerical vectors
-//The above general mapping can also be used to do freezing but in a more cumbersome manner
+
+//Implement frozen fits as wrapper around fit function with mapping. The object representing the 'superset', i.e. the parameters of the original fit function, must have an operator() returning a fixed type
+//(The above general mapping can also be used to do freezing but in a more cumbersome manner)
 template<typename FitFunc>
 class FrozenFitFunc{
 public:
+  typedef typename std::remove_reference<decltype( ((typename FitFunc::ParameterType*)nullptr)->operator()(0) )>::type ParamElementType;
+  typedef typename FitFunc::ParameterType ParameterSuperType;
+  typedef typename FitFunc::ValueDerivativeType ValueDerivativeSuperType;
+
   typedef typename FitFunc::ValueType ValueType;
   typedef typename FitFunc::GeneralizedCoordinate GeneralizedCoordinate;
-  typedef typename FitFunc::ParameterType ParameterType;
-  typedef typename FitFunc::ValueDerivativeType ValueDerivativeType;
-
+  typedef NumericVector<ParamElementType> ParameterType;
+  typedef NumericVector<ParamElementType> ValueDerivativeType;
 private:
-  typedef typename std::remove_reference<decltype( ((ParameterType*)nullptr)->operator[](0) )>::type ParamElementType;
+
   const FitFunc &fitfunc;
   std::vector<bool> param_freeze;
-  std::vector<ParamElementType> freeze_vals;
+  std::unique_ptr<ParameterSuperType> freeze_vals;
   int n_frozen;
-  
-public:
-  FrozenFitFunc(const FitFunc &_fitfunc): fitfunc(_fitfunc), param_freeze(fitfunc.Nparams(),false), freeze_vals(fitfunc.Nparams()), n_frozen(0){}
 
-  ParameterType mapParamsSubsetToSuperset(const ParameterType &params_subset) const{
-    ParameterType superset(fitfunc.Nparams());
+public:
+  FrozenFitFunc(const FitFunc &_fitfunc): fitfunc(_fitfunc), param_freeze(fitfunc.Nparams(),false), n_frozen(0){}
+  
+  ParameterSuperType mapParamsSubsetToSuperset(const ParameterType &params_subset) const{
+    if(n_frozen != 0) assert(freeze_vals);
+    ParameterSuperType superset = _FrozenFitFunc_helper::_construct<ParameterSuperType,std::is_default_constructible<ParameterSuperType>::value >::construct(freeze_vals);
+
     int subset_idx = 0;
     for(int i=0;i<fitfunc.Nparams();i++){
-      if(param_freeze[i])
-	superset[i] = freeze_vals[i];
+      if(!param_freeze[i])
+	superset(i) = params_subset[subset_idx++];
       else
-	superset[i] = params_subset[subset_idx++];
+	superset(i) = (*freeze_vals)(i);
     }
     return superset;
   }
-  ParameterType mapParamsSupersetToSubset(const ParameterType &params_superset) const{
+  ParameterType mapParamsSupersetToSubset(const ParameterSuperType &params_superset) const{
     ParameterType subset(Nparams());
     int subset_idx = 0;
     for(int i=0;i<fitfunc.Nparams();i++){
-      if(!param_freeze[i]) subset[subset_idx++] = params_superset[i];
+      if(!param_freeze[i]) subset[subset_idx++] = params_superset(i);
     }
     return subset;
   }
-  
-  void freeze(const int param, const ParamElementType &value){
-    param_freeze[param] = true;
-    freeze_vals[param] = value;
-    ++n_frozen;
+
+  //This should only be called once because subsequent calls overwrite the existing freeze information
+  void freeze(const std::vector<int> &params, const ParameterSuperType &from){
+    //Reset existing freeze info
+    for(int i=0;i<param_freeze.size();i++) param_freeze[i] = false;  //reset
+    
+    freeze_vals.reset(new ParameterSuperType(from));
+    for(int i=0;i<params.size();i++) param_freeze[params[i]] = true;
+    n_frozen = params.size();
   }
   
   inline ValueType value(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
@@ -214,11 +239,11 @@ public:
   }
   inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{
     ValueDerivativeType derivs_subset(Nparams());
-    ValueDerivativeType derivs_superset = fitfunc.parameterDerivatives(coord, mapParamsSubsetToSuperset(params_subset));
+    ValueDerivativeSuperType derivs_superset = fitfunc.parameterDerivatives(coord, mapParamsSubsetToSuperset(params_subset));
     int subset_idx = 0;
     for(int i=0;i<fitfunc.Nparams();i++)
       if(!param_freeze[i])
-	derivs_subset[subset_idx++] = derivs_superset[i];
+	derivs_subset[subset_idx++] = derivs_superset(i);
     return derivs_subset;
   }
   

@@ -10,13 +10,13 @@
 #include <data_series.h>
 #include <parser.h>
 #include <common_defs.h>
+#include <fit_wrapper.h>
 #include <sstream>
 #include <boost/timer/timer.hpp>
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
-#include <fit_pipi_gparity/correlationfunction.h>
 #include <fit_pipi_gparity/read_data.h>
 #include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/cmdline.h>
@@ -173,38 +173,20 @@ int main(const int argc, const char* argv[]){
 
   FitFunc fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
 
+  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+  //typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
+  fitter<FitPolicies> fitter;
+  fitter.importFitFunc(fitfunc);
+  fitter.importCostFunctionParameters(inv_corr,sigma);
+  //fitter.importCostFunctionParameters(sigma);  
+
+  //jackknifeDistribution<FitFunc::Params> freeze(nsample, FitFunc::Params(0,0,0,0,0));
+  //fitter.freeze({4}, freeze);
+  
   jackknifeDistribution<FitFunc::Params> params(nsample, guess);
-  jackknifeDistributionD chisq(nsample);
-  
-  typedef sampleSeries<const decltype(pipi_j_vacsubbed_inrange)> sampleSeriesType;
-  typedef NumericMatrixSampleView<const decltype(inv_corr)> sampleInvCorrType;
-  typedef CorrelatedChisqCostFunction<FitFunc, sampleSeriesType, sampleInvCorrType> costFunctionType;
-  //typedef UncorrelatedChisqCostFunction<FitFunc, sampleSeriesType> costFunctionType;
-  typedef MarquardtLevenbergMinimizer<costFunctionType> minimizerType;
-  typedef minimizerType::AlgorithmParameterType minimizerParamsType;
-  
-  std::cout << "Starting fit with guess " << params << std::endl;
-
-  minimizerParamsType min_params;
-  min_params.verbose = true;
-#pragma omp parallel for
-  for(int s=0;s<nsample;s++){
-    sampleSeriesType data_s(pipi_j_vacsubbed_inrange, s);
-    sampleInvCorrType inv_corr_s(inv_corr, s);
-  
-    std::vector<double> sigma_s(ndata_fit);
-    for(int d=0;d<ndata_fit;d++)
-      sigma_s[d] = sigma[d].sample(s);
-    
-    costFunctionType cost_func(fitfunc, data_s, sigma_s, inv_corr_s);
-    //costFunctionType cost_func(fitfunc, data_s, sigma_s);
-    minimizerType minimizer(cost_func,min_params);
-    chisq.sample(s) = minimizer.fit(params.sample(s));
-    assert(minimizer.hasConverged());
-  }
-
-  int dof = ndata_fit - fitfunc.Nparams();
-  jackknifeDistributionD chisq_per_dof = chisq/double(dof);
+  jackknifeDistributionD chisq;
+  jackknifeDistributionD chisq_per_dof;
+  fitter.fit(params, chisq, chisq_per_dof, pipi_j_vacsubbed_inrange);
 
   distributionPrint<decltype(params)>::printer(new pipiParamsPrinter<FitFunc>);
 
