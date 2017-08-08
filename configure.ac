@@ -94,6 +94,16 @@ fi
 AC_CHECK_LIB([gslcblas],[main], [LIBS="-lgslcblas $LIBS"], [AC_MSG_FAILURE([Could not link to gslcblas])])
 AC_CHECK_LIB([gsl],[main], [LIBS="-lgsl $LIBS"], [AC_MSG_FAILURE([Could not link to gsl])])
 
+
+#Check for HDF5
+AC_ARG_WITH([hdf5], AS_HELP_STRING([--with-hdf5], [Build with HDF5]),[],[with_hdf5=no])
+if test "x$with_hdf5" = "xyes"; then
+   PKG_CHECK_MODULES([HDF5], [hdf5 >= 0 ], [AC_DEFINE([HAVE_HDF5], [1], [Use HDF5])   ], [AC_MSG_FAILURE([HDF5 version required])])
+   LIBS="$HDF5_LIBS -lhdf5_cpp $LIBS"
+   CPPFLAGS="$HDF5_CFLAGS $CPPFLAGS"
+fi
+
+
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS(boost/format.hpp, [], [AC_MSG_FAILURE([["Could not compile with boost/format.hpp"]])] )

@@ -7,11 +7,13 @@
 #include<cmath>
 #include<type_traits>
 #include<template_wizardry.h>
+#include<hdf5_serialize.h>
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include<config.h>
 #include<utils.h>
 #include<generic_ET.h>
 #include<distribution_print.h>
@@ -32,6 +34,12 @@ protected:
   void serialize(Archive & ar, const unsigned int version){
     ar & _data;
   }
+
+  template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type>
+  friend void write(HDF5writer &writer, const DistributionType &value, const std::string &tag);
+  template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type>
+  friend void read(HDF5reader &reader, DistributionType &value, const std::string &tag);
+  
 public:
   distribution(){}
   distribution(const distribution &r): _data(r._data){}
@@ -110,6 +118,28 @@ std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
   assert(distributionPrint<distribution<T> >::printer() != NULL); distributionPrint<distribution<T> >::printer()->print(os, d);
   return os;
 }
+
+#ifdef HAVE_HDF5
+
+//Generic HDF5 IO for distributions. Overwrite if you want to save extra data
+template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
+void write(HDF5writer &writer, const DistributionType &value, const std::string &tag){
+  writer.enter(tag);
+  write(writer,printType<typename std::decay<DistributionType>::type>(),"type");
+  write(writer,value._data,"data");
+  writer.leave();
+}
+template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
+void read(HDF5reader &reader, DistributionType &value, const std::string &tag){
+  reader.enter(tag);
+  std::string type;
+  read(reader,type,"type");
+  assert(type == printType<typename std::decay<DistributionType>::type>());
+  read(reader,value._data,"data");  
+  reader.leave();
+}
+
+#endif
 
 
 template<typename _DataType>
@@ -253,6 +283,12 @@ template<typename _DataType>
 class jackknifeCdistribution: public jackknifeDistribution<_DataType>{
   _DataType cen;
   typedef jackknifeDistribution<_DataType> baseType;
+
+  template<typename T>
+  friend void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag);
+  template<typename T>
+  friend void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::string &tag);
+  
 public:
   typedef _DataType DataType;
   
@@ -344,6 +380,32 @@ std::ostream & operator<<(std::ostream &os, const jackknifeCdistribution<T> &d){
   assert(distributionPrint<jackknifeCdistribution<T> >::printer() != NULL); distributionPrint<jackknifeCdistribution<T> >::printer()->print(os, d);
   return os;
 }
+
+#ifdef HAVE_HDF5
+
+
+template<typename T>
+void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag){
+  writer.enter(tag);
+  write(writer,printType<jackknifeCdistribution<T> >(),"type");
+  write(writer,value.cen,"cen");
+  write(writer,value._data,"data");
+  writer.leave();
+}
+template<typename T>
+void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::string &tag){
+  reader.enter(tag);
+  std::string type;
+  read(reader,type,"type");
+  assert(type == printType<jackknifeCdistribution<T> >());
+  read(reader,value.cen,"cen");
+  read(reader,value._data,"data");  
+  reader.leave();
+}
+
+#endif
+
+
 
 
 template<typename BaseDataType>
