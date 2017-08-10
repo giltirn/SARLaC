@@ -25,10 +25,15 @@ public:
   NumericVector(const int n, const Numeric &def):v(n,def){}
   NumericVector(const NumericVector &r) = default;
   NumericVector(NumericVector &&r) = default;
-
+  
+  template<typename Initializer> //Initializer is a lambda-type with operator()(const int)
+  inline NumericVector(const int n, const Initializer &initializer): v(n){
+    for(int i=0;i<n;i++) v[i] = initializer(i);
+  }
+  
   NumericVector & operator=(const NumericVector &r) = default;
   NumericVector & operator=(NumericVector &&r) = default;
-  
+
   ENABLE_GENERIC_ET(NumericVector, NumericVector<Numeric>);
   
   int size() const{ return v.size(); }
@@ -39,6 +44,12 @@ public:
   void resize(const int n, const Numeric &init){
     v.resize(n,init);
   }
+  template<typename Initializer>
+  inline void resize(const int n, const Initializer &initializer){
+    v.resize(n);
+    for(int i=0;i<n;i++) v[i] = initializer(i);
+  }
+  
   void zero(){ for(int i=0;i<v.size();i++) v[i] = 0.; }
 
   std::string print() const{
@@ -90,6 +101,13 @@ public:
   NumericMatrix(const NumericMatrix &r) = default;
   NumericMatrix(NumericMatrix &&r) = default;
 
+  template<typename Initializer> //Initializer is a lambda-type with operator()(const int)
+  inline NumericMatrix(const int n, const Initializer &initializer): m(n, std::vector<Numeric>(n)){
+    for(int i=0;i<n;i++)
+      for(int j=0;j<n;j++)
+	m[i][j] = initializer(i,j);
+  }
+  
   NumericMatrix & operator=(const NumericMatrix &r) = default;
   NumericMatrix & operator=(NumericMatrix &&r) = default;
   
@@ -115,6 +133,15 @@ public:
     for(int i=0;i<n;i++)
       m[i].resize(n,init);     
   }
+  template<typename Initializer>
+  inline void resize(const int n, const Initializer &initializer){
+    m.resize(n);
+    for(int i=0;i<n;i++){
+      m[i].resize(n);
+      for(int j=0;j<n;j++) m[i][j] = initializer(i,j);
+    }
+  }
+  
   void zero(){
     const int n = m.size();
     for(int i=0;i<n;i++)

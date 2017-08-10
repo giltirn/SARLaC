@@ -1,6 +1,7 @@
 #ifndef _DATA_CONTAINER_H
 #define _DATA_CONTAINER_H
 
+#include<config.h>
 #include<vector>
 #include<omp.h>
 #include<cassert>
@@ -13,7 +14,6 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 
-#include<config.h>
 #include<utils.h>
 #include<generic_ET.h>
 #include<distribution_print.h>
