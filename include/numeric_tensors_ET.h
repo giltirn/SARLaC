@@ -15,25 +15,25 @@ struct disableGenericETbinOp<ETdivide, NumericVector<Numeric> >{
 };
 
 template<typename A,typename M>
-struct getElem<NumericMatrix<A,M> >{
-  static inline auto elem(const NumericMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
-  static inline auto elem(NumericMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
-  static inline int common_properties(const NumericMatrix<A,M> &v){ return v.size(); }
+struct getElem<NumericSquareMatrix<A,M> >{
+  static inline auto elem(const NumericSquareMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
+  static inline auto elem(NumericSquareMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
+  static inline int common_properties(const NumericSquareMatrix<A,M> &v){ return v.size(); }
 };
 template<typename Numeric,typename InvPol>
-struct disableGenericETbinOp<ETtimes, NumericMatrix<Numeric,InvPol> >{
+struct disableGenericETbinOp<ETtimes, NumericSquareMatrix<Numeric,InvPol> >{
   enum {value = 1};
 };
 template<typename Numeric,typename InvPol>
-struct disableGenericETbinOp<ETdivide, NumericMatrix<Numeric,InvPol> >{
+struct disableGenericETbinOp<ETdivide, NumericSquareMatrix<Numeric,InvPol> >{
   enum {value = 1};
 };
 template<typename Tag>
-struct is_NumericMatrix_tag{
+struct is_NumericSquareMatrix_tag{
   enum {value = 0};
 };
 template<typename A, typename M>
-struct is_NumericMatrix_tag<NumericMatrix<A,M> >{
+struct is_NumericSquareMatrix_tag<NumericSquareMatrix<A,M> >{
   enum {value = 1};
 };
 
@@ -66,7 +66,7 @@ struct ETnumericMatrixMult{
 };
 template<typename T,typename U,
          typename std::enable_if<
-	   is_NumericMatrix_tag<typename std::decay<T>::type::ET_tag>::value && is_NumericMatrix_tag<typename std::decay<U>::type::ET_tag>::value
+	   is_NumericSquareMatrix_tag<typename std::decay<T>::type::ET_tag>::value && is_NumericSquareMatrix_tag<typename std::decay<U>::type::ET_tag>::value
 				    , int>::type = 0>
 inline auto operator*(T &&a, U &&b)->decltype( binaryHelper<ETnumericMatrixMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b)) ) {
   return binaryHelper<ETnumericMatrixMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b));

@@ -1,6 +1,7 @@
 #ifndef PIPI_DATA_CONTAINERS_H
 #define PIPI_DATA_CONTAINERS_H
 
+#define DAIQIAN_COMPATIBILITY_MODE
 struct null_type{};
 
 template<typename DistributionType, typename Policies = null_type>
@@ -41,6 +42,9 @@ public:
       double &re = me(t).sample(sample);
       double im; //discard because it is zero
       if(!(in >> re >> im)) error_exit(std::cout << "bubbleData::parse failed to real values for config " << sample << "\n");
+#ifdef DAIQIAN_COMPATIBILITY_MODE
+      re = -re; //correct for missing minus sign
+#endif      
     }
   }
   void parse(const std::string &filename, const int sample){
@@ -60,7 +64,7 @@ class figureDataBase: public Policies{
 public:
   typedef _DistributionType DistributionType;
 private:
-  NumericMatrix<DistributionType> d; //(tsrc,tsep).sample(cfg)
+  NumericSquareMatrix<DistributionType> d; //(tsrc,tsep).sample(cfg)
   int Lt;
   template<typename T,typename P>
   friend std::ostream & operator<<(std::ostream &os, const figureDataBase<T,P> &f);

@@ -30,8 +30,9 @@ public:
   correlationFunction(U&& expr) : Parent(expr.common_properties()){
    for(int i=0;i<this->size();i++)
      (*this)[i] = expr[i];
-  }
+  }  
   explicit correlationFunction(const int n): Parent(n){}
+  correlationFunction() = default;
   correlationFunction(correlationFunction &&r) = default;
   correlationFunction(const correlationFunction &r) = default;
   template<typename Initializer>
@@ -67,5 +68,13 @@ inline CFDpair<Dist> operator-(const CFDpair<Dist> &d, const CFDpair<Dist> &e){
   assert(e.first == d.first);
   return CFDpair<Dist>(e.first, d.second-e.second);
 }
-
+template<typename Dist>
+inline CFDpair<Dist> operator/(const CFDpair<Dist> &d, const CFDpair<Dist> &e){
+  assert(e.first == d.first);
+  return CFDpair<Dist>(e.first, d.second/e.second);
+}
+template<typename Dist>
+inline CFDpair<Dist> operator/(const CFDpair<Dist> &d, const double e){
+  return CFDpair<Dist>(d.first, d.second/e);
+}
 #endif

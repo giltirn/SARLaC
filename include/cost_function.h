@@ -26,8 +26,8 @@
 
 template<typename FitFunction, typename DataContainer, typename _CostType = double,
 	 typename _CostDerivativeType = typename FitFunction::ValueDerivativeType,
-	 typename _CostSecondDerivativeMatrixType = NumericMatrix<_CostType>,
-	 typename _CostSecondDerivativeInverseMatrixType = NumericMatrix<_CostType>,
+	 typename _CostSecondDerivativeMatrixType = NumericSquareMatrix<_CostType>,
+	 typename _CostSecondDerivativeInverseMatrixType = NumericSquareMatrix<_CostType>,
 	 typename std::enable_if<std::is_floating_point<typename FitFunction::ValueType>::value, int>::type = 0>
 class UncorrelatedChisqCostFunction{
   static_assert(std::is_same<typename FitFunction::ValueType, typename DataContainer::DataType>::value, "DataContainer and FitFunction must have same value type");
@@ -103,11 +103,11 @@ public:
 
 
 template<typename FitFunction, typename DataContainer,
-	 typename InvCorrMatrixType = NumericMatrix<double>,
+	 typename InvCorrMatrixType = NumericSquareMatrix<double>,
 	 typename _CostType = double,
 	 typename _CostDerivativeType = typename FitFunction::ValueDerivativeType,
-	 typename _CostSecondDerivativeMatrixType = NumericMatrix<_CostType>,
-	 typename _CostSecondDerivativeInverseMatrixType = NumericMatrix<_CostType>,
+	 typename _CostSecondDerivativeMatrixType = NumericSquareMatrix<_CostType>,
+	 typename _CostSecondDerivativeInverseMatrixType = NumericSquareMatrix<_CostType>,
 	 typename std::enable_if<std::is_floating_point<typename FitFunction::ValueType>::value, int>::type = 0>
 class CorrelatedChisqCostFunction{
   static_assert(std::is_same<typename FitFunction::ValueType, typename DataContainer::DataType>::value, "DataContainer and FitFunction must have same value type");

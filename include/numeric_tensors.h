@@ -86,7 +86,7 @@ class SVDinvertPolicy;
 
 
 template<typename Numeric, typename InvertPolicy = SVDinvertPolicy<Numeric> >
-class NumericMatrix: public InvertPolicy{ //square matrix
+class NumericSquareMatrix: public InvertPolicy{ //square matrix
   std::vector<std::vector<Numeric> > m;
 
   friend class boost::serialization::access;
@@ -95,28 +95,28 @@ class NumericMatrix: public InvertPolicy{ //square matrix
     ar & m;
   }
 public:
-  NumericMatrix():m(){}
-  explicit NumericMatrix(const int n): m(n, std::vector<Numeric>(n)){}
-  NumericMatrix(const int n, const Numeric &init): m(n, std::vector<Numeric>(n,init)){}
-  NumericMatrix(const NumericMatrix &r) = default;
-  NumericMatrix(NumericMatrix &&r) = default;
+  NumericSquareMatrix():m(){}
+  explicit NumericSquareMatrix(const int n): m(n, std::vector<Numeric>(n)){}
+  NumericSquareMatrix(const int n, const Numeric &init): m(n, std::vector<Numeric>(n,init)){}
+  NumericSquareMatrix(const NumericSquareMatrix &r) = default;
+  NumericSquareMatrix(NumericSquareMatrix &&r) = default;
 
   template<typename Initializer> //Initializer is a lambda-type with operator()(const int)
-  inline NumericMatrix(const int n, const Initializer &initializer): m(n, std::vector<Numeric>(n)){
+  inline NumericSquareMatrix(const int n, const Initializer &initializer): m(n, std::vector<Numeric>(n)){
     for(int i=0;i<n;i++)
       for(int j=0;j<n;j++)
 	m[i][j] = initializer(i,j);
   }
   
-  NumericMatrix & operator=(const NumericMatrix &r) = default;
-  NumericMatrix & operator=(NumericMatrix &&r) = default;
+  NumericSquareMatrix & operator=(const NumericSquareMatrix &r) = default;
+  NumericSquareMatrix & operator=(NumericSquareMatrix &&r) = default;
   
-  typedef NumericMatrix<Numeric,InvertPolicy> ET_tag;
-  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericMatrix<Numeric,InvertPolicy> >::value, int>::type = 0>
-  NumericMatrix(U&& expr): NumericMatrix(expr.common_properties()){
+  typedef NumericSquareMatrix<Numeric,InvertPolicy> ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericSquareMatrix<Numeric,InvertPolicy> >::value, int>::type = 0>
+  NumericSquareMatrix(U&& expr): NumericSquareMatrix(expr.common_properties()){
 #pragma omp parallel for
     for(int i=0;i<this->size()*this->size();i++)
-      getElem<NumericMatrix<Numeric,InvertPolicy> >::elem(*this, i) = expr[i];
+      getElem<NumericSquareMatrix<Numeric,InvertPolicy> >::elem(*this, i) = expr[i];
   }
   
   inline int size() const{ return m.size(); }
@@ -148,7 +148,7 @@ public:
       for(int j=0;j<n;j++)
 	m[i][j] = 0.;
   }
-  void invert(const NumericMatrix<Numeric> &what){
+  void invert(const NumericSquareMatrix<Numeric> &what){
     this->InvertPolicy::invert(*this,what);
   }
 
@@ -168,7 +168,7 @@ public:
 };
 
 template<typename T, typename U>
-T mod2(const NumericMatrix<T,U> &m){
+T mod2(const NumericSquareMatrix<T,U> &m){
   assert(m.size() > 0);
   T out(m(0,0));
   zeroit(out);
@@ -180,7 +180,7 @@ T mod2(const NumericMatrix<T,U> &m){
 
 
 template<typename Numeric, typename StreamType, typename std::enable_if< isStreamType<StreamType>::value, int>::type = 0> 
-StreamType & operator<<(StreamType & stream, const NumericMatrix<Numeric> &mat){
+StreamType & operator<<(StreamType & stream, const NumericSquareMatrix<Numeric> &mat){
   for(int i=0;i<mat.size();i++){
     for(int j=0;j<mat.size();j++){
       stream << mat(i,j) << " ";
@@ -196,7 +196,7 @@ StreamType & operator<<(StreamType & stream, const NumericMatrix<Numeric> &mat){
 template<typename Numeric>
 class SVDinvertPolicy{
  protected:
-  inline static void invert(NumericMatrix<Numeric> &inv_m, const NumericMatrix<Numeric> &m){
+  inline static void invert(NumericSquareMatrix<Numeric> &inv_m, const NumericSquareMatrix<Numeric> &m){
     inv_m.resize(m.size());
     svd_inverse(inv_m, m);
   }
@@ -204,21 +204,21 @@ class SVDinvertPolicy{
 
 
 
-template<typename NumericMatrixType>
-class NumericMatrixSampleView{
-  typedef typename _get_elem_type<NumericMatrixType>::type DistributionType;
+template<typename NumericSquareMatrixType>
+class NumericSquareMatrixSampleView{
+  typedef typename _get_elem_type<NumericSquareMatrixType>::type DistributionType;
   typedef typename std::remove_const<typename std::remove_reference<decltype( ((DistributionType*)(NULL))->sample(0) )>::type>::type SampleType;
 
-  NumericMatrixType &M;
+  NumericSquareMatrixType &M;
   int sample;
 public:
-  NumericMatrixSampleView(NumericMatrixType &_M, const int _sample): M(_M), sample(_sample){}
+  NumericSquareMatrixSampleView(NumericSquareMatrixType &_M, const int _sample): M(_M), sample(_sample){}
   
   inline int size() const{ return M.size(); }
 
   inline const SampleType& operator()(const int i, const int j) const{ return M(i,j).sample(sample); }
   
-  template<typename U = NumericMatrixType>
+  template<typename U = NumericSquareMatrixType>
   inline typename std::enable_if< !std::is_const<U>::value, SampleType& >::type operator()(const int i, const int j){ return M(i,j).sample(sample); }
 };
 

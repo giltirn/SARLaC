@@ -95,7 +95,7 @@ int main(void){
   distributionPrint<jackknifeDistribution<double> >::printer(printer);
 
 
-  typedef NumericMatrix<jackknifeDistribution<double> >  jackknifeMatrixD;
+  typedef NumericSquareMatrix<jackknifeDistribution<double> >  jackknifeMatrixD;
   jackknifeMatrixD cov(ndata_in_range);
   for(int i=0;i<ndata_in_range;i++)
     for(int j=0;j<ndata_in_range;j++)
@@ -130,7 +130,7 @@ int main(void){
   typedef sampleSeries<const JackknifeSeriesType> SampleSeriesConstType; //const access
   
   //typedef UncorrelatedChisqCostFunction<FrozenFitFunction, SampleSeriesConstType> CostFunctionType;
-  typedef NumericMatrixSampleView<const jackknifeMatrixD> InvCorrMatrixViewType;
+  typedef NumericSquareMatrixSampleView<const jackknifeMatrixD> InvCorrMatrixViewType;
   typedef CorrelatedChisqCostFunction<FrozenFitFunction, SampleSeriesConstType, InvCorrMatrixViewType> CostFunctionType;
   
   typedef CostFunctionType::CostType CostType;

@@ -134,10 +134,10 @@ int main(const int argc, const char** argv){
   const int ndata_fit = inrange_data_j.size();
     
   //Uncorrelated fit
-  typedef NumericMatrix<jackknifeDistributionType> jackknifeMatrix;
+  typedef NumericSquareMatrix<jackknifeDistributionType> jackknifeMatrix;
   jackknifeMatrix cov(ndata_fit,jackknifeDistributionType(ntraj,0.));
   std::vector<jackknifeDistributionType> sigma(ndata_fit);
-  NumericMatrix<double> corr(ndata_fit,0.);
+  NumericSquareMatrix<double> corr(ndata_fit,0.);
   for(int x=0;x<ndata_fit;x++){
 #ifdef FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
     jackknifeDistributionD tmp = doubleJackknifeDistributionD::covariance(inrange_data_dj.value(x), inrange_data_dj.value(x));

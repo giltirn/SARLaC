@@ -12,11 +12,11 @@
 
 struct baseFitTypedefs{
   typedef correlationFunction<jackknifeDistributionD> jackknifeCorrelationFunction;
-  typedef NumericMatrix<jackknifeDistributionD> jackknifeMatrix;
+  typedef NumericSquareMatrix<jackknifeDistributionD> jackknifeMatrix;
   typedef NumericVector<jackknifeDistributionD> jackknifeVector;
 
   typedef sampleSeries<const jackknifeCorrelationFunction> sampleSeriesType;
-  typedef NumericMatrixSampleView<const jackknifeMatrix> sampleInvCorrType;
+  typedef NumericSquareMatrixSampleView<const jackknifeMatrix> sampleInvCorrType;
 };
 #define INHERIT_TYPEDEF(FROM,DEF) typedef typename FROM::DEF DEF
 

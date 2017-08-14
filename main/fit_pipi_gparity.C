@@ -141,7 +141,7 @@ int main(const int argc, const char* argv[]){
 							}
 							);
   
-  NumericMatrix<jackknifeDistributionD> cov(ndata_fit);
+  NumericSquareMatrix<jackknifeDistributionD> cov(ndata_fit);
   NumericVector<jackknifeDistributionD> sigma(ndata_fit);
   for(int i=0;i<ndata_fit;i++){
     cov(i,i) = doubleJackknifeDistributionD::covariance(pipi_dj_vacsubbed_inrange.value(i),  pipi_dj_vacsubbed_inrange.value(i));
@@ -152,7 +152,7 @@ int main(const int argc, const char* argv[]){
   }
 
 
-  NumericMatrix<jackknifeDistributionD> corr(ndata_fit);
+  NumericSquareMatrix<jackknifeDistributionD> corr(ndata_fit);
 
   for(int i=0;i<ndata_fit;i++){
     corr(i,i) = jackknifeDistributionD(nsample,1.);
@@ -161,12 +161,12 @@ int main(const int argc, const char* argv[]){
       corr(i,j) = corr(j,i) = cov(i,j)/sigma(i)/sigma(j);
   }
 
-  NumericMatrix<jackknifeDistributionD> inv_corr(ndata_fit, jackknifeDistributionD(nsample));
+  NumericSquareMatrix<jackknifeDistributionD> inv_corr(ndata_fit, jackknifeDistributionD(nsample));
   svd_inverse(inv_corr, corr);
   std::cout << "Correlation matrix:\n" << corr << std::endl;
   std::cout << "Inverse correlation matrix:\n" << inv_corr << std::endl;
 
-  NumericMatrix<jackknifeDistributionD> test = corr * inv_corr;
+  NumericSquareMatrix<jackknifeDistributionD> test = corr * inv_corr;
   for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistributionD(nsample,1.0);
 
   std::cout << "|CorrMat * CorrMat^{-1} - 1|^2 = " << mod2(test) << std::endl;

@@ -45,8 +45,8 @@ typedef filteredDataSeries<doubleJackknifeTimeSeriesD> filteredDoubleJackknifeTi
 typedef filteredDataSeries<doubleJackknifeTimeSeriesF> filteredDoubleJackknifeTimeSeriesF;
 
 //Tensor types
-typedef NumericMatrix<jackknifeDistribution<double> >  jackknifeMatrixD;
-typedef NumericMatrix<jackknifeDistribution<float> >  jackknifeMatrixF;
+typedef NumericSquareMatrix<jackknifeDistribution<double> >  jackknifeSquareMatrixD;
+typedef NumericSquareMatrix<jackknifeDistribution<float> >  jackknifeSquareMatrixF;
 
 
 

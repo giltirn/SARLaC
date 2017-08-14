@@ -1,7 +1,7 @@
 #ifndef _FIT_MPI_GPARITY_AMA_READ_DATA_H
 #define _FIT_MPI_GPARITY_AMA_READ_DATA_H
 
-typedef NumericMatrix<rawDataDistribution<double> > rawDataDistributionMatrix;
+typedef NumericSquareMatrix<rawDataDistribution<double> > rawDataDistributionMatrix;
 typedef NumericVector<rawDataDistribution<double> > rawDataDistributionVector;
 
 struct configData{

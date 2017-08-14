@@ -10,17 +10,46 @@
 #include<distribution.h>
 #include<common_defs.h>
 #include<numeric_tensors.h>
+#include<correlationfunction.h>
 
 #include <fit_pipi_gparity/data_containers.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/read_data.h>
 
+
+// template<typename T,int D>
+// struct _MDDS_helper{
+//   typename std::vector<typename _MDDS_helper<T,D-1>::container> container;
+// };
+// template<typename T>
+// struct _MDDS_helper<T,0>{
+//   typename T container;
+// };
+
+// template<typename DataType, int Dim>
+// class multiDimensionalDataStructure{
+//   typedef typename _MDDS_helper::container container;
+
+//   container data;  
+// public:
+
+
+
+
+
 typedef rawDataDistribution<std::complex<double> > rawDataDistributionZD;
+typedef correlationFunction<rawDataDistributionZD> rawCorrelationFunctionZD; //time, dist(value)
+typedef doubleJackknifeDistribution<std::complex<double> > doubleJackknifeDistributionZD;
+typedef correlationFunction<doubleJackknifeDistributionZD> doubleJackknifeCorrelationFunctionZD; 
+typedef correlationFunction<rawDataDistributionD> rawCorrelationFunctionD;
+typedef correlationFunction<doubleJackknifeDistributionD> doubleJackknifeCorrelationFunctionD; 
 
 struct contractionData{
   std::vector<rawDataDistributionZD> d;
 
-  contractionData(const int nsample): d(8,rawDataDistributionZD(nsample,std::complex<double>(0.))){}
+  contractionData(const int nsample): d(8,rawDataDistributionZD(nsample,std::complex<double>(0.))){
+    mapping(0,'V',0,'A'); //touch mapping
+  }
 
   void parse(std::istream &in, const int sample){
     for(int i=0;i<8;i++){
@@ -36,7 +65,7 @@ struct contractionData{
   }
       
   int mapping(const int i, const char A, const int j, const char B) const{
-    static int map[8];
+    static int map[16];
     static bool initted = false;
     if(!initted){
       map[ map_off(0,'V',0,'A') ] = 0;
@@ -49,7 +78,7 @@ struct contractionData{
       map[ map_off(1,'A',1,'V') ] = 7;
       initted = true;
     }
-    return map[ map_off(i,A,j,B) ];
+    return map[map_off(i,A,j,B)];
   }
     
   inline rawDataDistributionZD & operator()(const int i, const char A, const int j, const char B){
@@ -96,7 +125,7 @@ struct contractions{
     }
   }
 
-  const contractionData & C(const int i) const{ return con[i]; }
+  const contractionData & C(const int i) const{ assert(i>=0 && i<con.size()); return con[i]; }
   const rawDataDistributionZD & mix() const{ return extra[0]; } //only use the F0 g5 spin-flavor structure in practise 
   
   inline bool isZero() const{ 
@@ -159,7 +188,33 @@ public:
   inline int getNcontract() const{ return ncontract; }
   inline int getNextra() const{ return nextra; }
 
-  const contractions & operator()(const int tK, const int t) const{ return data[tK][t]; }
+  const contractions & operator()(const int tK, const int t) const{
+    return data[tK][t];
+  }
+
+  std::vector<int> getNonZeroKaonTimeslices() const{
+    std::vector<int> out;
+    for(int tK=0;tK<Lt;tK++){
+      bool allzero = true;
+      for(int t=0;t<Lt;t++) if(!data[tK][t].isZero()){ allzero=false; break; }
+      if(!allzero) out.push_back(tK);
+    }
+    return out;
+  }
+
+  rawCorrelationFunctionZD sourceAverageMixDiag() const{
+    assert(nextra != 0);
+    rawCorrelationFunctionZD out(Lt, [&](const int t){ return typename rawCorrelationFunctionZD::ElementType(t, rawDataDistributionZD(nsample,0.)); } );
+    std::vector<int> nonzero_tk = getNonZeroKaonTimeslices();
+    for(int t=0;t<Lt;t++){
+      for(int i=0;i<nonzero_tk.size();i++){
+	int tK = nonzero_tk[i];
+	out.value(t) = out.value(t) + data[tK][t].mix();
+      }
+      out.value(t) = out.value(t)/double(nonzero_tk.size());
+    }
+    return out;
+  }    
   
   void parse(std::istream &in, const int sample){
     int tK, t;
@@ -273,12 +328,31 @@ type1234Data readType(const int type, const int traj_start, const int traj_inc, 
       const int traj = traj_start + i*traj_inc;
       typedata.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir),i);
     }
+#ifdef DAIQIAN_COMPATIBILITY_MODE
     if(type == 2 || type == 3) typedata = typedata * 0.5; //correct for missing coefficient
+#endif
     return typedata;
   }else{
     error_exit(std::cout << "readType invalid type " << type << std::endl);
   }
 }
+
+rawCorrelationFunctionD readA2projectedBubble(const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt, const std::string &data_dir){
+  bubbleDataAllMomenta raw_bubble_data;
+  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
+  
+  return rawCorrelationFunctionD(Lt,
+				 [&](const int t){
+				   return typename rawCorrelationFunctionD::ElementType(t,
+											(raw_bubble_data({1,1,1})(t)  + raw_bubble_data({-1,-1,-1})(t)
+											 + raw_bubble_data({-1,1,1})(t) + raw_bubble_data({1,-1,-1})(t)
+											 + raw_bubble_data({1,-1,1})(t) + raw_bubble_data({-1,1,-1})(t)
+											 + raw_bubble_data({1,1,-1})(t) + raw_bubble_data({-1,-1,1})(t) )/8. );
+				 }
+				 );
+}
+
+
 
 enum LR{ VpA, VmA }; 
 rawDataDistributionZD computeLRcontraction(const int cidx, const int i, const LR g1, const int j, const LR g2, const contractions &from){
@@ -288,16 +362,112 @@ rawDataDistributionZD computeLRcontraction(const int cidx, const int i, const LR
   return b * from.C(cidx)(i,'V',j,'A') + a * from.C(cidx)(i,'A',j,'V');
 }
 
-typedef dataSeries<int, rawDataDistributionZD> rawTimeSeriesZD; //time, dist(value)
+//For a given type, what is the first diagram index
+inline int idxOffset(const int type){
+  static const int offs[4] = {1,7,13,23}; 
+  return offs[type-1];
+}
 
-NumericVector<rawTimeSeriesZD> computeAmplitudeType4(const srcAvgType1234Data &type4_srcavg){
-  const int nsample = type4_srcavg.getNsample();
-  const int Lt = type4_srcavg.getLt();
-  NumericVector<rawTimeSeriesZD> out(10, rawTimeSeriesZD(type4_srcavg.getLt(), [nsample](const int t){ return typename rawTimeSeriesZD::ElementType(t,rawDataDistributionZD(nsample)); }) );
+
+struct computeAmplitudeSrcAvgControls{
+  typedef srcAvgType1234Data inputType;
+  typedef NumericVector<rawCorrelationFunctionZD> outputType;
+
+  outputType out;
+  const inputType &in;
   
-  for(int t=0;t<Lt;t++){
-#define A(IDX) out[IDX-1].value(t)
-#define C(IDX,I,G1,J,G2) computeLRcontraction(IDX-23, I, G1, J, G2, type4_srcavg(t));  
+  computeAmplitudeSrcAvgControls(const inputType &_in):
+    in(_in),
+    out(10, rawCorrelationFunctionZD(_in.getLt(),
+				     [&](const int t){
+				       return typename rawCorrelationFunctionZD::ElementType(t,rawDataDistributionZD(_in.getNsample()));
+				     })
+	){}									   
+  inline int size(){ return in.getLt(); }
+  
+  inline rawDataDistributionZD & A(const int I, const int t){ return out[I].value(t); }
+
+  inline rawDataDistributionZD C(const int IDX, const int i, const LR g1, const int j, const LR g2, const int t){
+    return computeLRcontraction(IDX, i,g1,j,g2, in(t));
+  }
+
+  inline void normalize(const double nrm, const int t){
+    for(int i=0;i<10;i++) out[i].value(t) = out[i].value(t) * nrm;
+  }
+};   
+
+
+
+template<typename distributionType>
+class amplitudeData{
+  int Lt;
+  int nsample;  
+  std::vector<std::vector<std::vector<distributionType> > > data; //[Qidx][tK][t]
+public:
+  amplitudeData(const int _Lt, const int _nsample): Lt(_Lt), nsample(_nsample),
+						    data(10,
+							 std::vector<std::vector<distributionType> >(Lt,
+													  std::vector<distributionType>(Lt,
+																	     distributionType(nsample)))){}
+  inline int getLt() const{ return Lt; }
+  inline int getNsample() const{ return nsample; }
+  distributionType & operator()(const int Qidx, const int tK, const int t){ return data[Qidx][tK][t]; }
+  const distributionType & operator()(const int Qidx, const int tK, const int t) const{ return data[Qidx][tK][t]; }
+
+  NumericVector<correlationFunction<distributionType> > sourceAverage(const std::vector<int> &nonzero_tK) const{
+    distributionType zro(nsample); zeroit(zro);
+    NumericVector<correlationFunction<distributionType> > out(10, correlationFunction<distributionType>(Lt, [&](const int t){ return typename correlationFunction<distributionType>::ElementType(t,zro); } ) );
+
+    for(int q=0;q<10;q++){    
+      for(int t=0;t<Lt;t++){
+	out(q).coord(t) = t;	
+	for(int itK=0;itK<nonzero_tK.size();itK++){
+	  int tK = nonzero_tK[itK];
+	  out(q).value(t) = out(q).value(t) + data[q][tK][t];
+	}
+	out(q).value(t) = out(q).value(t) * (1./nonzero_tK.size());
+      }
+    }
+    return out;
+  }
+};
+  
+
+struct computeAmplitudeAlltKcontrols{
+  typedef type1234Data inputType;
+  typedef amplitudeData<rawDataDistributionZD> outputType;
+
+  int Lt;
+  outputType out;
+  const inputType &in;
+  
+  computeAmplitudeAlltKcontrols(const inputType &_in): Lt(_in.getLt()), in(_in), out(_in.getLt(),_in.getNsample()){}
+
+  inline int size(){ return in.getLt()*in.getLt(); }
+  
+  inline rawDataDistributionZD & A(const int I, const int tt){ return out(I,tt/Lt, tt%Lt); }
+  
+  inline rawDataDistributionZD C(const int IDX, const int i, const LR g1, const int j, const LR g2, const int tt){
+    int tK=tt/Lt, t=tt%Lt;
+    return computeLRcontraction(IDX, i,g1,j,g2, in(tK, t));
+  }
+
+  inline void normalize(const double nrm, const int tt){
+    int tK=tt/Lt, t=tt%Lt;
+    for(int i=0;i<10;i++) out(i,tK,t) = out(i,tK,t) * nrm;
+  }
+};  
+
+
+template<typename Controls>
+typename Controls::outputType computeAmplitudeType4(const typename Controls::inputType &in){
+  Controls controls(in);
+  int off = idxOffset(4);
+    
+  for(int t=0;t<controls.size();t++){
+#define A(I) controls.A(I-1,t)
+#define C(IDX,I,G1,J,G2) controls.C(IDX-off,I,G1,J,G2,t);
+
     A(1) = 3.*C(23, 0,VmA,1,VpA) -3.*C(26, 1,VpA,0,VmA);
     A(2) = 3.*C(24, 0,VmA,1,VpA) -3.*C(27, 1,VpA,0,VmA);
     A(3) = 3.*C(23, 0,VmA,1,VpA) +3.*C(23, 0,VmA,0,VmA) -3.*C(26, 1,VpA,0,VmA) - 3.*C(26, 0,VmA,0,VmA) +3.*C(29, 0,VmA,0,VmA) -3.*C(31, 0,VmA,0,VmA);
@@ -310,19 +480,29 @@ NumericVector<rawTimeSeriesZD> computeAmplitudeType4(const srcAvgType1234Data &t
     A(10) = 3.*C(24, 0,VmA,1,VpA) -1.5*C(25, 0,VmA,0,VmA) -3.*C(27, 1,VpA,0,VmA) +1.5*C(28,0,VmA,0,VmA) -1.5*C(30, 0,VmA,0,VmA) +1.5*C(32, 0,VmA,0,VmA);
 #undef C
 
-    for(int i=0;i<10;i++) out[i].value(t) = out[i].value(t) * (1.0/sqrt(6.0));
+    controls.normalize(1./sqrt(6.),t);
   }
-  return out;
+  return controls.out;
 }
 
-typedef doubleJackknifeDistribution<std::complex<double> > doubleJackknifeDistributionZD;
-typedef dataSeries<int, doubleJackknifeDistributionZD> doubleJackknifeTimeSeriesZD; 
 
-NumericVector<doubleJackknifeTimeSeriesZD> doubleJackknifeResample(const NumericVector<rawTimeSeriesZD> &v){
+template<typename T>
+correlationFunction<doubleJackknifeDistribution<T> > doubleJackknifeResample(const correlationFunction<rawDataDistribution<T> > &data){
+  return correlationFunction<doubleJackknifeDistribution<T> >(data.size(),
+					     [&](const int t){
+					       typename correlationFunction<doubleJackknifeDistribution<T> >::ElementType ret(t,doubleJackknifeDistribution<T>());
+					       ret.second.resample(data.value(t));
+					       return ret;
+					     }
+					     );
+}
+  
+
+NumericVector<doubleJackknifeCorrelationFunctionZD> doubleJackknifeResample(const NumericVector<rawCorrelationFunctionZD> &v){
   int nelem = v.size();
   int Lt = v[0].size();
   
-  NumericVector<doubleJackknifeTimeSeriesZD> out(nelem, doubleJackknifeTimeSeriesZD(Lt));
+  NumericVector<doubleJackknifeCorrelationFunctionZD> out(nelem, doubleJackknifeCorrelationFunctionZD(Lt));
   for(int i=0;i<nelem;i++)
     for(int t=0;t<Lt;t++){
       out[i].value(t).resample(v[i].value(t));
@@ -331,13 +511,63 @@ NumericVector<doubleJackknifeTimeSeriesZD> doubleJackknifeResample(const Numeric
   return out;
 }
 
+// doubleJackknifeCorrelationFunctionZD doubleJackknifeResampleMix(const srcAvgType1234Data &data_srcavg){
+//   return doubleJackknifeCorrelationFunctionZD(data_srcavg.getLt(),
+// 			      [&](const int t){
+// 				doubleJackknifeDistributionZD tmp; tmp.resample(data_srcavg(t).mix());
+// 				return typename doubleJackknifeCorrelationFunctionZD::ElementType(t,std::move(tmp));
+// 			      }
+// 			      );
+// }
 
+// doubleJackknifeCorrelationFunctionZD doubleJackknifeResampleMix(const type1234Data &data, const std::vector<int> &nonzero_tk){
+//   int Lt
+//   doubleJackknifeCorrelationFunctionZD
+
+  
+//   return doubleJackknifeCorrelationFunctionZD(data_srcavg.getLt(),
+// 					      [&](const int t){
+// 						doubleJackknifeDistributionZD tmp; tmp.resample(data_srcavg(t).mix());
+// 						return typename doubleJackknifeCorrelationFunctionZD::ElementType(t,std::move(tmp));
+// 					      }
+// 					      );
+// }
+
+
+
+amplitudeData<doubleJackknifeDistributionZD>  doubleJackknifeResample(const amplitudeData<rawDataDistributionZD> &data){
+  amplitudeData<doubleJackknifeDistributionZD> out(data.getLt(),data.getNsample());
+  for(int Qidx=0;Qidx<10;Qidx++)
+    for(int tK=0;tK<data.getLt();tK++)
+      for(int t=0;t<data.getLt();t++)
+	out(Qidx,tK,t).resample(data(Qidx,tK,t));
+  return out;
+}
+
+amplitudeData<doubleJackknifeDistributionZD> computeVacuumSubtraction(const amplitudeData<doubleJackknifeDistributionZD> &data, const doubleJackknifeCorrelationFunctionD &bubble, const int tsep_k_pi, const int tsep_pipi){  
+  amplitudeData<doubleJackknifeDistributionZD> out(data);
+  for(int Qidx=0;Qidx<10;Qidx++)
+    for(int tK=0;tK<data.getLt();tK++)
+      for(int t=0;t<data.getLt();t++)
+	for(int s1=0;s1<data.getNsample();s1++)
+	  for(int s2=0;s2<data.getNsample()-1;s2++)
+	    out(Qidx,tK,t).sample(s1).sample(s2) = data(Qidx,tK,t).sample(s1).sample(s2) * bubble.value( (tK + tsep_k_pi + tsep_pipi) % data.getLt() ).sample(s1).sample(s2);
+  return out;
+}
+    
+
+//template<typename>
+
+// NumericVector<rawCorrelationFunctionZD> getMix(const type1234Data &from){
+//   int Lt = from.getLt();
+//   return NumericVector<rawCorrelationFunctionZD> 
+// }
 
 int main(void){
   int Lt = 64;
   int traj_start = 636;
   int traj_inc = 4;
-  int traj_lessthan = 640;
+  int traj_lessthan = 648;
   int tsep_k_pi = 10;
   int tsep_pipi = 4;
   std::string data_dir = ".";
@@ -346,14 +576,32 @@ int main(void){
   type1234Data type2 = readType(2, traj_start, traj_inc, traj_lessthan, tsep_k_pi, tsep_pipi, Lt, data_dir);
   type1234Data type3 = readType(3, traj_start, traj_inc, traj_lessthan, tsep_k_pi, tsep_pipi, Lt, data_dir);
   type1234Data type4 = readType(4, traj_start, traj_inc, traj_lessthan, tsep_k_pi, tsep_pipi, Lt, data_dir);
+
+  std::vector<int> type4_nonzerotK = type4.getNonZeroKaonTimeslices();
+
+  amplitudeData<rawDataDistributionZD> A0_type4_alltK = computeAmplitudeType4<computeAmplitudeAlltKcontrols>(type4);
+  //NumericVector<rawCorrelationFunctionZD> mix4_alltK = 
   
-  bubbleDataAllMomenta raw_bubble_data;
-  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
+  rawCorrelationFunctionD bubble = readA2projectedBubble(traj_start,traj_inc,traj_lessthan,tsep_pipi,Lt,data_dir);
+  doubleJackknifeCorrelationFunctionD bubble_dj = doubleJackknifeResample(bubble);
+  
+  NumericVector<rawCorrelationFunctionZD> A0_type4_srcavg = A0_type4_alltK.sourceAverage(type4_nonzerotK);
+  rawCorrelationFunctionZD mix4_srcavg = type4.sourceAverageMixDiag();
+  
+  NumericVector<doubleJackknifeCorrelationFunctionZD> A0_type4_srcavg_dj = doubleJackknifeResample(A0_type4_srcavg);
+  doubleJackknifeCorrelationFunctionZD mix4_srcavg_dj = doubleJackknifeResample(mix4_srcavg);
 
-  srcAvgType1234Data type4_srcavg(type4);
-  NumericVector<rawTimeSeriesZD> A0_type4 = computeAmplitudeType4(type4_srcavg);
+  NumericVector<doubleJackknifeCorrelationFunctionZD> alpha(10, [&](const int i){  return A0_type4_srcavg_dj[i] / mix4_srcavg_dj; } );
 
-  NumericVector<doubleJackknifeTimeSeriesZD> A0_type4_dj = doubleJackknifeResample(A0_type4);
+  amplitudeData<doubleJackknifeDistributionZD>  A0_type4_alltK_vacsub = doubleJackknifeResample(A0_type4_alltK);
+  A0_type4_alltK_vacsub = computeVacuumSubtraction(A0_type4_alltK_vacsub, bubble_dj, tsep_k_pi, tsep_pipi);
 
+
+  
+
+
+
+    
+  
   return 0;
 }

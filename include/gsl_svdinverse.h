@@ -128,26 +128,26 @@ int svd_inverse(std::vector< std::vector<T> > &Ainv,
   return _svd_inverse<vectorVectorMatrixView<T>, vectorVectorMatrixView<const T> >::doit(Ainv_view,A_view,condition_number);
 }
 
-template<typename NumericMatrixOutputType, typename NumericMatrixInputType, ENABLE_IF_ELEM_TYPE_FLOATINGPT(NumericMatrixInputType)>
-int svd_inverse(NumericMatrixOutputType &Ainv, 
-	        const NumericMatrixInputType &A){ 
+template<typename NumericSquareMatrixOutputType, typename NumericSquareMatrixInputType, ENABLE_IF_ELEM_TYPE_FLOATINGPT(NumericSquareMatrixInputType)>
+int svd_inverse(NumericSquareMatrixOutputType &Ainv, 
+	        const NumericSquareMatrixInputType &A){ 
   double c;
-  return _svd_inverse<NumericMatrixOutputType, NumericMatrixInputType>::doit(Ainv,A,c);
+  return _svd_inverse<NumericSquareMatrixOutputType, NumericSquareMatrixInputType>::doit(Ainv,A,c);
 }
 
 
 //For Matrix<D> where D is a distribution or any type with a 'sample' method
-template<typename NumericMatrixType, typename std::enable_if<hasSampleMethod<typename _get_elem_type<NumericMatrixType>::type>::value, int>::type = 0>
-int svd_inverse(NumericMatrixType &Ainv, 
-	        const NumericMatrixType &A){ 
+template<typename NumericSquareMatrixType, typename std::enable_if<hasSampleMethod<typename _get_elem_type<NumericSquareMatrixType>::type>::value, int>::type = 0>
+int svd_inverse(NumericSquareMatrixType &Ainv, 
+	        const NumericSquareMatrixType &A){ 
   const int nsample = A(0,0).size();
   int ret = 0;
   int ret_thr[omp_get_max_threads()] = {0};
   
 #pragma omp parallel for
   for(int j=0;j<nsample;j++){
-    NumericMatrixSampleView<const NumericMatrixType> A_view(A,j);
-    NumericMatrixSampleView<NumericMatrixType> Ainv_view(Ainv,j);
+    NumericSquareMatrixSampleView<const NumericSquareMatrixType> A_view(A,j);
+    NumericSquareMatrixSampleView<NumericSquareMatrixType> Ainv_view(Ainv,j);
     int r = svd_inverse(Ainv_view,A_view);
     ret_thr[omp_get_thread_num()] = ret_thr[omp_get_thread_num()] || r;
   }
