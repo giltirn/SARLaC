@@ -14,26 +14,26 @@ struct disableGenericETbinOp<ETdivide, NumericVector<Numeric> >{
   enum {value = 1};
 };
 
-template<typename A,typename M>
-struct getElem<NumericSquareMatrix<A,M> >{
-  static inline auto elem(const NumericSquareMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
-  static inline auto elem(NumericSquareMatrix<A,M> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
-  static inline int common_properties(const NumericSquareMatrix<A,M> &v){ return v.size(); }
+template<typename A>
+struct getElem<NumericSquareMatrix<A> >{
+  static inline auto elem(const NumericSquareMatrix<A> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
+  static inline auto elem(NumericSquareMatrix<A> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
+  static inline int common_properties(const NumericSquareMatrix<A> &v){ return v.size(); }
 };
-template<typename Numeric,typename InvPol>
-struct disableGenericETbinOp<ETtimes, NumericSquareMatrix<Numeric,InvPol> >{
+template<typename Numeric>
+struct disableGenericETbinOp<ETtimes, NumericSquareMatrix<Numeric> >{
   enum {value = 1};
 };
-template<typename Numeric,typename InvPol>
-struct disableGenericETbinOp<ETdivide, NumericSquareMatrix<Numeric,InvPol> >{
+template<typename Numeric>
+struct disableGenericETbinOp<ETdivide, NumericSquareMatrix<Numeric> >{
   enum {value = 1};
 };
 template<typename Tag>
 struct is_NumericSquareMatrix_tag{
   enum {value = 0};
 };
-template<typename A, typename M>
-struct is_NumericSquareMatrix_tag<NumericSquareMatrix<A,M> >{
+template<typename A>
+struct is_NumericSquareMatrix_tag<NumericSquareMatrix<A> >{
   enum {value = 1};
 };
 

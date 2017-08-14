@@ -172,7 +172,7 @@ namespace _FrozenFitFunc_helper{
 
   template<typename T>
   struct _construct<T, true>{
-    inline static T construct(const std::unique_ptr<T> &freeze_vals){ return T(); }
+    inline static T construct(const std::unique_ptr<T> &freeze_vals){ return freeze_vals ? T(*freeze_vals) : T(); } //note the default constructor will not properly setup the output for variable-size types like NumericVector. For these types make sure you have provided a value for freeze_vals even if you are not going to freeze any parameters
   };
   template<typename T>
   struct _construct<T, false>{
@@ -211,7 +211,7 @@ public:
   ParameterSuperType mapParamsSubsetToSuperset(const ParameterType &params_subset) const{
     if(n_frozen != 0) assert(freeze_vals);
     ParameterSuperType superset = _FrozenFitFunc_helper::_construct<ParameterSuperType,std::is_default_constructible<ParameterSuperType>::value >::construct(freeze_vals);
-
+    
     int subset_idx = 0;
     for(int i=0;i<fitfunc.Nparams();i++){
       if(!param_freeze[i])

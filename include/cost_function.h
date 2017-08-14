@@ -24,12 +24,20 @@
   cf. http://www.scribd.com/doc/10093320/Levenberg-Marquardt-Algorithm  (page 2)
 */
 
+template<typename CostType>
+struct CostFunctionSVDinvert{
+  inline static NumericSquareMatrix<CostType> invert(const NumericSquareMatrix<CostType> &in){
+    NumericSquareMatrix<CostType> out(in.size()); svd_inverse(out,in); return out;
+  }
+};
+
 template<typename FitFunction, typename DataContainer, typename _CostType = double,
 	 typename _CostDerivativeType = typename FitFunction::ValueDerivativeType,
 	 typename _CostSecondDerivativeMatrixType = NumericSquareMatrix<_CostType>,
 	 typename _CostSecondDerivativeInverseMatrixType = NumericSquareMatrix<_CostType>,
+	 typename MatrixInvertPolicy = CostFunctionSVDinvert<_CostType>,
 	 typename std::enable_if<std::is_floating_point<typename FitFunction::ValueType>::value, int>::type = 0>
-class UncorrelatedChisqCostFunction{
+class UncorrelatedChisqCostFunction: public MatrixInvertPolicy{
   static_assert(std::is_same<typename FitFunction::ValueType, typename DataContainer::DataType>::value, "DataContainer and FitFunction must have same value type");
   static_assert(std::is_same<typename FitFunction::GeneralizedCoordinate, typename DataContainer::GeneralizedCoordinate>::value, "DataContainer and FitFunction must have same coordinate");
   const FitFunction &fitfunc;
@@ -108,8 +116,9 @@ template<typename FitFunction, typename DataContainer,
 	 typename _CostDerivativeType = typename FitFunction::ValueDerivativeType,
 	 typename _CostSecondDerivativeMatrixType = NumericSquareMatrix<_CostType>,
 	 typename _CostSecondDerivativeInverseMatrixType = NumericSquareMatrix<_CostType>,
+	 typename MatrixInvertPolicy = CostFunctionSVDinvert<_CostType>,
 	 typename std::enable_if<std::is_floating_point<typename FitFunction::ValueType>::value, int>::type = 0>
-class CorrelatedChisqCostFunction{
+class CorrelatedChisqCostFunction: public MatrixInvertPolicy{
   static_assert(std::is_same<typename FitFunction::ValueType, typename DataContainer::DataType>::value, "DataContainer and FitFunction must have same value type");
   static_assert(std::is_same<typename FitFunction::GeneralizedCoordinate, typename DataContainer::GeneralizedCoordinate>::value, "DataContainer and FitFunction must have same coordinate");
   const FitFunction &fitfunc;

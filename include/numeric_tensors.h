@@ -81,12 +81,7 @@ std::ostream & operator<<(std::ostream & stream, const NumericVector<Numeric> &v
 
 
 template<typename Numeric>
-class SVDinvertPolicy;
-
-
-
-template<typename Numeric, typename InvertPolicy = SVDinvertPolicy<Numeric> >
-class NumericSquareMatrix: public InvertPolicy{ //square matrix
+class NumericSquareMatrix{ //square matrix
   std::vector<std::vector<Numeric> > m;
 
   friend class boost::serialization::access;
@@ -111,12 +106,12 @@ public:
   NumericSquareMatrix & operator=(const NumericSquareMatrix &r) = default;
   NumericSquareMatrix & operator=(NumericSquareMatrix &&r) = default;
   
-  typedef NumericSquareMatrix<Numeric,InvertPolicy> ET_tag;
-  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericSquareMatrix<Numeric,InvertPolicy> >::value, int>::type = 0>
+  typedef NumericSquareMatrix<Numeric> ET_tag;
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericSquareMatrix<Numeric> >::value, int>::type = 0>
   NumericSquareMatrix(U&& expr): NumericSquareMatrix(expr.common_properties()){
 #pragma omp parallel for
     for(int i=0;i<this->size()*this->size();i++)
-      getElem<NumericSquareMatrix<Numeric,InvertPolicy> >::elem(*this, i) = expr[i];
+      getElem<NumericSquareMatrix<Numeric> >::elem(*this, i) = expr[i];
   }
   
   inline int size() const{ return m.size(); }
@@ -148,9 +143,6 @@ public:
       for(int j=0;j<n;j++)
 	m[i][j] = 0.;
   }
-  void invert(const NumericSquareMatrix<Numeric> &what){
-    this->InvertPolicy::invert(*this,what);
-  }
 
   std::string print() const{
     std::ostringstream os;
@@ -167,8 +159,8 @@ public:
   const Numeric & operator()(const int i, const int j) const { return m[i][j]; }
 };
 
-template<typename T, typename U>
-T mod2(const NumericSquareMatrix<T,U> &m){
+template<typename T>
+T mod2(const NumericSquareMatrix<T> &m){
   assert(m.size() > 0);
   T out(m(0,0));
   zeroit(out);
@@ -190,17 +182,6 @@ StreamType & operator<<(StreamType & stream, const NumericSquareMatrix<Numeric> 
   return stream;
 }
 		     
-
-
-
-template<typename Numeric>
-class SVDinvertPolicy{
- protected:
-  inline static void invert(NumericSquareMatrix<Numeric> &inv_m, const NumericSquareMatrix<Numeric> &m){
-    inv_m.resize(m.size());
-    svd_inverse(inv_m, m);
-  }
-};
 
 
 

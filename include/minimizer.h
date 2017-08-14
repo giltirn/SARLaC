@@ -208,7 +208,7 @@ private:
 
     MINPRINT << "inverting update matrix\n";
     MINPRINT_NOPREFIX << M.print() << std::endl;
-    inv_M.invert(M);
+    inv_M = function.invert(M);
 
     MINPRINT << "inverse matrix : " << std::endl;
     MINPRINT_NOPREFIX << inv_M.print() << std::endl;
