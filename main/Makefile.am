@@ -1,6 +1,7 @@
-bin_PROGRAMS = fit_example test_ET test_hdf5 simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity fit_ktopipi_gparity benchmark 
+bin_PROGRAMS = fit_example test_ET test_hdf5 test_tensor simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity fit_ktopipi_gparity benchmark 
 fit_example_SOURCES = fit_example.C
 test_ET_SOURCES = test_ET.C
+test_tensor_SOURCES = test_tensor.C
 simfit_example_SOURCES = simfit_example.C
 superjack_example_SOURCES = superjack_example.C
 generic_freeze_example_SOURCES = generic_freeze_example.C
