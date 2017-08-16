@@ -71,13 +71,13 @@ void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_da
 
   
 template<typename FigureDataType>
-auto sourceAverage(const FigureDataType & data)->correlationFunction<typename std::decay<decltype(data(0,0))>::type>{
+auto sourceAverage(const FigureDataType & data)->correlationFunction<double,typename std::decay<decltype(data(0,0))>::type>{
   typedef typename std::decay<decltype(data(0,0))>::type DistributionType;
 
   int Lt = data.getLt();
   int nsample = data.getNsample();
-  correlationFunction<DistributionType> into(data.getLt(),
-					     [nsample](int i) {  return typename correlationFunction<DistributionType>::ElementType(i, DistributionType(nsample,0.)); }
+  correlationFunction<double,DistributionType> into(data.getLt(),
+					     [nsample](int i) {  return typename correlationFunction<double,DistributionType>::ElementType(i, DistributionType(nsample,0.)); }
 					     );
   std::vector<int> tsrc_include;
   for(int tsrc=0;tsrc<Lt;tsrc++){
@@ -99,7 +99,7 @@ auto sourceAverage(const FigureDataType & data)->correlationFunction<typename st
 
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
-auto computeVprojectA2sourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi)->correlationFunction<typename std::decay<decltype(raw_bubble_data(*((threeMomentum*)NULL))(0))>::type>{
+auto computeVprojectA2sourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi)->correlationFunction<double,typename std::decay<decltype(raw_bubble_data(*((threeMomentum*)NULL))(0))>::type>{
   (std::cout << "Computing A2-projected, src-averaged V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed A2-projected, src-averaged V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
 
@@ -111,14 +111,14 @@ auto computeVprojectA2sourceAvg(const BubbleDataType &raw_bubble_data, const int
   const int Nsample = raw_bubble_data.getNsample();
 
   typedef typename std::decay<decltype(raw_bubble_data(*((threeMomentum*)NULL))(0))>::type  DistributionType;
-  correlationFunction<DistributionType> out(Lt,
+  correlationFunction<double,DistributionType> out(Lt,
 					    [&](const int t)
 					    {
-					      return typename correlationFunction<DistributionType>::ElementType(double(t), DistributionType(Nsample,0.));
+					      return typename correlationFunction<double,DistributionType>::ElementType(double(t), DistributionType(Nsample,0.));
 					    }
 					    );
   int nthr = omp_get_max_threads();
-  std::vector<correlationFunction<DistributionType> > thr_sum(nthr, out);
+  std::vector<correlationFunction<double,DistributionType> > thr_sum(nthr, out);
   
 #pragma omp parallel for
   for(int pp=0;pp<8*8;pp++){
@@ -158,9 +158,9 @@ bubbleDataDoubleJackAllMomenta doubleJackknifeResampleBubble(const bubbleDataAll
 }
 
 template<typename T>
-inline correlationFunction<T> fold(const correlationFunction<T> &f, const int tsep_pipi){
+inline correlationFunction<double,T> fold(const correlationFunction<double,T> &f, const int tsep_pipi){
   const int Lt = f.size();
-  correlationFunction<T> out(Lt);
+  correlationFunction<double,T> out(Lt);
   const int Tref = Lt-2*tsep_pipi;
   for(int t=0;t<Lt;t++){
     out.coord(t) = f.coord(t);
@@ -169,7 +169,7 @@ inline correlationFunction<T> fold(const correlationFunction<T> &f, const int ts
   return out;
 }
 
-void outputRawData(const std::string &filename, const correlationFunction<rawDataDistributionD> &data, const double coeff){
+void outputRawData(const std::string &filename, const correlationFunction<double,rawDataDistributionD> &data, const double coeff){
   std::ofstream of(filename.c_str());
   of << std::setprecision(11) << std::scientific;
   int Lt = data.size();

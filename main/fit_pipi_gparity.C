@@ -92,7 +92,7 @@ int main(const int argc, const char* argv[]){
   figureData A2_R = projectA2('R', raw_data);
   figureData A2_V = projectA2('V', raw_data);
 
-  typedef correlationFunction<rawDataDistributionD> rawCorrelationFunction;
+  typedef correlationFunction<double,rawDataDistributionD> rawCorrelationFunction;
   
   rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
   rawCorrelationFunction A2_realavg_D = sourceAverage(A2_D);
@@ -108,7 +108,7 @@ int main(const int argc, const char* argv[]){
 
   std::cout << "Raw data:\n" << pipi_raw << std::endl;
 
-  typedef correlationFunction<doubleJackknifeDistributionD> doubleJackCorrelationFunction;
+  typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
   
   doubleJackCorrelationFunction pipi_dj(args.Lt,
 					[&pipi_raw,nsample](const int t)
@@ -132,7 +132,7 @@ int main(const int argc, const char* argv[]){
 
   const int ndata_fit = pipi_dj_vacsubbed_inrange.size();
   
-  typedef correlationFunction<jackknifeDistributionD> jackknifeCorrelationFunction;
+  typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunction;
 
   jackknifeCorrelationFunction pipi_j_vacsubbed_inrange(ndata_fit,
 							[&pipi_dj_vacsubbed_inrange](const int i)
@@ -173,8 +173,8 @@ int main(const int argc, const char* argv[]){
 
   FitFunc fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
 
-  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-  //typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
+  typedef typename composeFitPolicy<double, FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+  //typedef typename composeFitPolicy<double, FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
   fitter<FitPolicies> fitter;
   fitter.importFitFunc(fitfunc);
   fitter.importCostFunctionParameters(inv_corr,sigma);

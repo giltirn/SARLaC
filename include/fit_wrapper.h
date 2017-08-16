@@ -10,8 +10,9 @@
 #include<cost_function.h>
 #include<minimizer.h>
 
+template<typename GeneralizedCoordinate>
 struct baseFitTypedefs{
-  typedef correlationFunction<jackknifeDistributionD> jackknifeCorrelationFunction;
+  typedef correlationFunction<GeneralizedCoordinate,jackknifeDistributionD> jackknifeCorrelationFunction;
   typedef NumericSquareMatrix<jackknifeDistributionD> jackknifeMatrix;
   typedef NumericVector<jackknifeDistributionD> jackknifeVector;
 
@@ -28,10 +29,10 @@ struct baseFitTypedefs{
   INHERIT_TYPEDEF(FROM,sampleInvCorrType)
 
 
-template<typename _fitFunc>
-class standardFitFuncPolicy: public baseFitTypedefs{
+template<typename GeneralizedCoordinate, typename _fitFunc>
+class standardFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate>{
 public:
-  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs);
+  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs<GeneralizedCoordinate>);
 
   typedef _fitFunc fitFunc;
   typedef jackknifeDistribution<typename fitFunc::ParameterType> jackknifeFitParameters;
@@ -59,10 +60,10 @@ public:
   }
 };
 
-template<typename _fitFunc>
-class frozenFitFuncPolicy: public baseFitTypedefs{
+template<typename GeneralizedCoordinate, typename _fitFunc>
+class frozenFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate>{
 public:
-  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs);
+  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs<GeneralizedCoordinate>);
 
   typedef _fitFunc baseFitFunc;
   typedef FrozenFitFunc<_fitFunc> fitFunc;
@@ -211,9 +212,9 @@ protected:
 
 
 //Convenience wrapper for composing the fit policy
-template<typename FitFunc, template<typename> class FitFuncPolicy, template<typename> class CostFunctionPolicy>
+template<typename GeneralizedCoordinate, typename FitFunc, template<typename,typename> class FitFuncPolicy, template<typename> class CostFunctionPolicy>
 struct composeFitPolicy{
-  typedef CostFunctionPolicy<FitFuncPolicy<FitFunc> > type;
+  typedef CostFunctionPolicy<FitFuncPolicy<GeneralizedCoordinate,FitFunc> > type;
 };
 
 
