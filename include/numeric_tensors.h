@@ -354,16 +354,29 @@ public:
   inline explicit NumericTensor(std::initializer_list<int> _size): NumericTensor(_size.begin()){}
   inline NumericTensor(const NumericTensor<DataType,Rank> &r) = default;
   inline NumericTensor(NumericTensor<DataType,Rank> &&r) = default;
+
   
+  template<typename Initializer>
+  inline NumericTensor(int const*_size, const Initializer &init): NumericTensor(_size){
+    for(size_t i=0;i<vol;i++){
+      int oe[Rank]; this->unmap(oe,i);
+      data[i] = init(oe); //Initializer must have DataType operator()(int const* coord)
+    }
+  }
+  
+  template<typename Initializer>
+  inline NumericTensor(const std::vector<int> &_size, const Initializer &init): NumericTensor(_size.data(),init){}
+
+  template<typename Initializer>
+  inline NumericTensor(std::initializer_list<int> _size, const Initializer &init): NumericTensor(_size.begin(),init){}
+
+      
   typedef NumericTensor<DataType,Rank> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,ET_tag>::value, int>::type = 0>
   NumericTensor(U&& expr){
-    std::cout << "ET constructor got common_properties " << expr.common_properties() << std::endl;
     this->resize(expr.common_properties().sizes);
-    for(size_t i=0;i<this->vol;i++){
+    for(size_t i=0;i<this->vol;i++)
       data[i] = expr[i];
-      std::cout << i << " " << data[i] << std::endl;
-    }
   }
 
   inline NumericTensor& operator=(const NumericTensor<DataType,Rank> &r) = default;
@@ -374,7 +387,6 @@ public:
     dsizes = std::vector<int>(_size,_size+Rank);
     vol = helper::vol(_size);
     data.resize(vol);
-    (std::cout << "Resized to " << vol << std::endl).flush();
   }
   inline void resize(const std::vector<int> & _size){ return resize(_size.data()); } 
   inline void resize(std::initializer_list<int> _size){ return resize(_size.begin()); } 
@@ -396,9 +408,12 @@ public:
   inline const int size(const int dir) const{ return dsizes[dir]; }
 
   template<typename Rule>
-  auto transform(const Rule &rule = Rule()) const -> NumericTensor<typename std::decay<decltype(rule(data[0]))>::type,Rank>{ 
-    NumericTensor<typename std::decay<decltype(rule(data[0]))>::type,Rank> out(dsizes.data());
-    for(size_t i=0;i<vol;i++) out.data[i] = rule(data[i]); //Rule must have NewDataType operator()(const DataType &from)
+  auto transform(const Rule &rule = Rule()) const -> NumericTensor<typename std::decay<decltype(rule( (int const*)(NULL), data[0]))>::type,Rank>{ 
+    NumericTensor<typename std::decay<decltype(rule((int const*)(NULL), data[0]))>::type,Rank> out(dsizes.data());
+    for(size_t i=0;i<vol;i++){
+      int oe[Rank]; out.unmap(oe,i);
+      out.data[i] = rule(oe,data[i]); //Rule must have NewDataType operator()(int const* coord, const DataType &from)
+    }
     return out;
   }
 

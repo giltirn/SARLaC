@@ -16,46 +16,17 @@
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/read_data.h>
 
-
-// template<typename T,int D>
-// struct _MDDS_helper{
-//   typename std::vector<typename _MDDS_helper<T,D-1>::container> container;
-// };
-// template<typename T>
-// struct _MDDS_helper<T,0>{
-//   typename T container;
-// };
-
-// template<typename DataType, int Dim>
-// class multiDimensionalDataStructure{
-//   typedef typename _MDDS_helper::container container;
-
-//   container data;  
-// public:
-
-
-
-
-
-typedef rawDataDistribution<std::complex<double> > rawDataDistributionZD;
-typedef correlationFunction<rawDataDistributionZD> rawCorrelationFunctionZD; //time, dist(value)
-typedef doubleJackknifeDistribution<std::complex<double> > doubleJackknifeDistributionZD;
-typedef correlationFunction<doubleJackknifeDistributionZD> doubleJackknifeCorrelationFunctionZD; 
-typedef correlationFunction<rawDataDistributionD> rawCorrelationFunctionD;
-typedef correlationFunction<doubleJackknifeDistributionD> doubleJackknifeCorrelationFunctionD; 
-
 struct contractionData{
-  std::vector<rawDataDistributionZD> d;
+  std::vector<rawDataDistributionD> d;
 
-  contractionData(const int nsample): d(8,rawDataDistributionZD(nsample,std::complex<double>(0.))){
+  contractionData(const int nsample): d(8,rawDataDistributionD(nsample,0.)){
     mapping(0,'V',0,'A'); //touch mapping
   }
 
   void parse(std::istream &in, const int sample){
-    for(int i=0;i<8;i++){
-      double* cd = (double*) &d[i].sample(sample);	    
-      if(!(in >> cd[0] >> cd[1])) error_exit(std::cout << "type1234Data::contractions::contractionData::parse failed to parse contraction data for config " << sample << "\n");
-    }
+    double im; //discard imaginary part
+    for(int i=0;i<8;i++)
+      if(!(in >> d[i].sample(sample) >> im)) error_exit(std::cout << "type1234Data::contractions::contractionData::parse failed to parse contraction data for config " << sample << "\n");
   }
     
   inline int map_off(const int i, const char A, const int j, const char B) const{
@@ -81,10 +52,10 @@ struct contractionData{
     return map[map_off(i,A,j,B)];
   }
     
-  inline rawDataDistributionZD & operator()(const int i, const char A, const int j, const char B){
+  inline rawDataDistributionD & operator()(const int i, const char A, const int j, const char B){
     return d[mapping(i,A,j,B)];
   }
-  inline const rawDataDistributionZD & operator()(const int i, const char A, const int j, const char B) const{
+  inline const rawDataDistributionD & operator()(const int i, const char A, const int j, const char B) const{
     return d[mapping(i,A,j,B)];
   }
   inline contractionData operator+(const contractionData &r) const{
@@ -99,10 +70,9 @@ struct contractionData{
   }
 
   bool isZero() const{
-    std::complex<double> zro(0.,0.);
     for(int i=0;i<8;i++)
       for(int s=0;s<d[i].size();s++)
-	if(d[i].sample(s) != zro) return false;
+	if(d[i].sample(s) != 0.) return false;
     return true;
   }
     
@@ -110,31 +80,29 @@ struct contractionData{
     
 struct contractions{
   std::vector<contractionData> con;
-  std::vector<rawDataDistributionZD> extra; //F0 g5, -F1 g5
+  std::vector<rawDataDistributionD> extra; //F0 g5, -F1 g5
 
   contractions(){}
-  contractions(const int nsample, const int ncontract, const int nextra = 0): con(ncontract, contractionData(nsample)), extra(nextra,rawDataDistributionZD(nsample,std::complex<double>(0.))){}
+  contractions(const int nsample, const int ncontract, const int nextra = 0): con(ncontract, contractionData(nsample)), extra(nextra,rawDataDistributionD(nsample,0.)){}
 
   //Parse the ncontract * 8 * 2 double entries for a given tK, t, sample
   void parse(std::istream &in, const int sample){
     for(int c=0;c<con.size();c++) con[c].parse(in,sample);
 
-    for(int e=0;e<extra.size();e++){
-      double* cd = (double*) &extra[e].sample(sample);
-      if(!(in >> cd[0] >> cd[1]) ) error_exit(std::cout << "type1234Data::contractions::parse failed to parse extra idx " << e << " data for config " << sample << "\n");
-    }
+    double im; //discard imaginary part
+    for(int e=0;e<extra.size();e++)
+      if(!(in >> extra[e].sample(sample) >> im) ) error_exit(std::cout << "type1234Data::contractions::parse failed to parse extra idx " << e << " data for config " << sample << "\n");    
   }
 
   const contractionData & C(const int i) const{ assert(i>=0 && i<con.size()); return con[i]; }
-  const rawDataDistributionZD & mix() const{ return extra[0]; } //only use the F0 g5 spin-flavor structure in practise 
+  const rawDataDistributionD & mix() const{ return extra[0]; } //only use the F0 g5 spin-flavor structure in practise 
   
   inline bool isZero() const{ 
     for(int i=0;i<con.size();i++) if(!con[i].isZero()) return false;
 
-    std::complex<double> zro(0.,0.);
     for(int e=0;e<extra.size();e++)
       for(int s=0;s<extra[e].size();s++)
-	if(extra[e].sample(s) != zro) return false;
+	if(extra[e].sample(s) != 0.) return false;
     return true;    
   }
 
@@ -200,22 +168,7 @@ public:
       if(!allzero) out.push_back(tK);
     }
     return out;
-  }
-
-  rawCorrelationFunctionZD sourceAverageMixDiag() const{
-    assert(nextra != 0);
-    rawCorrelationFunctionZD out(Lt, [&](const int t){ return typename rawCorrelationFunctionZD::ElementType(t, rawDataDistributionZD(nsample,0.)); } );
-    std::vector<int> nonzero_tk = getNonZeroKaonTimeslices();
-    for(int t=0;t<Lt;t++){
-      for(int i=0;i<nonzero_tk.size();i++){
-	int tK = nonzero_tk[i];
-	out.value(t) = out.value(t) + data[tK][t].mix();
-      }
-      out.value(t) = out.value(t)/double(nonzero_tk.size());
-    }
-    return out;
-  }    
-  
+  }  
   void parse(std::istream &in, const int sample){
     int tK, t;
     for(int tK_expect=0;tK_expect<getLt();tK_expect++){      
@@ -337,25 +290,21 @@ type1234Data readType(const int type, const int traj_start, const int traj_inc, 
   }
 }
 
-rawCorrelationFunctionD readA2projectedBubble(const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt, const std::string &data_dir){
+
+NumericTensor<rawDataDistributionD,1> readA2projectedBubble(const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt, const std::string &data_dir){
   bubbleDataAllMomenta raw_bubble_data;
   readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan);
-  
-  return rawCorrelationFunctionD(Lt,
-				 [&](const int t){
-				   return typename rawCorrelationFunctionD::ElementType(t,
-											(raw_bubble_data({1,1,1})(t)  + raw_bubble_data({-1,-1,-1})(t)
-											 + raw_bubble_data({-1,1,1})(t) + raw_bubble_data({1,-1,-1})(t)
-											 + raw_bubble_data({1,-1,1})(t) + raw_bubble_data({-1,1,-1})(t)
-											 + raw_bubble_data({1,1,-1})(t) + raw_bubble_data({-1,-1,1})(t) )/8. );
-				 }
-				 );
+
+  NumericTensor<rawDataDistributionD,1> out({Lt});
+  for(int t=0;t<Lt;t++) out({t}) = ( raw_bubble_data({1,1,1})(t)  + raw_bubble_data({-1,-1,-1})(t)
+				     + raw_bubble_data({-1,1,1})(t) + raw_bubble_data({1,-1,-1})(t)
+				     + raw_bubble_data({1,-1,1})(t) + raw_bubble_data({-1,1,-1})(t)
+				     + raw_bubble_data({1,1,-1})(t) + raw_bubble_data({-1,-1,1})(t) )/8.;
+  return out;
 }
 
-
-
 enum LR{ VpA, VmA }; 
-rawDataDistributionZD computeLRcontraction(const int cidx, const int i, const LR g1, const int j, const LR g2, const contractions &from){
+rawDataDistributionD computeLRcontraction(const int cidx, const int i, const LR g1, const int j, const LR g2, const contractions &from){
   //(V+aA)(V+bA) = V bA + aA V
   double a = g1 == VpA ? 1 : -1;
   double b = g2 == VpA ? 1 : -1;
@@ -368,95 +317,112 @@ inline int idxOffset(const int type){
   return offs[type-1];
 }
 
-
-struct computeAmplitudeSrcAvgControls{
-  typedef srcAvgType1234Data inputType;
-  typedef NumericVector<rawCorrelationFunctionZD> outputType;
-
-  outputType out;
-  const inputType &in;
-  
-  computeAmplitudeSrcAvgControls(const inputType &_in):
-    in(_in),
-    out(10, rawCorrelationFunctionZD(_in.getLt(),
-				     [&](const int t){
-				       return typename rawCorrelationFunctionZD::ElementType(t,rawDataDistributionZD(_in.getNsample()));
-				     })
-	){}									   
-  inline int size(){ return in.getLt(); }
-  
-  inline rawDataDistributionZD & A(const int I, const int t){ return out[I].value(t); }
-
-  inline rawDataDistributionZD C(const int IDX, const int i, const LR g1, const int j, const LR g2, const int t){
-    return computeLRcontraction(IDX, i,g1,j,g2, in(t));
-  }
-
-  inline void normalize(const double nrm, const int t){
-    for(int i=0;i<10;i++) out[i].value(t) = out[i].value(t) * nrm;
-  }
-};   
-
-
-
-template<typename distributionType>
-class amplitudeData{
-  int Lt;
-  int nsample;  
-  std::vector<std::vector<std::vector<distributionType> > > data; //[Qidx][tK][t]
-public:
-  amplitudeData(const int _Lt, const int _nsample): Lt(_Lt), nsample(_nsample),
-						    data(10,
-							 std::vector<std::vector<distributionType> >(Lt,
-													  std::vector<distributionType>(Lt,
-																	     distributionType(nsample)))){}
-  inline int getLt() const{ return Lt; }
-  inline int getNsample() const{ return nsample; }
-  distributionType & operator()(const int Qidx, const int tK, const int t){ return data[Qidx][tK][t]; }
-  const distributionType & operator()(const int Qidx, const int tK, const int t) const{ return data[Qidx][tK][t]; }
-
-  NumericVector<correlationFunction<distributionType> > sourceAverage(const std::vector<int> &nonzero_tK) const{
-    distributionType zro(nsample); zeroit(zro);
-    NumericVector<correlationFunction<distributionType> > out(10, correlationFunction<distributionType>(Lt, [&](const int t){ return typename correlationFunction<distributionType>::ElementType(t,zro); } ) );
-
-    for(int q=0;q<10;q++){    
-      for(int t=0;t<Lt;t++){
-	out(q).coord(t) = t;	
-	for(int itK=0;itK<nonzero_tK.size();itK++){
-	  int tK = nonzero_tK[itK];
-	  out(q).value(t) = out(q).value(t) + data[q][tK][t];
-	}
-	out(q).value(t) = out(q).value(t) * (1./nonzero_tK.size());
-      }
-    }
-    return out;
-  }
-};
-  
-
-struct computeAmplitudeAlltKcontrols{
+struct computeAmplitudeAlltKtensorControls{
   typedef type1234Data inputType;
-  typedef amplitudeData<rawDataDistributionZD> outputType;
+  typedef NumericTensor<rawDataDistributionD,3> outputType; //(Qidx,tK,t)
 
   int Lt;
   outputType out;
   const inputType &in;
   
-  computeAmplitudeAlltKcontrols(const inputType &_in): Lt(_in.getLt()), in(_in), out(_in.getLt(),_in.getNsample()){}
+  computeAmplitudeAlltKtensorControls(const inputType &_in): Lt(_in.getLt()), in(_in), out({10,_in.getLt(),_in.getLt()}){}
 
   inline int size(){ return in.getLt()*in.getLt(); }
   
-  inline rawDataDistributionZD & A(const int I, const int tt){ return out(I,tt/Lt, tt%Lt); }
+  inline rawDataDistributionD & A(const int I, const int tt){ return out({I,tt/Lt, tt%Lt}); }
   
-  inline rawDataDistributionZD C(const int IDX, const int i, const LR g1, const int j, const LR g2, const int tt){
+  inline rawDataDistributionD C(const int IDX, const int i, const LR g1, const int j, const LR g2, const int tt){
     int tK=tt/Lt, t=tt%Lt;
     return computeLRcontraction(IDX, i,g1,j,g2, in(tK, t));
   }
 
   inline void normalize(const double nrm, const int tt){
     int tK=tt/Lt, t=tt%Lt;
-    for(int i=0;i<10;i++) out(i,tK,t) = out(i,tK,t) * nrm;
+    for(int i=0;i<10;i++) out({i,tK,t}) = out({i,tK,t}) * nrm;
   }
 };  
+
+
+
+
+
+template<typename Controls>
+typename Controls::outputType computeAmplitudeType1(const typename Controls::inputType &in){
+  Controls controls(in);
+  int off = idxOffset(1);
+    
+  for(int t=0;t<controls.size();t++){
+#define A(I) controls.A(I-1,t)
+#define C(IDX,I,G1,J,G2) controls.C(IDX-off,I,G1,J,G2,t)
+
+    A(1) = C(1, 1,VpA,0,VmA) - C(4, 0,VmA,1,VpA) -2.*C(4, 0,VmA,0,VmA);
+    A(2) = C(2, 1,VpA,0,VmA) - C(5, 0,VmA,1,VpA) -2.*C(6, 0,VmA,0,VmA);
+    A(3) = -3.*C(4, 0,VmA,1,VpA) -3.*C(4, 0,VmA,0,VmA);
+    A(4) = C(3, 0,VmA,0,VmA) -3.*C(6, 0,VmA,0,VmA) +C(2, 1,VpA,0,VmA) -3.*C(5, 0,VmA,1,VpA);      
+    A(5) = -3.*C(4, 0,VmA,1,VmA) -3.*C(4, 0,VmA,0,VpA);
+    A(6) = C(3, 0,VpA,0,VmA) -3.*C(6, 0,VmA,0,VpA) + C(2, 1,VmA,0,VmA) -3.*C(5, 0,VmA,1,VmA);
+    A(7) = C(1, 1,VmA,0,VmA) -0.5*C(1, 0,VpA,0,VmA) -1.5*C(4, 0,VmA,0,VpA);
+    A(8) = -0.5*C(3, 0,VpA,0,VmA) -1.5*C(6, 0,VmA,0,VpA) + C(2, 1,VmA,0,VmA);
+    A(9) = C(1, 1,VpA,0,VmA) -0.5*C(1, 0,VmA,0,VmA) -1.5*C(4, 0,VmA,0,VmA);
+    A(10) = -0.5*C(3, 0,VmA,0,VmA) -1.5*C(6, 0,VmA,0,VmA) + C(2, 1,VpA,0,VmA);
+#undef C
+
+    controls.normalize(1./sqrt(6.),t);
+  }
+  return controls.out;
+}
+
+template<typename Controls>
+typename Controls::outputType computeAmplitudeType2(const typename Controls::inputType &in){
+  Controls controls(in);
+  int off = idxOffset(2);
+    
+  for(int t=0;t<controls.size();t++){
+#define A(I) controls.A(I-1,t)
+#define C(IDX,I,G1,J,G2) controls.C(IDX-off,I,G1,J,G2,t)
+
+    A(1) = 3.*C(7, 0,VmA,1,VpA) -3.*C(10, 1,VpA,0,VmA);
+    A(2) = 3.*C(8, 0,VmA,1,VpA) -3.*C(11, 1,VpA,0,VmA);
+    A(3) = 3.*C(7, 0,VmA,1,VpA) +3.*C(7, 0,VmA,0,VmA) -3.*C(10, 1,VpA,0,VmA) -3.*C(10, 0,VmA,0,VmA);
+    A(4) = 3.*C(8, 0,VmA,1,VpA) +3.*C(9, 0,VmA,0,VmA) -3.*C(11, 1,VpA,0,VmA) -3.*C(12, 0,VmA,0,VmA);
+    A(5) = 3.*C(7, 0,VmA,1,VmA) +3.*C(7, 0,VmA,0,VpA) -3.*C(10, 1,VmA,0,VmA) -3.*C(10, 0,VpA,0,VmA);
+    A(6) = 3.*C(8, 0,VmA,1,VmA) +3.*C(9, 0,VmA,0,VpA) -3.*C(11, 1,VmA,0,VmA) -3.*C(12, 0,VpA,0,VmA);
+    A(7) = 3.*C(7, 0,VmA,1,VmA) -1.5*C(7, 0,VmA,0,VpA) -3.*C(10, 1,VmA,0,VmA) +1.5*C(10, 0,VpA,0,VmA);
+    A(8) = 3.*C(8, 0,VmA,1,VmA) -1.5*C(9, 0,VmA,0,VpA) -3.*C(11, 1,VmA,0,VmA) +1.5*C(12, 0,VpA,0,VmA);
+    A(9) = 3.*C(7, 0,VmA,1,VpA) -1.5*C(7, 0,VmA,0,VmA) -3.*C(10, 1,VpA,0,VmA) +1.5*C(10, 0,VmA,0,VmA); 
+    A(10) = 3.*C(8, 0,VmA,1,VpA) -1.5*C(9, 0,VmA,0,VmA) -3.*C(11, 1,VpA,0,VmA) +1.5*C(12, 0,VmA,0,VmA);
+#undef C
+
+    controls.normalize(1./sqrt(6.),t);
+  }
+  return controls.out;
+}
+
+template<typename Controls>
+typename Controls::outputType computeAmplitudeType3(const typename Controls::inputType &in){
+  Controls controls(in);
+  int off = idxOffset(3);
+    
+  for(int t=0;t<controls.size();t++){
+#define A(I) controls.A(I-1,t)
+#define C(IDX,I,G1,J,G2) controls.C(IDX-off,I,G1,J,G2,t)
+
+    A(1) = 3.*C(13, 0,VmA,1,VpA) -3.*C(16, 1,VpA,0,VmA);      
+    A(2) = 3.*C(14, 0,VmA,1,VpA) -3.*C(17, 1,VpA,0,VmA);      
+    A(3) = 3.*C(13, 0,VmA,1,VpA) + 3.*C(13, 0,VmA,0,VmA) -3.*C(16, 1,VpA,0,VmA) -3.*C(16, 0,VmA,0,VmA) + 3.*C(19, 0,VmA,0,VmA) -3.*C(21, 0,VmA,0,VmA);    
+    A(4) = 3.*C(14, 0,VmA,1,VpA) +3.*C(15, 0,VmA,0,VmA) -3.*C(17, 1,VpA,0,VmA) -3.*C(18, 0,VmA,0,VmA) +3.*C(20, 0,VmA,0,VmA) -3.*C(22, 0,VmA,0,VmA); 
+    A(5) = 3.*C(13, 0,VmA,1,VmA) + 3.*C(13, 0,VmA,0,VpA) -3.*C(16, 1,VmA,0,VmA) -3.*C(16, 0,VpA,0,VmA) + 3.*C(19, 0,VmA,0,VpA) -3.*C(21, 0,VmA,0,VpA);      
+    A(6) = 3.*C(14, 0,VmA,1,VmA) +3.*C(15, 0,VmA,0,VpA) -3.*C(17, 1,VmA,0,VmA) -3.*C(18, 0,VpA,0,VmA) +3.*C(20, 0,VmA,0,VpA) -3.*C(22, 0,VmA,0,VpA);
+    A(7) = 3.*C(13, 0,VmA,1,VmA) -1.5*C(13, 0,VmA,0,VpA) -3.*C(16, 1,VmA,0,VmA) +1.5*C(16, 0,VpA,0,VmA) -1.5*C(19, 0,VmA,0,VpA) +1.5*C(21, 0,VmA,0,VpA);                                             
+    A(8) = 3.*C(14, 0,VmA,1,VmA) -1.5*C(15, 0,VmA,0,VpA) -3.*C(17, 1,VmA,0,VmA) +1.5*C(18, 0,VpA,0,VmA) -1.5*C(20, 0,VmA,0,VpA) +1.5*C(22, 0,VmA,0,VpA);
+    A(9) = 3.*C(13, 0,VmA,1,VpA) -1.5*C(13, 0,VmA,0,VmA) -3.*C(16, 1,VpA,0,VmA) +1.5*C(16, 0,VmA,0,VmA) -1.5*C(19, 0,VmA,0,VmA) +1.5*C(21, 0,VmA,0,VmA);
+    A(10) = 3.*C(14, 0,VmA,1,VpA) -1.5*C(15, 0,VmA,0,VmA) -3.*C(17, 1,VpA,0,VmA) +1.5*C(18, 0,VmA,0,VmA) -1.5*C(20, 0,VmA,0,VmA) +1.5*C(22, 0,VmA,0,VmA);
+#undef C
+
+    controls.normalize(1./sqrt(6.),t);
+  }
+  return controls.out;
+}
 
 
 template<typename Controls>
@@ -466,7 +432,7 @@ typename Controls::outputType computeAmplitudeType4(const typename Controls::inp
     
   for(int t=0;t<controls.size();t++){
 #define A(I) controls.A(I-1,t)
-#define C(IDX,I,G1,J,G2) controls.C(IDX-off,I,G1,J,G2,t);
+#define C(IDX,I,G1,J,G2) controls.C(IDX-off,I,G1,J,G2,t)
 
     A(1) = 3.*C(23, 0,VmA,1,VpA) -3.*C(26, 1,VpA,0,VmA);
     A(2) = 3.*C(24, 0,VmA,1,VpA) -3.*C(27, 1,VpA,0,VmA);
@@ -486,82 +452,96 @@ typename Controls::outputType computeAmplitudeType4(const typename Controls::inp
 }
 
 
-template<typename T>
-correlationFunction<doubleJackknifeDistribution<T> > doubleJackknifeResample(const correlationFunction<rawDataDistribution<T> > &data){
-  return correlationFunction<doubleJackknifeDistribution<T> >(data.size(),
-					     [&](const int t){
-					       typename correlationFunction<doubleJackknifeDistribution<T> >::ElementType ret(t,doubleJackknifeDistribution<T>());
-					       ret.second.resample(data.value(t));
-					       return ret;
-					     }
-					     );
-}
+//Functor for tensor reduction by average
+template<typename T, int Rank>
+struct averageDimensionFunctor{
+  const int dim;
+  std::vector<int> const* use;
   
-
-NumericVector<doubleJackknifeCorrelationFunctionZD> doubleJackknifeResample(const NumericVector<rawCorrelationFunctionZD> &v){
-  int nelem = v.size();
-  int Lt = v[0].size();
+  averageDimensionFunctor(const int _dim, std::vector<int> const*_use = NULL): dim(_dim), use(_use){}
   
-  NumericVector<doubleJackknifeCorrelationFunctionZD> out(nelem, doubleJackknifeCorrelationFunctionZD(Lt));
-  for(int i=0;i<nelem;i++)
-    for(int t=0;t<Lt;t++){
-      out[i].value(t).resample(v[i].value(t));
-      out[i].coord(t) = v[i].coord(t);
-    }  
-  return out;
-}
-
-// doubleJackknifeCorrelationFunctionZD doubleJackknifeResampleMix(const srcAvgType1234Data &data_srcavg){
-//   return doubleJackknifeCorrelationFunctionZD(data_srcavg.getLt(),
-// 			      [&](const int t){
-// 				doubleJackknifeDistributionZD tmp; tmp.resample(data_srcavg(t).mix());
-// 				return typename doubleJackknifeCorrelationFunctionZD::ElementType(t,std::move(tmp));
-// 			      }
-// 			      );
-// }
-
-// doubleJackknifeCorrelationFunctionZD doubleJackknifeResampleMix(const type1234Data &data, const std::vector<int> &nonzero_tk){
-//   int Lt
-//   doubleJackknifeCorrelationFunctionZD
-
-  
-//   return doubleJackknifeCorrelationFunctionZD(data_srcavg.getLt(),
-// 					      [&](const int t){
-// 						doubleJackknifeDistributionZD tmp; tmp.resample(data_srcavg(t).mix());
-// 						return typename doubleJackknifeCorrelationFunctionZD::ElementType(t,std::move(tmp));
-// 					      }
-// 					      );
-// }
-
-
-
-amplitudeData<doubleJackknifeDistributionZD>  doubleJackknifeResample(const amplitudeData<rawDataDistributionZD> &data){
-  amplitudeData<doubleJackknifeDistributionZD> out(data.getLt(),data.getNsample());
-  for(int Qidx=0;Qidx<10;Qidx++)
-    for(int tK=0;tK<data.getLt();tK++)
-      for(int t=0;t<data.getLt();t++)
-	out(Qidx,tK,t).resample(data(Qidx,tK,t));
-  return out;
-}
-
-amplitudeData<doubleJackknifeDistributionZD> computeVacuumSubtraction(const amplitudeData<doubleJackknifeDistributionZD> &data, const doubleJackknifeCorrelationFunctionD &bubble, const int tsep_k_pi, const int tsep_pipi){  
-  amplitudeData<doubleJackknifeDistributionZD> out(data);
-  for(int Qidx=0;Qidx<10;Qidx++)
-    for(int tK=0;tK<data.getLt();tK++)
-      for(int t=0;t<data.getLt();t++)
-	for(int s1=0;s1<data.getNsample();s1++)
-	  for(int s2=0;s2<data.getNsample()-1;s2++)
-	    out(Qidx,tK,t).sample(s1).sample(s2) = data(Qidx,tK,t).sample(s1).sample(s2) * bubble.value( (tK + tsep_k_pi + tsep_pipi) % data.getLt() ).sample(s1).sample(s2);
-  return out;
-}
+  void operator()(T &o, int const *coord, const NumericTensor<T,Rank> &from) const{
+    int full_coord[Rank];
+    int i=0; for(int ii=0;ii<Rank;ii++) if(ii!=dim) full_coord[ii] = coord[i++];    
+    zeroit(o);
+    if(use != NULL){
+      assert(use->size()> 0);
+      full_coord[dim] = use->at(0);
+      o = from(full_coord);      
+      for(int i=1;i<use->size();i++){
+	full_coord[dim] = use->at(i);
+	o = o + from(full_coord);
+      }
+      o = o/double(use->size());
+    }else{
+      assert(from.size(dim)>0);
+      full_coord[dim] = 0;
+      o = from(full_coord);
+      for(int i=1;i<from.size(dim);i++){
+	full_coord[dim] = i;
+	o = o + from(full_coord);
+      }
+      o = o/double(from.size(dim));
+    }
+  }
+};
     
+template<typename Resampled, typename Raw>
+struct resampleFunctor{
+  inline Resampled operator()(int const* coord,const Raw &from) const{
+    Resampled o(from.size());
+    o.resample(from);
+    return o;
+  }
+};
 
-//template<typename>
+template<typename distributionType>
+struct iterate;
 
-// NumericVector<rawCorrelationFunctionZD> getMix(const type1234Data &from){
-//   int Lt = from.getLt();
-//   return NumericVector<rawCorrelationFunctionZD> 
-// }
+template<typename T>
+struct iterate<doubleJackknifeDistribution<T> >{
+  static inline int size(const doubleJackknifeDistribution<T> &from){ return from.size() * (from.size()-1); } //j + (from.size()-1)*i
+  static inline const T& at(const int i, const doubleJackknifeDistribution<T> &from){
+    const int nn = from.size()-1;
+    return from.sample(i/nn).sample(i%nn);
+  }
+  static inline T & at(const int i, doubleJackknifeDistribution<T> &from){
+    const int nn = from.size()-1;
+    return from.sample(i/nn).sample(i%nn);
+  }    
+};
+template<typename T>
+struct iterate<rawDataDistribution<T> >{
+  static inline int size(const rawDataDistribution<T> &from){ return from.size(); } 
+  static inline const T& at(const int i, const rawDataDistribution<T> &from){
+    return from.sample(i);
+  }
+  static inline T & at(const int i, rawDataDistribution<T> &from){
+    return from.sample(i);
+  }    
+};
+
+  
+
+template<typename distributionType>
+struct multiplyBubbleFunctor{
+  const NumericTensor<distributionType,1> &bubble;
+  int tsep_k_pi;
+  int tsep_pipi;
+  int Lt;
+  int tK_dim;
+  multiplyBubbleFunctor(const NumericTensor<distributionType,1> &_bubble, const int _tsep_k_pi, const int _tsep_pipi, const int _Lt, const int _tK_dim): bubble(_bubble), tsep_k_pi(_tsep_k_pi), tsep_pipi(_tsep_pipi), Lt(_Lt), tK_dim(_tK_dim){}
+  inline distributionType operator()(int const* coord, const distributionType &from) const{
+    typedef iterate<distributionType> iter;
+    int tK = coord[tK_dim]; int tB = (tK + tsep_k_pi + tsep_pipi) % Lt;
+    distributionType out(from);
+    for(int i=0;i<iter::size(out);i++)
+      iter::at(i,out) = iter::at(i,out) * iter::at(i,bubble({tB}));
+    return out;
+  }
+};
+
+
 
 int main(void){
   int Lt = 64;
@@ -577,25 +557,93 @@ int main(void){
   type1234Data type3 = readType(3, traj_start, traj_inc, traj_lessthan, tsep_k_pi, tsep_pipi, Lt, data_dir);
   type1234Data type4 = readType(4, traj_start, traj_inc, traj_lessthan, tsep_k_pi, tsep_pipi, Lt, data_dir);
 
+  std::vector<int> type1_nonzerotK = type1.getNonZeroKaonTimeslices();
+  std::vector<int> type2_nonzerotK = type2.getNonZeroKaonTimeslices();
+  std::vector<int> type3_nonzerotK = type3.getNonZeroKaonTimeslices();
   std::vector<int> type4_nonzerotK = type4.getNonZeroKaonTimeslices();
 
-  amplitudeData<rawDataDistributionZD> A0_type4_alltK = computeAmplitudeType4<computeAmplitudeAlltKcontrols>(type4);
-  //NumericVector<rawCorrelationFunctionZD> mix4_alltK = 
-  
-  rawCorrelationFunctionD bubble = readA2projectedBubble(traj_start,traj_inc,traj_lessthan,tsep_pipi,Lt,data_dir);
-  doubleJackknifeCorrelationFunctionD bubble_dj = doubleJackknifeResample(bubble);
-  
-  NumericVector<rawCorrelationFunctionZD> A0_type4_srcavg = A0_type4_alltK.sourceAverage(type4_nonzerotK);
-  rawCorrelationFunctionZD mix4_srcavg = type4.sourceAverageMixDiag();
-  
-  NumericVector<doubleJackknifeCorrelationFunctionZD> A0_type4_srcavg_dj = doubleJackknifeResample(A0_type4_srcavg);
-  doubleJackknifeCorrelationFunctionZD mix4_srcavg_dj = doubleJackknifeResample(mix4_srcavg);
+  NumericTensor<rawDataDistributionD,1> bubble = readA2projectedBubble(traj_start,traj_inc,traj_lessthan,tsep_pipi,Lt,data_dir);
+  NumericTensor<doubleJackknifeDistributionD,1> bubble_dj = bubble.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
 
-  NumericVector<doubleJackknifeCorrelationFunctionZD> alpha(10, [&](const int i){  return A0_type4_srcavg_dj[i] / mix4_srcavg_dj; } );
+  //Get the type 4 contribution without the bubble and double-jackknife resample
+  NumericTensor<rawDataDistributionD,3> A0_type4_alltK = computeAmplitudeType4<computeAmplitudeAlltKtensorControls>(type4); //[Qidx][tK][t]
+  NumericTensor<doubleJackknifeDistributionD,3> A0_type4_alltK_dj = A0_type4_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
 
-  amplitudeData<doubleJackknifeDistributionZD>  A0_type4_alltK_vacsub = doubleJackknifeResample(A0_type4_alltK);
-  A0_type4_alltK_vacsub = computeVacuumSubtraction(A0_type4_alltK_vacsub, bubble_dj, tsep_k_pi, tsep_pipi);
+  //Get and double-jackknife resample the mix4 (no bubble) diagram
+  NumericTensor<rawDataDistributionD,2> mix4_alltK({Lt,Lt}); //[tK][t]
+  for(int tK=0;tK<Lt;tK++) for(int t=0;t<Lt;t++) mix4_alltK({tK,t}) = type4(tK,t).mix();
+  NumericTensor<doubleJackknifeDistributionD,2> mix4_alltK_dj = mix4_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  
+  //tK-average the type4 and mix4 (no bubble) double-jackknife data then double-jackknife resample  
+  NumericTensor<doubleJackknifeDistributionD,2> A0_type4_srcavg_dj = A0_type4_alltK_dj.reduce(1, averageDimensionFunctor<doubleJackknifeDistributionD,3>(1, &type4_nonzerotK)); //[Qidx][t]
+  NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_dj = mix4_alltK_dj.reduce(0, averageDimensionFunctor<doubleJackknifeDistributionD,2>(0, &type4_nonzerotK)); //[t]
+   
+  //Compute alpha from the above
+  NumericTensor<doubleJackknifeDistributionD,2> alpha({10,Lt}, [&](int const *c){ return A0_type4_srcavg_dj({c[0],c[1]})/mix4_srcavg_dj({c[1]}); }); //[Qidx][t]
 
+  //Compute vacuum subtractions
+  NumericTensor<doubleJackknifeDistributionD,3> A0_type4_alltK_vacsub = A0_type4_alltK_dj.transform(multiplyBubbleFunctor<doubleJackknifeDistributionD>(bubble_dj,tsep_k_pi,tsep_pipi,Lt,1));//[Qidx][tK][t]
+  NumericTensor<doubleJackknifeDistributionD,2> mix4_alltK_vacsub = mix4_alltK_dj.transform(multiplyBubbleFunctor<doubleJackknifeDistributionD>(bubble_dj,tsep_k_pi,tsep_pipi,Lt,0)); //[tK][t]
+
+  //Source average the vacuum subtractions
+  NumericTensor<doubleJackknifeDistributionD,2> A0_type4_srcavg_vacsub = A0_type4_alltK_vacsub.reduce(1, averageDimensionFunctor<doubleJackknifeDistributionD,3>(1, &type4_nonzerotK)); //[Qidx][t]
+  NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_vacsub = mix4_alltK_vacsub.reduce(0, averageDimensionFunctor<doubleJackknifeDistributionD,2>(0, &type4_nonzerotK)); //[t]
+  
+  //Apply the bubble diagram to the type4 and mix4 data
+  A0_type4_alltK = A0_type4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,tsep_k_pi,tsep_pipi,Lt,1));
+  mix4_alltK = mix4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,tsep_k_pi,tsep_pipi,Lt,0));
+
+  //Recompute double-jackknife resamplings of full type4 and mix4
+  A0_type4_alltK_dj = A0_type4_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  mix4_alltK_dj = mix4_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+
+  //Recompute double-jackknife resamplings of full, source-averaged type4 and mix4
+  A0_type4_srcavg_dj = A0_type4_alltK_dj.reduce(1, averageDimensionFunctor<doubleJackknifeDistributionD,3>(1, &type4_nonzerotK)); //[Qidx][t]
+  mix4_srcavg_dj = mix4_alltK_dj.reduce(0, averageDimensionFunctor<doubleJackknifeDistributionD,2>(0, &type4_nonzerotK)); //[t]
+
+  //Get, double-jackknife resample and source-average the type1, type2, type3 and mix3 contributions
+  NumericTensor<rawDataDistributionD,3> A0_type1_alltK = computeAmplitudeType1<computeAmplitudeAlltKtensorControls>(type1); //[Qidx][tK][t]
+  NumericTensor<doubleJackknifeDistributionD,3> A0_type1_alltK_dj = A0_type1_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  NumericTensor<doubleJackknifeDistributionD,2> A0_type1_srcavg_dj = A0_type1_alltK_dj.reduce(1, averageDimensionFunctor<doubleJackknifeDistributionD,3>(1, &type1_nonzerotK)); //[Qidx][t]
+  
+  NumericTensor<rawDataDistributionD,3> A0_type2_alltK = computeAmplitudeType2<computeAmplitudeAlltKtensorControls>(type2); //[Qidx][tK][t]
+  NumericTensor<doubleJackknifeDistributionD,3> A0_type2_alltK_dj = A0_type2_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  NumericTensor<doubleJackknifeDistributionD,2> A0_type2_srcavg_dj = A0_type2_alltK_dj.reduce(1, averageDimensionFunctor<doubleJackknifeDistributionD,3>(1, &type2_nonzerotK)); //[Qidx][t]
+
+  NumericTensor<rawDataDistributionD,3> A0_type3_alltK = computeAmplitudeType3<computeAmplitudeAlltKtensorControls>(type3); //[Qidx][tK][t]
+  NumericTensor<doubleJackknifeDistributionD,3> A0_type3_alltK_dj = A0_type3_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  NumericTensor<doubleJackknifeDistributionD,2> A0_type3_srcavg_dj = A0_type3_alltK_dj.reduce(1, averageDimensionFunctor<doubleJackknifeDistributionD,3>(1, &type3_nonzerotK)); //[Qidx][t]
+
+  NumericTensor<rawDataDistributionD,2> mix3_alltK({Lt,Lt}); //[tK][t]
+  for(int tK=0;tK<Lt;tK++) for(int t=0;t<Lt;t++) mix3_alltK({tK,t}) = type3(tK,t).mix();
+  NumericTensor<doubleJackknifeDistributionD,2> mix3_alltK_dj = mix3_alltK.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  NumericTensor<doubleJackknifeDistributionD,1> mix3_srcavg_dj = mix3_alltK_dj.reduce(0, averageDimensionFunctor<doubleJackknifeDistributionD,2>(0, &type3_nonzerotK)); //[t]
+  
+  //Subtract the pseudoscalar operators and mix4 vacuum term
+  A0_type3_srcavg_dj = A0_type3_srcavg_dj.transform([&](int const* coord, const doubleJackknifeDistributionD &from){ return doubleJackknifeDistributionD(from - alpha(coord)*mix3_srcavg_dj(coord+1)); }); 
+  A0_type4_srcavg_dj = A0_type4_srcavg_dj.transform(
+						    [&](int const* coord, const doubleJackknifeDistributionD &from){
+						      return doubleJackknifeDistributionD(from - alpha(coord)*( mix4_srcavg_dj(coord+1) + mix4_srcavg_vacsub(coord+1) ) );
+						    }
+						    ); 
+  
+  //Perform the type 4 vacuum subtraction
+  A0_type4_srcavg_dj = A0_type4_srcavg_dj - A0_type4_srcavg_vacsub;
+
+  //Get the full double-jackknife amplitude
+  NumericTensor<doubleJackknifeDistributionD,2> A0_full_srcavg_dj = A0_type1_srcavg_dj + A0_type2_srcavg_dj + A0_type3_srcavg_dj + A0_type4_srcavg_dj;
+  
+  //Get the single-elimination jackknife distributions
+  NumericTensor<jackknifeDistributionD,2> A0_type1_srcavg_j = A0_type1_srcavg_dj.transform([](int const* coord, const doubleJackknifeDistributionD &from){ return from.toJackknife(); });
+  NumericTensor<jackknifeDistributionD,2> A0_type2_srcavg_j = A0_type2_srcavg_dj.transform([](int const* coord, const doubleJackknifeDistributionD &from){ return from.toJackknife(); });
+  NumericTensor<jackknifeDistributionD,2> A0_type3_srcavg_j = A0_type3_srcavg_dj.transform([](int const* coord, const doubleJackknifeDistributionD &from){ return from.toJackknife(); });
+  NumericTensor<jackknifeDistributionD,2> A0_type4_srcavg_j = A0_type4_srcavg_dj.transform([](int const* coord, const doubleJackknifeDistributionD &from){ return from.toJackknife(); });
+
+  NumericTensor<jackknifeDistributionD,2> A0_full_srcavg_j = A0_type1_srcavg_j + A0_type2_srcavg_j + A0_type3_srcavg_j + A0_type4_srcavg_j;
+
+  NumericTensor<jackknifeDistributionD,2> sigma = A0_full_srcavg_dj.transform([](int const *c, const doubleJackknifeDistributionD &d){ return jackknifeDistributionD(sqrt(doubleJackknifeDistributionD::covariance(d,d))); });
+
+  
 
   
 
@@ -605,3 +653,5 @@ int main(void){
   
   return 0;
 }
+
+
