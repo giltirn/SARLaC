@@ -69,6 +69,8 @@ public:
   NumericVector &operator+=(const NumericVector &r){
     for(int i=0;i<v.size();i++) v[i] += r.v[i];
   }
+
+  inline void push_back(const Numeric &b){ v.push_back(b); }
 };
 
 template<typename Numeric> 

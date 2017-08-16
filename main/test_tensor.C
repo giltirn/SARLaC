@@ -1,0 +1,68 @@
+#include<array>
+#include<vector>
+#include<complex>
+#include<iostream>
+#include<fstream>
+
+#include<numeric_tensors.h>
+
+
+
+
+int main(void){
+  typedef std::initializer_list<int> IL;
+
+  {
+    std::cout << "Tensor rank 2, size (4,4):\n";
+    size_t vol = _tensor_helper<double,2,1>::vol(IL({4,4}).begin() );
+    std::cout << "Volume: " << vol << std::endl;
+    std::cout << "Mapping:\n";
+    int unmap[2];
+    for(int i=0;i<4;i++)
+      for(int j=0;j<4;j++){
+	size_t off = _tensor_helper<double,2,1>::map(0,IL({i,j}).begin() ,IL({4,4}).begin() );      
+	std::cout << "(" << i << "," << j << ")->" << off;	
+	_tensor_helper<double,2,1>::unmap(unmap,off,IL({4,4}).begin(),vol);
+	std::cout << "->[" << unmap[0] << "," << unmap[1] << "]\n";
+      }
+      
+  }
+
+  
+  NumericTensor<double,2> t({2,2});
+  t({0,0}) = 0;
+  t({0,1}) = 1;
+  t({1,0}) = 2;
+  t({1,1}) = 3;
+
+  std::cout << "Test 2x2 matrix:\n" << t << std::endl;
+
+  NumericTensor<double,2> u({2,2});
+  u({0,0}) = 4;
+  u({0,1}) = 5;
+  u({1,0}) = 6;
+  u({1,1}) = 7;
+
+  std::cout << "Second 2x2 matrix:\n" << u << std::endl;
+  
+  NumericTensor<double,2> v = t + u;
+  std::cout << "Test 2x2 matrix sum:\n" << v << std::endl;
+
+  std::cout << "Test transform\n";
+  NumericTensor<double,2> w({2,2});
+  w({0,0}) = 1.123;
+  w({0,1}) = 6.79;
+  w({1,0}) = -5.777;
+  w({1,1}) = 9.009;
+
+  NumericTensor<unsigned int,2> wt = w.transform( [&](const int *coord, const double &from){ return (unsigned int)(fabs(from)); } );
+
+  std::cout << w << "\n->\n" << wt << std::endl;
+
+  std::cout << "Test reduce by summing over rows\n";
+  NumericTensor<double,1> wr = w.reduce(1, [](double &into, int const* coord, const NumericTensor<double,2> &m){ into = m({coord[0],0}) + m({coord[0],1}); } );
+  
+  std::cout << w << "\n->\n" << wr << std::endl;
+  
+  return 0;
+}

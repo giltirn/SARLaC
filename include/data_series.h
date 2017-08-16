@@ -44,6 +44,9 @@ public:
 
   inline const ElementType &operator[](const int i) const{ return series[i]; }
   inline ElementType &operator[](const int i){ return series[i]; }
+
+  inline void push_back(const ElementType &e){ series.push_back(e); }
+  inline void push_back(const GeneralizedCoordinate &c, const DataType &d){ series.push_back(ElementType(c,d)); }
 };
 
 template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType> 
