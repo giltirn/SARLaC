@@ -58,6 +58,8 @@ protected:
   }
 
 public:
+  superJackknifeDistribution(){}
+  
   superJackknifeDistribution(const superJackknifeLayout &_layout, const DataType &_central): layout(&_layout), ens_jacks(_layout.nEnsembles()){
     for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i), _central ); 
     cen = _central;
@@ -131,7 +133,7 @@ public:
   }
 
   void setEnsembleJackknife(const int ens_idx, const jackknifeDistribution<DataType> &j){
-    assert(j.best() == cen);
+    //assert(j.best() == cen); //this is actually not true for most jackknife
     assert(j.size() == layout->nSamplesEns(ens_idx));
     ens_jacks[ens_idx] = j;    
   }
@@ -148,6 +150,9 @@ public:
   
   const superJackknifeLayout & getLayout() const{ return *layout; }
 
+  //Only use this if you know what you're doing!
+  void setLayout(const superJackknifeLayout &to){ layout = &to; }
+  
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   superJackknifeDistribution<typename U::value_type> real() const{
     superJackknifeDistribution<typename U::value_type> out(*layout, this->best().real());
@@ -167,6 +172,70 @@ template<typename T>
 std::ostream & operator<<(std::ostream &os, const superJackknifeDistribution<T> &d){
   assert(distributionPrint<superJackknifeDistribution<T> >::printer() != NULL); distributionPrint<superJackknifeDistribution<T> >::printer()->print(os, d);
   return os;
+}
+
+
+struct EnsembleData{
+  std::string tag;
+  std::string SampleType;
+  int EnsembleSize;
+  double avg;
+  std::vector<double> values;
+};
+void read(XMLreader &reader, EnsembleData &v, const std::string &tag){
+  std::cout << "Reading EnsembleData with tag '" << tag << "'. Context contains:\n" << reader.printGroupEntries() << std::endl;
+  reader.enter(tag);
+  std::cout << "Entered '" << tag << "'. Context now contains\n" << reader.printGroupEntries() << std::endl;
+  read(reader,v.tag,"tag");
+  read(reader,v.SampleType,"SampleType");
+  read(reader,v.EnsembleSize,"EnsembleSize");
+  read(reader,v.avg,"avg");
+  read(reader,v.values,"values");
+  reader.leave();
+}
+
+void read(XMLreader &reader, superJackknifeDistribution<double> &v, const std::string &tag){
+  reader.enter(tag);
+#define GETIT(type,name) type name; read(reader,name,#name)
+
+  GETIT(std::string, SampleType);
+  assert(SampleType == "SuperJackBoot");
+  
+  GETIT(int, Nmeas);
+  GETIT(int, Nensembles);
+
+  std::vector<EnsembleData> ens;
+  read(reader,ens,"Ensembles");
+  
+  reader.leave();
+
+  //Setup the layout and superjack
+  assert(ens.size() == Nensembles);
+  
+  static std::vector<std::unique_ptr<superJackknifeLayout> > layouts; //all will be deleted at the end
+  layouts.push_back(std::unique_ptr<superJackknifeLayout>(new superJackknifeLayout));  
+  superJackknifeLayout* layout = layouts.back().get();
+
+  int meas=0;
+  double avg;
+  for(int e=0;e<ens.size();e++){
+    if(e==0) avg = ens[e].avg;
+    else if(ens[e].avg != avg) error_exit(std::cout << "parseDoubleJackknifeXML expect average on ensemble " << ens[e].tag << ", " << ens[e].avg << " to be equal to average of other ensembles, " << avg << std::endl);
+    
+    meas += ens[e].EnsembleSize;
+    if(ens[e].SampleType != "Jackknife") error_exit(std::cout << "read(XMLreader &reader, superJackknifeDistribution<double> &v, const std::string &tag) does not presently support sub-distributions that aren't jackknife\n");
+
+    layout->addEnsemble(ens[e].tag,ens[e].EnsembleSize);    
+  }
+  assert(meas == Nmeas);
+
+  v = superJackknifeDistribution<double>(*layout, avg);
+  for(int e=0;e<ens.size();e++){
+    jackknifeDistribution<double> tmp(ens[e].EnsembleSize);
+    for(int s=0;s<ens[e].EnsembleSize;s++) tmp.sample(s) = ens[e].values[s];
+    v.setEnsembleJackknife(e,tmp);
+  }
+#undef GETIT
 }
 
 

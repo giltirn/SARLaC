@@ -9,6 +9,7 @@
 #include<type_traits>
 #include<template_wizardry.h>
 #include<hdf5_serialize.h>
+#include<xml_serialize.h>
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -523,6 +524,20 @@ doubleJackknifeDistribution<DataType> jackknifeDistribution<DataType>::toDoubleJ
       out.sample(j).sample(k) = double(N-1)/(N-2) * ( this->sample(j) + this->sample(kp) - double(N)/(N-1)*Jbar );
     }
   return out;  
+}
+
+//For XML IO compatible with UKfit "boot_print" results
+template<typename DistributionType>
+struct UKvalenceDistributionContainer{
+  int Nentries;
+  std::vector<DistributionType> list;
+};
+template<typename DistributionType>
+void read(XMLreader &reader, UKvalenceDistributionContainer<DistributionType> &v, const std::string &tag){
+  reader.enter(tag);
+  read(reader,v.Nentries,"Nentries");
+  read(reader,v.list,"list");
+  reader.leave();
 }
 
 
