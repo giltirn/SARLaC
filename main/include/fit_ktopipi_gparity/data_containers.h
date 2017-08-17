@@ -4,6 +4,9 @@
 struct contractionData{
   std::vector<rawDataDistributionD> d;
 
+  contractionData(): d(8){
+    mapping(0,'V',0,'A'); //touch mapping
+  }
   contractionData(const int nsample): d(8,rawDataDistributionD(nsample,0.)){
     mapping(0,'V',0,'A'); //touch mapping
   }
@@ -107,7 +110,6 @@ struct contractions{
 };
 
 
-
 class type1234Data{
   typedef contractions tdata; //data associated with given t, i.e. the contractions
   typedef std::vector<tdata> tKdata;  //data associated with a given tK, i.e. Lt * tdata
@@ -119,7 +121,12 @@ class type1234Data{
   int nsample;
   int ncontract;
   int nextra;
+
+  friend void write(HDF5writer &writer, const type1234Data &value, const std::string &tag);
+  friend void read(HDF5reader &reader, type1234Data &value, const std::string &tag);
 public:
+  type1234Data(){}
+  
   type1234Data(const int _type, const int _Lt, const int _nsample): type(_type),Lt(_Lt), nsample(_nsample), nextra(0){
     switch(type){
     case 1:
@@ -196,6 +203,123 @@ public:
   }  
     
 };
+
+
+
+
+#ifdef HAVE_HDF5
+void write(HDF5writer &writer, const type1234Data &value, const std::string &tag){
+  static const std::string fname("write(HDF5writer &, const type1234Data &, const std::string &)");
+  boost::timer::auto_cpu_timer total_time;
+  boost::timer::cpu_timer timer;
+  timer.start();
+  writer.enter(tag);
+  write(writer,"type1234Data","containertype");
+  write(writer,value.type,"type");
+  write(writer,value.Lt,"Lt");
+  write(writer,value.nsample,"nsample");
+  write(writer,value.ncontract,"ncontract");
+  write(writer,value.nextra,"nextra");
+  timer.stop();
+  std::cout << fname << " Initial metadata " << timer.elapsed().wall/1e9 << "s\n";
+  
+  //Have to do this manually or the metadata causes the file size to explode
+  std::vector<double> data(value.Lt*value.Lt*value.ncontract*8*value.nsample);
+
+  timer.start();
+  for(int tK=0;tK<value.Lt;tK++)
+    for(int t=0;t<value.Lt;t++)
+      for(int c=0;c<value.ncontract;c++)
+	for(int d=0;d<8;d++)
+	  for(int s=0;s<value.nsample;s++)
+	    data[ s + value.nsample*(d + 8*(c + value.ncontract*(t + value.Lt*tK))) ] = value(tK,t).con[c].d[d].sample(s);
+  timer.stop();
+  std::cout << fname << " Collect contraction data " << timer.elapsed().wall/1e9 << "s\n";
+
+  timer.start();
+  write(writer,data,"con_data");
+  timer.stop();
+  std::cout << fname << " Write contraction data " << timer.elapsed().wall/1e9 << "s, " << double(data.size()*sizeof(double))/double(timer.elapsed().wall) << " GB/s\n" ;
+
+  timer.start();
+  if(value.nextra > 0){
+    data.resize(value.Lt*value.Lt*value.nextra*value.nsample);
+    for(int tK=0;tK<value.Lt;tK++)
+      for(int t=0;t<value.Lt;t++)
+	for(int e=0;e<value.nextra;e++)
+	  for(int s=0;s<value.nsample;s++)
+	    data[ s + value.nsample*(e + value.nextra*(t + value.Lt*tK)) ] = value(tK,t).extra[e].sample(s);
+    timer.stop();
+    std::cout << fname << " Collect extra data " << timer.elapsed().wall/1e9 << "s\n";
+
+    timer.start();
+    write(writer,data,"extra_data");
+    timer.stop();
+    std::cout << fname << " Write extra data " << timer.elapsed().wall/1e9 << "s, " << double(data.size()*sizeof(double))/double(timer.elapsed().wall) << " GB/s\n" ;
+  }
+    
+  writer.leave();
+}
+void read(HDF5reader &reader, type1234Data &value, const std::string &tag){
+  static const std::string fname("read(HDF5writer &, type1234Data &, const std::string &)");
+  boost::timer::auto_cpu_timer total_time;
+  boost::timer::cpu_timer timer;
+
+  timer.start();
+  reader.enter(tag);
+  std::string type;
+  read(reader,type,"containertype");
+  assert(type == "type1234Data");
+  read(reader,value.type,"type");
+  read(reader,value.Lt,"Lt");
+  read(reader,value.nsample,"nsample");
+  read(reader,value.ncontract,"ncontract");
+  read(reader,value.nextra,"nextra");
+  timer.stop();
+  std::cout << fname << " Initial metadata " << timer.elapsed().wall/1e9 << "s\n";
+
+  value.data.resize(value.Lt, type1234Data::tKdata(value.Lt, type1234Data::tdata(value.nsample,value.ncontract,value.nextra)));
+  
+  std::vector<double> data(value.Lt*value.Lt*value.ncontract*8*value.nsample);
+
+  timer.start();
+  read(reader,data,"con_data");
+  timer.stop();
+  std::cout << fname << " Read contraction data " << timer.elapsed().wall/1e9 << "s, " << double(data.size()*sizeof(double))/double(timer.elapsed().wall) << " GB/s\n" ;
+
+  timer.start();
+  for(int tK=0;tK<value.Lt;tK++)
+    for(int t=0;t<value.Lt;t++)
+      for(int c=0;c<value.ncontract;c++)
+	for(int d=0;d<8;d++)
+	  for(int s=0;s<value.nsample;s++)
+	    value.data[tK][t].con[c].d[d].sample(s) = data[ s + value.nsample*(d + 8*(c + value.ncontract*(t + value.Lt*tK))) ];
+  timer.stop();
+  std::cout << fname << " Poke contraction data " << timer.elapsed().wall/1e9 << "s\n";
+
+  
+  if(value.nextra > 0){
+    data.resize(value.Lt*value.Lt*value.nextra*value.nsample);
+    timer.start();
+    read(reader,data,"extra_data");
+    timer.stop();
+    std::cout << fname << " Read extra data " << timer.elapsed().wall/1e9 << "s, " << double(data.size()*sizeof(double))/double(timer.elapsed().wall) << " GB/s\n" ;
+
+    timer.start();
+    for(int tK=0;tK<value.Lt;tK++)
+      for(int t=0;t<value.Lt;t++)
+	for(int e=0;e<value.nextra;e++)
+	  for(int s=0;s<value.nsample;s++)
+	    value.data[tK][t].extra[e].sample(s) = data[ s + value.nsample*(e + value.nextra*(t + value.Lt*tK)) ];
+    timer.stop();
+    std::cout << fname << " Poke extra data " << timer.elapsed().wall/1e9 << "s\n";
+  }
+  
+  reader.leave();
+}
+#endif
+
+
 
 
 #endif

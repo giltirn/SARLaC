@@ -56,4 +56,72 @@ NumericTensor<rawDataDistributionD,1> readA2projectedBubble(const int traj_start
 }
 
 
+#ifdef HAVE_HDF5
+void writeBubble(HDF5writer &writer, const NumericTensor<rawDataDistributionD,1> &value, const std::string &tag){
+  boost::timer::auto_cpu_timer total_time("writeBubble(HDF5writer &, const NumericTensor<rawDataDistributionD,1> &, const std::string &)  %w s\n");
+  writer.enter(tag);
+  int size = value.size(0);
+  int nsample = value({0}).size();
+  
+  write(writer, size, "size");
+  write(writer, nsample, "nsample");
+
+  std::vector<double> data(size * nsample);
+  for(int i=0;i<size;i++)
+    for(int s=0;s<nsample;s++)
+      data[s + nsample*i] = value(&i).sample(s);
+  write(writer, data, "data");
+  writer.leave();
+}
+void readBubble(HDF5reader &reader, NumericTensor<rawDataDistributionD,1> &value, const std::string &tag){
+  boost::timer::auto_cpu_timer total_time("readBubble(HDF5writer &, NumericTensor<rawDataDistributionD,1> &, const std::string &)  %w s\n");
+  reader.enter(tag);
+  int size;
+  int nsample;
+  
+  read(reader, size, "size");
+  read(reader, nsample, "nsample");
+
+  std::vector<double> data(size * nsample);
+  read(reader, data, "data");
+
+  value.resize(&size, rawDataDistributionD(nsample));
+  
+  for(int i=0;i<size;i++)
+    for(int s=0;s<nsample;s++)
+      value(&i).sample(s) = data[s + nsample*i];
+
+  reader.leave();
+}
+#endif
+
+NumericTensor<rawDataDistributionD,1> getA2projectedBubble(const Args &args, const CMDline &cmdline){
+  NumericTensor<rawDataDistributionD,1> bubble;
+  if(cmdline.load_data_checkpoint){
+#ifdef HAVE_HDF5
+    std::ostringstream file; file << cmdline.load_data_checkpoint_stub << "_bubble.hdf5";
+    std::cout << "Loading checkpoint data for bubble from " << file.str() << std::endl;
+    HDF5reader rd(file.str());
+    readBubble(rd,bubble,"bubble");
+#else
+    error_exit(std::cout << "Checkpointing of data requires HDF5\n");
+#endif
+  }else{
+    bubble = readA2projectedBubble(args.traj_start,args.traj_inc,args.traj_lessthan,args.tsep_pipi,args.Lt,args.data_dir);
+  }
+  if(cmdline.save_data_checkpoint){
+#ifdef HAVE_HDF5
+    std::ostringstream file; file << cmdline.save_data_checkpoint_stub << "_bubble.hdf5";
+    std::cout << "Saving checkpoint data for bubble to " << file.str() << std::endl;
+    HDF5writer wr(file.str());
+    writeBubble(wr,bubble,"bubble");
+#else
+    error_exit(std::cout << "Checkpointing of data requires HDF5\n");
+#endif
+  }
+  return bubble;
+}
+
+
+
 #endif

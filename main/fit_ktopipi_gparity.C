@@ -12,12 +12,14 @@
 #include<numeric_tensors.h>
 #include<correlationfunction.h>
 #include<fit_wrapper.h>
-#include <parser.h>
+#include<parser.h>
+#include<hdf5_serialize.h>
 
 #include <fit_pipi_gparity/data_containers.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/read_data.h>
 
+#include <fit_ktopipi_gparity/cmdline.h>
 #include <fit_ktopipi_gparity/args.h>
 #include <fit_ktopipi_gparity/data_containers.h>
 #include <fit_ktopipi_gparity/read_data.h>
@@ -45,19 +47,21 @@ int main(const int argc, const char* argv[]){
   }
   assert( (args.traj_lessthan - args.traj_start) % args.traj_inc == 0 );  
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
+
+  CMDline cmdline(argc,argv,2);
   
   typedef FitKtoPiPi FitFunc;
   std::vector<typename FitFunc::Params> guess(10);
 
   //Read the bubble data
-  NumericTensor<rawDataDistributionD,1> bubble = readA2projectedBubble(args.traj_start,args.traj_inc,args.traj_lessthan,args.tsep_pipi,args.Lt,args.data_dir);
+  NumericTensor<rawDataDistributionD,1> bubble = getA2projectedBubble(args,cmdline); 
   NumericTensor<doubleJackknifeDistributionD,1> bubble_dj = bubble.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
 
   //Read and prepare the amplitude data for fitting
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit(10);
   std::vector<NumericVector<jackknifeDistributionD> > sigma_fit(10);
   for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++)
-    getData(A0_fit,sigma_fit,bubble,bubble_dj,tsep_k_pi_idx,args);
+    getData(A0_fit,sigma_fit,bubble,bubble_dj,tsep_k_pi_idx,args,cmdline);
   
   std::cout << "Including " << A0_fit[0].size() << " data points in fit\n";
   for(int q=0;q<10;q++){

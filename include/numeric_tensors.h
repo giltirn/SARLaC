@@ -392,6 +392,15 @@ public:
   }
   inline void resize(const std::vector<int> & _size){ return resize(_size.data()); } 
   inline void resize(std::initializer_list<int> _size){ return resize(_size.begin()); } 
+
+  inline void resize(int const* _size, const DataType &init){
+    dsizes = std::vector<int>(_size,_size+Rank);
+    vol = helper::vol(_size);
+    data.resize(vol,init);
+  }
+  inline void resize(const std::vector<int> & _size, const DataType &init){ return resize(_size.data(),init); } 
+  inline void resize(std::initializer_list<int> _size, const DataType &init){ return resize(_size.begin(),init); } 
+
   
   inline const DataType &operator()(std::initializer_list<int> elem) const{
     return data[map(elem.begin())];

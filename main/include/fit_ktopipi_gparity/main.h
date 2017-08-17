@@ -96,12 +96,43 @@ struct multiplyBubbleFunctor{
 //Read and prepare the data for a particular tsep_k_pi_idx
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit, std::vector<NumericVector<jackknifeDistributionD> > &sigma_fit,
 	     const NumericTensor<rawDataDistributionD,1> &bubble, const NumericTensor<doubleJackknifeDistributionD,1> &bubble_dj,
-	     const int tsep_k_pi_idx, const Args &args){
-  type1234Data type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
-  type1234Data type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
-  type1234Data type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
-  type1234Data type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
+	     const int tsep_k_pi_idx, const Args &args, const CMDline &cmdline){
+  
+  type1234Data type1, type2, type3, type4;
 
+  if(cmdline.load_data_checkpoint){
+#ifdef HAVE_HDF5
+    std::ostringstream file; file << cmdline.load_data_checkpoint_stub << "_tsepkpi" << args.tsep_k_pi[tsep_k_pi_idx] << ".hdf5";
+    std::cout << "Loading checkpoint data for tsep_k_pi = " << args.tsep_k_pi[tsep_k_pi_idx] << " from " << file.str() << std::endl;
+    HDF5reader rd(file.str());
+    read(rd,type1,"type1");
+    read(rd,type2,"type2");
+    read(rd,type3,"type3");
+    read(rd,type4,"type4");
+#else
+    error_exit(std::cout << "Checkpointing of data requires HDF5\n");
+#endif
+  }else{
+    type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
+    type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
+    type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
+    type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
+  }
+
+  if(cmdline.save_data_checkpoint){
+#ifdef HAVE_HDF5
+    std::ostringstream file; file << cmdline.save_data_checkpoint_stub << "_tsepkpi" << args.tsep_k_pi[tsep_k_pi_idx] << ".hdf5";
+    std::cout << "Saving checkpoint data for tsep_k_pi = " << args.tsep_k_pi[tsep_k_pi_idx] << " to " << file.str() << std::endl;
+    HDF5writer wr(file.str());
+    write(wr,type1,"type1");
+    write(wr,type2,"type2");
+    write(wr,type3,"type3");
+    write(wr,type4,"type4");
+#else
+    error_exit(std::cout << "Checkpointing of data requires HDF5\n");
+#endif
+  }
+  
   const int nsample = type1.getNsample();
   
   std::vector<int> type1_nonzerotK = type1.getNonZeroKaonTimeslices();
