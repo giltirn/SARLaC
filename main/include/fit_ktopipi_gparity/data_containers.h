@@ -121,9 +121,10 @@ class type1234Data{
   int nsample;
   int ncontract;
   int nextra;
-
+#ifdef HAVE_HDF5
   friend void write(HDF5writer &writer, const type1234Data &value, const std::string &tag);
   friend void read(HDF5reader &reader, type1234Data &value, const std::string &tag);
+#endif
 public:
   type1234Data(){}
   

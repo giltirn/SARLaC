@@ -35,12 +35,12 @@ protected:
   void serialize(Archive & ar, const unsigned int version){
     ar & _data;
   }
-
+#ifdef HAVE_HDF5
   template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type>
   friend void write(HDF5writer &writer, const DistributionType &value, const std::string &tag);
   template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type>
   friend void read(HDF5reader &reader, DistributionType &value, const std::string &tag);
-  
+#endif
 public:
   distribution(){}
   distribution(const distribution &r): _data(r._data){}
@@ -284,12 +284,12 @@ template<typename _DataType>
 class jackknifeCdistribution: public jackknifeDistribution<_DataType>{
   _DataType cen;
   typedef jackknifeDistribution<_DataType> baseType;
-
+#ifdef HAVE_HDF5
   template<typename T>
   friend void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag);
   template<typename T>
   friend void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::string &tag);
-  
+#endif
 public:
   typedef _DataType DataType;
   
