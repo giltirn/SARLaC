@@ -101,6 +101,12 @@ if test "x$with_hdf5" = "xyes"; then
    PKG_CHECK_MODULES([HDF5], [hdf5 >= 0 ], [AC_DEFINE([HAVE_HDF5], [1], [Use HDF5])   ], [AC_MSG_FAILURE([HDF5 version required])])
    LIBS="$HDF5_LIBS -lhdf5_cpp $LIBS"
    CPPFLAGS="$HDF5_CFLAGS $CPPFLAGS"
+elif test "x$with_hdf5" != "xno"; then
+  CPPFLAGS="-I${with_hdf5}/include $CPPFLAGS"
+  LDFLAGS="-L${with_hdf5}/lib $LDFLAGS"
+  AC_CHECK_LIB([hdf5],[main], [LIBS="-lhdf5 $LIBS"], [AC_MSG_FAILURE([Could not link to HDF5])])	
+  AC_CHECK_LIB([hdf5_cpp],[main], [LIBS="-lhdf5_cpp $LIBS"], [AC_MSG_FAILURE([Could not link to HDF5 C++ library])])	
+  AC_DEFINE([HAVE_HDF5], [1], [Use HDF5])
 fi
 
 
