@@ -491,6 +491,48 @@ inline std::ostream & operator<<(std::ostream &os, const NumericTensor<T,R> &t){
 }
 
 
+//Functor for tensor reduction by average
+template<typename T, int Rank>
+struct averageDimensionFunctor{
+  const int dim;
+  std::vector<int> const* use;
+  
+  averageDimensionFunctor(const int _dim, std::vector<int> const*_use = NULL): dim(_dim), use(_use){}
+  
+  void operator()(T &o, int const *coord, const NumericTensor<T,Rank> &from) const{
+    int full_coord[Rank];
+    int i=0; for(int ii=0;ii<Rank;ii++) if(ii!=dim) full_coord[ii] = coord[i++];    
+    zeroit(o);
+    if(use != NULL){
+      assert(use->size()> 0);
+      full_coord[dim] = use->at(0);
+      o = from(full_coord);      
+      for(int i=1;i<use->size();i++){
+	full_coord[dim] = use->at(i);
+	o = o + from(full_coord);
+      }
+      o = o/double(use->size());
+    }else{
+      assert(from.size(dim)>0);
+      full_coord[dim] = 0;
+      o = from(full_coord);
+      for(int i=1;i<from.size(dim);i++){
+	full_coord[dim] = i;
+	o = o + from(full_coord);
+      }
+      o = o/double(from.size(dim));
+    }
+  }
+};
+    
+template<typename Resampled, typename Raw>
+struct resampleFunctor{
+  inline Resampled operator()(int const* coord,const Raw &from) const{
+    Resampled o(from.size());
+    o.resample(from);
+    return o;
+  }
+};
 
 
 #include<numeric_tensors_ET.h>
