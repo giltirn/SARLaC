@@ -97,7 +97,8 @@ struct multiplyBubbleFunctor{
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit, std::vector<NumericVector<jackknifeDistributionD> > &sigma_fit,
 	     const NumericTensor<rawDataDistributionD,1> &bubble, const NumericTensor<doubleJackknifeDistributionD,1> &bubble_dj,
 	     const int tsep_k_pi_idx, const Args &args, const CMDline &cmdline){
-  
+  std::cout << "Getting data for tsep_k_pi = " <<  args.tsep_k_pi[tsep_k_pi_idx] << std::endl;
+
   type1234Data type1, type2, type3, type4;
 
   if(cmdline.load_data_checkpoint){
@@ -198,7 +199,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   A0_type3_srcavg_dj = A0_type3_srcavg_dj.transform([&](int const* coord, const doubleJackknifeDistributionD &from){ return doubleJackknifeDistributionD(from - alpha(coord)*mix3_srcavg_dj(coord+1)); }); 
   A0_type4_srcavg_dj = A0_type4_srcavg_dj.transform(
 						    [&](int const* coord, const doubleJackknifeDistributionD &from){
-						      return doubleJackknifeDistributionD(from - alpha(coord)*( mix4_srcavg_dj(coord+1) + mix4_srcavg_vacsub(coord+1) ) );
+						      return doubleJackknifeDistributionD(from - alpha(coord)*( mix4_srcavg_dj(coord+1) - mix4_srcavg_vacsub(coord+1) ) );
 						    }
 						    ); 
   
