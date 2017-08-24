@@ -14,7 +14,11 @@ struct iterate<doubleJackknifeDistribution<T> >{
   static inline T & at(const int i, doubleJackknifeDistribution<T> &from){
     const int nn = from.size()-1;
     return from.sample(i/nn).sample(i%nn);
-  }    
+  }
+  static inline std::vector<int> unmap(const int i, const doubleJackknifeDistribution<T> &from){ 
+    const int nn = from.size()-1;
+    return std::vector<int>({i/nn, i%nn});
+  }
 };
 template<typename T>
 struct iterate<rawDataDistribution<T> >{
@@ -24,10 +28,48 @@ struct iterate<rawDataDistribution<T> >{
   }
   static inline T & at(const int i, rawDataDistribution<T> &from){
     return from.sample(i);
-  }    
+  }
+  static inline std::vector<int> unmap(const int i, const rawDataDistribution<T> &from){ 
+    return std::vector<int>({i});
+  }
 };
-
-  
+template<typename T>
+struct iterate<jackknifeDistribution<T> >{
+  static inline int size(const jackknifeDistribution<T> &from){ return from.size(); } 
+  static inline const T& at(const int i, const jackknifeDistribution<T> &from){
+    return from.sample(i);
+  }
+  static inline T & at(const int i, jackknifeDistribution<T> &from){
+    return from.sample(i);
+  }
+  static inline std::vector<int> unmap(const int i, const jackknifeDistribution<T> &from){ 
+    return std::vector<int>({i});
+  }
+};
+template<typename T, int N>
+struct iterate<NumericTensor<T,N> >{
+  static inline int size(const NumericTensor<T,N> &from){ 
+    int sz = 1;
+    for(int i=0;i<N;i++) sz *= from.size(i);
+    return sz;
+  }
+  static inline std::vector<int> unmap(int i, const NumericTensor<T,N> &from){ 
+    std::vector<int> coord(N);
+    for(int d=N-1;d>=0;d--){
+      coord[d] = i % from.size(d);
+      i /= from.size(d);
+    }
+    return coord;
+  }    
+  static inline const T& at(const int i, const NumericTensor<T,N> &from){
+    std::vector<int> coord = unmap(i,from);
+    return from(coord.data());
+  }
+  static inline T & at(const int i, NumericTensor<T,N> &from){
+    std::vector<int> coord = unmap(i,from);
+    return from(coord.data());
+  }
+};  
 
 template<typename distributionType>
 struct multiplyBubbleFunctor{
@@ -113,6 +155,23 @@ NumericTensor<doubleJackknifeDistributionD,1> resampleAverageMixDiagram(const Nu
   return out;
 }
 
+template<typename DistributionType,int N>
+void writeToTextFile(const NumericTensor<DistributionType,N> &m, const std::string &filename){
+  std::ofstream of(filename.c_str());
+  int NN = iterate<NumericTensor<DistributionType,N> >::size(m);
+  for(int i=0;i<NN;i++){
+    std::vector<int> coord = iterate<NumericTensor<DistributionType,N> >::unmap(i,m);
+    const DistributionType &dist = m(coord.data());
+    int SS = iterate<DistributionType>::size(dist);
+    for(int s=0;s<SS;s++){
+      std::vector<int> sample = iterate<DistributionType>::unmap(s,dist);
+      for(int cc=0;cc<coord.size();cc++) of << coord[cc] << " ";
+      for(int ss=0;ss<sample.size();ss++) of << sample[ss] << " ";
+      of << iterate<DistributionType>::at(s,dist) << std::endl;
+    }
+  }
+  of.close();
+}
 
 
 
@@ -121,6 +180,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	     const NumericTensor<rawDataDistributionD,1> &bubble, const NumericTensor<doubleJackknifeDistributionD,1> &bubble_dj,
 	     const int tsep_k_pi_idx, const Args &args, const CMDline &cmdline){
   std::cout << "Getting data for tsep_k_pi = " <<  args.tsep_k_pi[tsep_k_pi_idx] << std::endl;
+  int tsep_k_pi = args.tsep_k_pi[tsep_k_pi_idx];
 
   type1234Data type1, type2, type3, type4;
 
@@ -137,16 +197,16 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
     error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
   }else{
-    type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
-    type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
-    type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
-    type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_k_pi[tsep_k_pi_idx], args.tsep_pipi, args.Lt, args.data_dir);
+    type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, args.data_dir);
+    type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, args.data_dir);
+    type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, args.data_dir);
+    type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, args.data_dir);
   }
 
   if(cmdline.save_data_checkpoint){
 #ifdef HAVE_HDF5
     std::ostringstream file; file << cmdline.save_data_checkpoint_stub << "_tsepkpi" << args.tsep_k_pi[tsep_k_pi_idx] << ".hdf5";
-    std::cout << "Saving checkpoint data for tsep_k_pi = " << args.tsep_k_pi[tsep_k_pi_idx] << " to " << file.str() << std::endl;
+    std::cout << "Saving checkpoint data for tsep_k_pi = " << tsep_k_pi << " to " << file.str() << std::endl;
     HDF5writer wr(file.str());
     write(wr,type1,"type1");
     write(wr,type2,"type2");
@@ -160,9 +220,13 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   const int nsample = type1.getNsample();
   
   std::vector<int> type1_nonzerotK = type1.getNonZeroKaonTimeslices();
+  std::cout << "Type1 data non-zero for tK=" << type1_nonzerotK << std::endl;
   std::vector<int> type2_nonzerotK = type2.getNonZeroKaonTimeslices();
+  std::cout << "Type2 data non-zero for tK=" << type2_nonzerotK << std::endl;
   std::vector<int> type3_nonzerotK = type3.getNonZeroKaonTimeslices();
+  std::cout << "Type3 data non-zero for tK=" << type3_nonzerotK << std::endl;
   std::vector<int> type4_nonzerotK = type4.getNonZeroKaonTimeslices();
+  std::cout << "Type4 data non-zero for tK=" << type4_nonzerotK << std::endl;
   
   //Compute alpha and type4/mix4 vacuum subtractions
   NumericTensor<rawDataDistributionD,3> A0_type4_alltK = computeAmplitudeType4<computeAmplitudeAlltKtensorControls>(type4); //[Qidx][tK][t]
@@ -172,11 +236,25 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   NumericTensor<doubleJackknifeDistributionD,2> alpha({10,args.Lt}); //[Qidx][t]
   NumericTensor<doubleJackknifeDistributionD,2> A0_type4_srcavg_vacsub({10,args.Lt}); //[Qidx][t]
   NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_vacsub({args.Lt}); //[t]
-  computeAlphaAndVacuumSubtractions(alpha,A0_type4_srcavg_vacsub,mix4_srcavg_vacsub,A0_type4_alltK,mix4_alltK,bubble_dj,type4_nonzerotK,args.tsep_k_pi[tsep_k_pi_idx],args);
+  computeAlphaAndVacuumSubtractions(alpha,A0_type4_srcavg_vacsub,mix4_srcavg_vacsub,A0_type4_alltK,mix4_alltK,bubble_dj,type4_nonzerotK,tsep_k_pi,args);
         
+  //Save some quantities to disk for external viewing pleasure
+  {
+    std::ostringstream os; os << "alpha_tsep_k_pi" << tsep_k_pi << ".dat";
+    writeToTextFile(alpha,os.str());
+  }
+  {
+    std::ostringstream os; os << "type4_vacsub_tsep_k_pi" << tsep_k_pi << ".dat";
+    writeToTextFile(A0_type4_srcavg_vacsub,os.str());
+  }
+  {
+    std::ostringstream os; os << "mix4_vacsub_tsep_k_pi" << tsep_k_pi << ".dat";
+    writeToTextFile(mix4_srcavg_vacsub,os.str());
+  }
+
   //Apply the bubble diagram to the type4 and mix4 data
-  A0_type4_alltK = A0_type4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,args.tsep_k_pi[tsep_k_pi_idx],args.tsep_pipi,args.Lt,1));
-  mix4_alltK = mix4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,args.tsep_k_pi[tsep_k_pi_idx],args.tsep_pipi,args.Lt,0));
+  A0_type4_alltK = A0_type4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,tsep_k_pi,args.tsep_pipi,args.Lt,1));
+  mix4_alltK = mix4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,tsep_k_pi,args.tsep_pipi,args.Lt,0));
 
   //Get type1, type2, type3 and mix3 data
   NumericTensor<rawDataDistributionD,3> A0_type1_alltK = computeAmplitudeType1<computeAmplitudeAlltKtensorControls>(type1); //[Qidx][tK][t]
@@ -193,7 +271,16 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   NumericTensor<doubleJackknifeDistributionD,2> A0_type4_srcavg_dj = resampleAverageTypeData(A0_type4_alltK, type4_nonzerotK, args);
   NumericTensor<doubleJackknifeDistributionD,1> mix3_srcavg_dj = resampleAverageMixDiagram(mix3_alltK, type3_nonzerotK, args);
   NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_dj = resampleAverageMixDiagram(mix4_alltK, type4_nonzerotK, args);
-  
+
+  //Save to ASCII
+  {
+    NumericTensor<doubleJackknifeDistributionD,2> const* type_data[4] = {&A0_type1_srcavg_dj, &A0_type2_srcavg_dj, &A0_type3_srcavg_dj, &A0_type4_srcavg_dj};
+    for(int type=0;type<4;type++){
+      std::ostringstream os; os << "A0_type" << type+1 << "_dj_tsep_k_pi" << tsep_k_pi << ".dat";
+      writeToTextFile(*type_data[type], os.str());
+    }
+  }
+
   //Subtract the pseudoscalar operators and mix4 vacuum term
   A0_type3_srcavg_dj = A0_type3_srcavg_dj.transform([&](int const* coord, const doubleJackknifeDistributionD &from){ return doubleJackknifeDistributionD(from - alpha(coord)*mix3_srcavg_dj(coord+1)); }); 
   A0_type4_srcavg_dj = A0_type4_srcavg_dj.transform(
@@ -207,6 +294,12 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 
   //Get the full double-jackknife amplitude
   NumericTensor<doubleJackknifeDistributionD,2> A0_full_srcavg_dj = A0_type1_srcavg_dj + A0_type2_srcavg_dj + A0_type3_srcavg_dj + A0_type4_srcavg_dj;
+
+  {
+    std::ostringstream os; os << "A0_dj_tsep_k_pi" << tsep_k_pi << ".dat";
+    writeToTextFile(A0_full_srcavg_dj,os.str());
+  }
+
   
   //Get the single-elimination jackknife distributions
   NumericTensor<jackknifeDistributionD,2> A0_type1_srcavg_j = A0_type1_srcavg_dj.transform([](int const* coord, const doubleJackknifeDistributionD &from){ return from.toJackknife(); });
@@ -218,11 +311,21 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 
   NumericTensor<jackknifeDistributionD,2> sigma_j = A0_full_srcavg_dj.transform([](int const *c, const doubleJackknifeDistributionD &d){ return jackknifeDistributionD(sqrt(doubleJackknifeDistributionD::covariance(d,d))); });
 
+  
+  {
+    std::ostringstream os; os << "sigma_dj_tsep_k_pi" << tsep_k_pi << ".dat";
+    writeToTextFile(sigma_j,os.str());
+  }
+  {
+    std::ostringstream os; os << "A0_jack_tsep_k_pi" << tsep_k_pi << ".dat";
+    writeToTextFile(A0_full_srcavg_j,os.str());
+  }
+
   //Separate out the data in the desired fit range
   for(int q=0;q<10;q++)
     for(int t=0;t<args.Lt;t++)
-      if(t >= args.tmin_k_op && t <= args.tsep_k_pi[tsep_k_pi_idx]-args.tmin_op_pi){
-	amplitudeDataCoord coord(t,args.tsep_k_pi[tsep_k_pi_idx]);
+      if(t >= args.tmin_k_op && t <= tsep_k_pi-args.tmin_op_pi){
+	amplitudeDataCoord coord(t,tsep_k_pi);
 	A0_fit[q].push_back(coord, A0_full_srcavg_j({q,t}));
 	sigma_fit[q].push_back(sigma_j({q,t}));
       }
