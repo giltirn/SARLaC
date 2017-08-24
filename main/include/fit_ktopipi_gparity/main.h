@@ -336,12 +336,14 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 
   //Separate out the data in the desired fit range
   for(int q=0;q<10;q++)
-    for(int t=0;t<args.Lt;t++)
-      if(t >= args.tmin_k_op && t <= tsep_k_pi-args.tmin_op_pi){
+    for(int t=0;t<args.Lt;t++){
+      int tsep_op_pi = tsep_k_pi - t;
+      if(t <= tsep_k_pi && t >= args.tmin_k_op && tsep_op_pi >= args.tmin_op_pi){
 	amplitudeDataCoord coord(t,tsep_k_pi);
 	A0_fit[q].push_back(coord, A0_full_srcavg_j({q,t}));
 	sigma_fit[q].push_back(sigma_j({q,t}));
       }
+    }
 }
 
 #endif
