@@ -54,14 +54,15 @@ int main(const int argc, const char* argv[]){
   std::vector<typename FitFunc::Params> guess(10);
 
   //Read the bubble data
-  NumericTensor<rawDataDistributionD,1> bubble = getA2projectedBubble(args,cmdline); 
+  NumericTensor<rawDataDistributionD,1> bubble = getA2projectedBubble(args,cmdline);
+  NumericTensor<jackknifeDistributionD,1> bubble_j = bubble.transform(resampleFunctor<jackknifeDistributionD,rawDataDistributionD>());
   NumericTensor<doubleJackknifeDistributionD,1> bubble_dj = bubble.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
 
   //Read and prepare the amplitude data for fitting
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit(10);
   std::vector<NumericVector<jackknifeDistributionD> > sigma_fit(10);
   for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++)
-    getData(A0_fit,sigma_fit,bubble,bubble_dj,tsep_k_pi_idx,args,cmdline);
+    getData(A0_fit,sigma_fit,bubble,bubble_dj,bubble_j,tsep_k_pi_idx,args,cmdline);
   
   std::cout << "Including " << A0_fit[0].size() << " data points in fit\n";
   for(int q=0;q<10;q++){
