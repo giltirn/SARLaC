@@ -19,6 +19,7 @@ struct pod_vector_translator
     std::stringstream ss(str);
     PODtype tmp;
     while(ss){
+      if(ss.eof()) break;
       ss >> tmp;
       out.get().push_back(tmp);
     }
@@ -59,7 +60,7 @@ class XMLreader{
 public:
   XMLreader(const std::string &filename){
     std::ifstream is(filename);
-    assert(is.good());
+    if(!is.good()) error_exit(std::cout << "XMLreader::XMLreader issue with opening file " << filename << std::endl);
     read_xml(is, pt);
     group.push_back(&pt);
   }

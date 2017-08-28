@@ -41,6 +41,7 @@ protected:
   template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type>
   friend void read(HDF5reader &reader, DistributionType &value, const std::string &tag);
 #endif
+
 public:
   distribution(){}
   distribution(const distribution &r): _data(r._data){}
@@ -119,6 +120,9 @@ std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
   assert(distributionPrint<distribution<T> >::printer() != NULL); distributionPrint<distribution<T> >::printer()->print(os, d);
   return os;
 }
+
+
+
 
 #ifdef HAVE_HDF5
 
@@ -539,6 +543,29 @@ void read(XMLreader &reader, UKvalenceDistributionContainer<DistributionType> &v
   read(reader,v.list,"list");
   reader.leave();
 }
+
+template<typename T>
+void read(XMLreader &reader, jackknifeDistribution<T> &v, const std::string &tag){
+  reader.enter(tag);
+#define GETIT(type,name) type name; read(reader,name,#name)
+
+  GETIT(std::string, SampleType);
+  assert(SampleType == "Jackknife");
+  
+  GETIT(int, Nmeas);
+  GETIT(double, avg);
+  GETIT(std::vector<T>, values);
+  
+  if(values.size() != Nmeas) error_exit(std::cout << "read(XMLreader &, jackknifeDistribution<T> &, const std::string &) file states Nmeas=" << Nmeas << " but read " << values.size() << " samples!\n");
+  v.resize(Nmeas);
+  for(int i=0;i<Nmeas;i++) v.sample(i) = values[i];
+  
+#undef GETIT
+  reader.leave();
+}
+
+
+
 
 
 #include<distribution_ET.h>

@@ -1,6 +1,8 @@
 #ifndef _FIT_KTOPIPI_READ_DATA_H
 #define _FIT_KTOPIPI_READ_DATA_H
 
+#include<algorithm>
+
 inline std::string typeFile(const int traj, const int type, const int tsep_k_pi, const int tsep_pipi, const std::string &data_dir, const threeMomentum &mom = {0,0,0}){
   std::ostringstream os;
   os << data_dir << "/traj_" << traj << "_type" << type;
@@ -122,6 +124,53 @@ NumericTensor<rawDataDistributionD,1> getA2projectedBubble(const Args &args, con
   return bubble;
 }
 
+void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string &filename, const int idx){
+  XMLreader rd(filename);
+  std::cout << "readUKfitVectorEntry reading file " << filename << std::endl;
+  UKvalenceDistributionContainer<jackknifeDistribution<double> > con;
+  read(rd,con,"data_in_file");
+  std::cout << "Read " << con.Nentries << " distributions from file " << filename << std::endl;  
+  into = con.list[idx];
+}
+
+
+template<typename FitFuncPolicies>
+void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDline &cmdline, const int nsample){
+  if(!cmdline.load_freeze_data) return;
+
+  typedef typename FitFuncPolicies::jackknifeFitParameters jackknifeFitParameters;
+  jackknifeFitParameters values(nsample);
+  
+  std::vector<int> freeze;
+  FreezeParams fparams;
+  {
+    std::ifstream fi(cmdline.freeze_data.c_str());
+    fi >> fparams;
+    assert(!fi.fail());
+  }
+  for(int i=0;i<fparams.sources.size();i++){
+    if(fparams.sources[i].Qlist.size() > 0 && std::find(fparams.sources[i].Qlist.begin(), fparams.sources[i].Qlist.end(), Q) == fparams.sources[i].Qlist.end()) continue;
+    
+    std::cout << "readFrozenParams loading freeze data for parameter " << fparams.sources[i].param_idx << std::endl;
+    freeze.push_back(fparams.sources[i].param_idx);
+
+    jackknifeDistribution<double> fval;
+    if(fparams.sources[i].reader == UKfitXMLvectorReader) readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
+    else error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
+
+    if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read jackknife of size " << fval.size() << ", expected " << nsample << std::endl);
+    
+    if(fparams.sources[i].operation == Sqrt) fval = sqrt(fval);
+    else if(fparams.sources[i].operation != None) error_exit(std::cout << "readFrozenParams unknown operation " << fparams.sources[i].operation << std::endl);
+
+    std::cout << "readFrozenParams read " << fval << std::endl;
+    
+    for(int s=0;s<nsample;s++)
+      values.sample(s)(fparams.sources[i].param_idx) = fval.sample(s);    
+  }
+
+  fitter.freeze(freeze, values);
+}
 
 
 #endif

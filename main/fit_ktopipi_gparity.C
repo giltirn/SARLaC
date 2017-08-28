@@ -74,14 +74,14 @@ int main(const int argc, const char* argv[]){
   //Perform the fit
   typedef typename composeFitPolicy<amplitudeDataCoord, FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
   FitFunc fitfunc(args.AKscale, args.Apipiscale);
-
-  for(int q=0;q<10;q++){  
+  
+  for(int q=0;q<10;q++){
+    std::cout << "Starting fit for Q=" << q+1 << std::endl;
     fitter<FitPolicies> fitter;
     fitter.importFitFunc(fitfunc);
     fitter.importCostFunctionParameters(sigma_fit[q]);  
 
-    jackknifeDistribution<FitFunc::Params> freeze(nsample, FitFunc::Params(1,0.36,1,0.36,0));
-    fitter.freeze({0,1,2,3}, freeze);
+    readFrozenParams(fitter, q+1, cmdline, nsample);
   
     jackknifeDistribution<FitFunc::Params> params(nsample, guess[q]);
     jackknifeDistributionD chisq;
@@ -90,9 +90,9 @@ int main(const int argc, const char* argv[]){
 
     distributionPrint<decltype(params)>::printer(new ktopipiParamsPrinter<FitFunc>);
 
-    std::cout << "Params: " << params << std::endl;
-    std::cout << "Chisq: " << chisq << std::endl;
-    std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
+    std::cout << "Q" << q << " Params: " << params << std::endl;
+    std::cout << "Q" << q << " Chisq: " << chisq << std::endl;
+    std::cout << "Q" << q << " Chisq/dof: " << chisq_per_dof << std::endl;
   }
 
     

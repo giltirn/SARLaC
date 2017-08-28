@@ -105,7 +105,7 @@ namespace parsers{
     parser(): parse( typeid(std::vector<T>).name() ){}
 
     inline decltype(auto) get_def() const{
-      return x3::char_('(') >> elem_parser.parse[parser_tools::push_back] >> *(',' >> elem_parser.parse[parser_tools::push_back]) > ')';
+      return x3::char_('(') >> *( elem_parser.parse[parser_tools::push_back] >> *(',' >> elem_parser.parse[parser_tools::push_back]) ) > ')';
     }
   };
   template <typename T, typename Iterator, typename Context, typename Attribute>
@@ -133,8 +133,11 @@ namespace parsers{
 template<typename T>
 std::ostream & operator<<(std::ostream &os, const std::vector<T> &s){
   os << '(';
-  for(int i=0;i<s.size()-1;i++) os << s[i] << ", ";
-  os << s.back() << ')';
+  if(s.size() > 0){
+    for(int i=0;i<s.size()-1;i++) os << s[i] << ", ";
+    os << s.back();
+  }
+  os << ')';
   return os;
 }
 
