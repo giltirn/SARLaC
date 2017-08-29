@@ -55,7 +55,7 @@ public:
   typedef amplitudeDataCoord GeneralizedCoordinate; 
 
   ValueType value(const GeneralizedCoordinate &c, const ParameterType &p) const{
-    return sqrt(2.)*p.AK*p.Apipi*p.M*exp(-p.Epipi * c.tsep_k_pi)*exp( (p.mK - p.Epipi)*c.t );
+    return p.AK*p.Apipi*p.M*exp(-p.Epipi * c.tsep_k_pi)*exp( -(p.mK - p.Epipi)*c.t )/sqrt(2.);
   }
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &c, const ParameterType &p) const{
     ValueDerivativeType yderivs;
@@ -63,8 +63,8 @@ public:
     yderivs.AK = v/p.AK;
     yderivs.Apipi = v/p.Apipi;
     yderivs.M = v/p.M;
-    yderivs.Epipi = -c.tsep_k_pi*v -c.t*v;
-    yderivs.mK = c.t*v;
+    yderivs.Epipi = -c.tsep_k_pi*v +c.t*v;
+    yderivs.mK = -c.t*v;
     return yderivs;
   }
 
