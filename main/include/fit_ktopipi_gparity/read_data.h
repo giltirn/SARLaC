@@ -2,6 +2,7 @@
 #define _FIT_KTOPIPI_READ_DATA_H
 
 #include<algorithm>
+#include<expression_parse.h>
 
 inline std::string typeFile(const int traj, const int type, const int tsep_k_pi, const int tsep_pipi, const std::string &data_dir, const threeMomentum &mom = {0,0,0}){
   std::ostringstream os;
@@ -159,9 +160,15 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDlin
     else error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
 
     if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read jackknife of size " << fval.size() << ", expected " << nsample << std::endl);
-    
-    if(fparams.sources[i].operation == Sqrt) fval = sqrt(fval);
-    else if(fparams.sources[i].operation != None) error_exit(std::cout << "readFrozenParams unknown operation " << fparams.sources[i].operation << std::endl);
+
+    if(fparams.sources[i].operation != ""){
+      expressionAST AST = mathExpressionParse(fparams.sources[i].operation);
+      if(!AST.containsSymbol("x")) error_exit(std::cout << "readFrozenParams expect math expression to be a function of 'x', got \"" << fparams.sources[i].operation << "\"\n");
+      for(int s=0;s<nsample;s++){
+	AST.assignSymbol("x",fval.sample(s));
+	fval.sample(s) = AST.value();
+      }
+    }
 
     std::cout << "readFrozenParams read " << fval << std::endl;
     

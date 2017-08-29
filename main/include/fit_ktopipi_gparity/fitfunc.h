@@ -48,19 +48,11 @@ public:
     template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,FitKtoPiPi::Params>::value, int>::type = 0>
     Params(U&& expr);
   };
-private:
-    
-  const double AKscale;
-  const double Apipiscale;
 public:
   typedef double ValueType;
   typedef Params ParameterType;
   typedef Params ValueDerivativeType; //derivative wrt parameters
   typedef amplitudeDataCoord GeneralizedCoordinate; 
-
-  FitKtoPiPi(const double _AKscale = 1, const double _Apipiscale = 1e13):
-    AKscale(_AKscale), Apipiscale(_Apipiscale){}
-  
 
   ValueType value(const GeneralizedCoordinate &c, const ParameterType &p) const{
     return sqrt(2.)*p.AK*p.Apipi*p.M*exp(-p.Epipi * c.tsep_k_pi)*exp( (p.mK - p.Epipi)*c.t );

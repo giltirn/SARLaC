@@ -73,7 +73,7 @@ int main(const int argc, const char* argv[]){
 
   //Perform the fit
   typedef typename composeFitPolicy<amplitudeDataCoord, FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
-  FitFunc fitfunc(args.AKscale, args.Apipiscale);
+  FitFunc fitfunc;
   
   for(int q=0;q<10;q++){
     std::cout << "Starting fit for Q=" << q+1 << std::endl;

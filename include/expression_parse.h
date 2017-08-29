@@ -36,6 +36,9 @@ class expressionAST{
   struct UnOpTan: public UnOp{
     inline double value() const{ return tan(this->a->value()); }
   };
+  struct UnOpSqrt: public UnOp{
+    inline double value() const{ return sqrt(this->a->value()); }
+  };
   struct UnOpExp: public UnOp{
     inline double value() const{ return exp(this->a->value()); }
   };
@@ -109,7 +112,9 @@ public:
       return false;
     }
   }
-    
+  inline bool containsSymbol(const std::string &sym) const{
+    return symbols.find(sym) != symbols.end();
+  }
   
   void stackOperand(const std::string &token){
     namespace ascii = boost::spirit::x3::ascii;
@@ -148,6 +153,8 @@ public:
       unop = new UnOpCos;
     }else if(op == "tan"){
       unop = new UnOpTan;
+    }else if(op == "sqrt"){
+      unop = new UnOpSqrt;
     }else if(op == "exp"){
       unop = new UnOpExp;
     }else if(op == "log"){
@@ -269,6 +276,7 @@ class shuntingYardParser{
       operators["sin"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       operators["cos"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       operators["tan"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
+      operators["sqrt"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       operators["exp"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       operators["log"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       operators["log10"] = std::pair<int,int>(NotAnOperator,NotAnOperator);

@@ -11,19 +11,16 @@
   ( int, traj_start )						\
   ( int, traj_inc )						\
   ( int, traj_lessthan )					\
-  ( double, AKscale)						\
-  ( double, Apipiscale)
 
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
 
-  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tsep_k_pi(1,10), tmin_k_op(6), tmin_op_pi(4), traj_start(0), traj_inc(1), traj_lessthan(2), AKscale(1), Apipiscale(1e13) {}
+  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tsep_k_pi(1,10), tmin_k_op(6), tmin_op_pi(4), traj_start(0), traj_inc(1), traj_lessthan(2){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 
 
 GENERATE_ENUM_AND_PARSER(FreezeDataReaderType, (UKfitXMLvectorReader) );
-GENERATE_ENUM_AND_PARSER(DistributionOperationType, (None)(Sqrt) );
 
 #define FREEZE_PARAM_MEMBERS \
   (std::vector<int>, Qlist) \
@@ -31,13 +28,14 @@ GENERATE_ENUM_AND_PARSER(DistributionOperationType, (None)(Sqrt) );
   (FreezeDataReaderType, reader) \
   (std::string, filename) \
   (int, input_idx) \
-  (DistributionOperationType, operation)
+  (std::string, operation)
 
 struct FreezeParam{
   //If Qlist is left empty it is assumed the freeze is the same for all Q
+  //operation can be any math expression. Use the variable 'x' to represent the data.  eg operation = sqrt(1e13 * x).  Use an empty string for no operation to be performed
   GENERATE_MEMBERS(FREEZE_PARAM_MEMBERS);
 
-  FreezeParam(): param_idx(0), reader(UKfitXMLvectorReader), filename("file.dat"), input_idx(0), operation(None), Qlist(0){}
+  FreezeParam(): param_idx(0), reader(UKfitXMLvectorReader), filename("file.dat"), input_idx(0), operation(""), Qlist(0){}
 };
 GENERATE_PARSER(FreezeParam, FREEZE_PARAM_MEMBERS);
 
