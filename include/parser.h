@@ -36,10 +36,10 @@ namespace parser_tools{
   template <typename Iterator, typename Exception, typename Context>
   x3::error_handler_result
   on_error(const std::string &field, Iterator&first, Iterator const& last, Exception const& x, Context const& context){
-    std::cout
-      << "Error parsing " << field
-      << "\nin\n" << std::string(first,last)
-      << std::endl;
+    // std::cout
+    //   << "Error parsing " << field
+    //   << "\nin\n" << std::string(first,last)
+    //   << std::endl;
     return x3::error_handler_result::fail;
   }
 
