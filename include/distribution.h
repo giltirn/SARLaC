@@ -134,16 +134,12 @@ std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
 template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
 void write(HDF5writer &writer, const DistributionType &value, const std::string &tag){
   writer.enter(tag);
-  write(writer,printType<typename std::decay<DistributionType>::type>(),"type");
   write(writer,value._data,"data");
   writer.leave();
 }
 template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
 void read(HDF5reader &reader, DistributionType &value, const std::string &tag){
   reader.enter(tag);
-  std::string type;
-  read(reader,type,"type");
-  assert(type == printType<typename std::decay<DistributionType>::type>());
   read(reader,value._data,"data");  
   reader.leave();
 }
@@ -404,7 +400,6 @@ std::ostream & operator<<(std::ostream &os, const jackknifeCdistribution<T> &d){
 template<typename T>
 void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag){
   writer.enter(tag);
-  write(writer,printType<jackknifeCdistribution<T> >(),"type");
   write(writer,value.cen,"cen");
   write(writer,value._data,"data");
   writer.leave();
@@ -412,9 +407,6 @@ void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std
 template<typename T>
 void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::string &tag){
   reader.enter(tag);
-  std::string type;
-  read(reader,type,"type");
-  assert(type == printType<jackknifeCdistribution<T> >());
   read(reader,value.cen,"cen");
   read(reader,value._data,"data");  
   reader.leave();
