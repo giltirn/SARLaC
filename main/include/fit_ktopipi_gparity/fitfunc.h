@@ -73,10 +73,10 @@ public:
   typedef Params ValueDerivativeType; //derivative wrt parameters
   typedef amplitudeDataCoord GeneralizedCoordinate; 
 
-  ValueType value(const GeneralizedCoordinate &c, const ParameterType &p) const{
+  static ValueType value(const GeneralizedCoordinate &c, const ParameterType &p){
     return p.AK*p.Apipi*p.M*exp(-p.Epipi * c.tsep_k_pi)*exp( -(p.mK - p.Epipi)*c.t )/sqrt(2.);
   }
-  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &c, const ParameterType &p) const{
+  static ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &c, const ParameterType &p){
     ValueDerivativeType yderivs;
     double v = value(c,p);    
     yderivs.AK = v/p.AK;
@@ -87,7 +87,7 @@ public:
     return yderivs;
   }
 
-  inline int Nparams() const{ return 5; }
+  static inline int Nparams(){ return 5; }
 };
 
   

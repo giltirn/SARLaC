@@ -25,6 +25,7 @@
 #include <fit_ktopipi_gparity/read_data.h>
 #include <fit_ktopipi_gparity/compute_amplitude.h>
 #include <fit_ktopipi_gparity/fitfunc.h>
+#include <fit_ktopipi_gparity/plot.h>
 #include <fit_ktopipi_gparity/main.h>
 
 
@@ -77,6 +78,7 @@ int main(const int argc, const char* argv[]){
   //Perform the fit
   typedef typename composeFitPolicy<amplitudeDataCoord, FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
   FitFunc fitfunc;
+  std::vector<jackknifeDistribution<FitFunc::Params> > fit_params(10);
   
   for(int q=0;q<10;q++){
     std::cout << "Starting fit for Q=" << q+1 << std::endl;
@@ -86,19 +88,20 @@ int main(const int argc, const char* argv[]){
 
     readFrozenParams(fitter, q+1, cmdline, nsample);
   
-    jackknifeDistribution<FitFunc::Params> params(nsample, guess[q]);
+    jackknifeDistribution<FitFunc::Params> &params = fit_params[q];
+    params = jackknifeDistribution<FitFunc::Params>(nsample, guess[q]);
     jackknifeDistributionD chisq;
     jackknifeDistributionD chisq_per_dof;
     fitter.fit(params, chisq, chisq_per_dof, A0_fit[q]);
 
-    distributionPrint<decltype(params)>::printer(new ktopipiParamsPrinter<FitFunc>);
+    distributionPrint<jackknifeDistribution<FitFunc::Params> >::printer(new ktopipiParamsPrinter<FitFunc>);
 
     std::cout << "Q" << q << " Params: " << params << std::endl;
     std::cout << "Q" << q << " Chisq: " << chisq << std::endl;
     std::cout << "Q" << q << " Chisq/dof: " << chisq_per_dof << std::endl;
   }
-
-    
+  extractMdata<FitFunc> extractor(fit_params);
+  plotErrorWeightedData(A0_all_j,extractor,args);
   
   return 0;
 }

@@ -33,7 +33,7 @@ template<typename GeneralizedCoordinate, typename _fitFunc>
 class standardFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate>{
 public:
   INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs<GeneralizedCoordinate>);
-
+  typedef _fitFunc baseFitFunc;
   typedef _fitFunc fitFunc;
   typedef jackknifeDistribution<typename fitFunc::ParameterType> jackknifeFitParameters;
 
@@ -112,6 +112,7 @@ public:
 #define INHERIT_FITFUNC_POLICY_TYPEDEFS(FROM)		       \
   INHERIT_BASE_FIT_TYPEDEFS(FROM);			       \
   INHERIT_TYPEDEF(FROM,fitFunc); \
+  INHERIT_TYPEDEF(FROM,baseFitFunc); \
   INHERIT_TYPEDEF(FROM,jackknifeFitParameters); \
   INHERIT_TYPEDEF(FROM,fitFuncPolicyState)
 

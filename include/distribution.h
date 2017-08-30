@@ -47,6 +47,10 @@ public:
   distribution(const distribution &r): _data(r._data){}
   explicit distribution(const int nsample): _data(nsample){}
   distribution(const int nsample, const DataType &init): _data(nsample,init){}
+  template<typename Initializer>
+  distribution(const int nsample, const Initializer &init): _data(nsample){
+    for(int i=0;i<nsample;i++) _data[i] = init(i);
+  }	       
   distribution(distribution&& o) noexcept : _data(std::move(o._data)){}
 
   ENABLE_GENERIC_ET(distribution, distribution<_DataType>);
@@ -168,6 +172,8 @@ public:
   rawDataDistribution(const rawDataDistribution &r): baseType(r){}
   explicit rawDataDistribution(const int nsample): baseType(nsample){}
   rawDataDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
+  template<typename Initializer>
+  rawDataDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   rawDataDistribution(rawDataDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   ENABLE_GENERIC_ET(rawDataDistribution, rawDataDistribution<_DataType>);
@@ -252,6 +258,8 @@ public:
   jackknifeDistribution(const jackknifeDistribution &r): baseType(r){}
   explicit jackknifeDistribution(const int nsample): baseType(nsample){}
   jackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
+  template<typename Initializer>
+  jackknifeDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   jackknifeDistribution(jackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   ENABLE_GENERIC_ET(jackknifeDistribution, jackknifeDistribution<_DataType>);
@@ -304,6 +312,10 @@ public:
   jackknifeCdistribution(const jackknifeCdistribution &r) = default;
   explicit jackknifeCdistribution(const int nsample): baseType(nsample){}
   jackknifeCdistribution(const int nsample, const DataType &init): baseType(nsample,init), cen(init){}
+  template<typename Initializer>
+  jackknifeCdistribution(const int nsample, const Initializer &init): baseType(nsample,init){
+    cen = this->mean();
+  }
   jackknifeCdistribution(jackknifeCdistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   typedef jackknifeCdistribution<DataType> ET_tag;
@@ -462,6 +474,8 @@ public:
   explicit doubleJackknifeDistribution(const int nsample): baseType(nsample, DataType(nsample-1)){}
   doubleJackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
   doubleJackknifeDistribution(const int nsample, const BaseDataType &init): baseType(nsample,DataType(nsample-1,init)){}
+  template<typename Initializer>
+  doubleJackknifeDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
   ENABLE_GENERIC_ET(doubleJackknifeDistribution, doubleJackknifeDistribution<BaseDataType>);
