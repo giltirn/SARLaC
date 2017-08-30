@@ -4,14 +4,33 @@
 #include<parser.h>
 
 struct amplitudeDataCoord{
-  double t;
+  double t; //K->op separation
   int tsep_k_pi;
+  inline amplitudeDataCoord(){}
   inline amplitudeDataCoord(double _t, int _tsep_k_pi): t(_t), tsep_k_pi(_tsep_k_pi){}
 };
 std::ostream & operator<<(std::ostream &os, const amplitudeDataCoord &c){
   os << "(t=" << c.t << ", tsep_k_pi=" << c.tsep_k_pi << ")";
   return os;
 }
+#ifdef HAVE_HDF5
+
+void write(HDF5writer &writer, const amplitudeDataCoord &value, const std::string &tag){
+  writer.enter(tag);
+  write(writer,value.t, "t");
+  write(writer,value.tsep_k_pi, "tsep_k_pi");
+  writer.leave();
+}
+void read(HDF5reader &reader, amplitudeDataCoord &value, const std::string &tag){
+  reader.enter(tag);
+  read(reader,value.t, "t");
+  read(reader,value.tsep_k_pi, "tsep_k_pi");
+  reader.leave();
+}
+
+#endif
+
+
 
 class FitKtoPiPi{
 public:

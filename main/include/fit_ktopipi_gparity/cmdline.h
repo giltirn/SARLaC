@@ -12,6 +12,11 @@ struct CMDline{
   bool save_data_checkpoint;
   std::string save_data_checkpoint_stub;
 
+  bool load_amplitude_data;
+  std::string load_amplitude_data_file;
+  bool save_amplitude_data;
+  std::string save_amplitude_data_file;
+  
   bool load_freeze_data;
   std::string freeze_data;
   
@@ -19,6 +24,8 @@ struct CMDline{
     load_guess = false;
     load_data_checkpoint = false;
     save_data_checkpoint = false;
+    load_amplitude_data = false;
+    save_amplitude_data = false;
     load_freeze_data = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
@@ -47,6 +54,14 @@ struct CMDline{
 	save_data_checkpoint = true;
 	save_data_checkpoint_stub = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-load_amplitude_data"){
+	load_amplitude_data = true;
+	load_amplitude_data_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_amplitude_data"){
+	save_amplitude_data = true;
+	save_amplitude_data_file = sargv[i+1];
+	i+=2;	
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];

@@ -13,6 +13,14 @@ public:
   typedef _PairType<GeneralizedCoordinate, DataType> ElementType;
 private:
   std::vector<ElementType> series;
+
+#ifdef HAVE_HDF5
+  template<typename C, typename D, template<typename,typename> class P>
+  friend void write(HDF5writer &writer, const dataSeries<C,D,P> &value, const std::string &tag);
+  template<typename C, typename D, template<typename,typename> class P>
+  friend void read(HDF5reader &reader, dataSeries<C,D,P> &value, const std::string &tag);
+#endif
+  
 public:
   dataSeries(){}
   explicit dataSeries(const int n): series(n){}
@@ -56,6 +64,23 @@ std::ostream & operator<<(std::ostream & stream, const dataSeries<_GeneralizedCo
     stream << "{" << series.coord(i) << " " << series.value(i) << "}" << (i != series.size()-1 ? " " : ")");
   return stream;
 }
+#ifdef HAVE_HDF5
+template<typename C, typename D, template<typename,typename> class P>
+void write(HDF5writer &writer, const dataSeries<C,D,P> &value, const std::string &tag){
+  writer.enter(tag);
+  write(writer,value.series,"series");
+  writer.leave();
+}
+template<typename C, typename D, template<typename,typename> class P>
+void read(HDF5reader &reader, dataSeries<C,D,P> &value, const std::string &tag){
+  reader.enter(tag);
+  read(reader,value.series,"series");
+  reader.leave();
+}
+
+#endif
+
+
 
 
 //Generic filter interface for a data series, allowing for example restriction of data for fitting

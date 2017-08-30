@@ -53,16 +53,19 @@ int main(const int argc, const char* argv[]){
   typedef FitKtoPiPi FitFunc;
   std::vector<typename FitFunc::Params> guess(10);
 
-  //Read the bubble data
-  NumericTensor<rawDataDistributionD,1> bubble = getA2projectedBubble(args,cmdline);
-  NumericTensor<jackknifeDistributionD,1> bubble_j = bubble.transform(resampleFunctor<jackknifeDistributionD,rawDataDistributionD>());
-  NumericTensor<doubleJackknifeDistributionD,1> bubble_dj = bubble.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  //Prepare the data
+  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
+  std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_all_dj(10);
+  getData(A0_all_j, A0_all_dj,args,cmdline);
 
-  //Read and prepare the amplitude data for fitting
+  //Compute fit weights from double jackknife
+  std::vector<NumericVector<jackknifeDistributionD> > sigma_all_j(10);
+  getSigma(sigma_all_j, A0_all_dj);  
+  
+  //Pull out data in fit range
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit(10);
   std::vector<NumericVector<jackknifeDistributionD> > sigma_fit(10);
-  for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++)
-    getData(A0_fit,sigma_fit,bubble,bubble_dj,bubble_j,tsep_k_pi_idx,args,cmdline);
+  getFitData(A0_fit,sigma_fit,A0_all_j,sigma_all_j,args);
   
   std::cout << "Including " << A0_fit[0].size() << " data points in fit\n";
   for(int q=0;q<10;q++){

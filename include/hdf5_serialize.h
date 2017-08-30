@@ -248,6 +248,25 @@ inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value,
   reader.leave();
 }
 
+//Pair
+template<typename T, typename U>
+inline static void write(HDF5writer &writer, const std::pair<T,U> &value, const std::string &tag){
+  writer.enter(tag); //enter a group
+  write(writer, value.first, "first");
+  write(writer, value.second, "second");
+  writer.leave();
+}
+template<typename T, typename U>
+inline static void read(HDF5reader &reader, std::pair<T,U> &value, const std::string &tag){
+  reader.enter(tag); //enter a group
+  read(reader, value.first, "first");
+  read(reader, value.second, "second");
+  reader.leave();
+}
+
+
+
+
 
 //Example for a struct/class
 /*
