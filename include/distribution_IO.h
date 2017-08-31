@@ -153,7 +153,6 @@ void writeParamsStandard(const std::vector<DistributionOfPODtype> &params, const
 }
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void readParamsStandard(std::vector<DistributionOfPODtype> &params, const std::string &filename){  
-  std::vector<std::vector<DistributionOfPODtype> > in;
   HDF5reader reader(filename);
   
   std::string type;
@@ -162,6 +161,26 @@ void readParamsStandard(std::vector<DistributionOfPODtype> &params, const std::s
   
   read(reader, params , "value");
 }
+//As are vectors of vectors
+template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
+void writeParamsStandard(const std::vector<std::vector<DistributionOfPODtype> > &params, const std::string &filename){
+  std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << " as " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << std::endl;
+  HDF5writer writer(filename);
+  std::string type = printType<DistributionOfPODtype>();
+  write(writer, type, "distributionType");  
+  write(writer, params , "value");
+}
+template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
+void readParamsStandard(std::vector<std::vector<DistributionOfPODtype> > &params, const std::string &filename){  
+  HDF5reader reader(filename);
+  
+  std::string type;
+  read(reader, type, "distributionType");
+  assert(type == printType<DistributionOfPODtype>());  
+  
+  read(reader, params , "value");
+}
+
 
 //Distributions of structs get written to vectors of length equal to the number of struct elements. Assumes data type of struct elements can be converted to double
 template<typename DistributionOfStructType, IO_ENABLE_IF_NOT_POD(DistributionOfStructType)>   

@@ -149,7 +149,34 @@ public:
   }
   void leave(){
     group.pop_back();
-  }    
+  }
+
+  bool contains(const std::string &name) const{
+    using namespace H5;
+    if(group.back().attrExists(name.c_str())){
+      return true;
+    }else{
+      //Check if DataSet
+      bool is_dataset = true;
+      try{
+	DataSet dset = group.back().openDataSet(name.c_str());
+      }catch(H5::Exception& e){
+	is_dataset = false;
+      }
+      if(is_dataset) return true;
+
+      //Check if Group
+      bool is_group = true;
+      try{
+	Group grp = group.back().openGroup(name.c_str());
+      }catch(H5::Exception& e){
+	is_group = false;
+      }
+      if(is_group) return true;
+
+      return false;
+    }
+  }
 };
 
 
