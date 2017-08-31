@@ -142,7 +142,7 @@ int main(void){
   mlparams.output = &null_stream;
   
   std::vector<jackknifeDistribution<double> > param(2);
-  param[0] = jackknifeDistribution<double>(fit_args.nsample, 5);
+  param[0] = jackknifeDistribution<double>(fit_args.nsample, 5.);
   param[1] = jackknifeDistribution<double>(fit_args.nsample, 0.5);
 
 #pragma omp parallel for

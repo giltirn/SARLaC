@@ -117,6 +117,16 @@ public:
   inline void zero(){
     for(int i=0;i<this->size();i++) zeroit(this->sample(i));
   }
+
+  inline bool operator==(const distribution<DataType> &r) const{
+    if(r.size() != this->size()) return false;
+    for(int s=0;s<this->size();s++) if(r.sample(s) != this->sample(s)) return false;
+    return true;
+  }
+  inline bool operator!=(const distribution<DataType> &r) const{
+    return !(*this == r);
+  }
+  
 };
 
 template<typename T>
@@ -126,25 +136,6 @@ std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
 }
 
 
-
-
-#ifdef HAVE_HDF5
-
-//Generic HDF5 IO for distributions. Overwrite if you want to save extra data
-template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
-void write(HDF5writer &writer, const DistributionType &value, const std::string &tag){
-  writer.enter(tag);
-  write(writer,value._data,"data");
-  writer.leave();
-}
-template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
-void read(HDF5reader &reader, DistributionType &value, const std::string &tag){
-  reader.enter(tag);
-  read(reader,value._data,"data");  
-  reader.leave();
-}
-
-#endif
 
 
 template<typename _DataType>
@@ -183,6 +174,9 @@ public:
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
+
+  inline bool operator==(const rawDataDistribution<DataType> &r) const{ return this->distribution<DataType>::operator==(r); }
+  inline bool operator!=(const rawDataDistribution<DataType> &r) const{ return !( *this == r ); }
 };
 
 template<typename T>
@@ -277,7 +271,8 @@ public:
     return distribution<DataType>::covariance(a,b) * double(a.size()-1);  //like the standard error, the covariance of the jackknife samples is related to the covariance of the underlying distribution by a constant factor
   }
 
-
+  inline bool operator==(const jackknifeDistribution<DataType> &r) const{ return this->distribution<DataType>::operator==(r); }
+  inline bool operator!=(const jackknifeDistribution<DataType> &r) const{ return !( *this == r ); }
 };
 
 template<typename T>
@@ -386,6 +381,9 @@ public:
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
+
+  inline bool operator==(const jackknifeCdistribution<DataType> &r) const{ return (this->propagatedCentral() == r.propagatedCentral()) && this->distribution<DataType>::operator==(r); }
+  inline bool operator!=(const jackknifeCdistribution<DataType> &r) const{ return !( *this == r ); }
 };
 
 template<typename T>
@@ -393,26 +391,6 @@ std::ostream & operator<<(std::ostream &os, const jackknifeCdistribution<T> &d){
   assert(distributionPrint<jackknifeCdistribution<T> >::printer() != NULL); distributionPrint<jackknifeCdistribution<T> >::printer()->print(os, d);
   return os;
 }
-
-#ifdef HAVE_HDF5
-
-
-template<typename T>
-void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag){
-  writer.enter(tag);
-  write(writer,value.cen,"cen");
-  write(writer,value._data,"data");
-  writer.leave();
-}
-template<typename T>
-void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::string &tag){
-  reader.enter(tag);
-  read(reader,value.cen,"cen");
-  read(reader,value._data,"data");  
-  reader.leave();
-}
-
-#endif
 
 
 
@@ -498,6 +476,9 @@ public:
       out.sample(j) = this->sample(j).mean();
     return out;
   }
+
+  inline bool operator==(const doubleJackknifeDistribution<BaseDataType> &r) const{ return this->distribution<DataType>::operator==(r); }
+  inline bool operator!=(const doubleJackknifeDistribution<BaseDataType> &r) const{ return !( *this == r ); }
 };
 
 template<typename T>
@@ -536,44 +517,7 @@ doubleJackknifeDistribution<DataType> jackknifeDistribution<DataType>::toDoubleJ
   return out;  
 }
 
-//For XML IO compatible with UKfit "boot_print" results
-template<typename DistributionType>
-struct UKvalenceDistributionContainer{
-  int Nentries;
-  std::vector<DistributionType> list;
-};
-template<typename DistributionType>
-void read(XMLreader &reader, UKvalenceDistributionContainer<DistributionType> &v, const std::string &tag){
-  reader.enter(tag);
-  read(reader,v.Nentries,"Nentries");
-  read(reader,v.list,"list");
-  reader.leave();
-}
-
-template<typename T>
-void read(XMLreader &reader, jackknifeDistribution<T> &v, const std::string &tag){
-  reader.enter(tag);
-#define GETIT(type,name) type name; read(reader,name,#name)
-
-  GETIT(std::string, SampleType);
-  assert(SampleType == "Jackknife");
-  
-  GETIT(int, Nmeas);
-  GETIT(double, avg);
-  GETIT(std::vector<T>, values);
-  
-  if(values.size() != Nmeas) error_exit(std::cout << "read(XMLreader &, jackknifeDistribution<T> &, const std::string &) file states Nmeas=" << Nmeas << " but read " << values.size() << " samples!\n");
-  v.resize(Nmeas);
-  for(int i=0;i<Nmeas;i++) v.sample(i) = values[i];
-  
-#undef GETIT
-  reader.leave();
-}
-
-
-
-
-
+#include<distribution_IO.h>
 #include<distribution_ET.h>
 
 #endif

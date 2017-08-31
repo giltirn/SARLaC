@@ -6,6 +6,10 @@ struct FitParams{
   double m;
   FitParams(){}
   FitParams(const double _A, const double _m): A(_A), m(_m){}
+
+  inline double &operator()(const int i){ return i == 1 ? m : A; }
+  inline const double &operator()(const int i) const{ return i == 1 ? m : A; }
+  inline size_t size() const{ return 2;}
 };
 struct FitParamDerivs{
   double dA;

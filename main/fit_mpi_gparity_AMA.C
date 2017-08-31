@@ -274,6 +274,9 @@ int main(const int argc, const char** argv){
   
   plotter.write("mpi_plot.py");
 
+#ifdef HAVE_HDF5
+  writeParamsStandard(params, "params.hdf5");  
+#endif
   
   return 0;
 }

@@ -65,7 +65,7 @@ int main(void){
   MarquardtLevenbergParameters<CostType> mlparams;
   
   std::vector<jackknifeDistribution<double> > param(2);
-  param[0] = jackknifeDistribution<double>(nsample, 0);
+  param[0] = jackknifeDistribution<double>(nsample, 0.);
   param[1] = jackknifeDistribution<double>(nsample, 0.5);
 
   std::cout << "2 parameters\n";

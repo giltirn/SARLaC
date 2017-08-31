@@ -42,8 +42,8 @@ int main(const int argc, const char* argv[]){
   
   CMDline cmdline(argc,argv,2);
 
-  //typedef FitCoshPlusConstant FitFunc;
-  typedef FitCoshPlusConstantDoubleExp FitFunc;
+  typedef FitCoshPlusConstant FitFunc;
+  //typedef FitCoshPlusConstantDoubleExp FitFunc;
 
   
   FitFunc::Params guess;
@@ -193,6 +193,10 @@ int main(const int argc, const char* argv[]){
   std::cout << "Params: " << params << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
+  
+#ifdef HAVE_HDF5
+  writeParamsStandard(params, "params.hdf5");
+#endif
   
   return 0;
 }

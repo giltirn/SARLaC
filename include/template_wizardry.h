@@ -80,6 +80,15 @@ template<typename T, typename EqualsType>
 struct hasEqualsMethod<T, EqualsType, typename Void<decltype( ((T*)(NULL))->operator=( *((EqualsType*)(NULL)) ) )>::type>{
   enum{ value = 1 };
 };
+template<typename T, typename U = void>
+struct hasResizeMethod{
+  enum{ value = 0 };
+};
+template<typename T>
+struct hasResizeMethod<T, typename Void<decltype( ((T*)(NULL))->resize(0) )>::type>{
+  enum{ value = 1 };
+};
+
 
 
 template<class T, class Fallback = void>

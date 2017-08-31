@@ -104,12 +104,7 @@ int main(const int argc, const char* argv[]){
   plotErrorWeightedData(A0_all_j,extractor,args);
 
 #ifdef HAVE_HDF5
-  {
-    std::vector<jackknifeDistributionD> M(10);
-    for(int q=0;q<10;q++) M[q] = jackknifeDistributionD(nsample, [&](const int s){ return extractor.getMfit(q,s); } );
-    HDF5writer writer("result_M.hdf5");
-    write(writer, M , "value");
-  }
+  writeParamsStandard(fit_params, "params.hdf5");
 #endif
   
   return 0;
