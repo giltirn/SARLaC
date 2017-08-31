@@ -379,8 +379,8 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 void getSigma(std::vector<NumericVector<jackknifeDistributionD> > &sigma,
 	      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_all_dj){
   for(int q=0;q<10;q++){
-    sigma[q].resize(A0_all_dj.size());
-    for(int d=0;d<A0_all_dj.size();d++)
+    sigma[q].resize(A0_all_dj[q].size());
+    for(int d=0;d<A0_all_dj[q].size();d++)
       sigma[q](d) = jackknifeDistributionD(sqrt(doubleJackknifeDistributionD::covariance(A0_all_dj[q].value(d) , A0_all_dj[q].value(d) ) ) );
   }
 }
@@ -390,7 +390,7 @@ void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDis
 		const Args &args){
   //Separate out the data in the desired fit range
   for(int q=0;q<10;q++){
-    for(int d=0;d<A0_fit.size();d++){
+    for(int d=0;d<A0[q].size();d++){
       const int t = int(A0[q].coord(d).t);
       const int tsep_k_pi = A0[q].coord(d).tsep_k_pi;
       const int tsep_op_pi = tsep_k_pi - t;
