@@ -222,7 +222,7 @@ public:
   inline const T &operator()(const int i) const{ assert(i==0); return t; }
   inline int size() const{ return 1; }
   inline std::string print() const{ return anyToStr<T>(t); }
-  inline void resize(const int i){ assert(i==1); }
+  inline void resize(const int i){ if(i!=1) error_exit(std::cout << printType<MLwrapper<T> >() << " resize called with value " << i << " != 1\n"); }
   inline void zero(){ t=0.; }
   inline T& operator*(){ return t; }
   inline const T& operator*() const{ return t; }
@@ -231,7 +231,7 @@ template<typename T>
 struct getElem<MLwrapper<T> >{
   static inline T& elem(MLwrapper<T> &v, const int i){ return *v; }
   static inline const T& elem(const MLwrapper<T> &v, const int i){ return *v; }    
-  inline static int common_properties(const MLwrapper<T> &v){ return 0; }
+  inline static int common_properties(const MLwrapper<T> &v){ return 1; }
 };
 
 
