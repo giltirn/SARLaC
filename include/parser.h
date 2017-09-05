@@ -140,6 +140,30 @@ std::ostream & operator<<(std::ostream &os, const std::vector<T> &s){
   os << ')';
   return os;
 }
+//Make sure the underlying stream has std::noskipws enabled or it won't parse correctly
+template<typename T, typename std::enable_if<hasParseMember<parsers::parser<T> >::value, int>::type = 0>
+boost::spirit::istream_iterator & operator>>(boost::spirit::istream_iterator &f, T &s){ \
+  namespace ascii = boost::spirit::x3::ascii;
+  namespace x3 = boost::spirit::x3;
+
+  boost::spirit::istream_iterator l;
+  parsers::parser<T> vp;
+
+  bool r = x3::phrase_parse(f, l, vp.parse, ascii::space, s);
+
+  if(!r){
+    throw std::runtime_error("Parsing of type " BOOST_PP_STRINGIZE(NAME) " failed\n");
+  }
+  return f;
+}
+template<typename T, typename std::enable_if<hasParseMember<parsers::parser<T> >::value, int>::type = 0 >
+void parse(T &s, const std::string &filename){
+  std::ifstream is(filename.c_str());
+  is >> std::noskipws;
+  boost::spirit::istream_iterator f(is);
+  f >> s;
+}
+
 
 
 

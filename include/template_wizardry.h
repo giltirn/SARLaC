@@ -142,4 +142,17 @@ struct is_scalar<double>{ enum{value = 1}; };
 template<>
 struct is_scalar<float>{ enum{value = 1}; };
 
+
+template<typename T>
+struct hasParseMember { 
+    struct Fallback { int x; };
+    struct Derived : T, Fallback { };
+    template<typename C, C> struct ChT; 
+
+    template<typename C> static char (&f(ChT<int Fallback::*, &C::parse>*))[1]; 
+    template<typename C> static char (&f(...))[2]; 
+
+    static bool const value = sizeof(f<Derived>(0)) == 2;
+}; 
+
 #endif

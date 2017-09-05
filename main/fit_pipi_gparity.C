@@ -32,11 +32,7 @@ int main(const int argc, const char* argv[]){
   }
   {
     const std::string arg_file = argv[1];
-    std::ifstream arg_f(arg_file.c_str());
-    assert(arg_f.good());
-    arg_f >> args;
-    assert(!arg_f.bad() && !arg_f.fail());
-    arg_f.close();
+    parse(args,arg_file);
     std::cout << "Read arguments: \n" << args << std::endl;
   }
   
@@ -48,12 +44,7 @@ int main(const int argc, const char* argv[]){
   
   FitFunc::Params guess;
   if(cmdline.load_guess){
-    std::ifstream f(cmdline.guess_file.c_str());
-    assert(f.good());
-    f >> guess;
-    assert(!f.bad() && !f.fail());
-    f.close();
-
+    parse(guess, cmdline.guess_file);
     std::cout << "Loaded guess: " << guess << std::endl;
   }
 

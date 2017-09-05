@@ -144,11 +144,8 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDlin
   
   std::vector<int> freeze;
   FreezeParams fparams;
-  {
-    std::ifstream fi(cmdline.freeze_data.c_str());
-    fi >> fparams;
-    assert(!fi.fail());
-  }
+  parse(fparams,cmdline.freeze_data);
+  
   for(int i=0;i<fparams.sources.size();i++){
     if(fparams.sources[i].Qlist.size() > 0 && std::find(fparams.sources[i].Qlist.begin(), fparams.sources[i].Qlist.end(), Q) == fparams.sources[i].Qlist.end()) continue;
     

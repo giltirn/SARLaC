@@ -37,15 +37,9 @@ int main(const int argc, const char* argv[]){
     std::cout << "Wrote template argument file to template.args\n";
     return 0;
   }
-  {
-    const std::string arg_file = argv[1];
-    std::ifstream arg_f(arg_file.c_str());
-    assert(arg_f.good());
-    arg_f >> args;
-    assert(!arg_f.bad() && !arg_f.fail());
-    arg_f.close();
-    std::cout << "Read arguments: \n" << args << std::endl;
-  }
+  const std::string arg_file = argv[1];
+  parse(args, arg_file);
+  
   assert( (args.traj_lessthan - args.traj_start) % args.traj_inc == 0 );  
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
 

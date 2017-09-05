@@ -69,10 +69,8 @@ int main(const int argc, const char** argv){
   
   const std::string arg_file = argv[1];
   CMDline cmdline(argc,argv,2);
-    
-  std::ifstream arg_f(arg_file.c_str());
-  
-  arg_f >> args;
+
+  parse(args,arg_file);
 
   std::cout << "Read arguments: \n" << args << std::endl;
 
@@ -165,13 +163,14 @@ int main(const int argc, const char** argv){
   if(cmdline.load_guess){
     std::ifstream f(cmdline.guess_file.c_str());
     assert(f.good());
-    while(!f.eof()){
+    f >> std::noskipws;
+    boost::spirit::istream_iterator fiter(f), fend;
+    while(fiter != fend){
       Params p; double v;
-      f >> p >> v;
-      assert(!f.bad() && !f.fail());
+      fiter >> p >> v;
+      std::cout << "Read guess " << p << " " << v << std::endl;      
       guess(p) = v;
     }
-    f.close();
   }else{
     for(int i=1;i<guess.size();i++) guess(i) = 1e3;
     guess(Mass) = 0.5;

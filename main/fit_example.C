@@ -37,8 +37,11 @@ int main(void){
 "}";
 
   std::istringstream is(fit_args_in); //normally you would do this from an external file!
+  is >> std::noskipws;
+  boost::spirit::istream_iterator fiter(is);
+  
   TestFitArgs fit_args;
-  is >> fit_args;
+  fiter >> fit_args;
 
   std::cout << "Read arguments: \n" << fit_args << std::endl;
 

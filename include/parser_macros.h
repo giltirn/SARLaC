@@ -135,23 +135,6 @@
   return os; \
 }
 
-#define _PARSER_DEF_DEFINE_ISTREAM_READ(NAME, MEMSEQ) \
-std::istream & operator>>(std::istream &is, NAME &s){ \
-  namespace ascii = boost::spirit::x3::ascii; \
-  namespace x3 = boost::spirit::x3; \
-  \
-  is >> std::noskipws; \
-  boost::spirit::istream_iterator f(is), l; \
-  parsers::parser<NAME> vp; \
-  \
-  bool r = x3::phrase_parse(f, l, vp.parse, ascii::space, s); \
-  \
-  if(!r){ \
-    throw std::runtime_error("Parsing of type " BOOST_PP_STRINGIZE(NAME) " failed\n"); \
-  } \
-  return is; \
-}
-
 #define _GENERATE_PARSER_GM(structname, grammar, structmembers)		\
   namespace grammar{				\
     namespace ascii = boost::spirit::x3::ascii; \
@@ -164,8 +147,7 @@ std::istream & operator>>(std::istream &is, NAME &s){ \
    _PARSER_DEF_STRUCT_RULE_IMPL(structname,structmembers) \
   }; \
   _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname,grammar)	     \
-  _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers) \
-  _PARSER_DEF_DEFINE_ISTREAM_READ(structname,structmembers)
+  _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers)
 
 #define _GENERATE_PARSER(structname, structmembers) _GENERATE_PARSER_GM(structname, _PARSER_DEF_GRAMMAR_NAME(structname), structmembers)
 
@@ -228,15 +210,13 @@ std::istream & operator>>(std::istream &is, NAME &s){ \
     return os; \
   }
 
-#define _GEN_ENUM_DEFINE_ISTREAM_READ(enumname, enummembers) \
-  _PARSER_DEF_DEFINE_ISTREAM_READ(enumname, ) 
+
 
 
 #define _GENERATE_ENUM_PARSER(enumname, enummembers) \
   _GEN_ENUM_STR(enumname, enummembers)		\
   _GEN_ENUM_PARSER_BODY(enumname, enummembers) \
   _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers) \
-  _GEN_ENUM_DEFINE_ISTREAM_READ(enumname, enummembers)
 
 //Define an enum and a parser to go along with it
 //To use  GENERATE_ENUM_AND_PARSER( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
