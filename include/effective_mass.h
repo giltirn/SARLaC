@@ -122,11 +122,11 @@ jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, co
     }
     int did_fail = 0; for(int i=0;i<fail.size();i++) did_fail += fail[i];
     if(did_fail){
-      std::cout << "Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
+      std::cout << "Warning: Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
       erase[i] = true;
       erase_required = true;
     }else{
-      std::cout << effmass.coord(i) << " " << effmass.value(i) << std::endl;
+      //std::cout << effmass.coord(i) << " " << effmass.value(i) << std::endl;
     }
   }
   distributionPrint<jackknifeDistributionD>::printer(orig_printer);

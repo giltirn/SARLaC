@@ -558,6 +558,7 @@ public:
   }
   
   void createLegend(kwargsType &kwargs){
+    if(legends.size() == 0) return;
     assert(leg_handles.size() == legends.size());
     std::vector<std::string> handles_str;
     
