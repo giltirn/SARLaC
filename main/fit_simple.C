@@ -13,9 +13,14 @@
 
 //Basic fitting
 int main(const int argc, const char** argv){
-  assert(argc == 2);
-
   Args args;
+  if(argc < 2){
+    std::ofstream of("template.args");
+    (std::cout << "No parameter file provided: writing template to 'template.args' and exiting\n").flush();
+    of << args;
+    return 1;
+  }    
+  
   parse(args, argv[1]);
 
   std::vector<rawDataCorrelationFunctionD> channels(args.data.size());

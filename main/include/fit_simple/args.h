@@ -16,9 +16,10 @@ GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp) );
 //operation is a math expression. Use x to represent the data. Use an empty string to leave as-is
 
 struct DataInfo{
-  GENERATE_MEMBERS(DATA_INFO_MEMBERS)
+  GENERATE_MEMBERS(DATA_INFO_MEMBERS);
+  DataInfo(): parser(ParserStandard), operation(""), time_dep(TimeDepNormal), file_fmt("data.%d"){}
 };
-GENERATE_PARSER(DataInfo, DATA_INFO_MEMBERS)
+GENERATE_PARSER(DataInfo, DATA_INFO_MEMBERS);
 
 #define ARGS_MEMBERS \
   ( std::vector<DataInfo>, data ) \
@@ -35,10 +36,10 @@ GENERATE_PARSER(DataInfo, DATA_INFO_MEMBERS)
 
 
 struct Args{
-  GENERATE_MEMBERS(ARGS_MEMBERS)
+  GENERATE_MEMBERS(ARGS_MEMBERS);
 
-  Args(): traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1){}
+  Args(): Lt(64), combination(CombinationAverage), outer_time_dep(TimeDepNormal), correlated(false), traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1){}
 };
-GENERATE_PARSER(Args, ARGS_MEMBERS)
+GENERATE_PARSER(Args, ARGS_MEMBERS);
 
 #endif
