@@ -3,6 +3,7 @@
 
 #include<numeric_tensors.h>
 #include<template_wizardry.h>
+#include<parser.h>
 
 template<typename T>
 typename std::enable_if<std::is_floating_point<T>::value, T>::type getCoord(const int i, const T coord){ return coord; }
@@ -63,7 +64,7 @@ struct StandardFitParams{
   inline void zero(){ A=m=0.; }
   inline std::string print() const{ std::ostringstream os; os << "A: " << A << " m: " << m; return os.str(); }
 };
-inline std::ostream &operator<<(std::ostream &os, const StandardFitParams &p){ os << "A: " << p.A << " m: " << p.m; return os; }
+GENERATE_PARSER( StandardFitParams , (double,A)(double,m) );
 
 template<>
 struct getElem<StandardFitParams>{

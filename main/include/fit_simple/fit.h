@@ -83,17 +83,17 @@ template<typename FitFunc, template<typename> class CostFunctionPolicy>
 void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args);
 
 template<typename FitFunc>
-inline void fitSpecFF(const rawDataCorrelationFunctionD &data, const Args &args){
-  return args.correlated ? fitSpecFFcorr<FitFunc,correlatedFitPolicy>(data,args) : fitSpecFFcorr<FitFunc,uncorrelatedFitPolicy>(data,args);
+inline void fitSpecFF(const rawDataCorrelationFunctionD &data, const Args &args, const CMDline &cmdline){
+  return args.correlated ? fitSpecFFcorr<FitFunc,correlatedFitPolicy>(data,args,cmdline) : fitSpecFFcorr<FitFunc,uncorrelatedFitPolicy>(data,args,cmdline);
 };
-inline void fit(const rawDataCorrelationFunctionD &data, const Args &args){
+inline void fit(const rawDataCorrelationFunctionD &data, const Args &args, const CMDline &cmdline){
   switch(args.fitfunc){
   case FCosh:
-    return fitSpecFF<FitCosh>(data,args);
+    return fitSpecFF<FitCosh>(data,args,cmdline);
   case FSinh:
-    return fitSpecFF<FitSinh>(data,args);
+    return fitSpecFF<FitSinh>(data,args,cmdline);
   case FExp:
-    return fitSpecFF<FitExp>(data,args);    
+    return fitSpecFF<FitExp>(data,args,cmdline);    
   default:
     error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);
   };

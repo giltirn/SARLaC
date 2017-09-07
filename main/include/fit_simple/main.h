@@ -2,7 +2,7 @@
 #define _FIT_SIMPLE_MAIN_H_
 
 template<typename FitFunc, template<typename> class CostFunctionPolicy>
-void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args){
+void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, const CMDline &cmdline){
   typedef typename composeFitPolicy<double,FitFunc, standardFitFuncPolicy, CostFunctionPolicy>::type FitPolicies;
   typedef fitter<FitPolicies> Fitter;
   typedef typename FitPolicies::jackknifeFitParameters jackknifeFitParameters;
@@ -24,7 +24,15 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args){
 
   jackknifeCorrelationFunctionD data_j(nt_fit, [&](const int i){ return typename jackknifeCorrelationFunctionD::ElementType( data_dj.coord(i), data_dj.value(i).toJackknife()); });
 
-  jackknifeFitParameters params(nsample);
+  typename FitFunc::ParameterType guess;
+  if(cmdline.load_guess){
+    parse(guess,cmdline.guess_file);
+  }else{
+    for(int i=0;i<guess.size();i++)
+      guess(i) = 1;
+  }
+
+  jackknifeFitParameters params(nsample, guess);
   jackknifeDistributionD chisq(nsample);
   jackknifeDistributionD chisq_per_dof(nsample);
 

@@ -93,7 +93,7 @@ void applyTimeDep(rawDataCorrelationFunctionD &to, const TimeDependence tdep, co
 
 
 
-void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, const Args &args){
+void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, const Args &args, const CMDline &cmdline){
   std::size_t off = data_info.file_fmt.find("%d");
   if(off == std::string::npos) error_exit(std::cout << "readData expect file_fmt to contain a '%d', instead got " << data_info.file_fmt << std::endl);
   Parser* parser = parserFactory(data_info.parser);
@@ -101,11 +101,11 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   parser->setup(into, nsample, args);
   for(int s=0;s<nsample;s++){
-    std::ostringstream os; os << s;
+    std::ostringstream os; os << args.traj_start + s*args.traj_inc;
     std::string filename = data_info.file_fmt;
     filename.replace(off,2,os.str());
     std::ifstream is(filename.c_str());
-    assert(is.good());
+    if(!is.good()) error_exit(std::cout << "readData failed to read file " << filename << std::endl);
     parser->parse(into, is, s, args);
   }  
   delete parser;
