@@ -12,6 +12,7 @@
 #include <parser.h>
 #include <common_defs.h>
 #include <sstream>
+#include <effective_mass.h>
 
 #define FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
 
