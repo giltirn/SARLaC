@@ -4,6 +4,7 @@
 //A set of useful typedefs - you don't have to use these but it makes things a bit cleaner
 #include<distribution.h>
 #include<data_series.h>
+#include<correlationfunction.h>
 #include<numeric_tensors.h>
 
 //Distribution types
@@ -43,6 +44,10 @@ typedef filteredDataSeries<jackknifeTimeSeriesF> filteredJackknifeTimeSeriesF;
 
 typedef filteredDataSeries<doubleJackknifeTimeSeriesD> filteredDoubleJackknifeTimeSeriesD;
 typedef filteredDataSeries<doubleJackknifeTimeSeriesF> filteredDoubleJackknifeTimeSeriesF;
+
+typedef correlationFunction<double,rawDataDistributionD> rawDataCorrelationFunctionD;
+typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunctionD;
+typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackknifeCorrelationFunctionD;
 
 //Tensor types
 typedef NumericSquareMatrix<jackknifeDistribution<double> >  jackknifeSquareMatrixD;

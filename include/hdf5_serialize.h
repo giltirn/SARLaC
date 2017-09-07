@@ -115,14 +115,24 @@ public:
     using namespace H5;
     const DataType &type = H5typeMap<T>::type();
     if(group.back().attrExists(name.c_str())){
-      Attribute attribute = group.back().openAttribute(name.c_str());
+      Attribute attribute;
+      try{
+	 attribute = group.back().openAttribute(name.c_str());
+      }catch(H5::Exception& e){
+	error_exit(std::cout << "HDF5reader::read(vector)  An attribute of name " << name << " does not exist!\n");
+      }  
       DataSpace space = attribute.getSpace();
       hsize_t sz = space.getSimpleExtentNpoints();
       assert(sz <= 6);
       v.resize(sz);
       attribute.read(type, v.data());
-    }else{	
-      DataSet dset = group.back().openDataSet(name.c_str());
+    }else{
+      DataSet dset;
+      try{
+	dset = group.back().openDataSet(name.c_str());
+      }catch(H5::Exception& e){
+	error_exit(std::cout << "HDF5reader::read(vector)  A dataset of name " << name << " does not exist!\n");
+      }  
       DataSpace space = dset.getSpace();
       hsize_t sz = space.getSimpleExtentNpoints();
       assert(sz > 6);
@@ -133,7 +143,12 @@ public:
   void read(std::string &v, const std::string &name){
     using namespace H5;
     const DataType &type = H5typeMap<char>::type();
-    DataSet dset = group.back().openDataSet(name.c_str());
+    DataSet dset;
+    try{    
+      dset = group.back().openDataSet(name.c_str());
+    }catch(H5::Exception& e){
+      error_exit(std::cout << "HDF5reader::read  A dataset of name " << name << " does not exist!\n");
+    }      
     DataSpace space = dset.getSpace();
     hsize_t sz = space.getSimpleExtentNpoints();
     v.resize(sz);

@@ -33,9 +33,9 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
     ratios.coord(i) = t;
     ratios.value(i) = data.value(i)/data.value(i+1);
   }
-  typedef UncorrelatedChisqCostFunction<FitEffectiveMass, dataSeries<double,double> > CostFunction;
+  typedef UncorrelatedChisqCostFunction<FitMpiEffectiveMass, dataSeries<double,double> > CostFunction;
   typedef MarquardtLevenbergMinimizer<CostFunction> MinimizerType;
-  FitEffectiveMass fiteffmass(2*Lt, type);
+  FitMpiEffectiveMass fiteffmass(2*Lt, type);
   
   MarquardtLevenbergParameters<typename CostFunction::CostType> mlparams;
   mlparams.verbose = false;
@@ -61,7 +61,7 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
       rat_t_sample_j.value(0) = ratios.value(i).sample(j);
       CostFunction costfunc(fiteffmass, rat_t_sample_j, sigma_j);
       MinimizerType fitter(costfunc, mlparams);
-      FitEffectiveMass::ParameterType p(0.5);
+      FitMpiEffectiveMass::ParameterType p(0.5);
       fitter.fit(p);
       if(!fitter.hasConverged()) fail[omp_get_thread_num()] = 1;
       else effmass.value(i).sample(j) = *p;
