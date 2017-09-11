@@ -54,6 +54,8 @@ int main(const int argc, const char* argv[]){
 
   if(cmdline.load_data_checkpoint){
     loadCheckpoint<boost::archive::binary_iarchive>(raw_data, raw_bubble_data, cmdline.load_data_checkpoint_file);
+  }else if(cmdline.load_hdf5_data_checkpoint){
+    loadHDF5checkpoint(raw_data, raw_bubble_data, cmdline.load_hdf5_data_checkpoint_file);
   }else if(cmdline.load_text_data_checkpoint){
     loadCheckpoint<boost::archive::text_iarchive>(raw_data, raw_bubble_data, cmdline.load_text_data_checkpoint_file);    
   }else{
