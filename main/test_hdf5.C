@@ -37,23 +37,68 @@ void testBasic(){
 
     assert(vr == vw);
   }
-  std::cout << "Testing standard-format IO for " << printType<distributionType>() << std::endl;
-  writeParamsStandard(vw, "test_std.hdf5");
-  readParamsStandard(vr, "test_std.hdf5");
-  assert(vr == vw);
-  
-  std::cout << "Testing standard-format vector IO for " << printType<distributionType>() << std::endl;
-  std::vector<distributionType> vvw(2);
-  vvw[0] = vvw[1] = vw;
-  writeParamsStandard(vvw, "test_vstd.hdf5");
-  
-  std::vector<distributionType> vvr(2);
-  readParamsStandard(vvr, "test_vstd.hdf5");
 
-  assert(vvr.size() == vvw.size());
-  for(int i=0;i<vvw.size();i++)
-    assert(vvr[i] == vvw[i]);
+  {
+    std::cout << "Testing default-format vector IO for " << printType<distributionType>() << std::endl;
+    std::vector<distributionType> vvw(2);
+    vvw[0] = vvw[1] = vw;
+    {
+      HDF5writer writer("test_vdef.hdf5");
+      write(writer,vvw,"vv");
+    }
+    std::vector<distributionType> vvr;
+    {
+      HDF5reader reader("test_vdef.hdf5");
+      read(reader,vvr,"vv");
+    }
+    assert(vvr.size() == vvw.size());
     
+    for(int i=0;i<vvw.size();i++)
+      assert(vvr[i] == vvw[i]);
+  }
+
+  {
+    std::cout << "Testing default-format vector<vector> IO for " << printType<distributionType>() << std::endl;
+    std::vector<std::vector<distributionType> > vvw(2, std::vector<distributionType>(2));
+    vvw[0][0] = vvw[0][1] = vvw[1][0] = vvw[1][1] = vw;
+    {
+      HDF5writer writer("test_vvdef.hdf5");
+      write(writer,vvw,"vv");
+    }
+    std::vector<std::vector<distributionType> > vvr;
+    {
+      HDF5reader reader("test_vvdef.hdf5");
+      read(reader,vvr,"vv");
+    }
+    assert(vvw.size() == vvr.size());
+    for(int i=0;i<vvw.size();i++){
+      assert(vvw[i].size() == vvr[i].size());
+      for(int j=0;j<vvw[i].size();j++)      
+	assert(vvr[i][j] == vvw[i][j]);
+    }
+  }
+  
+
+  {
+    std::cout << "Testing conventional-format IO for " << printType<distributionType>() << std::endl;
+    writeParamsStandard(vw, "test_std.hdf5");
+    readParamsStandard(vr, "test_std.hdf5");
+    assert(vr == vw);
+  }
+
+  {
+    std::cout << "Testing conventional-format vector IO for " << printType<distributionType>() << std::endl;
+    std::vector<distributionType> vvw(2);
+    vvw[0] = vvw[1] = vw;
+    writeParamsStandard(vvw, "test_vstd.hdf5");
+  
+    std::vector<distributionType> vvr(2);
+    readParamsStandard(vvr, "test_vstd.hdf5");
+
+    assert(vvr.size() == vvw.size());
+    for(int i=0;i<vvw.size();i++)
+      assert(vvr[i] == vvw[i]);
+  }    
   std::cout << "Test passed\n\n\n";
 }
 
@@ -108,8 +153,34 @@ int main(void){
   testBasic<jackknifeDistribution<double> >();
   testBasic<jackknifeCdistribution<double> >();
   testBasic<doubleJackknifeDistribution<double> >();
-
   testBasic<jackknifeDistribution<S> >();
+
+  {//test std::map
+    std::cout << "Testing IO for std::map<std::string, int>\n";
+    std::map<std::string, int> mp;
+    mp["hello"] = 0;
+    mp["world"] = 1;
+
+    {
+      HDF5writer writer("test.hdf5");
+      write(writer,mp,"map");
+    }
+      
+    std::map<std::string, int> mpr;
+    {
+      HDF5reader reader("test.hdf5");
+      read(reader,mpr,"map");
+    }
+    assert(mp.size() == mpr.size());
+
+    for(auto it = mp.begin(); it != mp.end(); it++){
+      auto rit = mpr.find(it->first);
+      assert(rit != mpr.end());
+      assert(rit->second == it->second);
+    }
+    std::cout << "Test passed\n";
+  }
+  
 #else
   std::cout << "HDF5 not being used\n";
 #endif  

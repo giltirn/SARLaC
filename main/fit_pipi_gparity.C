@@ -69,7 +69,9 @@ int main(const int argc, const char* argv[]){
   if(cmdline.save_text_data_checkpoint){
     saveCheckpoint<boost::archive::text_oarchive>(raw_data, raw_bubble_data, cmdline.save_text_data_checkpoint_file);
   }
-  
+  if(cmdline.save_hdf5_data_checkpoint){
+    saveHDF5checkpoint(raw_data, raw_bubble_data, cmdline.save_hdf5_data_checkpoint_file);
+  }
   
   //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
   zeroUnmeasuredSourceTimeslices(raw_data, 'C', args.tstep_pipi);

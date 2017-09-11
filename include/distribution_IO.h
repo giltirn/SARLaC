@@ -18,7 +18,6 @@ void read(HDF5reader &reader, DistributionType &value, const std::string &tag){
   read(reader,value._data,"data");  
   reader.leave();
 }
-
 //Specialization for jackknifeCdistribution
 template<typename T>
 void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag){
@@ -34,6 +33,199 @@ void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::strin
   read(reader,value._data,"data");  
   reader.leave();
 }
+
+//For vector<distribution> and vector<vector<distribution> > of POD types avoid the large metadata overheads by optionally flattening
+template<typename T>
+struct extraFlattenIO{
+  static inline void write(HDF5writer &writer, const std::vector<T> &value){}
+  static inline void read(HDF5reader &reader, std::vector<T> &value){}
+  static inline void write(HDF5writer &writer, const std::vector<std::vector<T> > &value){}
+  static inline void read(HDF5reader &reader, std::vector<std::vector<T> > &value){} 
+};
+template<typename T> //override for distributions with extra information
+struct extraFlattenIO<jackknifeCdistribution<T> >{
+  static inline void write(HDF5writer &writer, const std::vector<jackknifeCdistribution<T> > &value){
+    std::vector<T> cen(value.size());
+    for(int i=0;i<cen.size();i++) cen[i] = value[i].best();
+    ::write(writer,cen,"central");
+  }    
+  static inline void read(HDF5reader &reader, std::vector<jackknifeCdistribution<T> > &value){
+    std::vector<T> cen;
+    ::read(reader,cen,"central");
+    for(int i=0;i<cen.size();i++) value[i].best() = cen[i];
+  }
+  static inline void write(HDF5writer &writer, const std::vector<std::vector<jackknifeCdistribution<T> > > &value){
+    int sz = 0; for(int i=0;i<value.size();i++) sz += value[i].size();
+    
+    std::vector<T> cen(sz);
+    int off=0;
+    for(int i=0;i<value.size();i++)
+      for(int j=0;j<value[i].size();j++)
+	cen[off++] = value[i][j].best();
+
+    ::write(writer,cen,"central");
+  }
+  static inline void read(HDF5reader &reader, std::vector<std::vector<jackknifeCdistribution<T> > > &value){
+    std::vector<T> cen;
+    ::read(reader,cen,"central");
+
+    int off=0;
+    for(int i=0;i<value.size();i++) //has already been resized
+      for(int j=0;j<value[i].size();j++)
+	value[i][j].best() = cen[off++];
+  } 
+};
+
+
+template<typename DistributionType, typename std::enable_if<isDistributionOfHDF5nativetype<DistributionType>::value, int>::type = 0>
+void write(HDF5writer &writer, const std::vector<DistributionType> &value, const std::string &tag, bool flatten = true){
+  writer.enter(tag);
+  unsigned long size = value.size();
+  writer.write(size,"size");  
+  
+  if(flatten){  
+    int nsample = value.size() > 0 ? value[0].size() : 0;
+    write(writer, nsample, "nsample");
+
+    extraFlattenIO<DistributionType>::write(writer, value); //extra info
+    
+    std::vector<typename DistributionType::DataType> tmp(value.size() * nsample);
+    for(int i=0;i<value.size();i++){
+      assert(value[i].size() == nsample);
+      for(int s=0;s<nsample;s++)
+	tmp[s + nsample*i] = value[i].sample(s);
+    }
+    write(writer,tmp,"unrolled_data");
+  }else{
+    for(int i=0;i<value.size();i++){
+      std::ostringstream os;
+      os << "elem_" << i;
+      write(writer,value[i],os.str());
+    }
+  }    
+  writer.leave();
+}
+template<typename DistributionType, typename std::enable_if<isDistributionOfHDF5nativetype<DistributionType>::value, int>::type = 0>
+void read(HDF5reader &reader, std::vector<DistributionType> &value, const std::string &tag, bool flattened = true){
+  reader.enter(tag);
+  unsigned long size;
+  reader.read(size,"size");
+  value.resize(size);
+    
+  if(flattened){
+    int nsample;
+    read(reader, nsample, "nsample");
+
+    extraFlattenIO<DistributionType>::read(reader, value); 
+    
+    std::vector<typename DistributionType::DataType> tmp;
+    read(reader,tmp,"unrolled_data");
+    
+    for(int i=0;i<size;i++){
+      value[i].resize(nsample);      
+      for(int s=0;s<nsample;s++)
+	value[i].sample(s) = tmp[s + nsample*i];
+    }
+  }else{
+    for(int i=0;i<value.size();i++){
+      std::ostringstream os;
+      os << "elem_" << i;
+      read(reader,value[i],os.str());
+    }    
+  }
+  reader.leave();
+}
+
+template<typename T, typename std::enable_if<isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
+void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const std::string &tag, bool flatten = true){
+  writer.enter(tag); //enter a group
+
+  unsigned long size1 = value.size();
+  writer.write(size1,"size1");
+  
+  std::vector<unsigned long> size2(value.size());
+  for(int i=0;i<value.size();i++) size2[i] = value[i].size();  
+  writer.write(size2,"size2");
+  
+  if(flatten){
+    int nsample = value.size() != 0 && value[0].size() != 0 ? value[0][0].size() : 0;    
+
+    write(writer, nsample, "nsample");
+
+    extraFlattenIO<T>::write(writer, value);
+    
+    unsigned long total_size = 0;
+    for(int i=0;i<value.size();i++)
+      total_size += value[i].size() * nsample;
+
+    std::vector<typename T::DataType> tmp(total_size);
+    
+    int off=0;
+    for(int i=0;i<value.size();i++){
+      for(int j=0;j<value[i].size();j++){
+	assert(value[i][j].size() == nsample );
+	for(int s=0;s<nsample;s++)
+	  tmp[off++] = value[i][j].sample(s);
+      }
+    }
+    write(writer,tmp,"unrolled_data");
+  }else{
+    for(int i=0;i<value.size();i++){
+      for(int j=0;j<value[i].size();j++){    
+	std::ostringstream os;
+	os << "elem_" << i << "_" << j;
+	write(writer,value[i][j],os.str());
+      }
+    }
+  }
+  writer.leave();
+}
+template<typename T, typename std::enable_if<isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
+void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::string &tag, bool flattened = true){
+  reader.enter(tag); //enter a group
+  unsigned long size1;
+  reader.read(size1,"size1");
+  
+  std::vector<unsigned long> size2;
+  reader.read(size2,"size2");
+
+  value.resize(size1);
+  for(int i=0;i<value.size();i++)
+    value[i].resize(size2[i]);
+  
+  if(flattened){
+    int nsample;
+    read(reader, nsample, "nsample");
+    
+    std::vector<typename T::DataType> tmp;
+    read(reader,tmp,"unrolled_data");
+
+    extraFlattenIO<T>::read(reader, value);
+    
+    int off = 0;
+    for(int i=0;i<value.size();i++){
+      for(int j=0;j<value[i].size();j++){
+	value[i][j].resize(nsample);
+	for(int s=0;s<nsample;s++)
+	  value[i][j].sample(s) = tmp[off++];
+      }
+    }
+  }else{
+    for(int i=0;i<value.size();i++){
+      for(int j=0;j<value[i].size();j++){    
+	std::ostringstream os;
+	os << "elem_" << i << "_" << j;
+	read(reader,value[i][j],os.str());
+      }
+    }
+  }
+  reader.leave();
+}
+
+
+
+
+
 
 
 
@@ -118,6 +310,22 @@ struct getDataType<doubleJackknifeDistribution<T>,1>{ typedef T type; };
 #define IO_ENABLE_IF_POD(D) typename std::enable_if< hasSampleMethod<D>::value && std::is_arithmetic<typename getDataType<D,hasDataType<D>::value>::type>::value, int>::type = 0
 #define IO_ENABLE_IF_NOT_POD(D) typename std::enable_if<hasSampleMethod<D>::value && !std::is_arithmetic<typename getDataType<D,hasDataType<D>::value>::type>::value, int>::type = 0
 
+template<typename T>
+struct standardIOformat{
+  inline static void write(HDF5writer &writer, const std::vector<T> &value, const std::string &tag){ ::write(writer,value,tag,false); } //no flattening
+  inline static void read(HDF5reader &reader, std::vector<T> &value, const std::string &tag){ ::read(reader,value,tag,false); }
+  inline static void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const std::string &tag){ ::write(writer,value,tag,false); } //no flattening
+  inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::string &tag){ ::read(reader,value,tag,false); }  
+};
+template<typename T>
+struct standardIOformat<doubleJackknifeDistribution<T> >{
+  inline static void write(HDF5writer &writer, const std::vector<doubleJackknifeDistribution<T> > &value, const std::string &tag){ ::write(writer,value,tag); } //no option to flatten for double jack
+  inline static void read(HDF5reader &reader, std::vector<doubleJackknifeDistribution<T> > &value, const std::string &tag){ ::read(reader,value,tag); }
+  inline static void write(HDF5writer &writer, const std::vector<std::vector<doubleJackknifeDistribution<T> > > &value, const std::string &tag){ ::write(writer,value,tag); }
+  inline static void read(HDF5reader &reader, std::vector<std::vector<doubleJackknifeDistribution<T> > > &value, const std::string &tag){ ::read(reader,value,tag); }  
+};
+
+
 //Single distributions get written to single-element vectors
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void writeParamsStandard(const DistributionOfPODtype &params, const std::string &filename){
@@ -127,7 +335,7 @@ void writeParamsStandard(const DistributionOfPODtype &params, const std::string 
   std::string type = printType<DistributionOfPODtype>();
   write(writer, type, "distributionType");
   std::vector<DistributionOfPODtype> out(1,params);
-  write(writer, out , "value");
+  standardIOformat<DistributionOfPODtype>::write(writer, out , "value");
 }
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void readParamsStandard(DistributionOfPODtype &params, const std::string &filename){  
@@ -138,7 +346,7 @@ void readParamsStandard(DistributionOfPODtype &params, const std::string &filena
   read(reader, type, "distributionType");
   assert(type == printType<DistributionOfPODtype>());  
   
-  read(reader, in, "value");
+  standardIOformat<DistributionOfPODtype>::read(reader, in, "value");
   assert(in.size() == 1);
   params = in[0];
 }
@@ -149,7 +357,7 @@ void writeParamsStandard(const std::vector<DistributionOfPODtype> &params, const
   HDF5writer writer(filename);
   std::string type = printType<DistributionOfPODtype>();
   write(writer, type, "distributionType");  
-  write(writer, params , "value");
+  standardIOformat<DistributionOfPODtype>::write(writer, params , "value");
 }
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void readParamsStandard(std::vector<DistributionOfPODtype> &params, const std::string &filename){  
@@ -159,7 +367,7 @@ void readParamsStandard(std::vector<DistributionOfPODtype> &params, const std::s
   read(reader, type, "distributionType");
   assert(type == printType<DistributionOfPODtype>());  
   
-  read(reader, params , "value");
+  standardIOformat<DistributionOfPODtype>::read(reader, params , "value");
 }
 //As are vectors of vectors
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
@@ -167,8 +375,8 @@ void writeParamsStandard(const std::vector<std::vector<DistributionOfPODtype> > 
   std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << " as " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << std::endl;
   HDF5writer writer(filename);
   std::string type = printType<DistributionOfPODtype>();
-  write(writer, type, "distributionType");  
-  write(writer, params , "value");
+  write(writer, type, "distributionType");
+  standardIOformat<DistributionOfPODtype>::write(writer, params , "value");   //don't flatten
 }
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void readParamsStandard(std::vector<std::vector<DistributionOfPODtype> > &params, const std::string &filename){  
@@ -178,7 +386,7 @@ void readParamsStandard(std::vector<std::vector<DistributionOfPODtype> > &params
   read(reader, type, "distributionType");
   assert(type == printType<DistributionOfPODtype>());  
   
-  read(reader, params , "value");
+  standardIOformat<DistributionOfPODtype>::read(reader, params , "value");
 }
 
 
@@ -201,7 +409,7 @@ void writeParamsStandard(const DistributionOfStructType &params, const std::stri
   HDF5writer writer(filename);
   std::string type = printType<DistributionOfPODtype>();
   write(writer, type, "distributionType");  
-  write(writer, out , "value");
+  standardIOformat<DistributionOfPODtype>::write(writer, out , "value");
 }
 
 
@@ -218,7 +426,7 @@ void readParamsStandard(DistributionOfStructType &params, const std::string &fil
   read(reader, type, "distributionType");
   assert(type == printType<DistributionOfPODtype>());
   
-  read(reader, in , "value");
+  standardIOformat<DistributionOfPODtype>::read(reader, in , "value");
 
   assert(in.size() > 0);
   const int np = in.size();
@@ -254,7 +462,7 @@ void writeParamsStandard(const std::vector<DistributionOfStructType> &params, co
   HDF5writer writer(filename);
   std::string type = printType<DistributionOfPODtype>();
   write(writer, type, "distributionType");  
-  write(writer, out , "value");
+  standardIOformat<DistributionOfPODtype>::write(writer, out , "value");
 }
 template<typename DistributionOfStructType, IO_ENABLE_IF_NOT_POD(DistributionOfStructType)>
 void readParamsStandard(std::vector<DistributionOfStructType> &params, const std::string &filename){
@@ -269,7 +477,7 @@ void readParamsStandard(std::vector<DistributionOfStructType> &params, const std
   read(reader, type, "distributionType");
   assert(type == printType<DistributionOfPODtype>());  
   
-  read(reader, in , "value");
+  standardIOformat<DistributionOfPODtype>::read(reader, in , "value");
 
   const int nouter = in.size();
   assert(nouter > 0);

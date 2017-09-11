@@ -24,8 +24,17 @@ public:
   inline const DistributionType & operator()(const int t) const { return d[t]; }
 
   inline DistributionType & at(const int t){ return d[t]; }
-  inline const DistributionType & at(const int t) const { return d[t]; }  
+  inline const DistributionType & at(const int t) const { return d[t]; }
+
+  GENERATE_HDF5_SERIALIZE_METHOD((Lt)(d));
 };
+#ifdef HAVE_HDF5
+template<typename D, typename P>
+inline void write(HDF5writer &writer, const bubbleDataBase<D,P> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename D, typename P>
+inline void read(HDF5reader &reader, bubbleDataBase<D,P> &d, const std::string &tag){ d.read(reader,tag); }
+#endif
+
 
 class bubbleDataPolicies{
   inline bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & upcast(){ return *static_cast< bubbleDataBase<rawDataDistributionD, bubbleDataPolicies>* >(this); }
@@ -108,7 +117,15 @@ public:
 
   inline DistributionType & at(const int tsrc, const int tsep){ return d(tsrc,tsep); }
   inline const DistributionType & at(const int tsrc, const int tsep) const { return d(tsrc,tsep); }
+
+  GENERATE_HDF5_SERIALIZE_METHOD((Lt)(d));
 };
+#ifdef HAVE_HDF5
+template<typename D, typename P>
+inline void write(HDF5writer &writer, const figureDataBase<D,P> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename D, typename P>
+inline void read(HDF5reader &reader, figureDataBase<D,P> &d, const std::string &tag){ d.read(reader,tag); }
+#endif
 
 template<typename DistributionType,typename Policies>
 struct getElem<figureDataBase<DistributionType,Policies> >{

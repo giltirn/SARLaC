@@ -118,8 +118,15 @@ public:
   iterator end(const char fig){
     return getMap(fig)->end();
   }
-    
+  GENERATE_HDF5_SERIALIZE_METHOD((C)(D)(R)(V)(Lt)(Nsample));
 };
+
+#ifdef HAVE_HDF5
+template<typename C>
+inline void write(HDF5writer &writer, const figureDataAllMomentaBase<C> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename C>
+inline void read(HDF5reader &reader, figureDataAllMomentaBase<C> &d, const std::string &tag){ d.read(reader,tag); }
+#endif
 
 
 typedef figureDataAllMomentaBase<figureData> figureDataAllMomenta;
@@ -178,8 +185,15 @@ public:
 
   inline iterator begin(){ return B.begin(); }
   inline iterator end(){ return B.end(); }
-};
 
+  GENERATE_HDF5_SERIALIZE_METHOD((B)(Lt)(Nsample));
+};
+#ifdef HAVE_HDF5
+template<typename C>
+inline void write(HDF5writer &writer, const bubbleDataAllMomentaBase<C> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename C>
+inline void read(HDF5reader &reader, bubbleDataAllMomentaBase<C> &d, const std::string &tag){ d.read(reader,tag); }
+#endif
 
 typedef bubbleDataAllMomentaBase<bubbleData> bubbleDataAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
@@ -224,5 +238,20 @@ void loadCheckpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bu
   ia >> raw_data;
   ia >> raw_bubble_data;
 }
-  
+
+
+
+void saveHDF5checkpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
+  (std::cout << "Saving HDF5 data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Saved HDF5 data checkpoint in %w s\n");
+  HDF5writer wr(file);
+  write(wr,raw_data,"raw_data");
+  write(wr,raw_bubble_data,"raw_bubble_data");
+}
+void loadHDF5checkpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
+  (std::cout << "Loading HDF5 data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Loaded HDF5 data checkpoint in %w s\n");
+  HDF5reader rd(file);
+  read(rd,raw_data,"raw_data");
+  read(rd,raw_bubble_data,"raw_bubble_data");
+}
+
 #endif

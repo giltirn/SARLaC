@@ -8,7 +8,8 @@
 
 #include<template_wizardry.h>
 #include<generic_ET.h>
-
+#include<hdf5_serialize.h>
+#include<distribution.h>
 
 template<typename Numeric>
 class NumericVector{
@@ -71,7 +72,16 @@ public:
   }
 
   inline void push_back(const Numeric &b){ v.push_back(b); }
+
+  GENERATE_HDF5_SERIALIZE_METHOD((v));
 };
+#ifdef HAVE_HDF5
+template<typename D>
+inline void write(HDF5writer &writer, const NumericVector<D> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename D>
+inline void read(HDF5reader &reader, NumericVector<D> &d, const std::string &tag){ d.read(reader,tag); }
+#endif
+
 
 template<typename Numeric> 
 std::ostream & operator<<(std::ostream & stream, const NumericVector<Numeric> &vec){
@@ -159,7 +169,16 @@ public:
   
   Numeric & operator()(const int i, const int j){ return m[i][j]; }
   const Numeric & operator()(const int i, const int j) const { return m[i][j]; }
+
+  GENERATE_HDF5_SERIALIZE_METHOD((m));
 };
+#ifdef HAVE_HDF5
+template<typename D>
+inline void write(HDF5writer &writer, const NumericSquareMatrix<D> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename D>
+inline void read(HDF5reader &reader, NumericSquareMatrix<D> &d, const std::string &tag){ d.read(reader,tag); }
+#endif
+
 
 template<typename T>
 T mod2(const NumericSquareMatrix<T> &m){
