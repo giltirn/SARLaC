@@ -321,26 +321,6 @@ struct _tensor_helper<T,Rank,-1>{
   static inline void unmap(int *into, const size_t off, const int *sizes, const size_t vol){};
 };
 
-struct _NTcommonproperties{
-  std::vector<int> sizes;
-  _NTcommonproperties(const std::vector<int> &s): sizes(s){}
-  
-  inline bool operator==(const _NTcommonproperties &r) const{
-    if(sizes.size() != r.sizes.size()) return false;
-    for(int i=0;i<sizes.size();i++) if(sizes.at(i) != r.sizes.at(i)) return false;
-    return true;
-  }
-  inline bool operator!=(const _NTcommonproperties &r) const{
-    return !(*this == r);
-  }
-};
-std::ostream & operator<<(std::ostream &os, const _NTcommonproperties &p){
-  os << "(";
-  for(int i=0;i<p.sizes.size()-1;i++) os << p.sizes.at(i) << ",";
-  os << p.sizes.back() << ")";
-  return os;
-}
-
 template<typename T, int R>
 class NumericTensor;
 
@@ -369,10 +349,16 @@ class NumericTensor{
   friend class NumericTensor;
 public:
   inline NumericTensor() = default;
-  inline explicit NumericTensor(int const* _size): dsizes(_size,_size+Rank), vol(helper::vol(_size)), data(vol){
-  }
+  inline explicit NumericTensor(int const* _size): dsizes(_size,_size+Rank), vol(helper::vol(_size)), data(vol){ }
   inline explicit NumericTensor(const std::vector<int> &_size): NumericTensor(_size.data()){}
   inline explicit NumericTensor(std::initializer_list<int> _size): NumericTensor(_size.begin()){}
+
+  
+  inline NumericTensor(int const* _size, const DataType &init): dsizes(_size,_size+Rank), vol(helper::vol(_size)), data(vol,init){ }
+  inline NumericTensor(const std::vector<int> &_size, const DataType &init): NumericTensor(_size.data(),init){}
+  inline NumericTensor(std::initializer_list<int> _size, const DataType &init): NumericTensor(_size.begin(),init){}
+  
+  
   inline NumericTensor(const NumericTensor<DataType,Rank> &r) = default;
   inline NumericTensor(NumericTensor<DataType,Rank> &&r) = default;
 
@@ -462,12 +448,38 @@ public:
   
 };
 
-template<typename T, int R>
-struct getElem<NumericTensor<T,R> >{
-  static inline auto elem(const NumericTensor<T,R> &v, const int i)->decltype(v.data[i]){ return v.data[i]; }
-  static inline auto elem(NumericTensor<T,R> &v, const int i)->decltype(v.data[i]){ return v.data[i]; }
-  static inline _NTcommonproperties common_properties(const NumericTensor<T,R> &v){ return _NTcommonproperties(v.dsizes); }
-};
+//Contract two tensors over a single index. Preserves ordering of remaining indices
+//eg A_ijkl B_mnio -> C_jklmno
+
+template<typename T, int R1, int R2>
+NumericTensor<T,R1+R2-2> contract(const NumericTensor<T,R1> &A, const NumericTensor<T,R2> &B, const int rankA, const int rankB){
+  if(A.size(rankA) != B.size(rankB)) error_exit(std::cout << "NumericTensor contract(...) contracting over ranks with different sizes!\n");
+  const int conRankSize = A.size(rankA);
+  int dimC[R1+R2-2];
+  int c=0;
+  for(int i=0;i<R1;i++)
+    if(i!=rankA) dimC[c++] = A.size(i);
+  for(int i=0;i<R2;i++)
+    if(i!=rankB) dimC[c++] = B.size(i);
+  
+  return NumericTensor<T,R1+R2-2>(dimC,
+				  [&](const int* cC){
+				    int cA[R1], cB[R2];
+				    int c;
+				    for(int i=0;i<R1;i++)
+				      if(i!=rankA) cA[i]=cC[c++];
+				    for(int i=0;i<R2;i++)
+				      if(i!=rankB) cB[i]=cC[c++];
+
+				    T out; zeroit(out);
+				    for(int i=0;i<conRankSize;i++){
+				      cA[rankA] = cB[rankB] = i;				      
+				      out = out + A(cA)*B(cB);
+				    }
+				    return out;
+				  });
+}
+
 
 template<typename T, int R>
 void _NTprinter<T,R>::print(std::ostream &os, const NumericTensor<T,R> &t){

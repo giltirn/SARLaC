@@ -17,6 +17,7 @@ public:
     for(int i=0;i<ens_tags.size();i++) if(e == ens_tags[i]) return i;
     return -1;
   }
+  inline const std::string &ensTag(const int i) const{ return ens_tags[i]; }
 
   void addEnsemble(const std::string &tag, const int size){
     int ens_idx = ens_tags.size();
@@ -36,7 +37,31 @@ public:
   inline const std::pair<int,int> & sampleMap(int gsample) const{
     return ens_sample_map[gsample];
   }
+
+  bool operator==(const superJackknifeLayout &r) const{
+    if(total_size != r.total_size) return false;
+    for(int e=0;e<ens_sizes.size();e++) if(ens_sizes[e] != r.ens_sizes[e]) return false;
+    for(int e=0;e<ens_sample_map.size();e++) if(ens_sample_map[e] != r.ens_sample_map[e]) return false;
+    for(int e=0;e<ens_tags.size();e++) if(ens_tags[e] != r.ens_tags[e]) return false;
+    return true;
+  }
+    
 };
+
+superJackknifeLayout combine(const superJackknifeLayout &l, const superJackknifeLayout &r){
+  superJackknifeLayout out(l);
+  for(int i=0;i<r.nEnsembles();i++){
+    const std::string &tag = r.ensTag(i);
+    int e = out.ensIdx(tag);
+    if(e == -1){ //doesn't currently exist
+      out.addEnsemble(tag, r.nSamplesEns(i));
+    }else if(out.nSamplesEns(e) != r.nSamplesEns(i)){
+      error_exit(std::cout << "combine(const superJackknifeLayout &, const superJackknifeLayout &)  Ensemble " << tag << " exists in both but has different size: " << out.nSamplesEns(e) << " : " << r.nSamplesEns(i) << std::endl);
+    }
+  }
+  return out;
+}
+
 
 template<typename _DataType>
 class superJackknifeDistribution{
@@ -56,7 +81,12 @@ protected:
     ar & ens_jacks;
     ar & cen;
   }
-
+  inline static int checkEnsExistsPassthrough(const std::string &tag, const superJackknifeLayout &layout){
+    int e = layout.ensIdx(tag);
+    if(e==-1) error_exit(std::cout << "superJackknifeDistribution::checkEnsExistsPassthrough fail " << tag << std::endl);
+    return e;
+  }
+  
 public:
   superJackknifeDistribution(){}
   
@@ -69,6 +99,7 @@ public:
     assert(first.size() == layout->nSamplesEns(first_ens_idx));
     ens_jacks[first_ens_idx] = first;
   }
+  superJackknifeDistribution(const superJackknifeLayout &_layout, const std::string &first_ens_tag, const jackknifeDistribution<DataType> &first): superJackknifeDistribution(_layout,checkEnsExistsPassthrough(first_ens_tag,_layout),first){}
   
   superJackknifeDistribution(const superJackknifeDistribution &r): layout(r.layout), ens_jacks(r.ens_jacks), cen(r.cen){}
   superJackknifeDistribution(superJackknifeDistribution&& o) noexcept : layout(o.layout), ens_jacks(std::move(o.ens_jacks)), cen(o.cen){ }
@@ -150,8 +181,34 @@ public:
   
   const superJackknifeLayout & getLayout() const{ return *layout; }
 
-  //Only use this if you know what you're doing!
-  void setLayout(const superJackknifeLayout &to){ layout = &to; }
+  //Set the layout to that provided. New layout must contain all the original ensembles
+  void setLayout(const superJackknifeLayout &to){
+    if(&to == layout) return;
+    if(to == *layout){ //no reorg needed
+      layout = &to;
+      return;
+    }
+    
+    if(to.nEnsembles() < layout->nEnsembles()) error_exit(std::cout << "superJackknifeDistribution::setLayout new layout must contain an equal or larger number of ensembles\n");   
+
+    std::vector<jackknifeDistribution<DataType> > result(to.nEnsembles());
+
+    std::vector<bool> fill(to.nEnsembles(),true);
+    
+    for(int e=0;e<layout->nEnsembles();e++){
+      int new_idx = to.ensIdx(layout->ensTag(e));
+      if(new_idx == -1) error_exit(std::cout << "superJackknifeDistribution::setLayout ensemble '" << layout->ensTag(e) << "' does not exist in new layout\n");
+      result[new_idx] = std::move(ens_jacks[e]);      
+      fill[new_idx] = false;      
+    }
+
+    for(int e=0;e<to.nEnsembles();e++)
+      if(fill[e])
+	result[e] = jackknifeDistribution<DataType>(to.nSamplesEns(e),cen);
+
+    ens_jacks = std::move(result);
+    layout = &to;
+  }
   
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   superJackknifeDistribution<typename U::value_type> real() const{

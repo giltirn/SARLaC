@@ -28,41 +28,71 @@ int main(void){
       
   }
 
+  {
+    NumericTensor<double,2> t({2,2});
+    t({0,0}) = 0;
+    t({0,1}) = 1;
+    t({1,0}) = 2;
+    t({1,1}) = 3;
+
+    std::cout << "Test 2x2 matrix:\n" << t << std::endl;
+
+    NumericTensor<double,2> u({2,2});
+    u({0,0}) = 4;
+    u({0,1}) = 5;
+    u({1,0}) = 6;
+    u({1,1}) = 7;
+
+    std::cout << "Second 2x2 matrix:\n" << u << std::endl;
   
-  NumericTensor<double,2> t({2,2});
-  t({0,0}) = 0;
-  t({0,1}) = 1;
-  t({1,0}) = 2;
-  t({1,1}) = 3;
+    NumericTensor<double,2> v = t + u;
+    std::cout << "Test 2x2 matrix sum:\n" << v << std::endl;
+  }
+  {
+    std::cout << "Test transform\n";
+    NumericTensor<double,2> w({2,2});
+    w({0,0}) = 1.123;
+    w({0,1}) = 6.79;
+    w({1,0}) = -5.777;
+    w({1,1}) = 9.009;
+    
+    NumericTensor<unsigned int,2> wt = w.transform( [&](const int *coord, const double &from){ return (unsigned int)(fabs(from)); } );
+    
+    std::cout << w << "\n->\n" << wt << std::endl;
 
-  std::cout << "Test 2x2 matrix:\n" << t << std::endl;
+    std::cout << "Test reduce by summing over rows\n";
+    NumericTensor<double,1> wr = w.reduce(1, [](double &into, int const* coord, const NumericTensor<double,2> &m){ into = m({coord[0],0}) + m({coord[0],1}); } );
+    
+    std::cout << w << "\n->\n" << wr << std::endl;
+  }
+  {
+    std::cout << "Test rank-2 tensor multiply:\n";
 
-  NumericTensor<double,2> u({2,2});
-  u({0,0}) = 4;
-  u({0,1}) = 5;
-  u({1,0}) = 6;
-  u({1,1}) = 7;
+    NumericTensor<double,2> t({2,3});
+    t({0,0}) = 0;
+    t({0,1}) = 1;
+    t({0,2}) = 2;
+    t({1,0}) = 3;
+    t({1,1}) = 4;
+    t({1,2}) = 5;
 
-  std::cout << "Second 2x2 matrix:\n" << u << std::endl;
-  
-  NumericTensor<double,2> v = t + u;
-  std::cout << "Test 2x2 matrix sum:\n" << v << std::endl;
+    NumericTensor<double,2> u({3,2});
+    u({0,0}) = 0;
+    u({0,1}) = 1;
+    u({1,0}) = 2;
+    u({1,1}) = 3;
+    u({2,0}) = 4;
+    u({2,1}) = 5;
 
-  std::cout << "Test transform\n";
-  NumericTensor<double,2> w({2,2});
-  w({0,0}) = 1.123;
-  w({0,1}) = 6.79;
-  w({1,0}) = -5.777;
-  w({1,1}) = 9.009;
+    NumericTensor<double,2> v = t * u;
 
-  NumericTensor<unsigned int,2> wt = w.transform( [&](const int *coord, const double &from){ return (unsigned int)(fabs(from)); } );
+    std::cout << t << "\n*\n" << u << "\n=\n" << v << std::endl;
 
-  std::cout << w << "\n->\n" << wt << std::endl;
+    std::cout << "Test rank-2 tensor contract:\n";    
+    NumericTensor<double,2> vv = contract(t,u,1,0);
 
-  std::cout << "Test reduce by summing over rows\n";
-  NumericTensor<double,1> wr = w.reduce(1, [](double &into, int const* coord, const NumericTensor<double,2> &m){ into = m({coord[0],0}) + m({coord[0],1}); } );
-  
-  std::cout << w << "\n->\n" << wr << std::endl;
+    std::cout << t << "\n*\n" << u << "\n=\n" << v << std::endl;
+  }
   
   return 0;
 }
