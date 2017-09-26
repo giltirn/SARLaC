@@ -1,4 +1,4 @@
-bin_PROGRAMS = fit_example test_ET test_hdf5 test_tensor test_expression_parse simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity fit_ktopipi_gparity fit_simple benchmark hdf5_print
+bin_PROGRAMS = fit_example test_ET test_hdf5 test_tensor test_expression_parse simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity fit_ktopipi_gparity fit_simple benchmark hdf5_print analyze_ktopipi_gparity
 fit_example_SOURCES = fit_example.C
 test_ET_SOURCES = test_ET.C
 test_tensor_SOURCES = test_tensor.C
@@ -13,6 +13,7 @@ benchmark_SOURCES = benchmark.C
 test_hdf5_SOURCES = test_hdf5.C
 test_expression_parse_SOURCES = test_expression_parse.C
 hdf5_print_SOURCES = hdf5_print.C
+analyze_ktopipi_gparity_SOURCES = analyze_ktopipi_gparity.C
 
 AM_CPPFLAGS = -I$(srcdir)/../include -I$(srcdir)/include
 LDADD =../src/libcpsfit.a
