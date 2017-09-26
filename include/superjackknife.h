@@ -9,6 +9,14 @@ class superJackknifeLayout{
   std::vector<int> ens_sizes;
   std::vector< std::pair<int,int> > ens_sample_map;
   int total_size;
+
+  inline void clear(){
+    ens_tags.resize(0);
+    ens_sizes.resize(0);
+    ens_sample_map.resize(0);
+    total_size = 0;
+  }
+    
 public:
   superJackknifeLayout(): total_size(0){}
   
@@ -39,14 +47,39 @@ public:
   }
 
   bool operator==(const superJackknifeLayout &r) const{
+    if(&r == this) return true;
     if(total_size != r.total_size) return false;
     for(int e=0;e<ens_sizes.size();e++) if(ens_sizes[e] != r.ens_sizes[e]) return false;
     for(int e=0;e<ens_sample_map.size();e++) if(ens_sample_map[e] != r.ens_sample_map[e]) return false;
     for(int e=0;e<ens_tags.size();e++) if(ens_tags[e] != r.ens_tags[e]) return false;
     return true;
   }
+  inline bool operator!=(const superJackknifeLayout &r) const{ return !(*this == r); }
+  
+#ifdef HAVE_HDF5
+  void write(HDF5writer &writer, const std::string &tag) const{
+    writer.enter(tag);
+    ::write(writer,ens_tags,"ens_tags");
+    ::write(writer,ens_sizes,"ens_sizes");
+    writer.leave();
+  }
+  void read(HDF5reader &reader, const std::string &tag){
+    reader.enter(tag);
+    std::vector<std::string > tags;
+    std::vector<int> sizes;
     
+    ::read(reader,tags,"ens_tags");
+    ::read(reader,sizes,"ens_sizes");
+
+    clear();
+    for(int i=0;i<tags.size();i++) addEnsemble(tags[i],sizes[i]);
+
+    reader.leave();
+  }
+#endif
 };
+GENERATE_HDF5_SERIALIZE_FUNC(superJackknifeLayout);
+
 
 superJackknifeLayout combine(const superJackknifeLayout &l, const superJackknifeLayout &r){
   superJackknifeLayout out(l);
@@ -88,7 +121,7 @@ protected:
   }
   
 public:
-  superJackknifeDistribution(){}
+  superJackknifeDistribution(): layout(NULL){}
   
   superJackknifeDistribution(const superJackknifeLayout &_layout, const DataType &_central): layout(&_layout), ens_jacks(_layout.nEnsembles()){
     for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i), _central ); 
@@ -143,6 +176,8 @@ public:
   }
   
   inline int size() const{ return layout->nSamplesTotal(); }
+
+  inline void resize(const int sz){ if(sz != size()) error_exit(std::cout << "Cannot resize a superJackknifeDistribution without changing the layout!\n"); }
   
   inline const DataType & sample(const int idx) const{
     return ens_jacks[ layout->sampleMap(idx).first ].sample( layout->sampleMap(idx).second );
@@ -154,6 +189,22 @@ public:
   inline const DataType & best() const{ return cen; }
   inline DataType &best(){ return cen; }
 
+  //Versions of sample that map sample -1 to the central value, useful for looping
+  inline const DataType & osample(const int idx) const{
+    return idx == -1 ? this->best() : this->sample(idx);
+  }
+  inline DataType & osample(const int idx){
+    return idx == -1 ? this->best() : this->sample(idx);
+  }
+
+  bool operator==(const superJackknifeDistribution &r) const{
+    if(*layout != *r.layout) return false;
+    if(cen != r.cen) return false;
+    for(int i=0;i<ens_jacks.size();i++) if(ens_jacks[i] != r.ens_jacks[i]) return false;
+    return true;
+  }
+  inline bool operator!=(const superJackknifeDistribution &r) const{ return !(*this == r); }
+  
   //This is the naive mean of the superjackknife samples. Use best for the propagated central value
   DataType mean(){
     DataType out(0.);
@@ -196,7 +247,13 @@ public:
 
   //Set the layout to that provided. New layout must contain all the original ensembles
   void setLayout(const superJackknifeLayout &to){
-    if(&to == layout) return;
+    if(layout == NULL){ //no layout set previously (i.e. default constructor)
+      ens_jacks.resize(to.nEnsembles());
+      for(int e=0;e<to.nEnsembles();e++) ens_jacks[e].resize(to.nSamplesEns(e));
+      layout = &to;
+      return;
+    }
+    if(&to == layout) return; //is identical
     if(to == *layout){ //no reorg needed
       layout = &to;
       return;
@@ -229,7 +286,103 @@ public:
     for(int i=0;i<size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
+
+  inline void zero(){
+    zeroit(this->best());
+    for(int i=0;i<this->size();i++) zeroit(this->sample(i));
+  }
+
+#ifdef HAVE_HDF5
+  void write(HDF5writer &writer, const std::string &tag) const{
+    writer.enter(tag);
+    ::write(writer,ens_jacks,"ens_jacks",false); //don't flatten the internal vector
+    ::write(writer,cen,"cen");
+    ::write(writer,*layout,"layout");
+    writer.leave();
+  }
+  void read(HDF5reader &reader, const std::string &tag){
+    reader.enter(tag);
+    ::read(reader,ens_jacks,"ens_jacks",false);
+    ::read(reader,cen, "cen");
+
+    static std::vector<std::unique_ptr<superJackknifeLayout> > layouts; //all will be deleted at the end
+    layouts.push_back(std::unique_ptr<superJackknifeLayout>(new superJackknifeLayout));
+    superJackknifeLayout* _layout = layouts.back().get();
+    ::read(reader,*_layout,"layout");
+    layout = _layout;
+    reader.leave();
+  }
+#endif
+  
 };
+#ifdef HAVE_HDF5
+template<typename D>
+inline void write(HDF5writer &writer, const superJackknifeDistribution<D> &sj, const std::string &tag){ sj.write(writer,tag); }
+template<typename D>
+inline void read(HDF5reader &reader, superJackknifeDistribution<D> &sj, const std::string &tag){ sj.read(reader,tag); }
+#endif
+
+template<typename T> //override for distributions with extra information
+struct extraFlattenIO<superJackknifeDistribution<T> >{
+  static inline void write(HDF5writer &writer, const std::vector<superJackknifeDistribution<T> > &value){
+    assert(value.size() > 0);
+    const superJackknifeLayout &layout = value[0].getLayout();
+    if(value.size() > 1)
+      for(int i=1;i<value.size();i++) assert(value[i].getLayout() == layout);
+    ::write(writer,layout,"layout");
+    
+    std::vector<T> cen(value.size());
+    for(int i=0;i<cen.size();i++) cen[i] = value[i].best();
+    ::write(writer,cen,"central");
+  }    
+  static inline void read(HDF5reader &reader, std::vector<superJackknifeDistribution<T> > &value){
+    static std::vector<std::unique_ptr<superJackknifeLayout> > layouts; //all will be deleted at the end
+    layouts.push_back(std::unique_ptr<superJackknifeLayout>(new superJackknifeLayout));
+    superJackknifeLayout* layout = layouts.back().get();
+    ::read(reader,*layout,"layout");
+    for(int i=0;i<value.size();i++) value[i].setLayout(*layout);
+        
+    std::vector<T> cen;
+    ::read(reader,cen,"central");
+    for(int i=0;i<cen.size();i++) value[i].best() = cen[i];
+  }
+  static inline void write(HDF5writer &writer, const std::vector<std::vector<superJackknifeDistribution<T> > > &value){
+    assert(value.size() > 0 && value[0].size()>0);
+    const superJackknifeLayout &layout = value[0][0].getLayout();
+    for(int i=0;i<value.size();i++)
+      for(int j= (i==0 ? 1:0); j<value[i].size(); j++)
+	assert(value[i][j].getLayout() == layout);
+    ::write(writer,layout,"layout");    
+    
+    int sz = 0; for(int i=0;i<value.size();i++) sz += value[i].size();
+    
+    std::vector<T> cen(sz);
+    int off=0;
+    for(int i=0;i<value.size();i++)
+      for(int j=0;j<value[i].size();j++)
+	cen[off++] = value[i][j].best();
+
+    ::write(writer,cen,"central");
+  }
+  static inline void read(HDF5reader &reader, std::vector<std::vector<superJackknifeDistribution<T> > > &value){
+    static std::vector<std::unique_ptr<superJackknifeLayout> > layouts; //all will be deleted at the end
+    layouts.push_back(std::unique_ptr<superJackknifeLayout>(new superJackknifeLayout));
+    superJackknifeLayout* layout = layouts.back().get();
+    ::read(reader,*layout,"layout");
+    for(int i=0;i<value.size();i++)
+      for(int j=0;j<value[i].size();j++)
+	value[i][j].setLayout(*layout);
+    
+    std::vector<T> cen;
+    ::read(reader,cen,"central");
+
+    int off=0;
+    for(int i=0;i<value.size();i++) //has already been resized
+      for(int j=0;j<value[i].size();j++)
+	value[i][j].best() = cen[off++];
+  } 
+};
+
 
 template<typename A>
 struct getElem<superJackknifeDistribution<A> >{

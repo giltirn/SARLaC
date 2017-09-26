@@ -427,7 +427,7 @@ static void read(HDF5reader &reader, std::map<KeyT,DataT> &value, const std::str
 #define _GENERATE_HDF5_SERIALIZE_METHOD_READIT(r,data,elem) ::read(reader, this-> elem, BOOST_PP_STRINGIZE(elem)); 
 
 
-//Generate HDF5 serialize methods for a class. MEMBERS should be a set of 
+//Generate HDF5 serialize methods for a class. MEMBERS should be a series of member names in parentheses, eg (member1)(member2)(member3)....
 #define GENERATE_HDF5_SERIALIZE_METHOD(MEMBERS)\
     void write(HDF5writer &writer, const std::string &tag) const{ \
       writer.enter(tag);\

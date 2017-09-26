@@ -1,8 +1,23 @@
 #include<config.h>
 #include<distribution.h>
 #include<random.h>
+#include<superjackknife.h>
 
 #ifdef HAVE_HDF5
+template<typename DistributionType>
+struct createOne{
+  static inline DistributionType doit(){ return DistributionType(50); }
+};
+template<typename T>
+struct createOne<superJackknifeDistribution<T> >{
+  static inline superJackknifeDistribution<T> doit(){
+    superJackknifeLayout *layout = new superJackknifeLayout;
+    layout->addEnsemble("A",20);
+    layout->addEnsemble("B",20);
+    return superJackknifeDistribution<T>(*layout,0.);
+  }
+};
+
 
 template<typename DistributionType>
 struct setRandom{
@@ -18,11 +33,19 @@ struct setRandom<doubleJackknifeDistribution<T> >{
     for(int i=0;i<d.size();i++) gaussianRandom(d.sample(i), 1, 1);
   }
 };
+template<typename T>
+struct setRandom<superJackknifeDistribution<T> >{
+  static inline void doit(superJackknifeDistribution<T> &d){
+    for(int i=-1;i<d.size();i++) gaussianRandom<T>(d.osample(i), 1, 1);
+  }
+};
+
+
 
 template<typename distributionType>
 void testBasic(){
   std::cout << "Testing IO for " << printType<distributionType>() << std::endl;
-  distributionType vw(50);
+  distributionType vw = createOne<distributionType>::doit();
   setRandom<distributionType>::doit(vw);
 
   {
@@ -154,7 +177,7 @@ int main(void){
   testBasic<jackknifeCdistribution<double> >();
   testBasic<doubleJackknifeDistribution<double> >();
   testBasic<jackknifeDistribution<S> >();
-
+  testBasic<superJackknifeDistribution<double> >();
   {//test std::map
     std::cout << "Testing IO for std::map<std::string, int>\n";
     std::map<std::string, int> mp;
@@ -180,7 +203,7 @@ int main(void){
     }
     std::cout << "Test passed\n";
   }
-  
+
 #else
   std::cout << "HDF5 not being used\n";
 #endif  
