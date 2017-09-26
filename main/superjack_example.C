@@ -100,7 +100,6 @@ int main(void){
   			     ); 
     std::cout << "sqrt(sjc) - sjb = " << print(sjd) << " err expect " << err_expect << std::endl;
   }
-  
   std::cout << "Normal exit\n"; std::cout.flush();
   return 0;
 }

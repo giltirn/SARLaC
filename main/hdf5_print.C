@@ -6,6 +6,7 @@
 #include<sstream>
 #include<array>
 #include<distribution.h>
+#include<superjackknife.h>
 #include<parser.h>
 //A program to print arrays of distributions stored in the conventional format (cf distribution_IO.h writeParamsStandard/readParamsStandard)
 
@@ -64,7 +65,7 @@ struct CmdLine{
 
 
 
-GENERATE_ENUM_AND_PARSER( DistributionType, (Jackknife)(JackknifeC)(Raw)(DoubleJackknife)  );
+GENERATE_ENUM_AND_PARSER( DistributionType, (Jackknife)(JackknifeC)(Raw)(DoubleJackknife)(SuperJackknife)  );
 
 void getTypeInfo(DistributionType &type, int & vector_depth, const std::string &filename){
   HDF5reader rd(filename);
@@ -82,6 +83,8 @@ void getTypeInfo(DistributionType &type, int & vector_depth, const std::string &
     type = JackknifeC;
   }else if(typestr == "doubleJackknifeDistribution<double>"){
     type = DoubleJackknife;
+  }else if(typestr == "superJackknifeDistribution<double>"){
+    type = SuperJackknife;    
   }else error_exit(std::cout << "getTypeInfo type " << typestr << " unimplemented\n");
 }
 
@@ -222,6 +225,8 @@ void run(const std::string &filename, const DistributionType type, const int vec
     specDtype<jackknifeCdistribution<double> >(filename,vector_depth,cmdline);  break;
   case DoubleJackknife:
     specDtype<doubleJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;
+  case SuperJackknife:
+    specDtype<superJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;    
   default:
     error_exit(std::cout << "run(const DistributionType type, const int vector_depth) unknown type " << type << std::endl);
   }

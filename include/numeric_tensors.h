@@ -406,6 +406,7 @@ public:
   inline void resize(const std::vector<int> & _size, const DataType &init){ return resize(_size.data(),init); } 
   inline void resize(std::initializer_list<int> _size, const DataType &init){ return resize(_size.begin(),init); } 
 
+  inline const std::vector<DataType> & internalVector() const{ return data; }
   
   inline const DataType &operator()(std::initializer_list<int> elem) const{
     return data[map(elem.begin())];

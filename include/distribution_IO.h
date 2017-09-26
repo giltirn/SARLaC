@@ -329,7 +329,7 @@ struct standardIOformat<doubleJackknifeDistribution<T> >{
 //Single distributions get written to single-element vectors
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void writeParamsStandard(const DistributionOfPODtype &params, const std::string &filename){
-  std::cout << "writeParamsStandard: POD - Writing " << printType<DistributionOfPODtype>() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
+  //std::cout << "writeParamsStandard: POD - Writing " << printType<DistributionOfPODtype>() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
   
   HDF5writer writer(filename);
   std::string type = printType<DistributionOfPODtype>();
@@ -353,7 +353,7 @@ void readParamsStandard(DistributionOfPODtype &params, const std::string &filena
 //vectors of distributions just written directly to disk
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void writeParamsStandard(const std::vector<DistributionOfPODtype> &params, const std::string &filename){
-  std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<DistributionOfPODtype> >() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
+  //std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<DistributionOfPODtype> >() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
   HDF5writer writer(filename);
   std::string type = printType<DistributionOfPODtype>();
   write(writer, type, "distributionType");  
@@ -372,7 +372,7 @@ void readParamsStandard(std::vector<DistributionOfPODtype> &params, const std::s
 //As are vectors of vectors
 template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)>
 void writeParamsStandard(const std::vector<std::vector<DistributionOfPODtype> > &params, const std::string &filename){
-  std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << " as " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << std::endl;
+  //std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << " as " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << std::endl;
   HDF5writer writer(filename);
   std::string type = printType<DistributionOfPODtype>();
   write(writer, type, "distributionType");
@@ -396,7 +396,7 @@ void writeParamsStandard(const DistributionOfStructType &params, const std::stri
   typedef typename DistributionOfStructType::DataType ParamsType; //assumes ParamsType has methods size() and operator(const int) which is standard for fit parameters
   typedef typename DistributionOfStructType::template rebase<double> DistributionOfPODtype;
 
-  std::cout << "writeParamsStandard: Non-POD - Writing " << printType<DistributionOfStructType>() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
+  //std::cout << "writeParamsStandard: Non-POD - Writing " << printType<DistributionOfStructType>() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
   
   const int nsample = params.size();
   assert(nsample > 0);
@@ -446,7 +446,7 @@ void writeParamsStandard(const std::vector<DistributionOfStructType> &params, co
   typedef typename DistributionOfStructType::DataType ParamsType; //assumes ParamsType has methods size() and operator(const int) which is standard for fit parameters
   typedef typename DistributionOfStructType::template rebase<double> DistributionOfPODtype;
 
-  std::cout << "writeParamsStandard: Non-POD - Writing " << printType<std::vector<DistributionOfStructType> >() << " as " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << std::endl;
+  //std::cout << "writeParamsStandard: Non-POD - Writing " << printType<std::vector<DistributionOfStructType> >() << " as " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << std::endl;
   
   const int nouter = params.size();
   assert(nouter > 0);
