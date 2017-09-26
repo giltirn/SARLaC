@@ -92,6 +92,19 @@ int main(void){
     NumericTensor<double,2> vv = contract(t,u,1,0);
 
     std::cout << t << "\n*\n" << u << "\n=\n" << v << std::endl;
+
+    std::cout << "Test matrix-vector multiplication:\n";
+    NumericTensor<double,1> vec({3});
+    vec({0}) = 1;
+    vec({1}) = 2;
+    vec({2}) = 3;
+
+    NumericTensor<double,1> ovec = t*vec;
+    std::cout << t << "\n*\n" << vec << "\n=\n" << ovec << std::endl;
+
+    std::cout << "Test matrix-vector multiplication via contraction:\n";
+    NumericTensor<double,1> ovec2 = contract(t,vec,1,0);
+    std::cout << t << "\n*\n" << vec << "\n=\n" << ovec2 << std::endl;
   }
   
   return 0;

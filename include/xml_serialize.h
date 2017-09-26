@@ -39,7 +39,7 @@ class XMLreader{
     using boost::property_tree::ptree;
     typedef ptree::path_type path_type;
     boost::optional<T> e = from.get_optional<T>(path_type(path));
-    if(!e) error_exit(std::cout << "getEntry could not parse type " << printType<T>() << " from path " << path << std::endl);
+    if(!e) error_exit(std::cout << "getEntry could not parse type " << printType<T>() << " from path \"" << path << "\". Environment contains tags:\n" << printGroupEntries(from) << std::endl);
     return e.get();
   }
   template<typename T,typename Translator>

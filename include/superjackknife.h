@@ -95,6 +95,14 @@ public:
     cen = _central;
   }
 
+  //Lambda-type initializer. Expect operator()(const int sample) that accepts sample=-1 for the central value
+  template<typename Initializer>
+  superJackknifeDistribution(const superJackknifeLayout &_layout, const Initializer &init): layout(&_layout), ens_jacks(_layout.nEnsembles()){
+    for(int i=0;i<ens_jacks.size();i++) ens_jacks[i].resize( layout->nSamplesEns(i) );
+    cen = init(-1);
+    for(int i=0;i<layout->nSamplesTotal();i++) this->sample(i) = init(i);
+  }			     
+
   superJackknifeDistribution(const superJackknifeLayout &_layout, const int first_ens_idx, const jackknifeDistribution<DataType> &first): superJackknifeDistribution(_layout, first.mean()) {
     assert(first.size() == layout->nSamplesEns(first_ens_idx));
     ens_jacks[first_ens_idx] = first;
@@ -127,7 +135,12 @@ public:
     return *this;
   }
   
-  inline superJackknifeDistribution & operator=(const superJackknifeDistribution &r){ layout = r.layout; ens_jacks = r.ens_jacks; cen = r.cen; return *this; }
+  inline superJackknifeDistribution & operator=(const superJackknifeDistribution &r){
+    layout = r.layout; ens_jacks = r.ens_jacks; cen = r.cen; return *this;
+  }
+  inline superJackknifeDistribution & operator=(superJackknifeDistribution &&r){
+    layout = r.layout; ens_jacks = std::move(r.ens_jacks); cen = r.cen; return *this;
+  }
   
   inline int size() const{ return layout->nSamplesTotal(); }
   
@@ -240,9 +253,9 @@ struct EnsembleData{
   std::vector<double> values;
 };
 void read(XMLreader &reader, EnsembleData &v, const std::string &tag){
-  std::cout << "Reading EnsembleData with tag '" << tag << "'. Context contains:\n" << reader.printGroupEntries() << std::endl;
+  //std::cout << "Reading EnsembleData with tag '" << tag << "'. Context contains:\n" << reader.printGroupEntries() << std::endl;
   reader.enter(tag);
-  std::cout << "Entered '" << tag << "'. Context now contains\n" << reader.printGroupEntries() << std::endl;
+  //std::cout << "Entered '" << tag << "'. Context now contains\n" << reader.printGroupEntries() << std::endl;
   read(reader,v.tag,"tag");
   read(reader,v.SampleType,"SampleType");
   read(reader,v.EnsembleSize,"EnsembleSize");

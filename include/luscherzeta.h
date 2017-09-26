@@ -232,11 +232,10 @@ class LuscherZeta{
     return atan(-q*pow(M_PI,1.5)/calcZeta00(q));
   }
 
-  inline double calcPhiDeriv(const double q, const double frac_shift = 1e-04){
+  inline double calcPhiDeriv(const double q, const double frac_shift = 1e-04) const{
     double dq = frac_shift * q;
     return ( calcPhi(q+dq) - calcPhi(q-dq) )/(2.*dq);
   }
-
 };
 
 //Test by comparing with numbers computed by Daiqian (based off Qi's MatLab code) 
