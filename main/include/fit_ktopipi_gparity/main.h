@@ -92,7 +92,7 @@ struct multiplyBubbleFunctor{
 
 template<typename DistributionType, typename Accessor>
 void average(DistributionType & into, const Accessor &data, const int size){
-  boost::timer::auto_cpu_timer total_time("average(DistributionType & into, const Accessor &data, const int size) %w s\n");
+  //boost::timer::auto_cpu_timer total_time("average(DistributionType & into, const Accessor &data, const int size) %w s\n");
   assert(size > 0);
   into = data(0);
   for(int i=1;i<size;i++) into = into+data(i);
@@ -100,58 +100,58 @@ void average(DistributionType & into, const Accessor &data, const int size){
 }
 
 template<typename resampledDistributionType>
-void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,2> &alpha,
-				       NumericTensor<resampledDistributionType,2> &A0_type4_srcavg_vacsub,
+void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1> &alpha,
+				       NumericTensor<resampledDistributionType,1> &A0_type4_srcavg_vacsub,
 				       NumericTensor<resampledDistributionType,1> &mix4_srcavg_vacsub,
 				       const NumericTensor<rawDataDistributionD,3> &A0_type4_nobub_alltK,
 				       const NumericTensor<rawDataDistributionD,2> &mix4_nobub_alltK,
 				       const NumericTensor<resampledDistributionType,1> &bubble_dj,
+				       const int q,
 				       const std::vector<int> &type4_nonzerotK,
 				       const int tsep_k_pi,
 				       const Args &args){
 #pragma omp parallel for
   for(int t=0;t<args.Lt;t++){
     //Compute mix4 double-jackknife and tK average
-    std::cout << "\tt=" << t << " mix4 diagram\n";
+    //std::cout << "\tt=" << t << " mix4 diagram\n";
     NumericTensor<resampledDistributionType,1> mix4_nobub_alltK_dj({args.Lt}, [&](const int* coord){ resampledDistributionType out; out.resample(mix4_nobub_alltK({coord[0],t})); return out; } ); //[tK]
     resampledDistributionType mix4_nobub_srcavg_dj; average(mix4_nobub_srcavg_dj, [&](const int i){ return mix4_nobub_alltK_dj(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
 
     //Compute mix4 vacuum subtraction
-    std::cout << "\tt=" << t << " mix4 vacuum subtraction\n";
+    //std::cout << "\tt=" << t << " mix4 vacuum subtraction\n";
     NumericTensor<resampledDistributionType,1> mix4_alltK_vacsub = mix4_nobub_alltK_dj.transform(multiplyBubbleFunctor<resampledDistributionType>(bubble_dj,tsep_k_pi,args.tsep_pipi,args.Lt,0)); //[tK]
     average(mix4_srcavg_vacsub({t}), [&](const int i){ return mix4_alltK_vacsub(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
     
-    for(int q=0;q<10;q++){
-      //Compute type4 double-jackknife and tK average
-      std::cout << "\tt=" << t << " Q" << q+1 << " type4 component\n";
-      NumericTensor<resampledDistributionType,1> A0_type4_nobub_alltK_dj({args.Lt}, [&](const int* coord){ resampledDistributionType out; out.resample(A0_type4_nobub_alltK({q,coord[0],t})); return out; } ); //[tK]
-      resampledDistributionType A0_type4_nobub_srcavg_dj; average(A0_type4_nobub_srcavg_dj, [&](const int i){ return A0_type4_nobub_alltK_dj(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
+    //Compute type4 double-jackknife and tK average
+    //std::cout << "\tt=" << t << " Q" << q+1 << " type4 component\n";
+    NumericTensor<resampledDistributionType,1> A0_type4_nobub_alltK_dj({args.Lt}, [&](const int* coord){ resampledDistributionType out; out.resample(A0_type4_nobub_alltK({q,coord[0],t})); return out; } ); //[tK]
+    resampledDistributionType A0_type4_nobub_srcavg_dj; average(A0_type4_nobub_srcavg_dj, [&](const int i){ return A0_type4_nobub_alltK_dj(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
 
-      //Compute alpha
-      std::cout << "\tt=" << t << " Q" << q+1 << " alpha\n";
-      alpha({q,t}) = A0_type4_nobub_srcavg_dj/mix4_nobub_srcavg_dj;
+    //Compute alpha
+    //std::cout << "\tt=" << t << " Q" << q+1 << " alpha\n";
+    alpha(&t) = A0_type4_nobub_srcavg_dj/mix4_nobub_srcavg_dj;
 
-      //Compute type4 vacuum subtraction
-      std::cout << "\tt=" << t << " Q" << q+1 << " type4 vacuum subtraction\n";
-      NumericTensor<resampledDistributionType,1> A0_type4_alltK_vacsub = A0_type4_nobub_alltK_dj.transform(multiplyBubbleFunctor<resampledDistributionType>(bubble_dj,tsep_k_pi,args.tsep_pipi,args.Lt,0));//[tK]
-      average(A0_type4_srcavg_vacsub({q,t}), [&](const int i){ return A0_type4_alltK_vacsub(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
-    }
+    //Compute type4 vacuum subtraction
+    //std::cout << "\tt=" << t << " Q" << q+1 << " type4 vacuum subtraction\n";
+    NumericTensor<resampledDistributionType,1> A0_type4_alltK_vacsub = A0_type4_nobub_alltK_dj.transform(multiplyBubbleFunctor<resampledDistributionType>(bubble_dj,tsep_k_pi,args.tsep_pipi,args.Lt,0));//[tK]
+    average(A0_type4_srcavg_vacsub(&t), [&](const int i){ return A0_type4_alltK_vacsub(&type4_nonzerotK[i]); },  type4_nonzerotK.size());    
   }
 }
 
+
 template<typename DistributionType>
-NumericTensor<DistributionType,2> resampleAverageTypeData(const NumericTensor<rawDataDistributionD,3> &typedata_alltK,
+NumericTensor<DistributionType,1> resampleAverageTypeData(const NumericTensor<rawDataDistributionD,3> &typedata_alltK,
+							  const int q,
 							  const std::vector<int> &typedata_nonzerotK,
 							  const Args &args){
-  NumericTensor<DistributionType,2> out({10,args.Lt}); //[Qidx][t]
+  NumericTensor<DistributionType,1> out({args.Lt}); //[t]
   for(int t=0;t<args.Lt;t++){     
-    for(int q=0;q<10;q++){
-      NumericTensor<DistributionType,1> typedata_alltK_dj({args.Lt}, [&](const int* coord){ DistributionType out; out.resample(typedata_alltK({q,coord[0],t})); return out; } ); //[tK]
-      average(out({q,t}), [&](const int i){ return typedata_alltK_dj(&typedata_nonzerotK[i]); },  typedata_nonzerotK.size());
-    }
+    NumericTensor<DistributionType,1> typedata_alltK_dj({args.Lt}, [&](const int* coord){ DistributionType out; out.resample(typedata_alltK({q,coord[0],t})); return out; } ); //[tK]
+    average(out({t}), [&](const int i){ return typedata_alltK_dj(&typedata_nonzerotK[i]); },  typedata_nonzerotK.size());
   }
   return out;
 }
+
 template<typename DistributionType>
 NumericTensor<DistributionType,1> resampleAverageMixDiagram(const NumericTensor<rawDataDistributionD,2> &mixdata_alltK,
 							    const std::vector<int> &mixdata_nonzerotK,
@@ -164,8 +164,8 @@ NumericTensor<DistributionType,1> resampleAverageMixDiagram(const NumericTensor<
   return out;
 }
 
+
 //Write results at various stages for debugging against other codes
-//#define DEBUG_WRITE_ASCII  
 
 template<typename DistributionType,int N>
 void writeToTextFile(const NumericTensor<DistributionType,N> &m, const std::string &filename){
@@ -239,123 +239,104 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   std::cout << "Type3 data non-zero for tK=" << type3_nonzerotK << std::endl;
   std::vector<int> type4_nonzerotK = type4.getNonZeroKaonTimeslices();
   std::cout << "Type4 data non-zero for tK=" << type4_nonzerotK << std::endl;
-  
-  //Compute alpha and type4/mix4 vacuum subtractions
-  std::cout << "Computing raw type-4 and mix4 diagrams for alpha computation prior to multiplying by bubble\n";
-  NumericTensor<rawDataDistributionD,3> A0_type4_alltK = computeAmplitudeType4<computeAmplitudeAlltKtensorControls>(type4); //[Qidx][tK][t]
-  NumericTensor<rawDataDistributionD,2> mix4_alltK({args.Lt,args.Lt}); //[tK][t]
-  for(int tK=0;tK<args.Lt;tK++) for(int t=0;t<args.Lt;t++) mix4_alltK({tK,t}) = type4(tK,t).mix();
 
-  std::cout << "Computing double-jackknife alpha and vacuum subtractions\n";
-  NumericTensor<doubleJackknifeDistributionD,2> alpha_dj({10,args.Lt}); //[Qidx][t]
-  NumericTensor<doubleJackknifeDistributionD,2> A0_type4_srcavg_vacsub_dj({10,args.Lt}); //[Qidx][t]
-  NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_vacsub_dj({args.Lt}); //[t]
-  computeAlphaAndVacuumSubtractions(alpha_dj,A0_type4_srcavg_vacsub_dj,mix4_srcavg_vacsub_dj,A0_type4_alltK,mix4_alltK,bubble_dj,type4_nonzerotK,tsep_k_pi,args);
-
-  std::cout << "Computing single-jackknife alpha and vacuum subtractions\n";
-  NumericTensor<jackknifeDistributionD,2> alpha_j({10,args.Lt}); //[Qidx][t]
-  NumericTensor<jackknifeDistributionD,2> A0_type4_srcavg_vacsub_j({10,args.Lt}); //[Qidx][t]
-  NumericTensor<jackknifeDistributionD,1> mix4_srcavg_vacsub_j({args.Lt}); //[t]
-  computeAlphaAndVacuumSubtractions(alpha_j,A0_type4_srcavg_vacsub_j,mix4_srcavg_vacsub_j,A0_type4_alltK,mix4_alltK,bubble_j,type4_nonzerotK,tsep_k_pi,args);
-
-  #ifdef DEBUG_WRITE_ASCII  
-  //Save some quantities to disk for external viewing pleasure
-  {
-    std::ostringstream os; os << "alpha_tsep_k_pi" << tsep_k_pi << ".dat";
-    writeToTextFile(alpha_dj,os.str());
-  }
-  {
-    std::ostringstream os; os << "type4_vacsub_tsep_k_pi" << tsep_k_pi << ".dat";
-    writeToTextFile(A0_type4_srcavg_vacsub_dj,os.str());
-  }
-  {
-    std::ostringstream os; os << "mix4_vacsub_tsep_k_pi" << tsep_k_pi << ".dat";
-    writeToTextFile(mix4_srcavg_vacsub_dj,os.str());
-  }
-  #endif
-
-  //Apply the bubble diagram to the type4 and mix4 data
-  A0_type4_alltK = A0_type4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,tsep_k_pi,args.tsep_pipi,args.Lt,1));
-  mix4_alltK = mix4_alltK.transform(multiplyBubbleFunctor<rawDataDistributionD>(bubble,tsep_k_pi,args.tsep_pipi,args.Lt,0));
-
-  //Get type1, type2, type3 and mix3 data
+  //Get the type1-4 and mix3/mix4 components of the data.
+  //Note that we have not yet multiplied the type4/mix4 data by the pipi bubble, hence these  are just the K->vac component which are needed for computing alpha
+  std::cout << "Computing raw data diagrams prior to multiplying by bubble\n";
   NumericTensor<rawDataDistributionD,3> A0_type1_alltK = computeAmplitudeType1<computeAmplitudeAlltKtensorControls>(type1); //[Qidx][tK][t]
   NumericTensor<rawDataDistributionD,3> A0_type2_alltK = computeAmplitudeType2<computeAmplitudeAlltKtensorControls>(type2); //[Qidx][tK][t]
   NumericTensor<rawDataDistributionD,3> A0_type3_alltK = computeAmplitudeType3<computeAmplitudeAlltKtensorControls>(type3); //[Qidx][tK][t]
-
-  NumericTensor<rawDataDistributionD,2> mix3_alltK({args.Lt,args.Lt}); //[tK][t]
-  for(int tK=0;tK<args.Lt;tK++) for(int t=0;t<args.Lt;t++) mix3_alltK({tK,t}) = type3(tK,t).mix();
-
-  //Compute double-jackknife, tK-averages type4 and mix4 diagrams from data including bubble-------------//
-  std::cout << "Computing double-jackknife tK averages and mix diagrams\n";
-  NumericTensor<doubleJackknifeDistributionD,2> A0_type1_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type1_alltK, type1_nonzerotK, args); //[Qidx][t]
-  NumericTensor<doubleJackknifeDistributionD,2> A0_type2_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type2_alltK, type2_nonzerotK, args);
-  NumericTensor<doubleJackknifeDistributionD,2> A0_type3_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type3_alltK, type3_nonzerotK, args);
-  NumericTensor<doubleJackknifeDistributionD,2> A0_type4_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type4_alltK, type4_nonzerotK, args);
-  NumericTensor<doubleJackknifeDistributionD,1> mix3_srcavg_dj = resampleAverageMixDiagram<doubleJackknifeDistributionD>(mix3_alltK, type3_nonzerotK, args);
-  NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_dj = resampleAverageMixDiagram<doubleJackknifeDistributionD>(mix4_alltK, type4_nonzerotK, args);
-
-  std::cout << "Computing single-jackknife tK averages and mix diagrams\n";
-  NumericTensor<jackknifeDistributionD,2> A0_type1_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type1_alltK, type1_nonzerotK, args); //[Qidx][t]
-  NumericTensor<jackknifeDistributionD,2> A0_type2_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type2_alltK, type2_nonzerotK, args);
-  NumericTensor<jackknifeDistributionD,2> A0_type3_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type3_alltK, type3_nonzerotK, args);
-  NumericTensor<jackknifeDistributionD,2> A0_type4_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type4_alltK, type4_nonzerotK, args);
-  NumericTensor<jackknifeDistributionD,1> mix3_srcavg_j = resampleAverageMixDiagram<jackknifeDistributionD>(mix3_alltK, type3_nonzerotK, args);
-  NumericTensor<jackknifeDistributionD,1> mix4_srcavg_j = resampleAverageMixDiagram<jackknifeDistributionD>(mix4_alltK, type4_nonzerotK, args);
+  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub = computeAmplitudeType4<computeAmplitudeAlltKtensorControls>(type4); //[Qidx][tK][t]
   
-  //Save to ASCII
-  #ifdef DEBUG_WRITE_ASCII
-  {
-    NumericTensor<doubleJackknifeDistributionD,2> const* type_data[4] = {&A0_type1_srcavg_dj, &A0_type2_srcavg_dj, &A0_type3_srcavg_dj, &A0_type4_srcavg_dj};
-    for(int type=0;type<4;type++){
-      std::ostringstream os; os << "A0_type" << type+1 << "_dj_tsep_k_pi" << tsep_k_pi << ".dat";
-      writeToTextFile(*type_data[type], os.str());
+  NumericTensor<rawDataDistributionD,2> mix3_alltK({args.Lt,args.Lt}); //[tK][t]
+  NumericTensor<rawDataDistributionD,2> mix4_alltK_nobub({args.Lt,args.Lt}); //[tK][t]
+  for(int tK=0;tK<args.Lt;tK++)
+    for(int t=0;t<args.Lt;t++){
+      mix3_alltK({tK,t}) = type3(tK,t).mix();
+      mix4_alltK_nobub({tK,t}) = type4(tK,t).mix();
     }
-  }
-  #endif
 
-  //Subtract the pseudoscalar operators and mix4 vacuum term
-  std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under double-jackknife\n";
-  A0_type3_srcavg_dj = A0_type3_srcavg_dj.transform([&](int const* coord, const doubleJackknifeDistributionD &from){ return doubleJackknifeDistributionD(from - alpha_dj(coord)*mix3_srcavg_dj(coord+1)); }); 
-  A0_type4_srcavg_dj = A0_type4_srcavg_dj.transform(
-						    [&](int const* coord, const doubleJackknifeDistributionD &from){
-						      return doubleJackknifeDistributionD(from - alpha_dj(coord)*( mix4_srcavg_dj(coord+1) - mix4_srcavg_vacsub_dj(coord+1) ) );
+  //Data is no longer needed, so free it
+  type1.freeData(); type2.freeData(); type3.freeData(); type4.freeData();
+
+  //Compute the type4/mix4 data with the bubble included
+  std::cout << "Computing raw type4/mix4 data with bubble included" << std::endl;
+  NumericTensor<rawDataDistributionD,3> A0_type4_alltK({10,args.Lt,args.Lt});
+  NumericTensor<rawDataDistributionD,2> mix4_alltK({args.Lt,args.Lt});
+  for(int tK=0;tK<args.Lt;tK++)
+    for(int t=0;t<args.Lt;t++){
+      int tB = (tK + tsep_k_pi + args.tsep_pipi) % args.Lt;
+      mix4_alltK({tK,t}) = mix4_alltK_nobub({tK,t})*bubble(&tB);
+      for(int q=0;q<10;q++)
+	A0_type4_alltK({q,tK,t}) = A0_type4_alltK_nobub({q,tK,t})*bubble(&tB);
+    }
+  
+  for(int q=0;q<10;q++){
+    std::cout << "Starting Q" << q+1 << std::endl;
+    
+    //Compute alpha and type4/mix4 vacuum subtractions
+    std::cout << "Computing double-jackknife alpha and vacuum subtractions\n";
+    NumericTensor<doubleJackknifeDistributionD,1> alpha_dj({args.Lt}); //[t]
+    NumericTensor<doubleJackknifeDistributionD,1> A0_type4_srcavg_vacsub_dj({args.Lt}); //[t]
+    NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_vacsub_dj({args.Lt}); //[t]
+    computeAlphaAndVacuumSubtractions(alpha_dj,A0_type4_srcavg_vacsub_dj,mix4_srcavg_vacsub_dj,
+				      A0_type4_alltK_nobub,mix4_alltK_nobub,bubble_dj,q,type4_nonzerotK,tsep_k_pi,args);
+
+    std::cout << "Computing single-jackknife alpha and vacuum subtractions\n";
+    NumericTensor<jackknifeDistributionD,1> alpha_j({args.Lt}); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type4_srcavg_vacsub_j({args.Lt}); //[t]
+    NumericTensor<jackknifeDistributionD,1> mix4_srcavg_vacsub_j({args.Lt}); //[t]
+    computeAlphaAndVacuumSubtractions(alpha_j,A0_type4_srcavg_vacsub_j,mix4_srcavg_vacsub_j,
+				      A0_type4_alltK_nobub,mix4_alltK_nobub,bubble_j,q,type4_nonzerotK,tsep_k_pi,args);
+
+    //Compute double-jackknife, tK-averages type4 and mix4 diagrams from data including bubble-------------//
+    std::cout << "Computing double-jackknife tK averages and mix diagrams\n";
+    NumericTensor<doubleJackknifeDistributionD,1> A0_type1_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type1_alltK, q, type1_nonzerotK, args); //[t]
+    NumericTensor<doubleJackknifeDistributionD,1> A0_type2_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type2_alltK, q, type2_nonzerotK, args); //[t]
+    NumericTensor<doubleJackknifeDistributionD,1> A0_type3_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type3_alltK, q, type3_nonzerotK, args); //[t]
+    NumericTensor<doubleJackknifeDistributionD,1> A0_type4_srcavg_dj = resampleAverageTypeData<doubleJackknifeDistributionD>(A0_type4_alltK, q, type4_nonzerotK, args); //[t]
+    NumericTensor<doubleJackknifeDistributionD,1> mix3_srcavg_dj = resampleAverageMixDiagram<doubleJackknifeDistributionD>(mix3_alltK, type3_nonzerotK, args);
+    NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_dj = resampleAverageMixDiagram<doubleJackknifeDistributionD>(mix4_alltK, type4_nonzerotK, args);
+
+    std::cout << "Computing single-jackknife tK averages and mix diagrams\n";
+    NumericTensor<jackknifeDistributionD,1> A0_type1_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type1_alltK, q, type1_nonzerotK, args); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type2_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type2_alltK, q, type2_nonzerotK, args); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type3_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type3_alltK, q, type3_nonzerotK, args); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type4_srcavg_j = resampleAverageTypeData<jackknifeDistributionD>(A0_type4_alltK, q, type4_nonzerotK, args); //[t]
+    NumericTensor<jackknifeDistributionD,1> mix3_srcavg_j = resampleAverageMixDiagram<jackknifeDistributionD>(mix3_alltK, type3_nonzerotK, args);
+    NumericTensor<jackknifeDistributionD,1> mix4_srcavg_j = resampleAverageMixDiagram<jackknifeDistributionD>(mix4_alltK, type4_nonzerotK, args);
+
+    //Subtract the pseudoscalar operators and mix4 vacuum term
+    std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under double-jackknife\n";
+    A0_type3_srcavg_dj = A0_type3_srcavg_dj.transform([&](int const* t, const doubleJackknifeDistributionD &from){ return doubleJackknifeDistributionD(from - alpha_dj(t)*mix3_srcavg_dj(t)); }); 
+    A0_type4_srcavg_dj = A0_type4_srcavg_dj.transform(
+						      [&](int const* t, const doubleJackknifeDistributionD &from){
+							return doubleJackknifeDistributionD(from - alpha_dj(t)*( mix4_srcavg_dj(t) - mix4_srcavg_vacsub_dj(t) ) );
+						      }
+						      ); 
+    std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under single-jackknife\n";
+    A0_type3_srcavg_j = A0_type3_srcavg_j.transform([&](int const* t, const jackknifeDistributionD &from){ return jackknifeDistributionD(from - alpha_j(t)*mix3_srcavg_j(t)); }); 
+    A0_type4_srcavg_j = A0_type4_srcavg_j.transform(
+						    [&](int const* t, const jackknifeDistributionD &from){
+						      return jackknifeDistributionD(from - alpha_j(t)*( mix4_srcavg_j(t) - mix4_srcavg_vacsub_j(t) ) );
 						    }
 						    ); 
-  std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under single-jackknife\n";
-  A0_type3_srcavg_j = A0_type3_srcavg_j.transform([&](int const* coord, const jackknifeDistributionD &from){ return jackknifeDistributionD(from - alpha_j(coord)*mix3_srcavg_j(coord+1)); }); 
-  A0_type4_srcavg_j = A0_type4_srcavg_j.transform(
-						  [&](int const* coord, const jackknifeDistributionD &from){
-						    return jackknifeDistributionD(from - alpha_j(coord)*( mix4_srcavg_j(coord+1) - mix4_srcavg_vacsub_j(coord+1) ) );
-						  }
-						  ); 
-  //Perform the type 4 vacuum subtraction
-  std::cout << "Performing type-4 vacuum subtraction\n";
-  A0_type4_srcavg_dj = A0_type4_srcavg_dj - A0_type4_srcavg_vacsub_dj;
-  A0_type4_srcavg_j = A0_type4_srcavg_j - A0_type4_srcavg_vacsub_j;
+    //Perform the type 4 vacuum subtraction
+    std::cout << "Performing type-4 vacuum subtraction\n";
+    A0_type4_srcavg_dj = A0_type4_srcavg_dj - A0_type4_srcavg_vacsub_dj;
+    A0_type4_srcavg_j = A0_type4_srcavg_j - A0_type4_srcavg_vacsub_j;
   
-  //Get the full double-jackknife amplitude
-  std::cout << "Computing full amplituded\n";
-  NumericTensor<doubleJackknifeDistributionD,2> A0_full_srcavg_dj = A0_type1_srcavg_dj + A0_type2_srcavg_dj + A0_type3_srcavg_dj + A0_type4_srcavg_dj;
-  NumericTensor<jackknifeDistributionD,2> A0_full_srcavg_j = A0_type1_srcavg_j + A0_type2_srcavg_j + A0_type3_srcavg_j + A0_type4_srcavg_j;
+    //Get the full double-jackknife amplitude
+    std::cout << "Computing full amplitudes\n";
+    NumericTensor<doubleJackknifeDistributionD,1> A0_full_srcavg_dj = A0_type1_srcavg_dj + A0_type2_srcavg_dj + A0_type3_srcavg_dj + A0_type4_srcavg_dj;
+    NumericTensor<jackknifeDistributionD,1> A0_full_srcavg_j = A0_type1_srcavg_j + A0_type2_srcavg_j + A0_type3_srcavg_j + A0_type4_srcavg_j;
 
-  #ifdef DEBUG_WRITE_ASCII
-  {
-    std::ostringstream os; os << "A0_dj_tsep_k_pi" << tsep_k_pi << ".dat";
-    writeToTextFile(A0_full_srcavg_dj,os.str());
-  }
-  {
-    std::ostringstream os; os << "A0_jack_tsep_k_pi" << tsep_k_pi << ".dat";
-    writeToTextFile(A0_full_srcavg_j,os.str());
-  }
-  #endif
-
-  //Insert data into output containers
-  for(int q=0;q<10;q++)
+    //Insert data into output containers    
     for(int t=0;t<args.Lt;t++){
-      A0_all_j[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg_j({q,t}));
-      A0_all_dj[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg_dj({q,t}));
+      A0_all_j[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg_j(&t));
+      A0_all_dj[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg_dj(&t));
     }
+  }
 }
 
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_all_dj,

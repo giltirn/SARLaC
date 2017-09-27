@@ -149,6 +149,11 @@ public:
   inline int getNcontract() const{ return ncontract; }
   inline int getNextra() const{ return nextra; }
 
+  //free the data if no longer needed to save memory
+  inline void freeData(){
+    std::vector<tKdata>().swap(data);
+  }
+  
   const contractions & operator()(const int tK, const int t) const{
     return data[tK][t];
   }
