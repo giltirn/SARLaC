@@ -71,25 +71,6 @@ struct iterate<NumericTensor<T,N> >{
   }
 };  
 
-template<typename distributionType>
-struct multiplyBubbleFunctor{
-  const NumericTensor<distributionType,1> &bubble;
-  int tsep_k_pi;
-  int tsep_pipi;
-  int Lt;
-  int tK_dim;
-  multiplyBubbleFunctor(const NumericTensor<distributionType,1> &_bubble, const int _tsep_k_pi, const int _tsep_pipi, const int _Lt, const int _tK_dim): bubble(_bubble), tsep_k_pi(_tsep_k_pi), tsep_pipi(_tsep_pipi), Lt(_Lt), tK_dim(_tK_dim){}
-  inline distributionType operator()(int const* coord, const distributionType &from) const{
-    typedef iterate<distributionType> iter;
-    int tK = coord[tK_dim]; int tB = (tK + tsep_k_pi + tsep_pipi) % Lt;
-    distributionType out(from);
-    for(int i=0;i<iter::size(out);i++)
-      iter::at(i,out) = iter::at(i,out) * iter::at(i,bubble({tB}));
-    return out;
-  }
-};
-
-
 template<typename DistributionType, typename Accessor>
 void average(DistributionType & into, const Accessor &data, const int size){
   //boost::timer::auto_cpu_timer total_time("average(DistributionType & into, const Accessor &data, const int size) %w s\n");
@@ -99,42 +80,64 @@ void average(DistributionType & into, const Accessor &data, const int size){
   into = into/double(size);
 }
 
+template<typename DistributionType, typename Accessor>
+void resampleAverage(DistributionType & into, const Accessor &data, const int size){
+  assert(size > 0);
+  into.resample(data(0));
+  DistributionType tmp;
+  for(int i=1;i<size;i++){
+    tmp.resample(data(i));
+    into = into+tmp;
+  }
+  into = into/double(size);
+}
+
 template<typename resampledDistributionType>
 void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1> &alpha,
 				       NumericTensor<resampledDistributionType,1> &A0_type4_srcavg_vacsub,
 				       NumericTensor<resampledDistributionType,1> &mix4_srcavg_vacsub,
 				       const NumericTensor<rawDataDistributionD,3> &A0_type4_nobub_alltK,
 				       const NumericTensor<rawDataDistributionD,2> &mix4_nobub_alltK,
-				       const NumericTensor<resampledDistributionType,1> &bubble_dj,
+				       const NumericTensor<resampledDistributionType,1> &bubble_rs,
 				       const int q,
 				       const std::vector<int> &type4_nonzerotK,
 				       const int tsep_k_pi,
 				       const Args &args){
+  //Compute mix4 double-jackknife and tK average
+  resampledDistributionType zro = bubble_rs({0}); zeroit(zro);
+  
 #pragma omp parallel for
   for(int t=0;t<args.Lt;t++){
-    //Compute mix4 double-jackknife and tK average
-    //std::cout << "\tt=" << t << " mix4 diagram\n";
-    NumericTensor<resampledDistributionType,1> mix4_nobub_alltK_dj({args.Lt}, [&](const int* coord){ resampledDistributionType out; out.resample(mix4_nobub_alltK({coord[0],t})); return out; } ); //[tK]
-    resampledDistributionType mix4_nobub_srcavg_dj; average(mix4_nobub_srcavg_dj, [&](const int i){ return mix4_nobub_alltK_dj(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
+    mix4_srcavg_vacsub(&t) = zro;
+    A0_type4_srcavg_vacsub(&t) = zro;
 
-    //Compute mix4 vacuum subtraction
-    //std::cout << "\tt=" << t << " mix4 vacuum subtraction\n";
-    NumericTensor<resampledDistributionType,1> mix4_alltK_vacsub = mix4_nobub_alltK_dj.transform(multiplyBubbleFunctor<resampledDistributionType>(bubble_dj,tsep_k_pi,args.tsep_pipi,args.Lt,0)); //[tK]
-    average(mix4_srcavg_vacsub({t}), [&](const int i){ return mix4_alltK_vacsub(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
+    resampledDistributionType mix4_nobub_srcavg = zro;
+    resampledDistributionType A0_type4_nobub_srcavg = zro;
     
-    //Compute type4 double-jackknife and tK average
-    //std::cout << "\tt=" << t << " Q" << q+1 << " type4 component\n";
-    NumericTensor<resampledDistributionType,1> A0_type4_nobub_alltK_dj({args.Lt}, [&](const int* coord){ resampledDistributionType out; out.resample(A0_type4_nobub_alltK({q,coord[0],t})); return out; } ); //[tK]
-    resampledDistributionType A0_type4_nobub_srcavg_dj; average(A0_type4_nobub_srcavg_dj, [&](const int i){ return A0_type4_nobub_alltK_dj(&type4_nonzerotK[i]); },  type4_nonzerotK.size());
+    for(int ii=0;ii<type4_nonzerotK.size();ii++){
+      const int tK = type4_nonzerotK[ii];
+      const int tB = (tK + tsep_k_pi + args.tsep_pipi) % args.Lt;
+      
+      resampledDistributionType mix4_nobub_rs;  mix4_nobub_rs.resample(mix4_nobub_alltK({tK,t}) );
+      resampledDistributionType mix4_vacsub_rs = mix4_nobub_rs * bubble_rs(&tB);
 
-    //Compute alpha
-    //std::cout << "\tt=" << t << " Q" << q+1 << " alpha\n";
-    alpha(&t) = A0_type4_nobub_srcavg_dj/mix4_nobub_srcavg_dj;
+      resampledDistributionType A0_type4_nobub_rs;  A0_type4_nobub_rs.resample(A0_type4_nobub_alltK({q,tK,t}) );
+      resampledDistributionType A0_type4_vacsub_rs = A0_type4_nobub_rs * bubble_rs(&tB);
 
-    //Compute type4 vacuum subtraction
-    //std::cout << "\tt=" << t << " Q" << q+1 << " type4 vacuum subtraction\n";
-    NumericTensor<resampledDistributionType,1> A0_type4_alltK_vacsub = A0_type4_nobub_alltK_dj.transform(multiplyBubbleFunctor<resampledDistributionType>(bubble_dj,tsep_k_pi,args.tsep_pipi,args.Lt,0));//[tK]
-    average(A0_type4_srcavg_vacsub(&t), [&](const int i){ return A0_type4_alltK_vacsub(&type4_nonzerotK[i]); },  type4_nonzerotK.size());    
+      mix4_srcavg_vacsub(&t) = mix4_srcavg_vacsub(&t) + mix4_vacsub_rs;
+      mix4_nobub_srcavg = mix4_nobub_srcavg + mix4_nobub_rs;
+
+      A0_type4_srcavg_vacsub(&t) = A0_type4_srcavg_vacsub(&t) + A0_type4_vacsub_rs;
+      A0_type4_nobub_srcavg = A0_type4_nobub_srcavg + A0_type4_nobub_rs;
+    }
+    double n(type4_nonzerotK.size());
+    
+    mix4_srcavg_vacsub(&t) = mix4_srcavg_vacsub(&t)/n;
+    A0_type4_srcavg_vacsub(&t) = A0_type4_srcavg_vacsub(&t)/n;
+    mix4_nobub_srcavg = mix4_nobub_srcavg/n;
+    A0_type4_nobub_srcavg = A0_type4_nobub_srcavg/n;
+
+    alpha(&t) = A0_type4_nobub_srcavg/mix4_nobub_srcavg;   
   }
 }
 
