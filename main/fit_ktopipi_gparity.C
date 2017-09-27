@@ -90,9 +90,9 @@ int main(const int argc, const char* argv[]){
 
     distributionPrint<jackknifeDistribution<FitFunc::Params> >::printer(new ktopipiParamsPrinter<FitFunc>);
 
-    std::cout << "Q" << q << " Params: " << params << std::endl;
-    std::cout << "Q" << q << " Chisq: " << chisq << std::endl;
-    std::cout << "Q" << q << " Chisq/dof: " << chisq_per_dof << std::endl;
+    std::cout << "Q" << q+1 << " Params: " << params << std::endl;
+    std::cout << "Q" << q+1 << " Chisq: " << chisq << std::endl;
+    std::cout << "Q" << q+1 << " Chisq/dof: " << chisq_per_dof << std::endl;
   }
   extractMdata<FitFunc> extractor(fit_params);
   plotErrorWeightedData(A0_all_j,extractor,args);
@@ -100,6 +100,8 @@ int main(const int argc, const char* argv[]){
 #ifdef HAVE_HDF5
   writeParamsStandard(fit_params, "params.hdf5");
 #endif
+
+  std::cout << "Done" << std::endl;
   
   return 0;
 }
