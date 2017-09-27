@@ -148,10 +148,8 @@ NumericTensor<DistributionType,1> resampleAverageTypeData(const NumericTensor<ra
 							  const std::vector<int> &typedata_nonzerotK,
 							  const Args &args){
   NumericTensor<DistributionType,1> out({args.Lt}); //[t]
-  for(int t=0;t<args.Lt;t++){     
-    NumericTensor<DistributionType,1> typedata_alltK_dj({args.Lt}, [&](const int* coord){ DistributionType out; out.resample(typedata_alltK({q,coord[0],t})); return out; } ); //[tK]
-    average(out({t}), [&](const int i){ return typedata_alltK_dj(&typedata_nonzerotK[i]); },  typedata_nonzerotK.size());
-  }
+  for(int t=0;t<args.Lt;t++)
+    resampleAverage(out(&t), [&](const int i){ return typedata_alltK({q,typedata_nonzerotK[i],t}); }, typedata_nonzerotK.size());
   return out;
 }
 
@@ -160,10 +158,8 @@ NumericTensor<DistributionType,1> resampleAverageMixDiagram(const NumericTensor<
 							    const std::vector<int> &mixdata_nonzerotK,
 							    const Args &args){
   NumericTensor<DistributionType,1> out({args.Lt}); //[t]
-  for(int t=0;t<args.Lt;t++){    
-    NumericTensor<DistributionType,1> mixdata_alltK_dj({args.Lt}, [&](const int* coord){ DistributionType out; out.resample(mixdata_alltK({coord[0],t})); return out; } ); //[tK]
-    average(out({t}), [&](const int i){ return mixdata_alltK_dj(&mixdata_nonzerotK[i]); },  mixdata_nonzerotK.size());    
-  }
+  for(int t=0;t<args.Lt;t++)
+    resampleAverage(out(&t), [&](const int i){ return mixdata_alltK({mixdata_nonzerotK[i],t}); }, mixdata_nonzerotK.size());
   return out;
 }
 
