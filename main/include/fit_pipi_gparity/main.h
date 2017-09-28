@@ -237,8 +237,6 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
 
   std::cout << "Raw data:\n" << pipi_raw << std::endl;
 
-
-  
   doubleJackCorrelationFunction pipi_dj(args.Lt,
 					[&pipi_raw,nsample](const int t)
 					{
@@ -247,12 +245,15 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
 					  return out;
 					}
 					);
-  bubbleDataDoubleJackAllMomenta dj_bubble_data = doubleJackknifeResampleBubble(raw_bubble_data);
-  doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectA2sourceAvg(dj_bubble_data,args.tsep_pipi);     //sourceAverage(A2_V_dj);
-  doubleJackCorrelationFunction pipi_dj_vacsubbed = pipi_dj - 3*A2_realavg_V_dj;
   
-  pipi_dj_vacsubbed = fold(pipi_dj_vacsubbed, args.tsep_pipi);
-  return pipi_dj_vacsubbed;
+  if(args.do_vacuum_subtraction){
+    bubbleDataDoubleJackAllMomenta dj_bubble_data = doubleJackknifeResampleBubble(raw_bubble_data);
+    doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectA2sourceAvg(dj_bubble_data,args.tsep_pipi);     //sourceAverage(A2_V_dj);
+    pipi_dj = pipi_dj - 3*A2_realavg_V_dj;
+  }
+  
+  pipi_dj = fold(pipi_dj, args.tsep_pipi);
+  return pipi_dj;
 }
 
 doubleJackCorrelationFunction getData(const Args &args, const CMDline &cmdline){

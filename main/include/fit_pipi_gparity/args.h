@@ -9,6 +9,7 @@ GENERATE_ENUM_AND_PARSER(PiPiFitFunction, (FCoshPlusConstant)(FCoshPlusConstantD
   ( int, Lt) \
   ( int, tsep_pipi) \
   ( int, tstep_pipi) \
+  ( bool, do_vacuum_subtraction ) \
   ( PiPiFitFunction, fitfunc) \
   ( bool, correlated)	      \
   ( int, t_min) \
@@ -22,7 +23,7 @@ GENERATE_ENUM_AND_PARSER(PiPiFitFunction, (FCoshPlusConstant)(FCoshPlusConstantD
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS)
 
-  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(FCoshPlusConstant), correlated(true) {}
+  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true) {}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)
 
