@@ -311,6 +311,13 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
     
     inv_corr.resize(ndata, jackknifeDistributionD(nsample));
     svd_inverse(inv_corr, corr);
+
+    //Test the quality of the inverse
+    NumericSquareMatrix<jackknifeDistributionD> test = corr * inv_corr;
+    for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistributionD(nsample,1.0);    
+    std::cout << "|CorrMat * CorrMat^{-1} - 1|^2 = " << mod2(test) << std::endl;
+
+    //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
   }
 };

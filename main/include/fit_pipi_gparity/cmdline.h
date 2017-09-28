@@ -20,6 +20,11 @@ struct CMDline{
   bool save_hdf5_data_checkpoint;
   std::string save_hdf5_data_checkpoint_file;
 
+  bool load_combined_data;
+  std::string load_combined_data_file;
+
+  bool save_combined_data;
+  std::string save_combined_data_file;
   
   CMDline(){
     load_guess = false;
@@ -29,6 +34,8 @@ struct CMDline{
     save_text_data_checkpoint = false;
     load_hdf5_data_checkpoint = false;
     save_hdf5_data_checkpoint = false;
+    load_combined_data = false;
+    save_combined_data = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -71,6 +78,14 @@ struct CMDline{
       }else if(sargv[i] == "-save_hdf5_data_checkpoint"){
 	save_hdf5_data_checkpoint = true;
 	save_hdf5_data_checkpoint_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_combined_data"){ //load the double-jackknife data set previously generated
+	load_combined_data = true;
+	load_combined_data_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_combined_data"){ //save the double-jackknife data set previously generated
+	save_combined_data = true;
+	save_combined_data_file = sargv[i+1];
 	i+=2;	
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

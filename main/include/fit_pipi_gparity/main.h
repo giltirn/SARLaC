@@ -181,5 +181,104 @@ void outputRawData(const std::string &filename, const correlationFunction<double
   of.close();
 }
 
+doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdline){
+  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
+  figureDataAllMomenta raw_data;
+  bubbleDataAllMomenta raw_bubble_data;
+
+  if(cmdline.load_data_checkpoint){
+    loadCheckpoint<boost::archive::binary_iarchive>(raw_data, raw_bubble_data, cmdline.load_data_checkpoint_file);
+  }else if(cmdline.load_hdf5_data_checkpoint){
+    loadHDF5checkpoint(raw_data, raw_bubble_data, cmdline.load_hdf5_data_checkpoint_file);
+  }else if(cmdline.load_text_data_checkpoint){
+    loadCheckpoint<boost::archive::text_iarchive>(raw_data, raw_bubble_data, cmdline.load_text_data_checkpoint_file);    
+  }else{
+    readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    readFigure(raw_data, 'R', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    readBubble(raw_bubble_data, args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  }
+
+  if(cmdline.save_data_checkpoint){
+    saveCheckpoint<boost::archive::binary_oarchive>(raw_data, raw_bubble_data, cmdline.save_data_checkpoint_file);
+  }
+  if(cmdline.save_text_data_checkpoint){
+    saveCheckpoint<boost::archive::text_oarchive>(raw_data, raw_bubble_data, cmdline.save_text_data_checkpoint_file);
+  }
+  if(cmdline.save_hdf5_data_checkpoint){
+    saveHDF5checkpoint(raw_data, raw_bubble_data, cmdline.save_hdf5_data_checkpoint_file);
+  }
+  
+  //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
+  zeroUnmeasuredSourceTimeslices(raw_data, 'C', args.tstep_pipi);
+  zeroUnmeasuredSourceTimeslices(raw_data, 'D', args.tstep_pipi);
+  zeroUnmeasuredSourceTimeslices(raw_data, 'R', args.tstep_pipi);
+
+  computeV(raw_data, raw_bubble_data, args.tsep_pipi);
+
+  figureData A2_C = projectA2('C', raw_data);
+  figureData A2_D = projectA2('D', raw_data);
+  figureData A2_R = projectA2('R', raw_data);
+  figureData A2_V = projectA2('V', raw_data);
+
+  typedef correlationFunction<double,rawDataDistributionD> rawCorrelationFunction;
+  
+  rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
+  rawCorrelationFunction A2_realavg_D = sourceAverage(A2_D);
+  rawCorrelationFunction A2_realavg_R = sourceAverage(A2_R);
+  rawCorrelationFunction A2_realavg_V = sourceAverage(A2_V);
+
+  outputRawData("raw_data_Cpart.dat", A2_realavg_C, 1.);
+  outputRawData("raw_data_Dpart.dat", A2_realavg_D, 2.);
+  outputRawData("raw_data_Rpart.dat", A2_realavg_R, -6.);
+  outputRawData("raw_data_Vpart.dat", A2_realavg_V, 3.);
+  
+  rawCorrelationFunction pipi_raw = 2*A2_realavg_D + A2_realavg_C - 6*A2_realavg_R + 3*A2_realavg_V;
+
+  std::cout << "Raw data:\n" << pipi_raw << std::endl;
+
+
+  
+  doubleJackCorrelationFunction pipi_dj(args.Lt,
+					[&pipi_raw,nsample](const int t)
+					{
+					  typename doubleJackCorrelationFunction::ElementType out(t, doubleJackknifeDistributionD(nsample));
+					  out.second.resample(pipi_raw.value(t));
+					  return out;
+					}
+					);
+  bubbleDataDoubleJackAllMomenta dj_bubble_data = doubleJackknifeResampleBubble(raw_bubble_data);
+  doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectA2sourceAvg(dj_bubble_data,args.tsep_pipi);     //sourceAverage(A2_V_dj);
+  doubleJackCorrelationFunction pipi_dj_vacsubbed = pipi_dj - 3*A2_realavg_V_dj;
+  
+  pipi_dj_vacsubbed = fold(pipi_dj_vacsubbed, args.tsep_pipi);
+  return pipi_dj_vacsubbed;
+}
+
+doubleJackCorrelationFunction getData(const Args &args, const CMDline &cmdline){
+  doubleJackCorrelationFunction data;
+  if(cmdline.load_combined_data){
+#ifdef HAVE_HDF5
+    HDF5reader reader(cmdline.load_combined_data_file);
+    read(reader, data, "data");
+#else
+    error_exit("getData: Reading amplitude data requires HDF5\n");
+#endif
+  }else{
+    data = generateData(args,cmdline);
+  }
+
+  if(cmdline.save_combined_data){
+#ifdef HAVE_HDF5
+    HDF5writer writer(cmdline.save_combined_data_file);
+    write(writer, data, "data");
+#else
+    error_exit("getData: Saving amplitude data requires HDF5\n");
+#endif
+  }
+  return std::move(data);
+}
+
+    
 
 #endif
