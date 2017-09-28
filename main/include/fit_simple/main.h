@@ -19,8 +19,8 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
   FitFunc* fitfunc = getFitFunc<FitFunc>(args);
   Fitter fit;
   fit.importFitFunc(*fitfunc);
-  
-  prepareFitter<FitPolicies,CostFunctionPolicy> prepare(fit, data_dj);
+
+  importCostFunctionParameters<CostFunctionPolicy,FitPolicies> prepare(fit,data_dj);
 
   jackknifeCorrelationFunctionD data_j(nt_fit, [&](const int i){ return typename jackknifeCorrelationFunctionD::ElementType( data_dj.coord(i), data_dj.value(i).toJackknife()); });
 

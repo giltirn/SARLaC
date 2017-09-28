@@ -381,18 +381,20 @@ void getSigma(std::vector<NumericVector<jackknifeDistributionD> > &sigma,
   }
 }
 
-void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit, std::vector<NumericVector<jackknifeDistributionD> > &sigma_fit,
-		const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0, const std::vector<NumericVector<jackknifeDistributionD> > &sigma,
+void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
+		std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,		
+		const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_j,
+		const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_dj,
 		const Args &args){
   //Separate out the data in the desired fit range
   for(int q=0;q<10;q++){
-    for(int d=0;d<A0[q].size();d++){
-      const int t = int(A0[q].coord(d).t);
-      const int tsep_k_pi = A0[q].coord(d).tsep_k_pi;
+    for(int d=0;d<A0_j[q].size();d++){
+      const int t = int(A0_j[q].coord(d).t);
+      const int tsep_k_pi = A0_j[q].coord(d).tsep_k_pi;
       const int tsep_op_pi = tsep_k_pi - t;
       if(t <= tsep_k_pi && t >= args.tmin_k_op && tsep_op_pi >= args.tmin_op_pi){
-	A0_fit[q].push_back(A0[q].coord(d), A0[q].value(d));
-	sigma_fit[q].push_back(sigma[q](d));
+	A0_fit_j[q].push_back(A0_j[q].coord(d), A0_j[q].value(d));
+	A0_fit_dj[q].push_back(A0_dj[q].coord(d), A0_dj[q].value(d));
       }
     }
   }

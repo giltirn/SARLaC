@@ -263,4 +263,57 @@ struct fitter: public FitPolicies{
 
 
 
+//Convenience classes to generate correlation matrix / sigma for correlated and uncorrelated fit policy using double-jackknife data
+template<template<typename> class corrUncorrFitPolicy, typename FitPolicies>
+struct importCostFunctionParameters{};
+
+template<typename FitPolicies>
+struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
+  NumericVector<jackknifeDistributionD> sigma;
+
+  template<typename GeneralizedCoord>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistributionD> &data): sigma(data.size()){
+    for(int d=0;d<data.size();d++)
+      sigma(d) = jackknifeDistributionD(sqrt(doubleJackknifeDistributionD::covariance(data.value(d) , data.value(d) ) ) );
+    
+    fitter.importCostFunctionParameters(sigma);
+  }
+};
+template<typename FitPolicies>
+struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
+  NumericSquareMatrix<jackknifeDistributionD> inv_corr;
+  NumericVector<jackknifeDistributionD> sigma;
+
+  template<typename GeneralizedCoord>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistributionD> &data): sigma(data.size()){
+
+    const int nsample = data.value(0).size();
+    const int ndata = data.size();    
+    NumericSquareMatrix<jackknifeDistributionD> cov(ndata);
+    for(int i=0;i<ndata;i++){
+      cov(i,i) = doubleJackknifeDistributionD::covariance(data.value(i), data.value(i));
+      sigma(i) = sqrt(cov(i,i));
+
+      for(int j=i+1;j<ndata;j++)
+	cov(i,j) = cov(j,i) = doubleJackknifeDistributionD::covariance(data.value(i),data.value(j));
+    }
+
+    NumericSquareMatrix<jackknifeDistributionD> corr(ndata);
+    
+    for(int i=0;i<ndata;i++){
+      corr(i,i) = jackknifeDistributionD(nsample,1.);
+      
+      for(int j=i+1;j<ndata;j++)
+	corr(i,j) = corr(j,i) = cov(i,j)/sigma(i)/sigma(j);
+    }
+    
+    inv_corr.resize(ndata, jackknifeDistributionD(nsample));
+    svd_inverse(inv_corr, corr);
+    fitter.importCostFunctionParameters(inv_corr,sigma);
+  }
+};
+
+
 #endif

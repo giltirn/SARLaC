@@ -6,6 +6,7 @@
   ( int, Lt)							\
   ( int, tsep_pipi)						\
   ( std::vector<int>, tsep_k_pi)				\
+  ( bool, correlated )						\
   ( int, tmin_k_op)						\
   ( int, tmin_op_pi)						\
   ( int, traj_start )						\

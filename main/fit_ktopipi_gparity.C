@@ -26,8 +26,8 @@
 #include <fit_ktopipi_gparity/compute_amplitude.h>
 #include <fit_ktopipi_gparity/fitfunc.h>
 #include <fit_ktopipi_gparity/plot.h>
+#include <fit_ktopipi_gparity/fit.h>
 #include <fit_ktopipi_gparity/main.h>
-
 
 int main(const int argc, const char* argv[]){
   Args args;
@@ -45,55 +45,26 @@ int main(const int argc, const char* argv[]){
 
   CMDline cmdline(argc,argv,2);
   
-  typedef FitKtoPiPi FitFunc;
-  std::vector<typename FitFunc::Params> guess(10);
-
   //Prepare the data
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_all_dj(10);
   getData(A0_all_j, A0_all_dj,args,cmdline);
 
-  //Compute fit weights from double jackknife
-  std::vector<NumericVector<jackknifeDistributionD> > sigma_all_j(10);
-  getSigma(sigma_all_j, A0_all_dj);  
+  //Extract the data we are going to fit
+  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit_j(10);
+  std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_fit_dj(10);
+  getFitData(A0_fit_j,A0_fit_dj,A0_all_j,A0_all_dj,args);
   
-  //Pull out data in fit range
-  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit(10);
-  std::vector<NumericVector<jackknifeDistributionD> > sigma_fit(10);
-  getFitData(A0_fit,sigma_fit,A0_all_j,sigma_all_j,args);
-  
-  std::cout << "Including " << A0_fit[0].size() << " data points in fit\n";
+  std::cout << "Including " << A0_fit_j[0].size() << " data points in fit\n";
   for(int q=0;q<10;q++){
     std::cout << "For Q" << q+1 << std::endl;
-    for(int i=0;i<A0_fit[q].size();i++)
-      std::cout << A0_fit[q].coord(i) << " : " << A0_fit[q].value(i) << "  with sigma=" << sigma_fit[q](i) << std::endl;
+    for(int i=0;i<A0_fit_j[q].size();i++)
+      std::cout << A0_fit_j[q].coord(i) << " : " << A0_fit_j[q].value(i) << std::endl;
   }
 
-  //Perform the fit
-  typedef typename composeFitPolicy<amplitudeDataCoord, FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
-  FitFunc fitfunc;
-  std::vector<jackknifeDistribution<FitFunc::Params> > fit_params(10);
-  
-  for(int q=0;q<10;q++){
-    std::cout << "Starting fit for Q=" << q+1 << std::endl;
-    fitter<FitPolicies> fitter;
-    fitter.importFitFunc(fitfunc);
-    fitter.importCostFunctionParameters(sigma_fit[q]);  
+  typedef FitKtoPiPi FitFunc;
+  std::vector<jackknifeDistribution<typename FitFunc::Params> > fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,args,cmdline);
 
-    readFrozenParams(fitter, q+1, cmdline, nsample);
-  
-    jackknifeDistribution<FitFunc::Params> &params = fit_params[q];
-    params = jackknifeDistribution<FitFunc::Params>(nsample, guess[q]);
-    jackknifeDistributionD chisq;
-    jackknifeDistributionD chisq_per_dof;
-    fitter.fit(params, chisq, chisq_per_dof, A0_fit[q]);
-
-    distributionPrint<jackknifeDistribution<FitFunc::Params> >::printer(new ktopipiParamsPrinter<FitFunc>);
-
-    std::cout << "Q" << q+1 << " Params: " << params << std::endl;
-    std::cout << "Q" << q+1 << " Chisq: " << chisq << std::endl;
-    std::cout << "Q" << q+1 << " Chisq/dof: " << chisq_per_dof << std::endl;
-  }
   extractMdata<FitFunc> extractor(fit_params);
   plotErrorWeightedData(A0_all_j,extractor,args);
 
