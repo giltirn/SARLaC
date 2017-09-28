@@ -39,11 +39,10 @@ jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeC
   return params;
 }
   
-  
 template<typename FitFunc>
-inline void fit_ff(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-		   const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
-		   const Args &args, const CMDline &cmdline){
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
+								       const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+								       const Args &args, const CMDline &cmdline){
   jackknifeDistribution<typename FitFunc::Params> params = args.correlated ? 
     fit_corr_uncorr<FitFunc,correlatedFitPolicy>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, args, cmdline) :
     fit_corr_uncorr<FitFunc,uncorrelatedFitPolicy>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, args, cmdline);
@@ -51,9 +50,14 @@ inline void fit_ff(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
 #ifdef HAVE_HDF5
   writeParamsStandard(params, "params.hdf5");
 #endif
+
+  jackknifeDistributionD Epipi(params.size(), [&](const int s){ return params.sample(s).pipiEnergy(); });
+  jackknifeDistributionD constant(params.size(), [&](const int s){ return params.sample(s).constant(); });
+  return std::pair<jackknifeDistributionD,jackknifeDistributionD>(std::move(Epipi),std::move(constant));
 }
 
-inline void fit(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
+//returns a pair containing the pipi energy and the constant term
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
 		const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
 		const Args &args, const CMDline &cmdline){
   switch(args.fitfunc){

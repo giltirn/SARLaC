@@ -21,9 +21,8 @@
 #include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/cmdline.h>
 #include <fit_pipi_gparity/fit.h>
+#include <fit_pipi_gparity/plot.h>
 #include <fit_pipi_gparity/main.h>
-
-
 
 int main(const int argc, const char* argv[]){
   Args args;
@@ -42,31 +41,33 @@ int main(const int argc, const char* argv[]){
   CMDline cmdline(argc,argv,2);
 
   //Get the double-jackknife resampled data
-  doubleJackCorrelationFunction pipi_dj_vacsubbed = getData(args,cmdline);
+  doubleJackCorrelationFunction pipi_dj = getData(args,cmdline);
+
+  //Convert to single-jackknife
+  jackknifeCorrelationFunction pipi_j(pipi_dj.size(),
+				      [&pipi_dj](const int i){
+					return typename jackknifeCorrelationFunction::ElementType(double(pipi_dj.coord(i)), pipi_dj.value(i).toJackknife());
+				      });
+  
   
   //Filter out the data that is to be fitted
-  const int nsample = pipi_dj_vacsubbed.value(0).size();
+  const int nsample = pipi_j.value(0).size();
   
   filterXrange<double> trange(args.t_min,args.t_max);
   
-  doubleJackCorrelationFunction pipi_dj_vacsubbed_inrange;
-  for(int d=0;d<pipi_dj_vacsubbed.size();d++)
-    if(trange.accept(pipi_dj_vacsubbed.coord(d),pipi_dj_vacsubbed.value(d) ))
-      pipi_dj_vacsubbed_inrange.push_back(pipi_dj_vacsubbed[d]);
-    
-  const int ndata_fit = pipi_dj_vacsubbed_inrange.size();
+  doubleJackCorrelationFunction pipi_dj_inrange;
+  jackknifeCorrelationFunction pipi_j_inrange;
+  for(int d=0;d<pipi_dj.size();d++)
+    if(trange.accept(pipi_dj.coord(d),pipi_dj.value(d) )){
+      pipi_dj_inrange.push_back(pipi_dj[d]);
+      pipi_j_inrange.push_back(pipi_j[d]);
+    }
   
-  //Get the single-jackknife data
-  jackknifeCorrelationFunction pipi_j_vacsubbed_inrange(ndata_fit,
-							[&pipi_dj_vacsubbed_inrange](const int i)
-							{
-							  return typename jackknifeCorrelationFunction::ElementType(double(pipi_dj_vacsubbed_inrange.coord(i)), pipi_dj_vacsubbed_inrange.value(i).toJackknife());
-							}
-							);
-
   //Perform the fit
-  fit(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange,args,cmdline);
+  std::pair<jackknifeDistributionD,jackknifeDistributionD> Epipi_and_const = fit(pipi_j_inrange,pipi_dj_inrange,args,cmdline);
 
+  plot(pipi_j,Epipi_and_const.first,Epipi_and_const.second,args,cmdline);
+  
   std::cout << "Done\n";
   return 0;
 }

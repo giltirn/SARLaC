@@ -2,6 +2,7 @@
 #define _FIT_PIPI_GPARITY_ARGS_H_
 
 GENERATE_ENUM_AND_PARSER(PiPiFitFunction, (FCoshPlusConstant)(FCoshPlusConstantDoubleExp) );
+GENERATE_ENUM_AND_PARSER(PiPiEffectiveEnergy, (TwoPoint)(TwoPointSubConstant)(ThreePoint) );
 
 //Note tstep_pipi is the separation between source timeslices that the C, D, R diagrams were measured upon (i.e. every 8 in the 32^3 job)
 #define ARGS_MEMBERS \
@@ -11,6 +12,7 @@ GENERATE_ENUM_AND_PARSER(PiPiFitFunction, (FCoshPlusConstant)(FCoshPlusConstantD
   ( int, tstep_pipi) \
   ( bool, do_vacuum_subtraction ) \
   ( PiPiFitFunction, fitfunc) \
+  ( PiPiEffectiveEnergy, effective_energy) \
   ( bool, correlated)	      \
   ( int, t_min) \
   ( int, t_max) \
