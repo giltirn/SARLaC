@@ -51,8 +51,6 @@ public:
   void print(std::ostream &os_out, const DistributionType &d) const{
     // std::ios oldState(nullptr);
     // oldState.copyfmt(os);
-    const auto oldRound = std::fegetround();
-
     std::stringstream os;
     
     std::ios::streampos init_pos = os.tellp();
@@ -65,15 +63,12 @@ public:
     if(src == Largest) src = fabs(mu) > fabs(err) ? Central : Error;
     //os << "(" << mu << " +- " << err << ") -> ";
 
-    os << std::fixed;
+    os << std::fixed; //with this mode, precision is the number of digits after the decimal point
 
     valueType &srcv = src == Central ? mu : err;
-    std::fesetround(FE_DOWNWARD); 
 
-    int pow10 = int( rint(log10(fabs(srcv))) );
-    
-    std::fesetround(FE_TONEAREST);
-    
+    int pow10 = int( floor(log10(fabs(srcv))) );
+
     valueType coeffpow10mu = mu / pow(10.,pow10);
     valueType coeffpow10err = err / pow(10.,pow10);
 
@@ -88,8 +83,6 @@ public:
     int width = os.tellp() - init_pos;
 
     for(int i=0;i<min_width - width;i++) os << ' ';
-    
-    std::fesetround(oldRound);
 
     os_out << os.rdbuf();
     
