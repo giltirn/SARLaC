@@ -29,6 +29,9 @@ public:
     typedef FitCoshPlusConstant::Params ET_tag;
     template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,FitCoshPlusConstant::Params>::value, int>::type = 0>
 											      Params(U&& expr);
+
+    inline double pipiEnergy() const{ return E; }
+    inline double constant() const{ return C; }
   };
 
   struct Derivs{
@@ -80,7 +83,7 @@ public:
     return yderivs;
   }
 
-  inline int Nparams() const{ return 3; }
+  inline int Nparams() const{ return 3; }  
 };
 
   
@@ -191,6 +194,8 @@ public:
     typedef FitCoshPlusConstantDoubleExp::Params ET_tag;
     template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,FitCoshPlusConstantDoubleExp::Params>::value, int>::type = 0>
 											      Params(U&& expr);
+    inline double pipiEnergy() const{ return E0; }
+    inline double constant() const{ return C; }
   };
 
   struct Derivs{

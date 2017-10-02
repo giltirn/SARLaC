@@ -43,7 +43,7 @@ private:
 public:
 
   Fit2ptEffectiveMass(const FitFunc &ff, const BaseParameterType _base, const int pmi): fitfunc(&ff),  params_mass_index(pmi), base(_base){
-    assert(base.size() == 2);
+    //assert(base.size() == 2);
   }
 
   inline double value(const double t, const ParameterType &params) const{    
@@ -61,61 +61,44 @@ public:
     double value_tp1 = fitfunc->value(t+1,p);
     BaseDerivativeType subderivs_tp1 = fitfunc->parameterDerivatives(t+1,p);
  
-    *yderivs = subderivs_t.dm/value_tp1 - value_t/value_tp1/value_tp1 * subderivs_tp1.dm;
+    *yderivs = subderivs_t(params_mass_index)/value_tp1 - value_t/value_tp1/value_tp1 * subderivs_tp1(params_mass_index);
     return yderivs;
   }
 
   inline int Nparams() const{ return 1; }
 };
 
-
-
-//Two point effective mass for fit functions with form  A*f(m,t)
-//Base should be a correctly setup parameter structure (needed so we can avoid requiring default constructors)
-template<typename jackknifeTimeSeriesType, typename FitFunc>
-jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, const FitFunc &fitfunc, const typename FitFunc::ParameterType &base, const int parameter_mass_idx, const int Lt){
-  if(data.size() == 0) return jackknifeTimeSeriesType(0);
-  if(data.size() != Lt) error_exit(std::cout << "effectiveMass called with data of size " << data.size() << ". Expect 0 or Lt=" << Lt << std::endl);
-  
-  const int nsample = data.value(0).size();
-  dataSeries<double, jackknifeDistributionD> ratios(Lt-1);
-  for(int i=0;i<Lt-1;i++){
-    double t = data.coord(i);
-    assert(t == double(i));
-    assert(data.coord(i+1) == t+1);
-
-    ratios.coord(i) = t;
-    ratios.value(i) = data.value(i)/data.value(i+1);
-  }
-  typedef Fit2ptEffectiveMass<FitFunc> FitEffMass;
-  
-  typedef UncorrelatedChisqCostFunction<FitEffMass, dataSeries<double,double> > CostFunction;
+//This is a zero degree of freedom fit to numerically invert FitEffMassFunc for the effective mass
+template<typename jackknifeTimeSeriesType, typename FitEffMassFunc>
+jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, const FitEffMassFunc &fiteffmass){
+  typedef UncorrelatedChisqCostFunction<FitEffMassFunc, dataSeries<double,double> > CostFunction;
   typedef MarquardtLevenbergMinimizer<CostFunction> MinimizerType;
-  FitEffMass fiteffmass(fitfunc, base, parameter_mass_idx);
+  typedef typename FitEffMassFunc::ParameterType ParameterType;
   MarquardtLevenbergParameters<typename CostFunction::CostType> mlparams;
   mlparams.verbose = false;
   mlparams.exit_on_convergence_fail = false;
   std::vector<double> sigma_j(1,1.);
 
-  jackknifeTimeSeriesType effmass(ratios.size(), nsample);
+  const int nsample = edata.value(0).size();
+  jackknifeTimeSeriesType effmass(edata.size(), nsample);
   auto orig_printer = distributionPrint<jackknifeDistributionD>::printer();
   distributionPrint<jackknifeDistributionD>::printer(new publicationDistributionPrinter<jackknifeDistributionD>,false);  
 
-  std::vector<bool> erase(ratios.size(),false);
+  std::vector<bool> erase(edata.size(),false);
   bool erase_required = false;
 
-  for(int i=0;i<ratios.size();i++){
-    effmass.coord(i) = ratios.coord(i);    
+  for(int i=0;i<edata.size();i++){
+    effmass.coord(i) = edata.coord(i);    
     
     std::vector<int> fail(omp_get_max_threads(),0); //sometimes the fit func inversion can fail on noisy data
 #pragma omp parallel for
     for(int j=0;j<nsample;j++){
       dataSeries<double, double> rat_t_sample_j(1);
-      rat_t_sample_j.coord(0) = ratios.coord(i);
-      rat_t_sample_j.value(0) = ratios.value(i).sample(j);
+      rat_t_sample_j.coord(0) = edata.coord(i);
+      rat_t_sample_j.value(0) = edata.value(i).sample(j);
       CostFunction costfunc(fiteffmass, rat_t_sample_j, sigma_j);
       MinimizerType fitter(costfunc, mlparams);
-      typename FitEffMass::ParameterType p(0.5);
+      ParameterType p(0.5);
       fitter.fit(p);
       if(!fitter.hasConverged()) fail[omp_get_thread_num()] = 1;
       else effmass.value(i).sample(j) = *p;
@@ -132,10 +115,10 @@ jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, co
   distributionPrint<jackknifeDistributionD>::printer(orig_printer);
     
   if(erase_required){
-    int nkeep = 0; for(int i=0;i<ratios.size();i++) if(!erase[i]) nkeep++;
+    int nkeep = 0; for(int i=0;i<edata.size();i++) if(!erase[i]) nkeep++;
     jackknifeTimeSeriesType tokeep(nkeep);
     int elem = 0;
-    for(int i=0;i<ratios.size();i++)
+    for(int i=0;i<edata.size();i++)
       if(!erase[i]){
 	tokeep.coord(elem) = std::move(effmass.coord(i));
 	tokeep.value(elem) = std::move(effmass.value(i));
@@ -143,6 +126,28 @@ jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, co
       }
     return tokeep;
   }else return effmass;
+}
+
+//Two point effective mass for fit functions with form  A*f(m,t)
+//Base should be a correctly setup parameter structure (needed so we can avoid requiring default constructors)
+template<typename jackknifeTimeSeriesType, typename FitFunc>
+jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, const FitFunc &fitfunc, const typename FitFunc::ParameterType &base, const int parameter_mass_idx, const int Lt){
+  if(data.size() == 0) return jackknifeTimeSeriesType(0);
+  if(data.size() != Lt) error_exit(std::cout << "effectiveMass called with data of size " << data.size() << ". Expect 0 or Lt=" << Lt << std::endl);
+  
+  const int nsample = data.value(0).size();
+  jackknifeTimeSeriesType ratios(Lt-1);
+  for(int i=0;i<Lt-1;i++){
+    double t = data.coord(i);
+    assert(t == double(i));
+    assert(data.coord(i+1) == t+1);
+
+    ratios.coord(i) = t;
+    ratios.value(i) = data.value(i)/data.value(i+1);
+  }
+  typedef Fit2ptEffectiveMass<FitFunc> FitEffMass;
+  FitEffMass fiteffmass(fitfunc, base, parameter_mass_idx);
+  return fitEffectiveMass<jackknifeTimeSeriesType,FitEffMass>(ratios,fiteffmass);
 }
 
 
