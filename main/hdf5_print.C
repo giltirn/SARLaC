@@ -23,12 +23,16 @@ struct CmdLine{
 
   bool spec_pub_sf;
   int spec_pub_sf_val;
+
+  bool spec_sci_fmt_threshold;
+  int spec_sci_fmt_threshold_val;
   
   CmdLine(){
     spec_elem = false;
     spec_format = false;
     spec_pub_sfsrc = false;
     spec_pub_sf = false;
+    spec_sci_fmt_threshold = false;
   }
   void parse(const int argc, const char* argv[]){
     int i = 2;
@@ -54,7 +58,11 @@ struct CmdLine{
       }else if(si == "-pub_sf"){
 	spec_pub_sf = true;
 	std::stringstream ss(argv[i+1]); ss >> spec_pub_sf_val;
-	i+=2;	
+	i+=2;
+      }else if(si == "-sci_fmt_threshold"){
+	spec_sci_fmt_threshold = true;
+	std::stringstream ss(argv[i+1]); ss >> spec_sci_fmt_threshold_val;
+	i+=2;
       }else{
 	error_exit(std::cout << "Unknown argument: " << si << std::endl);
       }
@@ -171,17 +179,22 @@ struct setFormat{
   static inline void doit(const std::string &format, const CmdLine &cmdline){
     if(format == "publication"){
       int nsf = 3;
-      typename publicationDistributionPrinter<D>::SigFigsSource sfsrc = publicationDistributionPrinter<D>::Largest;
+      SigFigsSource sfsrc = Largest;
             
       if(cmdline.spec_pub_sfsrc){
-	if(cmdline.spec_pub_sfsrc_val == "Central") sfsrc = publicationDistributionPrinter<D>::Central;
-	else if(cmdline.spec_pub_sfsrc_val == "Error") sfsrc = publicationDistributionPrinter<D>::Error;
+	if(cmdline.spec_pub_sfsrc_val == "Central") sfsrc = Central;
+	else if(cmdline.spec_pub_sfsrc_val == "Error") sfsrc = Error;
 	else if(cmdline.spec_pub_sfsrc_val != "Largest") error_exit(std::cout << "setFormat unknown sig.figs. src " << cmdline.spec_pub_sfsrc_val << std::endl);
       }
       if(cmdline.spec_pub_sf){
 	nsf = cmdline.spec_pub_sf_val;
       }
-      distributionPrint<D>::printer(new publicationDistributionPrinter<D>(nsf,sfsrc));
+      publicationDistributionPrinter<D> *printer = new publicationDistributionPrinter<D>(nsf,sfsrc);
+      
+      if(cmdline.spec_sci_fmt_threshold){
+	printer->setSciFormatThreshold(cmdline.spec_sci_fmt_threshold_val);
+      }      
+      distributionPrint<D>::printer(printer);
     }else if(format != "basic"){
       error_exit(std::cout << "setFormat: Unknown format " << format << std::endl);
     }
