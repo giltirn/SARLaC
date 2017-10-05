@@ -117,6 +117,49 @@ superJackknifeDistribution<double> computeLLfactor(const superJackknifeDistribut
   return F;
 }
 
+void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0_sj, //I=0 phase shift
+				  superJackknifeDistribution<double> &F_sj, //Lellouch-Luscher factor
+				  const superJackknifeDistribution<double> &Epipi_sj, const superJackknifeDistribution<double> &mpi_sj,
+				  const superJackknifeDistribution<double> &mK_sj, const superJackknifeDistribution<double> &ainv_sj, const Args &args){
+  typedef superJackknifeDistribution<double> superJackD; 
+  
+  //Compute the phase shift and it's derivative wrt q
+  LuscherZeta zeta(args.twists[0],args.twists[1],args.twists[2]);
+
+  superJackD p_pipi_sj = sqrt( Epipi_sj*Epipi_sj/4 - mpi_sj*mpi_sj );
+  superJackD q_pipi_sj = args.L * p_pipi_sj /( 2 * M_PI );
+  std::cout << "p = " << p_pipi_sj << std::endl;
+  std::cout << "q = " << q_pipi_sj << std::endl;
+  
+  delta_0_sj = getPhaseShift(zeta,q_pipi_sj);
+  superJackD delta_0_deg_sj = delta_0_sj/M_PI * 180;
+
+  std::cout << "delta_0 = " << delta_0_sj << " rad = " << delta_0_deg_sj << "deg\n";
+
+  superJackD d_delta_by_dq_schenk_sj = getPhaseShiftDerivSchenk(ainv_sj,Epipi_sj,q_pipi_sj,mpi_sj,args.L);
+  superJackD d_delta_by_dq_lin_Epipi_sj = getPhaseShiftDerivLinearEpipi(Epipi_sj,q_pipi_sj,mpi_sj,delta_0_sj,args.L);
+  superJackD d_delta_by_dq_lin_qpipi_sj = getPhaseShiftDerivLinearQpipi(q_pipi_sj,delta_0_sj);
+
+  std::cout << "ddelta_0/dq (Schenk) = " << d_delta_by_dq_schenk_sj << std::endl;
+  std::cout << "ddelta_0/dq (Lin. Epipi) = " << d_delta_by_dq_lin_Epipi_sj << std::endl;
+  std::cout << "ddelta_0/dq (Lin. q) = " << d_delta_by_dq_lin_qpipi_sj << std::endl;
+
+  superJackD d_delta_by_dq_sj;
+  switch(args.deriv_source){
+  case DerivSchenk:
+    d_delta_by_dq_sj = d_delta_by_dq_schenk_sj; break;
+  case DerivLinearEpipi:
+    d_delta_by_dq_sj = d_delta_by_dq_lin_Epipi_sj; break;
+  case DerivLinearQpipi:
+    d_delta_by_dq_sj = d_delta_by_dq_lin_qpipi_sj; break;
+  default:
+    error_exit(std::cout << "Unknown phase shift derivative source " << args.deriv_source << std::endl);
+  }
+  std::cout << "Using ddelta_0/dq source " << args.deriv_source << ", value " << d_delta_by_dq_sj << std::endl;
+
+  F_sj = computeLLfactor(Epipi_sj,q_pipi_sj,p_pipi_sj,mK_sj,d_delta_by_dq_sj,zeta,args.L);
+}
+
 
 
 #endif
