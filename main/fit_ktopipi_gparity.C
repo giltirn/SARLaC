@@ -50,27 +50,7 @@ int main(const int argc, const char* argv[]){
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_all_dj(10);
   getData(A0_all_j, A0_all_dj,args,cmdline);
 
-  //Extract the data we are going to fit
-  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit_j(10);
-  std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_fit_dj(10);
-  getFitData(A0_fit_j,A0_fit_dj,A0_all_j,A0_all_dj,args);
-  
-  std::cout << "Including " << A0_fit_j[0].size() << " data points in fit\n";
-  for(int q=0;q<10;q++){
-    std::cout << "For Q" << q+1 << std::endl;
-    for(int i=0;i<A0_fit_j[q].size();i++)
-      std::cout << A0_fit_j[q].coord(i) << " : " << A0_fit_j[q].value(i) << std::endl;
-  }
-
-  typedef FitKtoPiPi FitFunc;
-  std::vector<jackknifeDistribution<typename FitFunc::Params> > fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,args,cmdline);
-
-  extractMdata<FitFunc> extractor(fit_params);
-  plotErrorWeightedData(A0_all_j,extractor,args);
-
-#ifdef HAVE_HDF5
-  writeParamsStandard(fit_params, "params.hdf5");
-#endif
+  fitAndPlot(A0_all_j,A0_all_dj,args,cmdline);
 
   std::cout << "Done" << std::endl;
   

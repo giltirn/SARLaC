@@ -134,7 +134,7 @@ void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string
   into = con.list[idx];
 }
 
-
+//Use Q=-1 for all Q
 template<typename FitFuncPolicies>
 void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDline &cmdline, const int nsample){
   if(!cmdline.load_freeze_data) return;
@@ -147,7 +147,7 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDlin
   parse(fparams,cmdline.freeze_data);
   
   for(int i=0;i<fparams.sources.size();i++){
-    if(fparams.sources[i].Qlist.size() > 0 && std::find(fparams.sources[i].Qlist.begin(), fparams.sources[i].Qlist.end(), Q) == fparams.sources[i].Qlist.end()) continue;
+    if(Q!=-1 && fparams.sources[i].Qlist.size() > 0 && std::find(fparams.sources[i].Qlist.begin(), fparams.sources[i].Qlist.end(), Q) == fparams.sources[i].Qlist.end()) continue;
     
     std::cout << "readFrozenParams loading freeze data for parameter " << fparams.sources[i].param_idx << std::endl;
     freeze.push_back(fparams.sources[i].param_idx);

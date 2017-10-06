@@ -59,6 +59,23 @@ struct extractMdata<FitKtoPiPi>{
   inline double getMfit(const int q, const int s) const{ return fit_params[q].sample(s).M; }
 };
 
+//Simultaneous Q fit
+template<>
+struct extractMdata<FitKtoPiPiSim>{
+  const std::vector<jackknifeDistribution<FitKtoPiPiSim::Params> > &fit_params;
+
+  extractMdata(const std::vector<jackknifeDistribution<FitKtoPiPiSim::Params> > &_fit_params): fit_params(_fit_params){}
+  
+  //Extract the matrix element from the data for a given coordinate assuming we know the remaining fit parameters
+  double getMdata(const amplitudeDataCoord &x, const double y, const int q, const int sample) const{
+    FitKtoPiPiSim::Params p1(fit_params[0].sample(sample)); p1.M[q] = 1.;
+    amplitudeDataCoordSim xx(x,q);
+    return y/FitKtoPiPiSim::value(xx,p1);
+  }
+
+  inline double getMfit(const int q, const int s) const{ return fit_params[0].sample(s).M[q]; }
+};
+
 
 template<typename MdataExtractor>
 void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, const MdataExtractor &extractor, const Args &args){
