@@ -1,6 +1,19 @@
 #ifndef _KTOPIPI_FIT_H_
 #define _KTOPIPI_FIT_H_
 
+template<typename FitFunc>
+struct fitReturnType{};
+
+template<>
+struct fitReturnType<FitKtoPiPi>{ typedef std::vector<jackknifeDistribution<FitKtoPiPi::Params> > type; };
+
+template<int N>
+struct fitReturnType<FitKtoPiPiSim<N> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> type; };
+  
+template<>
+struct fitReturnType<FitKtoPiPiSim<7> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<10>::Params> type; }; //return parameters converted to 10-basis
+
+
 //Fit to each Q independently
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr{
@@ -43,14 +56,14 @@ struct fit_corr_uncorr{
   }
 };
 
-//Simultaneous fit
+//Simultaneous fit in 10-basis
 template<template<typename> class corrUncorrFitPolicy>
-struct fit_corr_uncorr<FitKtoPiPiSim, corrUncorrFitPolicy>{
-  static std::vector<jackknifeDistribution<FitKtoPiPiSim::Params> > fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
-									const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
-									const Args &args, const CMDline &cmdline){
+struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
+  static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
+							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
+							      const Args &args, const CMDline &cmdline){
     const int nsample = A0_fit_j[0].value(0).size();
-    typedef FitKtoPiPiSim FitFunc;
+    typedef FitKtoPiPiSim<10> FitFunc;
     typedef FitFunc::Params Params;
     Params guess;
     
@@ -101,7 +114,126 @@ struct fit_corr_uncorr<FitKtoPiPiSim, corrUncorrFitPolicy>{
     std::cout << "Chisq: " << chisq << std::endl;
     std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
 
-    return std::vector<jackknifeDistribution<typename FitFunc::Params> >(1, std::move(params));
+    return params;
+  }
+};
+
+
+//Simultaneous fit in chiral
+template<template<typename> class corrUncorrFitPolicy>
+struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
+  static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
+							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
+							      const Args &args, const CMDline &cmdline){
+    const int nsample = A0_fit_j[0].value(0).size();
+    typedef FitKtoPiPiSim<7> FitFunc;
+    typedef FitFunc::Params Params;
+    Params guess;
+
+    const int nfit_q = A0_fit_j[0].size();
+    for(int i=1;i<10;i++) assert(A0_fit_j[i].size() == nfit_q);
+
+    //Convert the data to the chiral basis and gather into single containers
+    
+    //Convert Q123 -> Q'123
+    static const double Q123rot[3][3] = {  { 3    ,  2,    -1     },
+					   { 2./5 , -2./5,  1./5  },
+					   {-3./5,   3./5,  1./5  } };
+
+    jackknifeDistributionD zero_j(nsample,0.);
+    doubleJackknifeDistributionD zero_dj(nsample,0.);
+    correlationFunction<amplitudeDataCoordSim, jackknifeDistributionD> A0_fit_j_all;
+    correlationFunction<amplitudeDataCoordSim, doubleJackknifeDistributionD> A0_fit_dj_all;
+      
+    for(int d=0;d<nfit_q;d++){
+      for(int i=1;i<10;i++) assert(A0_fit_j[i].coord(d) == A0_fit_j[0].coord(d)); //should all be at the same coordinate, just different q
+      
+      std::vector<jackknifeDistributionD> Qprime_j(7, zero_j);
+      std::vector<doubleJackknifeDistributionD> Qprime_dj(7, zero_dj);
+#define Q(i,j) Q123rot[i-1][j-1]
+      
+#define MOj(i) Qprime_j[i-1]
+#define MIj(i) A0_fit_j[i-1].value(d)
+#define MOdj(i) Qprime_dj[i-1]
+#define MIdj(i) A0_fit_dj[i-1].value(d)      
+      
+      for(int i=1;i<=3;i++){
+	MOj(i) = Q(i,1)*MIj(1) + Q(i,2)*MIj(2) + Q(i,3)*MIj(3);
+	MOdj(i) = Q(i,1)*MIdj(1) + Q(i,2)*MIdj(2) + Q(i,3)*MIdj(3);
+      }
+      for(int i=4;i<=7;i++){
+	MOj(i) = MIj(i+1); //5->4  6->5 etc
+	MOdj(i) = MIdj(i+1);
+      }
+#undef MOj
+#undef MOdj
+#undef MIj
+#undef MIdj
+#undef Q
+
+      for(int q=0;q<7;q++){      
+	amplitudeDataCoordSim cc(A0_fit_j[0].coord(d), q);	
+	A0_fit_j_all.push_back(correlationFunction<amplitudeDataCoordSim, jackknifeDistributionD>::ElementType(cc,Qprime_j[q]));
+	A0_fit_dj_all.push_back(correlationFunction<amplitudeDataCoordSim, doubleJackknifeDistributionD>::ElementType(cc,Qprime_dj[q]));
+      }
+    }
+
+    //Perform the fit
+    typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
+    FitFunc fitfunc;
+  
+    std::cout << "Starting fit for all Q simultaneously" << std::endl;
+    fitter<FitPolicies> fitter;
+    fitter.importFitFunc(fitfunc);
+
+    //Compute the correlation matrix / weights
+    importCostFunctionParameters<corrUncorrFitPolicy,FitPolicies> prepare(fitter, A0_fit_dj_all);
+
+    readFrozenParams(fitter, -1, cmdline, nsample);
+
+    distributionPrint<jackknifeDistribution<Params> >::printer(new ktopipiParamsPrinter<FitFunc>);
+    
+    jackknifeDistribution<Params> params(nsample, guess);
+    jackknifeDistributionD chisq;
+    jackknifeDistributionD chisq_per_dof;
+    fitter.fit(params, chisq, chisq_per_dof, A0_fit_j_all);
+
+    std::cout << "Params in chiral basis: " << params << std::endl;
+    std::cout << "Chisq: " << chisq << std::endl;
+    std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
+
+    //Convert back to 10 basis
+    jackknifeDistribution<FitKtoPiPiSim<10>::Params> out(nsample);
+    
+    //Convert Q'123 -> Q123
+    static const double Q123invrot[3][3] = {  {1./5,   1,   0},
+					      {1./5,   0,   1},
+					      {  0 ,   3,   2} };
+    for(int s=0;s<nsample;s++){
+      out.sample(s).zero();
+      for(int i=0;i<4;i++) out.sample(s)(i) = params.sample(s)(i);
+      
+#define MO(i) out.sample(s)(i+4-1)
+#define MI(i) params.sample(s)(i+4-1)
+#define Qinv(i,j) Q123invrot[i-1][j-1]
+
+      for(int i=1;i<=3;i++)
+	MO(i) = Qinv(i,1)*MI(1) + Qinv(i,2)*MI(2) + Qinv(i,3)*MI(3);
+
+      MO(4) = MO(2) + MO(3) - MO(1); //Q4 = Q2 + Q3 - Q1    [Lehner, Sturm, arXiv:1104.4948 eq 9]
+      for(int i=5;i<=8;i++) MO(i) = MI(i-1); //4->5 5->6 etc
+	
+      MO(9) = 3./2*MO(1)  -1./2*MO(3); //Q9 = 3/2 Q1 - 1/2 Q3
+      MO(10) = 1./2*MO(1)  -1./2*MO(3) + MO(2); //Q10 = 1/2(Q1 - Q3) + Q2
+
+#undef MO
+#undef MI
+#undef Qinv
+    }
+
+    std::cout << "Params in 10 basis: " << out << std::endl;
+    
+    return out;
   }
 };
 
@@ -110,9 +242,9 @@ struct fit_corr_uncorr<FitKtoPiPiSim, corrUncorrFitPolicy>{
 
 
 template<typename FitFunc>
-inline std::vector<jackknifeDistribution<typename FitFunc::Params> > fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
-									 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
-									 const Args &args, const CMDline &cmdline){
+inline typename fitReturnType<FitFunc>::type fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
+						 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
+						 const Args &args, const CMDline &cmdline){
   return args.correlated ?
     fit_corr_uncorr<FitFunc,correlatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,args,cmdline) :
     fit_corr_uncorr<FitFunc,uncorrelatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,args,cmdline);
@@ -154,7 +286,7 @@ inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoor
       std::cout << A0_fit_j[q].coord(i) << " : " << A0_fit_j[q].value(i) << std::endl;
   }
   
-  std::vector<jackknifeDistribution<typename FitFunc::Params> > fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,args,cmdline);
+  typename fitReturnType<FitFunc>::type fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,args,cmdline);
 
   extractMdata<FitFunc> extractor(fit_params);
   plotErrorWeightedData(A0_all_j,extractor,args);
@@ -171,7 +303,9 @@ inline void fitAndPlot(const std::vector<correlationFunction<amplitudeDataCoord,
   case FitSeparate:
     return fitAndPlotFF<FitKtoPiPi>(A0_all_j,A0_all_dj,args,cmdline);
   case FitSimultaneous:
-    return fitAndPlotFF<FitKtoPiPiSim>(A0_all_j,A0_all_dj,args,cmdline);
+    return fitAndPlotFF<FitKtoPiPiSim<10> >(A0_all_j,A0_all_dj,args,cmdline);
+  case FitSimultaneousChiralBasis:
+    return fitAndPlotFF<FitKtoPiPiSim<7> >(A0_all_j,A0_all_dj,args,cmdline);
   default:
     error_exit(std::cout << "fitAndPlot(..) Unknown fit function " << args.fitfunc << std::endl);
   }

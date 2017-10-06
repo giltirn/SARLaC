@@ -8,6 +8,8 @@ struct amplitudeDataCoord{
   int tsep_k_pi;
   inline amplitudeDataCoord(){}
   inline amplitudeDataCoord(double _t, int _tsep_k_pi): t(_t), tsep_k_pi(_tsep_k_pi){}
+
+  inline bool operator==(const amplitudeDataCoord &r) const{ return t==r.t && tsep_k_pi==r.tsep_k_pi; }
 };
 std::ostream & operator<<(std::ostream &os, const amplitudeDataCoord &c){
   os << "(t=" << c.t << ", tsep_k_pi=" << c.tsep_k_pi << ")";
@@ -173,55 +175,90 @@ void read(HDF5reader &reader, amplitudeDataCoordSim &value, const std::string &t
 #endif
 
 
+
+template<int N>
+struct SimFitParams{
+  double AK;
+  double mK;
+  double Apipi;
+  double Epipi;
+  std::vector<double> M;
+
+  SimFitParams(): AK(1), mK(0.5), Apipi(1), Epipi(0.5), M(N,1){}
+  SimFitParams(const double _AK, const double _mK, const double _Apipi, const double _Epipi, const double _M): AK(_AK), mK(_mK), Apipi(_Apipi), Epipi(_Epipi), M(N,_M){}
+  SimFitParams(const SimFitParams<N> &r) = default;
+  SimFitParams(SimFitParams<N> &&r) = default;
+
+  SimFitParams<N>& operator=(const SimFitParams<N> &r) = default;
+  SimFitParams<N>& operator=(SimFitParams<N> &&r) = default;
+    
+  inline int size() const{ return N+4; }
+
+  inline std::string print() const{
+    std::ostringstream os; os << "AK=" << AK << " mK=" << mK << " Apipi=" << Apipi << " Epipi=" << Epipi;
+    for(int i=0;i<N;i++) os << " M[" << i << "]=" << M[i];
+    return os.str();
+  }
+  inline void zero(){
+    AK=mK=Apipi=Epipi=0.;
+    for(int i=0;i<N;i++) M[i] = 0.;
+  }
+  inline double &operator()(const int i){
+    if(i<4){
+      switch(i){
+      case 0:
+	return AK;
+      case 1:
+	return mK;
+      case 2:
+	return Apipi;
+      case 3:
+	return Epipi;
+      }
+    }else return M[i-4];
+  }
+  inline const double &operator()(const int i) const{ return const_cast<const double &>( const_cast<SimFitParams*>(this)->operator()(i) ); }
+
+  typedef SimFitParams<N> ET_tag;
+  
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,SimFitParams<N> >::value, int>::type = 0>
+  SimFitParams(U&& expr): M(N){
+    this->AK = expr[0];
+    this->mK = expr[1];
+    this->Apipi = expr[2];
+    this->Epipi = expr[3];
+    for(int i=4;i<N+4;i++) this->M[i-4] = expr[i];
+  }
+};
+
+template<int N>
+struct getElem<SimFitParams<N> >{
+  static inline auto elem(const SimFitParams<N> &v, const int i)->decltype(v(i)){ return v(i); }
+  static inline int common_properties(const SimFitParams<N> &v){ return 0; }
+};
+
+template<int N>
+struct printStats<jackknifeDistribution<SimFitParams<N> > >{
+  inline static std::string centralValue(const jackknifeDistribution<SimFitParams<N> > &d){
+    auto best = d.best();
+    std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi;
+    for(int i=0;i<N;i++) os << ", " << best.M[i];
+    os << ")";
+    return os.str();
+  }
+  inline static std::string error(const jackknifeDistribution<SimFitParams<N> > &d){
+    auto err = d.standardError();
+    std::ostringstream os; os << "(" << err.AK << ", " << err.mK << ", " << err.Apipi << ", " << err.Epipi;
+    for(int i=0;i<N;i++) os << ", " << err.M[i];
+    os << ")";
+    return os.str();
+  }
+};
+
+template<int N>
 class FitKtoPiPiSim{
 public:
-  struct Params{
-    double AK;
-    double mK;
-    double Apipi;
-    double Epipi;
-    std::vector<double> M;
-
-    Params(): AK(1), mK(0.5), Apipi(1), Epipi(0.5), M(10,1){}
-    Params(const double _AK, const double _mK, const double _Apipi, const double _Epipi, const double _M): AK(_AK), mK(_mK), Apipi(_Apipi), Epipi(_Epipi), M(10,_M){}
-    Params(const Params &r) = default;
-    Params(Params &&r) = default;
-
-    Params& operator=(const Params &r) = default;
-    Params& operator=(Params &&r) = default;
-    
-    inline int size() const{ return 14; }
-
-    inline std::string print() const{
-      std::ostringstream os; os << "AK=" << AK << " mK=" << mK << " Apipi=" << Apipi << " Epipi=" << Epipi;
-      for(int i=0;i<10;i++) os << " M[" << i << "]=" << M[i];
-      return os.str();
-    }
-    inline void zero(){
-      AK=mK=Apipi=Epipi=0.;
-      for(int i=0;i<10;i++) M[i] = 0.;
-    }
-    inline double &operator()(const int i){
-      if(i<4){
-	switch(i){
-	case 0:
-	  return AK;
-	case 1:
-	  return mK;
-	case 2:
-	  return Apipi;
-	case 3:
-	  return Epipi;
-	}
-      }else return M[i-4];
-    }
-    inline const double &operator()(const int i) const{ return const_cast<const double &>( const_cast<Params*>(this)->operator()(i) ); }
-
-    typedef FitKtoPiPiSim::Params ET_tag;
-    template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,FitKtoPiPiSim::Params>::value, int>::type = 0>
-    Params(U&& expr);
-  };
-public:
+  typedef SimFitParams<N> Params;
   typedef double ValueType;
   typedef Params ParameterType;
   typedef Params ValueDerivativeType; //derivative wrt parameters
@@ -241,56 +278,27 @@ public:
     return yderivs;
   }
 
-  static inline int Nparams(){ return 14; }
+  static inline int Nparams(){ return N+4; }
 };
 
   
-template<>
-struct getElem<FitKtoPiPiSim::Params>{
-  static inline auto elem(const FitKtoPiPiSim::Params &v, const int i)->decltype(v(i)){ return v(i); }
-  static inline int common_properties(const FitKtoPiPiSim::Params &v){ return 0; }
-};
+GENERATE_PARSER_GM(FitKtoPiPiSim<10>::Params, FitKtoPiPiSim_10_Params_grammar, (double, AK)(double, mK)(double, Apipi)(double, Epipi)(std::vector<double>, M) )
+GENERATE_PARSER_GM(FitKtoPiPiSim<7>::Params, FitKtoPiPiSim_7_Params_grammar, (double, AK)(double, mK)(double, Apipi)(double, Epipi)(std::vector<double>, M) )
 
-template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, FitKtoPiPiSim::Params::ET_tag>::value && !std::is_same<U,FitKtoPiPiSim::Params>::value, int>::type>
-FitKtoPiPiSim::Params::Params(U&& expr): M(10){
-  this->AK = expr[0];
-  this->mK = expr[1];
-  this->Apipi = expr[2];
-  this->Epipi = expr[3];
-  for(int i=4;i<14;i++) this->M[i-4] = expr[i];
-}
-
-GENERATE_PARSER_GM(FitKtoPiPiSim::Params, FitKtoPiPiSim_Params_grammar, (double, AK)(double, mK)(double, Apipi)(double, Epipi)(std::vector<double>, M) )
-
-template<>
-struct printStats<jackknifeDistribution<FitKtoPiPiSim::Params> >{
-  inline static std::string centralValue(const jackknifeDistribution<FitKtoPiPiSim::Params> &d){
-    auto best = d.best();
-    std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi;
-    for(int i=0;i<10;i++) os << ", " << best.M[i];
-    os << ")";
-    return os.str();
-  }
-  inline static std::string error(const jackknifeDistribution<FitKtoPiPiSim::Params> &d){
-    auto err = d.standardError();
-    std::ostringstream os; os << "(" << err.AK << ", " << err.mK << ", " << err.Apipi << ", " << err.Epipi;
-    for(int i=0;i<10;i++) os << ", " << err.M[i];
-    os << ")";
-    return os.str();
-  }
-};
-
-
-template<>
-struct ktopipiParamsPrinter<FitKtoPiPiSim>: public distributionPrinter<jackknifeDistribution<FitKtoPiPiSim::Params> >{
-  void print(std::ostream &os, const jackknifeDistribution<FitKtoPiPiSim::Params> &dist) const{
-    FitKtoPiPiSim::Params cen = dist.best();
-    FitKtoPiPiSim::Params err = dist.standardError();
+template<int N>
+struct ktopipiParamsPrinter<FitKtoPiPiSim<N> >: public distributionPrinter<jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> >{
+  void print(std::ostream &os, const jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> &dist) const{
+    typename FitKtoPiPiSim<N>::Params cen = dist.best();
+    typename FitKtoPiPiSim<N>::Params err = dist.standardError();
     os << "AK = (" << cen.AK << " +- " << err.AK << ") mK = (" << cen.mK << " +- " << err.mK << ") "
        << "Apipi = (" << cen.Apipi << " +- " << err.Apipi << ") Epipi = (" << cen.Epipi << " +- " << err.Epipi << ")";
-    for(int i=0;i<10;i++) os << " M[" << i << "] = (" << cen.M[i] << " +- " << err.M[i] << ")";
+    for(int i=0;i<N;i++) os << " M[" << i << "] = (" << cen.M[i] << " +- " << err.M[i] << ")";
   }
 };
+
+
+
+
 
 
 
