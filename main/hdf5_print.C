@@ -24,6 +24,9 @@ struct CmdLine{
   bool spec_pub_sf;
   int spec_pub_sf_val;
 
+  bool spec_round_pow;
+  int spec_round_pow_val;
+  
   bool spec_sci_fmt_threshold;
   int spec_sci_fmt_threshold_val;
 
@@ -37,6 +40,7 @@ struct CmdLine{
     spec_pub_sf = false;
     spec_sci_fmt_threshold = false;
     spec_pub_exp = false;
+    spec_round_pow = false;
   }
   void parse(const int argc, const char* argv[]){
     int i = 2;
@@ -56,7 +60,9 @@ struct CmdLine{
 	spec_format_val = argv[i+1];
 	i += 2;
 
-	//-------------------- Options specific to publication format ---------------------------------	
+	//-------------------- Options specific to publication format ---------------------------------
+	//Defaults: Prints 3 sig figs from the largest of the central-value/error
+	
       }else if(si == "-pub_sfsrc"){ //Specify the "operational-value" (Largest, Central, Error) upon which the other criteria are applied (eg number of sig figs)
 	spec_pub_sfsrc = true;
 	spec_pub_sfsrc_val = argv[i+1];
@@ -64,6 +70,10 @@ struct CmdLine{
       }else if(si == "-pub_sf"){ //Specify the number of significant figures of the operational value (defined above)
 	spec_pub_sf = true;
 	std::stringstream ss(argv[i+1]); ss >> spec_pub_sf_val;
+	i+=2;
+      }else if(si == "-pub_rounding"){ //Specify the power-of-10 at which the result is rounded. Overrides sig figs
+	spec_round_pow = true;
+	std::stringstream ss(argv[i+1]); ss >> spec_round_pow_val;
 	i+=2;
       }else if(si == "-sci_fmt_threshold"){ //Specify the absolute power-of-10 at which we switch from decimal to scientific format
 	spec_sci_fmt_threshold = true;
@@ -202,6 +212,9 @@ struct setFormat{
 	nsf = cmdline.spec_pub_sf_val;
       }
       publicationDistributionPrinter<D> *printer = new publicationDistributionPrinter<D>(nsf,sfsrc);
+
+      if(cmdline.spec_round_pow)
+	printer->setRoundPower(cmdline.spec_round_pow_val);
       
       if(cmdline.spec_sci_fmt_threshold)
 	printer->setSciFormatThreshold(cmdline.spec_sci_fmt_threshold_val);

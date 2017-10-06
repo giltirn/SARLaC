@@ -79,7 +79,7 @@ public:
     setup(d,init_sz);
   }
 
-  void print(std::ostream &os, bool incl_exponent = true, bool leading_space_if_positive = false) const{
+  std::ostream & print(std::ostream &os, bool incl_exponent = true, bool leading_space_if_positive = false) const{
     if(leading_space_if_positive) os << ( sgn == -1 ? '-' : ' ' );
     else if(sgn==-1) os << '-';
     
@@ -88,6 +88,7 @@ public:
       if(i==dp && i!=v.size()-1) os << '.';
     }
     if(incl_exponent && base_pow !=0 ) os << 'e' << base_pow;
+    return os;
   }
 
   double value() const{
@@ -107,7 +108,7 @@ public:
   //Right-shift = divide by 10  (keep base power the same)
   decimal operator>>(const unsigned int n) const{
     decimal out(*this);
-    for(int i=0;i<n;i++){
+    for(unsigned int i=0;i<n;i++){
       --out.dp;
       if(out.dp<0){
 	out.v.push_front(0);
@@ -167,19 +168,12 @@ public:
     return out;
   }
 
-  //Remove all digits after power p
+  //Remove all digits after power p)
   decimal truncateAtPow(const int p) const{
-    decimal out(*this);
-    int pow_first_digit = out.base_pow + out.dp;
-    int last_idx = pow_first_digit - p;
-    if(last_idx < 0){
-      out = out.setExp(p);
-      last_idx = 0;
-    }
-    while(last_idx >= out.v.size()-1){
-      out.v.push_back(0);
-    }
-    out.v.resize(last_idx + 1);
+    int orig_pow = exponent();
+    decimal out = this->setExp(p);
+    out.v.resize(out.dp+1); //just keep all ints up to the decimal point
+    out = out.setExp(orig_pow);
     return out;
   }
     
@@ -224,7 +218,6 @@ enum SigFigsSource { Central, Error, Largest };
 class cenErr{
   decimal cen;
   decimal err;
-  int nsf;
 public:
   
   std::ostream & printBasic(std::ostream &os) const{
@@ -247,16 +240,18 @@ public:
     return os;
   }
   
-  cenErr(double c, double e, SigFigsSource sf = Largest, const int _nsf = 3): cen(c), err(e), nsf(_nsf){
-    assert(e>=0.);
-    if(sf == Largest)
-      sf = fabs(c) >= fabs(e) ? Central : Error;
-    
+  cenErr(double c, double e): cen(c), err(e){
+    assert(e>=0.);    
     //Put them under a common exponent
     int exp = cen.exponent() < err.exponent() ? cen.exponent() : err.exponent();
     cen = cen.setExp(exp);
     err = err.setExp(exp);
- 
+  }
+
+  void setSigFigs(const int nsf, SigFigsSource sf = Largest){
+    if(sf == Largest)
+      sf = fabs(cen.value()) >= fabs(err.value()) ? Central : Error;
+    
     int sig_fig_pow_cen = cen.firstSigFigPow();
     int sig_fig_pow_err = err.firstSigFigPow();
 
@@ -269,7 +264,14 @@ public:
     cen = cen.truncateAtPow(round_pow);
     err = err.truncateAtPow(round_pow);
   }
+  void setRoundPower(const int round_pow){
+    cen = cen.roundAtPow(round_pow);
+    err = err.roundAtPow(round_pow);
 
+    cen = cen.truncateAtPow(round_pow);
+    err = err.truncateAtPow(round_pow);
+  }  
+  
   void convertDecimal(){
     cen = cen.setExp(0);
     err = err.setExp(0);
@@ -288,11 +290,18 @@ public:
 template<typename DistributionType, typename ValuePolicy = printStats<DistributionType> >
 struct publicationDistributionPrinter: public distributionPrinter<DistributionType>{
 public:
-  int nsf; //number of sig figs
-  SigFigsSource sfsrc; //whether the sig.figs specified is based on the error or the central value
   int min_width; //pad with trailing spaces if width < min_width. Use 0 for no padding
   int sci_fmt_threshold; //when the operative value's exponent is > this value we will use scientific format, otherwise we will use decimal format
 
+  //Optional: set the number of significant figures and which of the two quantities this refers to
+  bool set_sig_figs;
+  int nsf; //number of sig figs
+  SigFigsSource sfsrc; //whether the sig.figs specified is based on the error or the central value
+
+  //Optional: set the power-of-10 at which the output is rounded. Overrides sig-figs option
+  bool set_round_pow;
+  int round_pow;
+  
   //Optional: set the exponents to a fixed value. Disables sci_fmt_threshold
   bool set_exponent;  
   int set_exponent_to;
@@ -304,8 +313,13 @@ public:
     valueType mu = ValuePolicy::centralValue(d);
     valueType err = ValuePolicy::error(d);
 
-    cenErr ce(mu,err,sfsrc,nsf);
+    cenErr ce(mu,err);
 
+    if(set_round_pow)
+      ce.setRoundPower(round_pow);
+    else if(set_sig_figs)
+      ce.setSigFigs(nsf,sfsrc);
+    
     if(set_exponent){
       ce.setExp(set_exponent_to);
     }else{ //check if we should convert to decimal format
@@ -328,12 +342,13 @@ public:
     os_out << os.rdbuf();
   }
 
-  publicationDistributionPrinter(const int _nsf = 3, const SigFigsSource _sfsrc = Largest): nsf(_nsf), sfsrc(_sfsrc), min_width(0), sci_fmt_threshold(3), set_exponent(false){}
+  publicationDistributionPrinter(const int _nsf = 3, const SigFigsSource _sfsrc = Largest): set_sig_figs(true), nsf(_nsf), sfsrc(_sfsrc), min_width(0), sci_fmt_threshold(3), set_exponent(false), set_round_pow(false){}
 
-  inline void setSigFigs(const int _nsf, const SigFigsSource _sfsrc = Largest){ nsf = _nsf; sfsrc  = _sfsrc; }
+  inline void setSigFigs(const int _nsf, const SigFigsSource _sfsrc = Largest){ set_sig_figs = true; nsf = _nsf; sfsrc  = _sfsrc; }
   inline void setMinWidth(const int _min_width){ min_width = _min_width; }
   inline void setSciFormatThreshold(const int p){ sci_fmt_threshold = p; }
   inline void setExponent(const int p){ set_exponent = true; set_exponent_to = p; }
+  inline void setRoundPower(const int p){ set_round_pow = true; round_pow = p; }
 };
 
 //A class that stores a singleton copy of the printer for a given type. The current printer is used in the stream operators for the distributions. The printer can be overridden at arbitrary time
