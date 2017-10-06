@@ -274,7 +274,10 @@ public:
     cen = cen.setExp(0);
     err = err.setExp(0);
   }
-
+  void setExp(int p){
+    cen = cen.setExp(p);
+    err = err.setExp(p);
+  }
 };
 
 
@@ -289,6 +292,10 @@ public:
   SigFigsSource sfsrc; //whether the sig.figs specified is based on the error or the central value
   int min_width; //pad with trailing spaces if width < min_width. Use 0 for no padding
   int sci_fmt_threshold; //when the operative value's exponent is > this value we will use scientific format, otherwise we will use decimal format
+
+  //Optional: set the exponents to a fixed value. Disables sci_fmt_threshold
+  bool set_exponent;  
+  int set_exponent_to;
 public:
   void print(std::ostream &os_out, const DistributionType &d) const{
     std::stringstream os;    
@@ -299,14 +306,18 @@ public:
 
     cenErr ce(mu,err,sfsrc,nsf);
 
-    int abs_pow10_op;
-    {
-      SigFigsSource sff = sfsrc;
-      if(sff == Largest) sff = (mu >= err ? Central : Error); 
-      abs_pow10_op = abs(decimal::pow10(sff == Central ? mu : err));
+    if(set_exponent){
+      ce.setExp(set_exponent_to);
+    }else{ //check if we should convert to decimal format
+      int abs_pow10_op;
+      {
+	SigFigsSource sff = sfsrc;
+	if(sff == Largest) sff = (mu >= err ? Central : Error); 
+	abs_pow10_op = abs(decimal::pow10(sff == Central ? mu : err));
+      }
+      if(abs_pow10_op <= sci_fmt_threshold)
+	ce.convertDecimal();
     }
-    if(abs_pow10_op <= sci_fmt_threshold)
-      ce.convertDecimal();    
     
     ce.printPublication(os);
 
@@ -315,14 +326,14 @@ public:
     for(int i=0;i<min_width - width;i++) os << ' ';
 
     os_out << os.rdbuf();
-
   }
 
-  publicationDistributionPrinter(const int _nsf = 3, const SigFigsSource _sfsrc = Largest): nsf(_nsf), sfsrc(_sfsrc), min_width(0), sci_fmt_threshold(3){}
+  publicationDistributionPrinter(const int _nsf = 3, const SigFigsSource _sfsrc = Largest): nsf(_nsf), sfsrc(_sfsrc), min_width(0), sci_fmt_threshold(3), set_exponent(false){}
 
   inline void setSigFigs(const int _nsf, const SigFigsSource _sfsrc = Largest){ nsf = _nsf; sfsrc  = _sfsrc; }
   inline void setMinWidth(const int _min_width){ min_width = _min_width; }
   inline void setSciFormatThreshold(const int p){ sci_fmt_threshold = p; }
+  inline void setExponent(const int p){ set_exponent = true; set_exponent_to = p; }
 };
 
 //A class that stores a singleton copy of the printer for a given type. The current printer is used in the stream operators for the distributions. The printer can be overridden at arbitrary time

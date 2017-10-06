@@ -26,6 +26,9 @@ struct CmdLine{
 
   bool spec_sci_fmt_threshold;
   int spec_sci_fmt_threshold_val;
+
+  bool spec_pub_exp;
+  int spec_pub_exp_val;
   
   CmdLine(){
     spec_elem = false;
@@ -33,6 +36,7 @@ struct CmdLine{
     spec_pub_sfsrc = false;
     spec_pub_sf = false;
     spec_sci_fmt_threshold = false;
+    spec_pub_exp = false;
   }
   void parse(const int argc, const char* argv[]){
     int i = 2;
@@ -51,18 +55,26 @@ struct CmdLine{
 	spec_format = true;
 	spec_format_val = argv[i+1];
 	i += 2;
-      }else if(si == "-pub_sfsrc"){
+
+	//-------------------- Options specific to publication format ---------------------------------	
+      }else if(si == "-pub_sfsrc"){ //Specify the "operational-value" (Largest, Central, Error) upon which the other criteria are applied (eg number of sig figs)
 	spec_pub_sfsrc = true;
 	spec_pub_sfsrc_val = argv[i+1];
 	i+=2;
-      }else if(si == "-pub_sf"){
+      }else if(si == "-pub_sf"){ //Specify the number of significant figures of the operational value (defined above)
 	spec_pub_sf = true;
 	std::stringstream ss(argv[i+1]); ss >> spec_pub_sf_val;
 	i+=2;
-      }else if(si == "-sci_fmt_threshold"){
+      }else if(si == "-sci_fmt_threshold"){ //Specify the absolute power-of-10 at which we switch from decimal to scientific format
 	spec_sci_fmt_threshold = true;
 	std::stringstream ss(argv[i+1]); ss >> spec_sci_fmt_threshold_val;
 	i+=2;
+      }else if(si == "-pub_exp"){ //Specify the exponent of the output. Overrides sci_fmt_threshold. Set to 0 to force decimal format
+	spec_pub_exp = true;
+	std::stringstream ss(argv[i+1]); ss >> spec_pub_exp_val;
+	i+=2;
+
+	//--------------------------------------------------------------------------------------------
       }else{
 	error_exit(std::cout << "Unknown argument: " << si << std::endl);
       }
@@ -191,9 +203,12 @@ struct setFormat{
       }
       publicationDistributionPrinter<D> *printer = new publicationDistributionPrinter<D>(nsf,sfsrc);
       
-      if(cmdline.spec_sci_fmt_threshold){
+      if(cmdline.spec_sci_fmt_threshold)
 	printer->setSciFormatThreshold(cmdline.spec_sci_fmt_threshold_val);
-      }      
+      
+      if(cmdline.spec_pub_exp)
+	printer->setExponent(cmdline.spec_pub_exp_val);
+      
       distributionPrint<D>::printer(printer);
     }else if(format != "basic"){
       error_exit(std::cout << "setFormat: Unknown format " << format << std::endl);

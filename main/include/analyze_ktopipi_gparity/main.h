@@ -3,14 +3,12 @@
 
 
 NumericTensor<superJackknifeDistribution<double>,1> computePhysicalMSbarMatrixElements(const NumericTensor<superJackknifeDistribution<double>,1> &M_lat_sj, //lattice matrix elements
-							       const superJackknifeDistribution<double> &ainv_sj, //inverse lattice spacing
-							       const superJackknifeDistribution<double> &F_sj,  //Lellouch-Luscher factor
-							       const NumericTensor<superJackknifeDistribution<double>,2> &NPR_sj, //RI-SMOM renormalization factors
-							       const Args &args){
+										       const superJackknifeDistribution<double> &ainv_sj, //inverse lattice spacing
+										       const superJackknifeDistribution<double> &F_sj,  //Lellouch-Luscher factor
+										       const NumericTensor<superJackknifeDistribution<double>,2> &NPR_sj, //RI-SMOM renormalization factors
+										       const MSbarConvert &MSbar, //MSbar matching coefficients
+										       const Args &args){
   typedef superJackknifeDistribution<double> superJackD;
-  
-  //Compute the MSbar matching coefficients
-  MSbarConvert MSbar(args.renormalization.mu,args.renormalization.scheme);
   
   //Convert M to physical units and infinite volume
   superJackD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj * args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
@@ -47,13 +45,11 @@ NumericTensor<superJackknifeDistribution<double>,1> computePhysicalMSbarMatrixEl
 void computeA0(superJackknifeDistribution<double> &ReA0_sj,
 	       superJackknifeDistribution<double> &ImA0_sj,
 	       const NumericTensor<superJackknifeDistribution<double>,1> &M_MSbar_std_sj,
+	       const WilsonCoeffs &wilson_coeffs,
 	       const Args &args,
 	       const std::string &file_stub = ""){
   
   typedef superJackknifeDistribution<double> superJackD;
-
-  //Read the Wilson coefficients
-  WilsonCoeffs wilson_coeffs(args.wilson_coeffs_file);
 
   const superJackknifeLayout &layout = M_MSbar_std_sj({0}).getLayout();
   
@@ -80,6 +76,124 @@ void computeA0(superJackknifeDistribution<double> &ReA0_sj,
   writeParamsStandard(ReA0_sj, file_stub+"ReA0.hdf5");
   writeParamsStandard(ImA0_sj, file_stub+"ImA0.hdf5");
 }
+
+//A0 = \sum_{ij} w_i^{MS} C^{MS<-RI (10x7)}_{ij} M^{RI}_j   =  \sum_j (\sum_i w_i^{MS} C^{MS<-RI (10x7)}_{ij}) M^{RI}_j
+//Define W_j = (\sum_i w_i^{MS} C^{MS<-RI (10x7)}_{ij})   as the "RI Wilson coefficients"
+NumericTensor<double,1> computeRIwilsonCoefficients(const int reIm,
+						    const MSbarConvert &MSbar,
+						    const WilsonCoeffs &wilson_coeffs){
+  const NumericTensor<double,2> &C_MSbar = MSbar.getConversionMatrix();
+  NumericTensor<double,1> RI_Wilson_coeffs({7}, 0.);
+
+  for(int j=0;j<7;j++)
+    for(int i=0;i<10;i++){
+      std::complex<double> w = wilson_coeffs(i);   
+      RI_Wilson_coeffs(&j) = RI_Wilson_coeffs(&j) + (reIm == 1 ? w.imag() : w.real()) * C_MSbar({i,j});
+    }
+  return RI_Wilson_coeffs;
+}
+
+//A0 = \sum_{ij} w_i^{RI} Z^{RI}_{ij} M^lat_{j}
+//Define W_j = \sum_i w_i^{RI} Z^{RI}_{ij} as the 'Lattice Wilson coefficients' (chiral basis) in analog to the above
+NumericTensor<superJackknifeDistribution<double>,1> computeLatticeWilsonCoefficients(const NumericTensor<superJackknifeDistribution<double>,2> &NPR_sj,
+										     const NumericTensor<double,1> &RI_Wilson_coeffs){
+  typedef superJackknifeDistribution<double> superJackD;
+  superJackD zero(NPR_sj({0,0}).getLayout(),[](const int s){return 0.;});
+  NumericTensor<superJackD,1> lat_Wilson_coeffs({7}, zero);
+  for(int j=0;j<7;j++)
+    for(int i=0;i<7;i++)
+      lat_Wilson_coeffs(&j) = lat_Wilson_coeffs(&j) + RI_Wilson_coeffs(&i) * NPR_sj({i,j});
+  return lat_Wilson_coeffs;
+}
+
+void computeRIandLatticeWilsonCoefficients(std::pair<NumericTensor<double,1>, NumericTensor<double,1> > &RI_Wilson_coeffs,
+					   std::pair<NumericTensor<superJackknifeDistribution<double>,1>, NumericTensor<superJackknifeDistribution<double>,1> > &lat_Wilson_coeffs,
+					   const WilsonCoeffs &wilson_coeffs,
+					   const MSbarConvert &MSbar,
+					   const NumericTensor<superJackknifeDistribution<double>,2> &NPR,
+					   const std::string &file_stub){
+  typedef superJackknifeDistribution<double> superJackD;
+
+  std::cout << "Computing RI and lattice Wilson coefficients\n";
+  RI_Wilson_coeffs  = std::pair<NumericTensor<double,1>, NumericTensor<double,1> >( computeRIwilsonCoefficients(0,MSbar,wilson_coeffs), computeRIwilsonCoefficients(1,MSbar,wilson_coeffs) );
+  for(int reim=0; reim<2; reim++)
+    std::cout << (reim==0 ? "Real" : "Imaginary") << " part RI Wilson coefficients:\n" << (reim == 0 ? RI_Wilson_coeffs.first : RI_Wilson_coeffs.second ) << std::endl;
+    
+  lat_Wilson_coeffs = std::pair<NumericTensor<superJackD,1>, NumericTensor<superJackD,1> >( computeLatticeWilsonCoefficients(NPR, RI_Wilson_coeffs.first), computeLatticeWilsonCoefficients(NPR, RI_Wilson_coeffs.second) );
+  for(int reim=0; reim<2; reim++)
+    std::cout << (reim==0 ? "Real" : "Imaginary") << " part lattice Wilson coefficients:\n" << (reim == 0 ? lat_Wilson_coeffs.first : lat_Wilson_coeffs.second ) << std::endl;
+
+  {
+    std::string filename = file_stub + "real_RI_Wilson_coeffs.dat";
+    std::ofstream f(filename.c_str());
+    f << RI_Wilson_coeffs.first;
+  }
+  {
+    std::string filename = file_stub + "imag_RI_Wilson_coeffs.dat";
+    std::ofstream f(filename.c_str());
+    f << RI_Wilson_coeffs.second;
+  }
+  writeParamsStandard(lat_Wilson_coeffs.first, file_stub+"real_lat_Wilson_coeffs.hdf5");
+  writeParamsStandard(lat_Wilson_coeffs.second, file_stub+"imag_lat_Wilson_coeffs.hdf5");
+}
+
+
+NumericTensor<superJackknifeDistribution<double>,1> computePhysicalMSbarMatrixElementsUsingReA0expt(const NumericTensor<superJackknifeDistribution<double>,1> &M_lat_sj, //lattice matrix elements
+												    const superJackknifeDistribution<double> &ainv_sj, //inverse lattice spacing
+												    const superJackknifeDistribution<double> &F_sj,  //Lellouch-Luscher factor
+												    const NumericTensor<superJackknifeDistribution<double>,2> &NPR_sj, //RI-SMOM renormalization factors
+												    const MSbarConvert &MSbar, //MSbar matching coefficients
+												    const NumericTensor<superJackknifeDistribution<double>,1> &ReA0_lat_Wilson_coeffs,
+												    const superJackknifeDistribution<double> &ReA0_expt_sj,
+												    const int elim_idx,
+												    const Args &args){
+  typedef superJackknifeDistribution<double> superJackD;
+  std::cout << "Eliminating Q'" << chiralBasisIdx(elim_idx) << " using experimental ReA0\n";
+    
+  //Convert M to physical units and infinite volume
+  superJackD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj * args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
+  NumericTensor<superJackD,1> M_unrenorm_phys_std({10}, [&](const int* c){ return coeff * M_lat_sj(c); });
+  std::cout << "Unrenormalized physical matrix elements (physical units, infinite volume) and standard basis:\n";
+  for(int q=0;q<10;q++)
+    std::cout << "Q" << q+1 << " = " << M_unrenorm_phys_std(&q) << " GeV^3\n";
+  
+  //Convert M to chiral basis
+  NumericTensor<superJackD,1> M_unrenorm_phys_chiral_sj = convertChiralBasis(M_unrenorm_phys_std);
+
+  std::cout << "Unrenormalized physical matrix elements in chiral basis:\n";
+  for(int q=0;q<7;q++)
+    std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_unrenorm_phys_chiral_sj(&q)<< " GeV^3\n";
+
+  //Replace one of the chiral basis lattice matrix elements with the linear combination of Re(A0) from expt and the other matrix elements
+  const superJackknifeLayout &layout = NPR_sj({0,0}).getLayout();
+  superJackD sum_other(layout,[](const int s){return 0.;});
+
+  for(int i=0;i<7;i++)
+    if(i!=elim_idx)
+      sum_other = sum_other + ReA0_lat_Wilson_coeffs(&i) * M_unrenorm_phys_chiral_sj(&i);
+
+  //Perform the elimination
+  M_unrenorm_phys_chiral_sj(&elim_idx) = ( ReA0_expt_sj - sum_other ) / ReA0_lat_Wilson_coeffs(&elim_idx);
+
+  std::cout << "Unrenormalized physical Q'" << chiralBasisIdx(elim_idx) << " obtained by include Re(A0) from expt: " << M_unrenorm_phys_chiral_sj(&elim_idx) << std::endl;
+
+  //Apply NPR
+  NumericTensor<superJackD,1> M_RI_chiral_sj = NPR_sj * M_unrenorm_phys_chiral_sj;
+
+  std::cout << "RI-scheme physical matrix elements in chiral basis:\n";
+  for(int q=0;q<7;q++)
+    std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_RI_chiral_sj(&q) << " GeV^3\n";
+
+  //Convert to MSbar
+  NumericTensor<superJackD,1> M_MSbar_std_sj = MSbar.convert(M_RI_chiral_sj);
+
+  std::cout << "MSbar-scheme physical matrix elements in standard basis:\n";
+  for(int q=0;q<10;q++)
+    std::cout << "Q" << q+1 << " = " << M_MSbar_std_sj(&q) << " GeV^3\n";
+  
+  return M_MSbar_std_sj;
+}
+
 
 
 void computeEpsilon(const superJackknifeDistribution<double> &ReA0_lat_sj,
