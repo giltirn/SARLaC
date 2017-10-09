@@ -125,55 +125,10 @@ NumericTensor<rawDataDistributionD,1> getA2projectedBubble(const Args &args, con
   return bubble;
 }
 
-void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string &filename, const int idx){
-  XMLreader rd(filename);
-  std::cout << "readUKfitVectorEntry reading file " << filename << std::endl;
-  UKvalenceDistributionContainer<jackknifeDistribution<double> > con;
-  read(rd,con,"data_in_file");
-  std::cout << "Read " << con.Nentries << " distributions from file " << filename << std::endl;  
-  into = con.list[idx];
-}
-
-//Use Q=-1 for all Q
 template<typename FitFuncPolicies>
-void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDline &cmdline, const int nsample){
-  if(!cmdline.load_freeze_data) return;
-
-  typedef typename FitFuncPolicies::jackknifeFitParameters jackknifeFitParameters;
-  jackknifeFitParameters values(nsample);
-  
-  std::vector<int> freeze;
-  FreezeParams fparams;
-  parse(fparams,cmdline.freeze_data);
-  
-  for(int i=0;i<fparams.sources.size();i++){
-    if(Q!=-1 && fparams.sources[i].Qlist.size() > 0 && std::find(fparams.sources[i].Qlist.begin(), fparams.sources[i].Qlist.end(), Q) == fparams.sources[i].Qlist.end()) continue;
-    
-    std::cout << "readFrozenParams loading freeze data for parameter " << fparams.sources[i].param_idx << std::endl;
-    freeze.push_back(fparams.sources[i].param_idx);
-
-    jackknifeDistribution<double> fval;
-    if(fparams.sources[i].reader == UKfitXMLvectorReader) readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
-    else error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
-
-    if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read jackknife of size " << fval.size() << ", expected " << nsample << std::endl);
-
-    if(fparams.sources[i].operation != ""){
-      expressionAST AST = mathExpressionParse(fparams.sources[i].operation);
-      if(!AST.containsSymbol("x")) error_exit(std::cout << "readFrozenParams expect math expression to be a function of 'x', got \"" << fparams.sources[i].operation << "\"\n");
-      for(int s=0;s<nsample;s++){
-	AST.assignSymbol("x",fval.sample(s));
-	fval.sample(s) = AST.value();
-      }
-    }
-
-    std::cout << "readFrozenParams read " << fval << std::endl;
-    
-    for(int s=0;s<nsample;s++)
-      values.sample(s)(fparams.sources[i].param_idx) = fval.sample(s);    
-  }
-
-  fitter.freeze(freeze, values);
+inline void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDline &cmdline, const int nsample){
+  if(!cmdline.load_freeze_data) return;  
+  readFrozenParams<FitFuncPolicies>(fitter,Q,cmdline.freeze_data,nsample);
 }
 
 

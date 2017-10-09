@@ -66,7 +66,7 @@ struct CMDline{
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];
 	if(freeze_data == "TEMPLATE"){
-	  FreezeParams p;
+	  KtoPiPiFreezeParams p;
 	  std::ofstream of("freeze_template.args");
 	  of << p;
 	  of.close();

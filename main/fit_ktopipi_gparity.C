@@ -19,6 +19,7 @@
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/read_data.h>
 
+#include <fit_ktopipi_gparity/freeze.h>
 #include <fit_ktopipi_gparity/cmdline.h>
 #include <fit_ktopipi_gparity/args.h>
 #include <fit_ktopipi_gparity/data_containers.h>
