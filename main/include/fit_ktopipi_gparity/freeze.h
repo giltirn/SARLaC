@@ -1,9 +1,7 @@
 #ifndef _KTOPIPI_FREEZE_H_
 #define _KTOPIPI_FREEZE_H_
 
-#include<expression_parse.h>
-
-GENERATE_ENUM_AND_PARSER(FreezeDataReaderType, (UKfitXMLvectorReader) );
+#include<fit_wrapper_freeze.h>
 
 #define KTOPIPI_FREEZE_PARAM_MEMBERS \
   (std::vector<int>, Qlist) \
@@ -32,15 +30,6 @@ struct KtoPiPiFreezeParams{
   KtoPiPiFreezeParams(): sources(1){}
 };
 GENERATE_PARSER(KtoPiPiFreezeParams, KTOPIPI_FREEZE_PARAMS_MEMBERS);
-
-void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string &filename, const int idx){
-  XMLreader rd(filename);
-  std::cout << "readUKfitVectorEntry reading file " << filename << std::endl;
-  UKvalenceDistributionContainer<jackknifeDistribution<double> > con;
-  read(rd,con,"data_in_file");
-  std::cout << "Read " << con.Nentries << " distributions from file " << filename << std::endl;  
-  into = con.list[idx];
-}
 
 //Use Q=-1 for all Q
 template<typename FitFuncPolicies>

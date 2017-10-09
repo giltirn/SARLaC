@@ -94,30 +94,6 @@ struct CmdLine{
 };
 
 
-
-GENERATE_ENUM_AND_PARSER( DistributionType, (Jackknife)(JackknifeC)(Raw)(DoubleJackknife)(SuperJackknife)  );
-
-void getTypeInfo(DistributionType &type, int & vector_depth, const std::string &filename){
-  HDF5reader rd(filename);
-  std::string typestr;
-  read(rd, typestr, "distributionType");
-  rd.enter("value");
-  if(rd.contains("size2")) vector_depth = 2;
-  else vector_depth =1;
-
-  if(typestr == "rawDataDistribution<double>"){
-    type = Raw;
-  }else if(typestr == "jackknifeDistribution<double>"){
-    type = Jackknife;
-  }else if(typestr == "jackknifeCdistribution<double>"){
-    type = JackknifeC;
-  }else if(typestr == "doubleJackknifeDistribution<double>"){
-    type = DoubleJackknife;
-  }else if(typestr == "superJackknifeDistribution<double>"){
-    type = SuperJackknife;    
-  }else error_exit(std::cout << "getTypeInfo type " << typestr << " unimplemented\n");
-}
-
 template<typename V, typename Action, int Depth>
 struct visitor;
 
@@ -256,7 +232,7 @@ void specDtype(const std::string &filename, const int vector_depth, const CmdLin
   }
 }
 
-void run(const std::string &filename, const DistributionType type, const int vector_depth, const CmdLine &cmdline){
+void run(const std::string &filename, const DistributionTypeEnum type, const int vector_depth, const CmdLine &cmdline){
   switch(type){
   case Raw:
     specDtype<rawDataDistribution<double> >(filename,vector_depth,cmdline);  break;
@@ -269,7 +245,7 @@ void run(const std::string &filename, const DistributionType type, const int vec
   case SuperJackknife:
     specDtype<superJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;    
   default:
-    error_exit(std::cout << "run(const DistributionType type, const int vector_depth) unknown type " << type << std::endl);
+    error_exit(std::cout << "run(const DistributionTypeEnum type, const int vector_depth) unknown type " << type << std::endl);
   }
 }
 
@@ -280,7 +256,7 @@ int main(const int argc, const char* argv[]){
   CmdLine cmdline;
   cmdline.parse(argc,argv);
   
-  DistributionType type;
+  DistributionTypeEnum type;
   int vector_depth;
   getTypeInfo(type,vector_depth,filename);
   run(filename, type, vector_depth, cmdline);

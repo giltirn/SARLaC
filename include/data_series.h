@@ -3,6 +3,7 @@
 
 #include<ostream>
 #include<template_wizardry.h>
+#include<hdf5_serialize.h>
 
 //A class containing a series of data, for example a time series
 template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType = std::pair>

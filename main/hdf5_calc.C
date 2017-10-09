@@ -11,8 +11,6 @@
 #include<expression_parse.h>
 
 //A program to perform calculations using distributions loaded from canonical format hdf5 containers
-GENERATE_ENUM_AND_PARSER( DistributionType, (Jackknife)(JackknifeC)(Raw)(DoubleJackknife)(SuperJackknife)  );
-
 template<typename distributionType>
 struct iterate;
 
@@ -69,26 +67,6 @@ struct iterate<superJackknifeDistribution<T> >{
   }
 };
 
-void getTypeInfo(DistributionType &type, int & vector_depth, const std::string &filename){
-  HDF5reader rd(filename);
-  std::string typestr;
-  read(rd, typestr, "distributionType");
-  rd.enter("value");
-  if(rd.contains("size2")) vector_depth = 2;
-  else vector_depth =1;
-
-  if(typestr == "rawDataDistribution<double>"){
-    type = Raw;
-  }else if(typestr == "jackknifeDistribution<double>"){
-    type = Jackknife;
-  }else if(typestr == "jackknifeCdistribution<double>"){
-    type = JackknifeC;
-  }else if(typestr == "doubleJackknifeDistribution<double>"){
-    type = DoubleJackknife;
-  }else if(typestr == "superJackknifeDistribution<double>"){
-    type = SuperJackknife;    
-  }else error_exit(std::cout << "getTypeInfo type " << typestr << " unimplemented\n");
-}
 
 struct symbolInfo{
   std::string symbol;
@@ -96,7 +74,7 @@ struct symbolInfo{
   std::vector<int> indices;
 
   //Info for reading the hdf5 containers
-  DistributionType type;
+  DistributionTypeEnum type;
   int vector_depth;
   
   void parseIndices(const std::string &ind){
@@ -152,7 +130,7 @@ void check<superJackknifeDistribution<double> >(const std::vector<symbolInfo> &s
 
 
 template<typename D>
-void specDtype(const std::vector<symbolInfo> &symbols, const DistributionType type, expressionAST &expr, const std::string &outfile){
+void specDtype(const std::vector<symbolInfo> &symbols, const DistributionTypeEnum type, expressionAST &expr, const std::string &outfile){
   std::vector<D> symbol_values(symbols.size());
   for(int i=0;i<symbols.size();i++)
     readSymbol(symbol_values[i],symbols[i]);
@@ -177,7 +155,7 @@ void specDtype(const std::vector<symbolInfo> &symbols, const DistributionType ty
 }
 
 
-void run(const std::vector<symbolInfo> &symbols, const DistributionType type, expressionAST &expr, const std::string &outfile){
+void run(const std::vector<symbolInfo> &symbols, const DistributionTypeEnum type, expressionAST &expr, const std::string &outfile){
   switch(type){
   case Raw:
     specDtype<rawDataDistribution<double> >(symbols,type,expr,outfile);  break;
