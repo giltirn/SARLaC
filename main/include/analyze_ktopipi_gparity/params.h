@@ -14,10 +14,27 @@ struct FileIdxPair{
 };
 GENERATE_PARSER(FileIdxPair, FILE_IDX_PAIR_MEMBERS);
 
-#define FIT_RESULTS_MEMBERS (FileIdxPair, M_lat)(FileIdxPair, mK)(FileIdxPair, Epi)(FileIdxPair, Epipi)
+#define M_FILE_INFO_MEMBERS (std::string, file)(std::vector<std::vector<int> >, idx)
+struct MfileInfo{
+  GENERATE_MEMBERS(M_FILE_INFO_MEMBERS);
+  MfileInfo(){}
+  MfileInfo(const std::string &f, const std::vector<std::vector<int> > &i): file(f),idx(i){}
+  MfileInfo(const std::string &f): file(f), idx(10, std::vector<int>(2)){
+    for(int i=0;i<10;i++){ //default layout for separate fits to the matrix elements (stored in vector<vector<dist> > format)
+      idx[i][0] = i;
+      idx[i][1] = 4;
+    }
+  }
+    
+};
+GENERATE_PARSER(MfileInfo, M_FILE_INFO_MEMBERS);
+
+
+#define FIT_RESULTS_MEMBERS (MfileInfo, M_lat)(FileIdxPair, mK)(FileIdxPair, Epi)(FileIdxPair, Epipi)
 struct FitResults{ //these are all expected to be hdf5 files currently
   GENERATE_MEMBERS(FIT_RESULTS_MEMBERS);
-  FitResults(): M_lat("32c_216cfgs_results/ktopipi.hdf5",4), mK("32c_216cfgs_results/mk.hdf5", 1), Epi("32c_216cfgs_results/Epi.hdf5", 1), Epipi("32c_216cfgs_results/pipi.hdf5", 1){}
+
+  FitResults(): M_lat("32c_216cfgs_results/ktopipi.hdf5"), mK("32c_216cfgs_results/mk.hdf5", 1), Epi("32c_216cfgs_results/Epi.hdf5", 1), Epipi("32c_216cfgs_results/pipi.hdf5", 1){}
 };
 GENERATE_PARSER(FitResults, FIT_RESULTS_MEMBERS);
 

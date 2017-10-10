@@ -27,9 +27,30 @@ struct superJackknifeData{
     //Load the matrix elements
     NumericTensor<jackknifeDistributionD,1> M_lat_j;
     {
-      std::vector<std::vector<jackknifeDistributionD> > fit_params;
-      readParamsStandard(fit_params, args.fit_results.M_lat.file);
-      M_lat_j = NumericTensor<jackknifeDistributionD,1>({10}, [&](const int *i){ return fit_params[*i][args.fit_results.M_lat.idx]; } );
+      assert(args.fit_results.M_lat.idx.size() == 10); //must be in 10 basis
+      DistributionTypeEnum type;
+      int depth;
+      getTypeInfo(type,depth,args.fit_results.M_lat.file);
+      assert(type == Jackknife);
+      if(depth == 2){
+	for(int i=0;i<10;i++) assert(args.fit_results.M_lat.idx[i].size() == 2); //pair of indices for the vectors
+	std::vector<std::vector<jackknifeDistributionD> > fit_params;
+	readParamsStandard(fit_params, args.fit_results.M_lat.file);
+	M_lat_j = NumericTensor<jackknifeDistributionD,1>({10}, [&](const int *i){
+	    int a=args.fit_results.M_lat.idx[*i][0];
+	    int b=args.fit_results.M_lat.idx[*i][1];
+	    return fit_params[a][b];
+	  });
+      }else if(depth == 1){
+	for(int i=0;i<10;i++) assert(args.fit_results.M_lat.idx[i].size() == 1); //single index
+	std::vector<jackknifeDistributionD> fit_params;
+	readParamsStandard(fit_params, args.fit_results.M_lat.file);
+	M_lat_j = NumericTensor<jackknifeDistributionD,1>({10}, [&](const int *i){
+	    return fit_params[args.fit_results.M_lat.idx[*i][0]];
+	  });
+      }else{
+	error_exit(std::cout << "superJackknifeData constructor: do not support canonical file formats with depths other than 1 or 2\n");
+      }
     }
     std::cout << "Unrenormalized lattice matrix elements:\n";
     for(int q=0;q<10;q++)
