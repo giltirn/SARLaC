@@ -34,12 +34,21 @@ int main(const int argc, const char** argv){
   assert(ktopipi_data_dj.size() == ktopipi_data_j.size());
 
   const int nsample = pipi_data_dj.value(0).size();
+
+  //Fold the Pipi data (in my pipi code it is already folded, but in principle you could load unfolded data)
+  const int Tref = args.Lt-2*args.tsep_pipi;
+  doubleJackCorrelationFunction pipi_data_folded_dj(args.Lt,
+						    [&](const int t){
+						      return typename doubleJackCorrelationFunction::ElementType(pipi_data_dj.coord(t),
+														 ( pipi_data_dj.value(t) + pipi_data_dj.value( (Tref-t+args.Lt) % args.Lt ) )/2.
+														 );
+						    });
   
   //Get data in fit range
   doubleJackCorrelationFunction pipi_data_inrange_dj;
   for(int i=0;i<pipi_data_dj.size();i++)
-    if(int(pipi_data_dj.coord(i)) >= args.tmin_pipi && int(pipi_data_dj.coord(i)) <= args.tmax_pipi)
-      pipi_data_inrange_dj.push_back(pipi_data_dj[i]);
+    if(int(pipi_data_folded_dj.coord(i)) >= args.tmin_pipi && int(pipi_data_folded_dj.coord(i)) <= args.tmax_pipi)
+      pipi_data_inrange_dj.push_back(pipi_data_folded_dj[i]);
   
   std::vector<jackAmplitudeCorrelationFunction> ktopipi_data_inrange_j(10);
   std::vector<doubleJackAmplitudeCorrelationFunction> ktopipi_data_inrange_dj(10);

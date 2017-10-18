@@ -1,51 +1,8 @@
 #ifndef _FIT_KTOPIPI_MAIN_H
 #define _FIT_KTOPIPI_MAIN_H
 
-template<typename distributionType>
-struct iterate;
+#include<distribution_iterate.h>
 
-template<typename T>
-struct iterate<doubleJackknifeDistribution<T> >{
-  static inline int size(const doubleJackknifeDistribution<T> &from){ return from.size() * (from.size()-1); } //j + (from.size()-1)*i
-  static inline const T& at(const int i, const doubleJackknifeDistribution<T> &from){
-    const int nn = from.size()-1;
-    return from.sample(i/nn).sample(i%nn);
-  }
-  static inline T & at(const int i, doubleJackknifeDistribution<T> &from){
-    const int nn = from.size()-1;
-    return from.sample(i/nn).sample(i%nn);
-  }
-  static inline std::vector<int> unmap(const int i, const doubleJackknifeDistribution<T> &from){ 
-    const int nn = from.size()-1;
-    return std::vector<int>({i/nn, i%nn});
-  }
-};
-template<typename T>
-struct iterate<rawDataDistribution<T> >{
-  static inline int size(const rawDataDistribution<T> &from){ return from.size(); } 
-  static inline const T& at(const int i, const rawDataDistribution<T> &from){
-    return from.sample(i);
-  }
-  static inline T & at(const int i, rawDataDistribution<T> &from){
-    return from.sample(i);
-  }
-  static inline std::vector<int> unmap(const int i, const rawDataDistribution<T> &from){ 
-    return std::vector<int>({i});
-  }
-};
-template<typename T>
-struct iterate<jackknifeDistribution<T> >{
-  static inline int size(const jackknifeDistribution<T> &from){ return from.size(); } 
-  static inline const T& at(const int i, const jackknifeDistribution<T> &from){
-    return from.sample(i);
-  }
-  static inline T & at(const int i, jackknifeDistribution<T> &from){
-    return from.sample(i);
-  }
-  static inline std::vector<int> unmap(const int i, const jackknifeDistribution<T> &from){ 
-    return std::vector<int>({i});
-  }
-};
 template<typename T, int N>
 struct iterate<NumericTensor<T,N> >{
   static inline int size(const NumericTensor<T,N> &from){ 

@@ -125,6 +125,13 @@ struct _get_elem_type{
   typedef typename std::remove_reference<RefType>::type BaseType;
   typedef typename std::remove_const<BaseType>::type type;
 };
+template<typename VectorType>
+struct _get_vector_elem_type{
+  typedef decltype( ( (VectorType*)(nullptr) )->operator()(0) ) RefType;
+  typedef typename std::remove_reference<RefType>::type BaseType;
+  typedef typename std::remove_const<BaseType>::type type;
+};
+
 
 #define ENABLE_IF_ELEM_TYPE_FLOATINGPT(MatrixType)   typename std::enable_if< \
 	   std::is_floating_point<typename _get_elem_type<MatrixType>::type>::value \

@@ -282,6 +282,7 @@ struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
 };
 template<typename FitPolicies>
 struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
+  NumericSquareMatrix<jackknifeDistributionD> corr;
   NumericSquareMatrix<jackknifeDistributionD> inv_corr;
   NumericVector<jackknifeDistributionD> sigma;
 
@@ -300,7 +301,7 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
 	cov(i,j) = cov(j,i) = doubleJackknifeDistributionD::covariance(data.value(i),data.value(j));
     }
 
-    NumericSquareMatrix<jackknifeDistributionD> corr(ndata);
+    corr =  NumericSquareMatrix<jackknifeDistributionD>(ndata);
     
     for(int i=0;i<ndata;i++){
       corr(i,i) = jackknifeDistributionD(nsample,1.);

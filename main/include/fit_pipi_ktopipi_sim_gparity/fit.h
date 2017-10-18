@@ -1,5 +1,72 @@
 #ifndef _FIT_PIPI_KTOPIPI_SIM_GPARITY_FIT_H_
 #define _FIT_PIPI_KTOPIPI_SIM_GPARITY_FIT_H_
+#include<plot.h>
+#include<gsl_eigensolve.h>
+
+template<typename DistributionType>
+class DistributionSampleAccessor{
+  const DistributionType &d;
+public:
+  DistributionSampleAccessor(const DistributionType &_d): d(_d){}
+
+  inline double x(const int i) const{ return i; }
+  inline double y(const int i) const{ return iterate<DistributionType>::at(i,d); }
+  inline double dxm(const int i) const{ return 0; }
+  inline double dxp(const int i) const{ return 0; }
+  inline double dym(const int i) const{ return 0; }
+  inline double dyp(const int i) const{ return 0; }
+
+  inline double upper(const int i) const{ return y(i); }
+  inline double lower(const int i) const{ return y(i); }
+  
+  inline int size() const{ return iterate<DistributionType>::size(d); }
+};
+
+void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr){
+  //Examine the eigenvalues and eigenvectors of the correlation matrix
+  std::vector<NumericVector<jackknifeDistributionD> > evecs;
+  std::vector<jackknifeDistributionD> evals;
+  symmetricMatrixEigensolve(evecs,evals,corr);
+
+  const int nsample = evals[0].size();
+  const int nev = evals.size();
+  jackknifeDistributionD one(nsample, 1.);
+  std::vector<jackknifeDistributionD> inv_evals(nev);
+  for(int i=0;i<nev;i++) inv_evals[i] = one/evals[i];
+  
+  std::cout << "Correlation matrix has size " << corr.size() << " and eigenvalues:\n";
+  for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
+
+  typedef DistributionArrayAccessor<std::vector<jackknifeDistributionD>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
+  typedef DistributionSampleAccessor<jackknifeDistributionD> sample_accessor;
+  {
+    MatPlotLibScriptGenerate plt;
+    accessor v(evals);
+    plt.plotData(v);
+    accessor w(inv_evals);
+    plt.plotData(w);
+    plt.write("corrmat_evals.py", "corrmat_evals.pdf");
+  }
+  {
+    MatPlotLibScriptGenerate plt;
+    for(int i=0;i<nev;i++){
+      sample_accessor acc(evals[i]);
+      plt.plotData(acc);
+    }
+    plt.write("corrmat_evals_samples.py", "corrmat_evals_samples.pdf");
+  }
+    
+#ifdef HAVE_HDF5
+  writeParamsStandard(evals,"corrmat_evals.hdf5");
+  {
+    std::vector<std::vector<jackknifeDistributionD> > tmp(nev, std::vector<jackknifeDistributionD>(nev));
+    for(int i=0;i<nev;i++) for(int j=0;j<nev;j++) tmp[i][j] = evecs[i](j);
+    writeParamsStandard(tmp,"corrmat_evecs.hdf5");
+  }
+#endif
+  
+}
+
 
 typedef FitTwoPointThreePointSim FitFunc;
 
@@ -28,6 +95,7 @@ struct CorrelationPolicy<CorrelatedFit>{
   void setupFitter(fitter<FitPolicies> &fitter,
 		   const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj){
     prep.reset(new importCostFunctionParameters<correlatedFitPolicy,FitPolicies>(fitter, data_combined_dj));
+    analyzeCorrelationMatrix(prep->corr);
   }
 };
 template<>
@@ -36,6 +104,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit>{
   typedef FitPolicies::jackknifeMatrix jackknifeMatrix;
   typedef FitPolicies::jackknifeVector jackknifeVector;
 
+  jackknifeMatrix corr;
   jackknifeMatrix inv_corr;
   jackknifeVector sigma;
   
@@ -58,7 +127,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit>{
       }
     }
 
-    jackknifeMatrix corr(ndata);
+    corr = jackknifeMatrix(ndata);
     
     for(int i=0;i<ndata;i++){
       corr(i,i) = jackknifeDistributionD(nsample,1.);
@@ -77,6 +146,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit>{
 
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
+    analyzeCorrelationMatrix(corr);
   }
 };
 

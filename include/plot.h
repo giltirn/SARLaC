@@ -672,6 +672,28 @@ public:
   inline double lower(const int i) const{ return y(i)-dym(i); }
 };
 
+//Accessor for a std::vector<Distribution> or other array type that has an operator[]. Coordinates are just the array indices 
+template<typename DistributionArrayType, typename ValuePolicy>
+class DistributionArrayAccessor: public ValuePolicy{
+  const DistributionArrayType &v;
+public:
+  DistributionArrayAccessor(const DistributionArrayType &_v):v(_v){}
+  
+  int size() const{ return v.size(); }
+
+  inline double x(const int i) const{ return i; }
+  inline double dxp(const int i) const{ return 0; }
+  inline double dxm(const int i) const{ return 0; }  
+
+  inline double y(const int i) const{ return this->ValuePolicy::value(v[i]); }
+  inline double dyp(const int i) const{ return this->ValuePolicy::errplus(v[i]); }
+  inline double dym(const int i) const{ return this->ValuePolicy::errminus(v[i]); }  
+
+  inline double upper(const int i) const{ return y(i)+dyp(i); }
+  inline double lower(const int i) const{ return y(i)-dym(i); }
+};
+
+
 template<typename DistributionType>
 class DistributionPlotAccessor{
 public:
