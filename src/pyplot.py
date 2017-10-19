@@ -8,6 +8,8 @@ import matplotlib.cbook as cbk
 import matplotlib.lines as lines
 import matplotlib.patches as patches
 import matplotlib.ticker as ticker
+import matplotlib.tri as mtri
+import mpl_toolkits.mplot3d
 from matplotlib import rc
 import math
 import numpy
@@ -139,6 +141,13 @@ class ErrorBand:
                 self.upper = None
                 self.lower = None
 
+class DataSet3D:
+        def __init__(self):
+                self.x = None
+                self.y = None
+                self.z = None
+
+                
 def plotDataSet(axes,dataset, **kwargs):
     if 'linestyle' not in kwargs.keys():
         kwargs['linestyle'] = ""
@@ -233,3 +242,23 @@ def plotErrorBand(axes, band, **kwargs):
         axes.plot(x,ly,marker='None',linestyle='--',linewidth=1.5,color=chex,zorder=boundary_lines_zorder)
 
     return plot_band
+
+
+
+def plotWireframe(axes3d, data, **kwargs):
+    triang = mtri.Triangulation(data.x, data.y)
+
+    if 'color' not in kwargs.keys():
+        kwargs['color'] = (0,0,0,0)
+    if 'edgecolor' not in kwargs.keys():
+        kwargs['edgecolor'] = 'Black'
+    if 'linewidth' not in kwargs.keys():
+        kwargs['linewidth'] = 0.1
+    
+    return axes3d.plot_trisurf(triang, data.z, **kwargs)
+
+def plotScatter(axes3d, data, **kwargs):
+    if 's' not in kwargs.keys():
+        kwargs['s'] = 4  #size of marker in points^2
+    
+    return axes3d.scatter(data.x,data.y,data.z, **kwargs)
