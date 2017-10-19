@@ -3,26 +3,7 @@
 #include<plot.h>
 #include<gsl_eigensolve.h>
 
-template<typename DistributionType>
-class DistributionSampleAccessor{
-  const DistributionType &d;
-public:
-  DistributionSampleAccessor(const DistributionType &_d): d(_d){}
-
-  inline double x(const int i) const{ return i; }
-  inline double y(const int i) const{ return iterate<DistributionType>::at(i,d); }
-  inline double dxm(const int i) const{ return 0; }
-  inline double dxp(const int i) const{ return 0; }
-  inline double dym(const int i) const{ return 0; }
-  inline double dyp(const int i) const{ return 0; }
-
-  inline double upper(const int i) const{ return y(i); }
-  inline double lower(const int i) const{ return y(i); }
-  
-  inline int size() const{ return iterate<DistributionType>::size(d); }
-};
-
-void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr){
+void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr){
   //Examine the eigenvalues and eigenvectors of the correlation matrix
   std::vector<NumericVector<jackknifeDistributionD> > evecs;
   std::vector<jackknifeDistributionD> evals;
@@ -63,6 +44,11 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     for(int i=0;i<nev;i++) for(int j=0;j<nev;j++) tmp[i][j] = evecs[i](j);
     writeParamsStandard(tmp,"corrmat_evecs.hdf5");
   }
+  {
+    HDF5writer wr("corrmat.hdf5");
+    write(wr,corr,"correlation_matrix");
+    write(wr,inv_corr,"inverse_correlation_matrix");    
+  }  
 #endif
   
 }
@@ -95,7 +81,7 @@ struct CorrelationPolicy<CorrelatedFit>{
   void setupFitter(fitter<FitPolicies> &fitter,
 		   const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj){
     prep.reset(new importCostFunctionParameters<correlatedFitPolicy,FitPolicies>(fitter, data_combined_dj));
-    analyzeCorrelationMatrix(prep->corr);
+    analyzeCorrelationMatrix(prep->corr, prep->inv_corr);
   }
 };
 template<>
@@ -146,7 +132,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit>{
 
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
-    analyzeCorrelationMatrix(corr);
+    analyzeCorrelationMatrix(corr,inv_corr);
   }
 };
 

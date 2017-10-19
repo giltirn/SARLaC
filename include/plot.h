@@ -8,6 +8,7 @@
 #include <utils.h>
 #include <config.h>
 #include <distribution.h>
+#include <distribution_iterate.h>
 
 enum SetType{ DataSetType, ErrorBandType };
 
@@ -649,6 +650,24 @@ public:
   inline int size() const{ return sz; }
 };
 
+template<typename DistributionType>
+class DistributionSampleAccessor{
+  const DistributionType &d;
+public:
+  DistributionSampleAccessor(const DistributionType &_d): d(_d){}
+
+  inline double x(const int i) const{ return i; }
+  inline double y(const int i) const{ return iterate<DistributionType>::at(i,d); }
+  inline double dxm(const int i) const{ return 0; }
+  inline double dxp(const int i) const{ return 0; }
+  inline double dym(const int i) const{ return 0; }
+  inline double dyp(const int i) const{ return 0; }
+
+  inline double upper(const int i) const{ return y(i); }
+  inline double lower(const int i) const{ return y(i); }
+  
+  inline int size() const{ return iterate<DistributionType>::size(d); }
+};
 
 //CoordinatePolicy is converts the underlying coordinate type into double central values and errors
 //ValuePolicy does the same for the y data
