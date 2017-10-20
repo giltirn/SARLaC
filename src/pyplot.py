@@ -260,5 +260,11 @@ def plotWireframe(axes3d, data, **kwargs):
 def plotScatter(axes3d, data, **kwargs):
     if 's' not in kwargs.keys():
         kwargs['s'] = 4  #size of marker in points^2
-    
+    if 'c' not in kwargs.keys():
+        kwargs['c'] = data.z  #color is z-value dependent
+    if 'cmap' not in kwargs.keys():
+        kwargs['cmap'] = plt.get_cmap("seismic")  #blues to reds
+    if 'linewidth' not in kwargs.keys():
+        kwargs['linewidth'] = 0 #edges obscure the points usually
+        
     return axes3d.scatter(data.x,data.y,data.z, **kwargs)
