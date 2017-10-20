@@ -11,11 +11,14 @@ void convertChiralBasisAndInsertKtoPipi(jackAmplitudeSimCorrelationFunction &dat
 					doubleJackAmplitudeSimCorrelationFunction &data_combined_dj,				 
 					const std::vector<jackAmplitudeCorrelationFunction> &A0_all_j,
 					const std::vector<doubleJackAmplitudeCorrelationFunction> &A0_all_dj){
-  const int nsample = A0_all_j[0].value(0).size();
   const int ndata_q = A0_all_j[0].size();
   for(int i=1;i<10;i++)
     if(A0_all_j[i].size() != ndata_q)
-      error_exit(std::cout << "convertChiralBasisAndInsert expected all matrix elements to have the same number of data points\n");  
+      error_exit(std::cout << "convertChiralBasisAndInsert expected all matrix elements to have the same number of data points\n");
+
+  if(ndata_q == 0) return;
+  
+  const int nsample = A0_all_j[0].value(0).size();
   
   //Convert the data to the chiral basis and gather into single containers    
   //Convert Q123 -> Q'123

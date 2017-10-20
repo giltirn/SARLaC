@@ -8,7 +8,7 @@
 
 //Convenience functions and types for loading data for frozen fits
 
-GENERATE_ENUM_AND_PARSER(FreezeDataReaderType, (UKfitXMLvectorReader)(HDF5fileReader) );
+GENERATE_ENUM_AND_PARSER(FreezeDataReaderType, (UKfitXMLvectorReader)(HDF5fileReader)(ConstantValue) );
 
 void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string &filename, const int idx){
   XMLreader rd(filename);
@@ -18,8 +18,9 @@ void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string
   std::cout << "Read " << con.Nentries << " distributions from file " << filename << std::endl;  
   into = con.list[idx];
 }
-#ifdef HAVE_HDF5
+
 void readHDF5file(jackknifeDistribution<double> &into, const std::string &filename, const std::vector<int> &idx){
+#ifdef HAVE_HDF5
   DistributionTypeEnum type;
   int depth;
   getTypeInfo(type,depth,filename);
@@ -36,8 +37,11 @@ void readHDF5file(jackknifeDistribution<double> &into, const std::string &filena
     readParamsStandard(tmp,filename);
     into = tmp[idx[0]][idx[1]];
   }
-}
+#else
+  error_exit(std::cout << "readFrozenParams with reader " << HDF5fileReader << " : must have compiled with HDF5 enabled\n");
 #endif
+}
+
 
 //input_idx is the data file index: If the data file is a vector<vector> type you must provide 2 indices
 #define FREEZE_PARAM_MEMBERS \
@@ -67,6 +71,30 @@ GENERATE_PARSER(FreezeParams, FREEZE_PARAMS_MEMBERS);
 
 #undef FREEZE_PARAMS_MEMBERS
 
+void applyOperation(jackknifeDistribution<double> &fval, const std::string &operation, const FreezeDataReaderType reader){
+  if(operation == ""){
+    if(reader == ConstantValue) error_exit(std::cout << "readFrozenParams with ConstantValue, require math expression, got \"" << operation << "\"\n");
+    return;
+  }
+    
+  const int nsample = fval.size();
+  expressionAST AST = mathExpressionParse(operation);
+
+  if(reader == ConstantValue){
+    if(AST.nSymbols() != 0) error_exit(std::cout << "readFrozenParams with ConstantValue expects math expression with no symbols, got \"" << operation << "\"\n");
+    for(int s=0;s<nsample;s++)
+      fval.sample(s) = AST.value();
+  }else{
+    if(AST.nSymbols() != 1) error_exit(std::cout << "readFrozenParams with " << reader << " expects math expression with 1 symbol ('x'), got \"" << operation << "\"\n");
+    else if(!AST.containsSymbol("x")) error_exit(std::cout << "readFrozenParams with " << reader << " expects math expression to be a function of 'x', got \"" << operation << "\"\n");
+
+    for(int s=0;s<nsample;s++){
+      AST.assignSymbol("x",fval.sample(s));
+      fval.sample(s) = AST.value();
+    }    
+  }
+}
+
 template<typename FitFuncPolicies>
 void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze_file, const int nsample){
   typedef typename FitFuncPolicies::jackknifeFitParameters jackknifeFitParameters;
@@ -81,25 +109,23 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze
     freeze.push_back(fparams.sources[i].param_idx);
 
     jackknifeDistribution<double> fval;
-    if(fparams.sources[i].reader == UKfitXMLvectorReader) readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx[0]);
-    else if(fparams.sources[i].reader == HDF5fileReader){
-#ifdef HAVE_HDF5
+
+    //Different sources of data
+    FreezeDataReaderType reader = fparams.sources[i].reader;
+    
+    if(reader == UKfitXMLvectorReader){
+      readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx[0]);
+    }else if(reader == HDF5fileReader){
       readHDF5file(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
-#else
-      error_exit(std::cout << "readFrozenParams with reader " << HDF5fileReader << " : must have compiled with HDF5 enabled\n");
-#endif    
-    }else error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
+    }else if(reader == ConstantValue){
+      fval.resize(nsample);
+    }else{
+      error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
+    }
 
     if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read jackknife of size " << fval.size() << ", expected " << nsample << std::endl);
 
-    if(fparams.sources[i].operation != ""){
-      expressionAST AST = mathExpressionParse(fparams.sources[i].operation);
-      if(!AST.containsSymbol("x")) error_exit(std::cout << "readFrozenParams expect math expression to be a function of 'x', got \"" << fparams.sources[i].operation << "\"\n");
-      for(int s=0;s<nsample;s++){
-	AST.assignSymbol("x",fval.sample(s));
-	fval.sample(s) = AST.value();
-      }
-    }
+    applyOperation(fval, fparams.sources[i].operation, reader);
 
     std::cout << "readFrozenParams read " << fval << std::endl;
     

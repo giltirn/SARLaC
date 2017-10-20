@@ -115,6 +115,7 @@ public:
   inline bool containsSymbol(const std::string &sym) const{
     return symbols.find(sym) != symbols.end();
   }
+  inline int nSymbols() const{ return symbols.size(); }
   
   void stackOperand(const std::string &token){
     namespace ascii = boost::spirit::x3::ascii;
