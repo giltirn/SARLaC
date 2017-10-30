@@ -75,6 +75,13 @@ void computeA0(superJackknifeDistribution<double> &ReA0_sj,
 
   writeParamsStandard(ReA0_sj, file_stub+"ReA0.hdf5");
   writeParamsStandard(ImA0_sj, file_stub+"ImA0.hdf5");
+
+#define Q(I) ImA0_cpts_sj({I-1})
+  superJackknifeDistribution<double> EWP_d_QCDP = (Q(7)+Q(8)+Q(9)+Q(10))/(Q(3)+Q(4)+Q(5)+Q(6));
+  std::cout << "Ratio of EW penguins to QCD penguin contributions to ImA0 = " << EWP_d_QCDP << std::endl;
+
+  writeParamsStandard(EWP_d_QCDP, file_stub+"ImA0_contrib_EWP_div_QCDP.hdf5");
+#undef Q
 }
 
 //A0 = \sum_{ij} w_i^{MS} C^{MS<-RI (10x7)}_{ij} M^{RI}_j   =  \sum_j (\sum_i w_i^{MS} C^{MS<-RI (10x7)}_{ij}) M^{RI}_j
@@ -261,12 +268,6 @@ void computeEpsilon(const superJackknifeDistribution<double> &ReA0_lat_sj,
 
 void computeMatrixElementRelations(const NumericTensor<superJackknifeDistribution<double>,1> &M, const std::string &file_stub = ""){
 #define Q(I) M({I-1})
-
-  superJackknifeDistribution<double> EWP_d_QCDP = (Q(7)+Q(8)+Q(9)+Q(10))/(Q(3)+Q(4)+Q(5)+Q(6));
-  std::cout << "Ratio of EW penguins to QCD penguins = " << EWP_d_QCDP << std::endl;
-
-  writeParamsStandard(EWP_d_QCDP, file_stub+"EWP_div_QCDP.hdf5");
-
 #undef Q
 }
 
