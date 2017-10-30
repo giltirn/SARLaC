@@ -252,6 +252,8 @@ public:
   jackknifeDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   jackknifeDistribution(jackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
+  jackknifeDistribution(const rawDataDistribution<DataType> &raw): jackknifeDistribution(raw.size()){ this->resample(raw); }
+  
   ENABLE_GENERIC_ET(jackknifeDistribution, jackknifeDistribution<_DataType>);
   
   jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
@@ -309,6 +311,8 @@ public:
   }
   jackknifeCdistribution(jackknifeCdistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
+  jackknifeCdistribution(const rawDataDistribution<DataType> &raw): jackknifeCdistribution(raw.size()){ this->resample(raw); }
+  
   typedef jackknifeCdistribution<DataType> ET_tag;
   
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
@@ -448,6 +452,10 @@ public:
   doubleJackknifeDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   doubleJackknifeDistribution(doubleJackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
+  doubleJackknifeDistribution(const rawDataDistribution<BaseDataType> &raw): doubleJackknifeDistribution(raw.size()){
+    this->resample(raw);
+  }
+  
   ENABLE_GENERIC_ET(doubleJackknifeDistribution, doubleJackknifeDistribution<BaseDataType>);
 
   doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }

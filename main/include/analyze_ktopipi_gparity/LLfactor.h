@@ -120,7 +120,7 @@ superJackknifeDistribution<double> computeLLfactor(const superJackknifeDistribut
 void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0_sj, //I=0 phase shift
 				  superJackknifeDistribution<double> &F_sj, //Lellouch-Luscher factor
 				  const superJackknifeDistribution<double> &Epipi_sj, const superJackknifeDistribution<double> &mpi_sj,
-				  const superJackknifeDistribution<double> &mK_sj, const superJackknifeDistribution<double> &ainv_sj, const Args &args){
+				  const superJackknifeDistribution<double> &mK_sj, const superJackknifeDistribution<double> &ainv_sj, const Args &args, const std::string &file_stub = ""){
   typedef superJackknifeDistribution<double> superJackD; 
   
   //Compute the phase shift and it's derivative wrt q
@@ -136,6 +136,8 @@ void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0_sj
 
   std::cout << "delta_0 = " << delta_0_sj << " rad = " << delta_0_deg_sj << "deg\n";
 
+  writeParamsStandard(delta_0_deg_sj, file_stub+"delta0_deg.hdf5");
+  
   superJackD d_delta_by_dq_schenk_sj = getPhaseShiftDerivSchenk(ainv_sj,Epipi_sj,q_pipi_sj,mpi_sj,args.L);
   superJackD d_delta_by_dq_lin_Epipi_sj = getPhaseShiftDerivLinearEpipi(Epipi_sj,q_pipi_sj,mpi_sj,delta_0_sj,args.L);
   superJackD d_delta_by_dq_lin_qpipi_sj = getPhaseShiftDerivLinearQpipi(q_pipi_sj,delta_0_sj);

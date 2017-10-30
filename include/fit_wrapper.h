@@ -220,13 +220,20 @@ struct composeFitPolicy{
 
 
 template<typename FitPolicies>
-struct fitter: public FitPolicies{
+class fitter: public FitPolicies{
+public:
   INHERIT_FIT_POLICY_TYPEDEFS(FitPolicies);
   
   typedef MarquardtLevenbergMinimizer<costFunctionType> minimizerType;
   typedef typename minimizerType::AlgorithmParameterType minimizerParamsType;
+private:
+  minimizerParamsType min_params;
+public:
+  fitter(){
+    min_params.verbose = true;
+  }
+  fitter(const minimizerParamsType &_min_params): min_params(_min_params){}
   
-
   void fit(jackknifeFitParameters &params,
 	   jackknifeDistributionD &chisq,
 	   jackknifeDistributionD &chisq_per_dof,
@@ -243,8 +250,6 @@ struct fitter: public FitPolicies{
     std::cout << "Starting fit with guess " << params << std::endl;
 
     int nparams;
-    minimizerParamsType min_params;
-    min_params.verbose = true;
 #pragma omp parallel for
     for(int s=0;s<nsample;s++){
       costFunctionState state = this->generateCostFunctionState(data,s);

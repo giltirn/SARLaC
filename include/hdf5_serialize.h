@@ -4,9 +4,10 @@
 #include<config.h>
 
 #ifdef HAVE_HDF5
-#include <map>
-#include <H5Cpp.h>
-#include <boost/preprocessor.hpp>
+#include<cassert>
+#include<map>
+#include<H5Cpp.h>
+#include<boost/preprocessor.hpp>
 
 #include<utils.h>
 

@@ -258,4 +258,17 @@ void computeEpsilon(const superJackknifeDistribution<double> &ReA0_lat_sj,
   writeParamsStandard(ep_div_e_latRe, file_stub+"ep_div_e_latRe.hdf5");
 }
 
+
+void computeMatrixElementRelations(const NumericTensor<superJackknifeDistribution<double>,1> &M, const std::string &file_stub = ""){
+#define Q(I) M({I-1})
+
+  superJackknifeDistribution<double> EWP_d_QCDP = (Q(7)+Q(8)+Q(9)+Q(10))/(Q(3)+Q(4)+Q(5)+Q(6));
+  std::cout << "Ratio of EW penguins to QCD penguins = " << EWP_d_QCDP << std::endl;
+
+  writeParamsStandard(EWP_d_QCDP, file_stub+"EWP_div_QCDP.hdf5");
+
+#undef Q
+}
+
+
 #endif

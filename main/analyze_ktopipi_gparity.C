@@ -52,6 +52,8 @@ int main(const int argc, const char* argv[]){
     
     //Compute the MSbar, infinite-volume matrix elements
     NumericTensor<superJackD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElements(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,args);
+
+    computeMatrixElementRelations(M_MSbar_std_sj, "");
     
     //Compute A0
     superJackD ReA0_sj, ImA0_sj;
@@ -76,6 +78,8 @@ int main(const int argc, const char* argv[]){
         
     //Compute the MSbar, infinite-volume matrix elements
     NumericTensor<superJackD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0expt(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,lat_Wilson_coeffs.first,data.ReA0_expt_sj,i,args);
+
+    computeMatrixElementRelations(M_MSbar_std_sj, nm.str());
     
     //Compute A0
     superJackD ReA0_sj, ImA0_sj;
