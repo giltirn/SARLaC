@@ -128,7 +128,7 @@ AC_CHECK_FUNCS([fesetround pow rint sqrt])
 AC_SUBST(CONF_LDADD, $CONF_LDADD)
 
 # Output files
-AC_OUTPUT(Makefile src/Makefile main/Makefile)
+AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile)
 AM_INIT_AUTOMAKE([subdir-objects])
 
 
