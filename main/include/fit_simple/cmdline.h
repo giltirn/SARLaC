@@ -5,8 +5,12 @@ struct CMDline{
   bool load_guess;
   std::string guess_file;
 
+  bool save_combined_data;
+  std::string save_combined_data_file;
+
   CMDline(){
     load_guess = false;
+    save_combined_data = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -26,6 +30,10 @@ struct CMDline{
       }else if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));
 	i+=2;	
+      }else if(sargv[i] == "-save_combined_data"){ //save the double-jackknife data set
+	save_combined_data = true;
+	save_combined_data_file = sargv[i+1];
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

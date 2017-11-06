@@ -7,22 +7,43 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
   typedef fitter<FitPolicies> Fitter;
   typedef typename FitPolicies::jackknifeFitParameters jackknifeFitParameters;
   
-  const int nt_fit = args.t_max - args.t_min + 1;
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
-  doubleJackknifeCorrelationFunctionD data_dj(nt_fit, [&](const int i){
-      typename doubleJackknifeCorrelationFunctionD::ElementType out(args.t_min + i,  doubleJackknifeDistributionD(nsample));
-      out.second.resample( data.value(args.t_min + i) );
-      return out;
-    }
-    );
+  doubleJackknifeCorrelationFunctionD data_dj(args.Lt, 
+					      [&](const int t){
+						return typename doubleJackknifeCorrelationFunctionD::ElementType(t,  doubleJackknifeDistributionD(data.value(t)));
+					      }
+					      );
+  jackknifeCorrelationFunctionD data_j(args.Lt, 
+				       [&](const int t){
+					 return typename jackknifeCorrelationFunctionD::ElementType(t,  jackknifeDistributionD(data.value(t))); 
+				       }
+				       );
+
+  if(cmdline.save_combined_data){
+#ifdef HAVE_HDF5
+    std::cout << "Writing double-jackknife data to " << cmdline.save_combined_data_file << std::endl;
+    HDF5writer writer(cmdline.save_combined_data_file);
+    write(writer, data_dj, "data");
+#else
+    error_exit("fitSpecFFcorr: Saving amplitude data requires HDF5\n");
+#endif
+  }
+
+  const int nt_fit = args.t_max - args.t_min + 1;
+
+  doubleJackknifeCorrelationFunctionD data_dj_inrange(nt_fit, 
+						      [&](const int i){ return typename doubleJackknifeCorrelationFunctionD::ElementType(args.t_min + i, data_dj.value(args.t_min + i)); }
+						      );
+  
+  jackknifeCorrelationFunctionD data_j_inrange(nt_fit, 
+					       [&](const int i){ return typename jackknifeCorrelationFunctionD::ElementType(args.t_min + i, data_j.value(args.t_min + i)); }
+					       );
 
   FitFunc* fitfunc = getFitFunc<FitFunc>(args);
   Fitter fit;
   fit.importFitFunc(*fitfunc);
 
-  importCostFunctionParameters<CostFunctionPolicy,FitPolicies> prepare(fit,data_dj);
-
-  jackknifeCorrelationFunctionD data_j(nt_fit, [&](const int i){ return typename jackknifeCorrelationFunctionD::ElementType( data_dj.coord(i), data_dj.value(i).toJackknife()); });
+  importCostFunctionParameters<CostFunctionPolicy,FitPolicies> prepare(fit,data_dj_inrange);
 
   typename FitFunc::ParameterType guess;
   if(cmdline.load_guess){
@@ -36,7 +57,7 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
   jackknifeDistributionD chisq(nsample);
   jackknifeDistributionD chisq_per_dof(nsample);
 
-  fit.fit(params, chisq, chisq_per_dof, data_j);
+  fit.fit(params, chisq, chisq_per_dof, data_j_inrange);
 
   std::cout << "Params: " << params << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
@@ -49,10 +70,6 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
   //Get all data
   int params_mass_idx = getMassParamIdx(args.fitfunc);
   
-  data_j = jackknifeCorrelationFunctionD(args.Lt,
-					 [&](const int t){
-					   jackknifeDistributionD jack(nsample); jack.resample(data.value(t)); return typename jackknifeCorrelationFunctionD::ElementType(t,std::move(jack));
-					 });
   jackknifeCorrelationFunctionD effmass = effectiveMass2pt<jackknifeCorrelationFunctionD,FitFunc>(data_j,*fitfunc,params.sample(0), params_mass_idx, args.Lt);
   
   MatPlotLibScriptGenerate plotter;

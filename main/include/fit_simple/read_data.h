@@ -104,6 +104,7 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
     std::ostringstream os; os << args.traj_start + s*args.traj_inc;
     std::string filename = data_info.file_fmt;
     filename.replace(off,2,os.str());
+    std::cout << "Parsing " << filename << std::endl;
     std::ifstream is(filename.c_str());
     if(!is.good()) error_exit(std::cout << "readData failed to read file " << filename << std::endl);
     parser->parse(into, is, s, args);
