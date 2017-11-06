@@ -654,6 +654,27 @@ public:
   inline int size() const{ return sz; }
 };
 
+//Give a constant error band across some range
+template<typename DistributionType, typename ValuePolicy>
+class BandRangeConstantDistributionValue: public ValuePolicy{
+  const int min;
+  const int max;
+  double hi;
+  double lo;
+public:
+  BandRangeConstantDistributionValue(const int _min, const int _max, const DistributionType &d): min(_min), max(_max){
+    double cen = this->ValuePolicy::value(d);
+    hi = cen + this->ValuePolicy::errplus(d); 
+    lo = cen - this->ValuePolicy::errminus(d); 
+  }
+  inline double x(const int i) const{ return min + i; }
+  inline double upper(const int i) const{ return hi; }
+  inline double lower(const int i) const{ return lo; }
+  inline int size() const{ return max-min+1; }
+};
+  
+  
+
 template<typename DistributionType>
 class DistributionSampleAccessor{
   const DistributionType &d;
