@@ -32,7 +32,6 @@ public:
 
   FitRatio(){}
   
-  //Params are A, m  
   ValueType value(const GeneralizedCoordinate t, const ParameterType &p) const{
     return p[0]*(1-p[1]*t);
   }
@@ -46,12 +45,76 @@ public:
   inline int Nparams() const{ return 2; }
 };
 
+class FitExactRatio{
+  double T;
+  double Lt;
+
+  inline double Cpipi(const double t, const double dE, const double Epi) const{
+    double Epipi = dE + 2*Epi;
+    return exp(-Epipi*t) + exp(-Epipi*(T - t));
+  }
+  inline double dCpipi_by_ddE(const double t, const double dE, const double Epi) const{
+    double Epipi = dE + 2*Epi;
+    return -t*exp(-Epipi*t) - (T-t)*exp(-Epipi*(T - t));
+  }
+  inline double dCpipi_by_dEpi(const double t, const double dE, const double Epi) const{
+    double Epipi = dE + 2*Epi;
+    return -2*t*exp(-Epipi*t) - 2*(T-t)*exp(-Epipi*(T - t));
+  }
+  
+  inline double Cpi_sq(const double t, double Epi) const{
+    return exp(-2*Epi*t) + exp(-2*Epi*(Lt-t)) + 2*exp(-2*Epi*Lt);
+  }
+  inline double Cpi_sq_by_dEpi(const double t, double Epi) const{
+    return -2*t*exp(-2*Epi*t) -2*(Lt-t)*exp(-2*Epi*(Lt-t)) - 4*Lt*exp(-2*Epi*Lt);
+  }
+public:
+  typedef double ValueType;
+  typedef NumericVector<double> ParameterType;
+  typedef NumericVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef double GeneralizedCoordinate; //time coord
+
+  FitExactRatio(double _Lt, double _tsep_pipi): Lt(_Lt), T(_Lt - 2*_tsep_pipi){}
+
+  ValueType value(const GeneralizedCoordinate t, const ParameterType &p) const{
+    double Cpipi_tp1 = Cpipi(t+1,p(1),p(2));
+    double Cpipi_t = Cpipi(t,p(1),p(2));
+    double Cpi2 = Cpi_sq(t,p(2));
+
+    return p(0) * ( Cpipi_tp1 - Cpipi_t )/Cpi2;
+  }
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    double Cpipi_tp1 = Cpipi(t+1,p(1),p(2));
+    double Cpipi_t = Cpipi(t,p(1),p(2));
+    double Cpi2 = Cpi_sq(t,p(2));
+
+    double dCpipi_tp1_by_ddE = dCpipi_by_ddE(t+1,p(1),p(2));
+    double dCpipi_t_by_ddE = dCpipi_by_ddE(t,p(1),p(2));
+
+    double dCpipi_tp1_by_dEpi = dCpipi_by_dEpi(t+1,p(1),p(2));
+    double dCpipi_t_by_dEpi = dCpipi_by_dEpi(t,p(1),p(2));
+
+    double dCpi2_by_dEpi = Cpi_sq_by_dEpi(t,p(2));
+    
+    ValueDerivativeType yderivs(2);
+    yderivs[0] = ( Cpipi_tp1 - Cpipi_t )/Cpi2;
+    yderivs[1] = p(0) * ( dCpipi_tp1_by_ddE - dCpipi_t_by_ddE )/Cpi2;
+    yderivs[2] = p(0) * ( dCpipi_tp1_by_dEpi - dCpipi_t_by_dEpi )/Cpi2 - p(0)*( Cpipi_tp1 - Cpipi_t )/Cpi2/Cpi2 * dCpi2_by_dEpi;    
+    return yderivs;
+  }
+
+  inline int Nparams() const{ return 3; } //A, dE, Epi
+};
+
+
+
 #define ARGS_MEMBERS \
   ( std::string, pipi_data_file ) \
   ( std::string, pion_2pt_data_file )	     \
   ( std::string, Epi_file )		     \
   ( int, Epi_idx )				     \
   ( int, Lt) \
+  ( int, tsep_pipi ) \
   ( int, tmin) \
   ( int, tmax)
 
@@ -105,17 +168,35 @@ int main(const int argc, const char** argv){
   
   doubleJackCorrelationFunction ratio_dj_inrange(nt_fit, [&](const int i){ return ratio_dj[args.tmin+i]; });
   jackCorrelationFunction ratio_j_inrange(nt_fit, [&](const int i){ return ratio_j[args.tmin+i]; });
-  
-  typedef FitRatio FitFunc;
+
+  //#define FIT_LIN_APPROX
+  #define FIT_EXACT
+#ifdef FIT_LIN_APPROX
   typedef composeFitPolicy<double,FitFunc,standardFitFuncPolicy,correlatedFitPolicy>::type FitPolicies;
-  
+  typedef FitRatio FitFunc;
   FitFunc fitfunc;
+#elif defined(FIT_EXACT)  
+  typedef FitExactRatio FitFunc;
+  typedef composeFitPolicy<double,FitFunc,frozenFitFuncPolicy,correlatedFitPolicy>::type FitPolicies;  
+  FitFunc fitfunc(args.Lt, args.tsep_pipi);
+#else
+  #error "Invalid fit type"
+#endif
+
+    
   fitter<FitPolicies> fit;
   fit.importFitFunc(fitfunc);
 
+#ifdef FIT_EXACT
+  //Freeze in Epi
+  typename FitPolicies::jackknifeFitParameters freeze(nsample,typename FitFunc::ParameterType(3));
+  for(int s=0;s<nsample;s++) freeze.sample(s)(2) = Epi.sample(s);
+  fit.freeze(std::vector<int>({2}), freeze);
+#endif
+  
   importCostFunctionParameters<correlatedFitPolicy,FitPolicies> prepare(fit,ratio_dj_inrange);
 
-  typename FitFunc::ParameterType guess(2); guess(0) = 1; guess(1) = 0;
+  typename FitFunc::ParameterType guess(fitfunc.Nparams()); guess(0) = 1; guess(1) = 0;
 
   typename FitPolicies::jackknifeFitParameters params(nsample, guess);
   jackknifeDistributionD chisq(nsample);
@@ -126,8 +207,8 @@ int main(const int argc, const char** argv){
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
 
-  std::vector<jackknifeDistributionD> params_j(2);
-  for(int p=0;p<2;p++){
+  std::vector<jackknifeDistributionD> params_j(fitfunc.Nparams());
+  for(int p=0;p<fitfunc.Nparams();p++){
     params_j[p] = jackknifeDistributionD(nsample, [&](const int s){ return params.sample(s)(p); });
     std::cout << "Params[" << p << "]: " << params_j[p] << std::endl;
   }
