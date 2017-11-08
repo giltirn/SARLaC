@@ -5,6 +5,16 @@
 #include<generic_ET.h>
 #include<numeric_tensors.h>
 
+template<typename Tag>
+struct is_NumericVector_tag{
+  enum {value = 0};
+};
+template<typename A>
+struct is_NumericVector_tag<NumericVector<A> >{
+  enum {value = 1};
+};
+
+//Disable * and / for NumericVector as the meaning is ambiguous
 template<typename Numeric>
 struct disableGenericETbinOp<ETtimes, NumericVector<Numeric> >{
   enum {value = 1};
@@ -20,6 +30,7 @@ struct getElem<NumericSquareMatrix<A> >{
   static inline auto elem(NumericSquareMatrix<A> &v, const int i)->decltype(v(i/v.size(), i%v.size())){ return v(i/v.size(), i%v.size()); }
   static inline int common_properties(const NumericSquareMatrix<A> &v){ return v.size(); }
 };
+//Disable / for NumericSquareMatrix as the meaning is ambiguous. Disable generic * and specialize matrix multiplication
 template<typename Numeric>
 struct disableGenericETbinOp<ETtimes, NumericSquareMatrix<Numeric> >{
   enum {value = 1};
@@ -72,7 +83,42 @@ inline auto operator*(T &&a, U &&b)->decltype( binaryHelper<ETnumericMatrixMult,
   return binaryHelper<ETnumericMatrixMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b));
 }
 
+//Matrix-vector multiplication
+template<typename Leaf1, typename Leaf2>
+struct ETnumericMatrixVectorMult{
+  typedef ETleafTag ET_leaf_mark;
+  Leaf1 a;
+  Leaf2 b;
+  typedef typename Leaf2::ET_tag ET_tag; //result is vector
+  
+  ETnumericMatrixVectorMult(Leaf1 &&aa, Leaf2 &&bb): a(std::move(aa)), b(std::move(bb)){
+    assert(aa.common_properties() == bb.common_properties());
+  }
+  template<typename T>
+  static inline auto melem(const T &m, const int i, const int j)->decltype(m[0]){ return m[j + m.common_properties()*i]; }
+  
+  inline typename std::decay<decltype(b[0])>::type operator[](const int i) const{
+    typedef typename std::decay<decltype(b[0])>::type type;
+    const int size = b.common_properties();
+    type ret(b[0]);
+    zeroit(ret);
+    for(int ci=0;ci<size;ci++)
+      ret = ret + melem(a,i,ci) * b[ci];
+    return ret;
+  }
+    
+  inline decltype(b.common_properties()) common_properties() const{ return b.common_properties(); }
+};
+template<typename T,typename U,
+         typename std::enable_if<
+	   is_NumericSquareMatrix_tag<typename std::decay<T>::type::ET_tag>::value && is_NumericVector_tag<typename std::decay<U>::type::ET_tag>::value
+				    , int>::type = 0>
+inline auto operator*(T &&a, U &&b)->decltype( binaryHelper<ETnumericMatrixVectorMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b)) ) {
+  return binaryHelper<ETnumericMatrixVectorMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b));
+}
 
+  
+//Numeric tensor stuff
 struct _NTcommonproperties{
   std::vector<int> sizes;
   _NTcommonproperties(const std::vector<int> &s): sizes(s){}

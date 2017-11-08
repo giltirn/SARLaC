@@ -10,6 +10,18 @@
 
 
 int main(void){
+  {
+    NumericSquareMatrix<double> m(2, [&](const int i,const int j){ return i == j ? 2. : 1.; });
+    NumericVector<double> v(2);  v(0) = 1; v(1) = 2;
+
+    NumericVector<double> mv = m*v;
+
+    std::cout << "m*v : \n" << m << "\n*\n" << v << "\n=\n" << mv << std::endl;
+
+    std::cout << "v.v = " << dot(v,v) << std::endl;
+    std::cout << "mv.mv = " << dot(mv,mv) << std::endl;
+  }
+  
   typedef std::initializer_list<int> IL;
 
   {

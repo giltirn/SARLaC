@@ -17,7 +17,7 @@ template<typename VectorOutputType, typename MatrixInputType,
 	   , int>::type = 0
 	 >
 struct _eigensolver{
-  static void symmetricMatrixSolve(std::vector<VectorOutputType> &evecs, std::vector<double> &evals, const MatrixInputType &A, bool sort = true){
+  static std::vector<double> symmetricMatrixSolve(std::vector<VectorOutputType> &evecs, std::vector<double> &evals, const MatrixInputType &A, bool sort = true){
     typedef typename _get_elem_type<MatrixInputType>::type T;
     const int size = A.size();
     assert(evecs.size() == size);
@@ -42,11 +42,18 @@ struct _eigensolver{
     for(int i=0;i<size;i++){
       evals[i] = gsl_vector_get(eval,i);
       for(int j=0;j<size;j++)
-	evecs[i](j) = gsl_matrix_get(evec,i,j);
+	evecs[i](j) = gsl_matrix_get(evec,j,i); //eigenvectors stored in columns, i.e. elements have fixed column index and changing row index
     }
     gsl_matrix_free(m);
     gsl_vector_free(eval);
     gsl_matrix_free(evec);
+
+    std::vector<double> residuals(size);
+    for(int i=0;i<size;i++){
+      VectorOutputType Mv_m_lv = A * evecs[i] - evals[i] * evecs[i];
+      residuals[i] = sqrt(mod2(Mv_m_lv));
+    }
+    return residuals;
   }
 };
 
@@ -55,14 +62,14 @@ struct _symmetricMatrixEigensolve{};
 
 template<typename T>
 struct _symmetricMatrixEigensolve<T,0>{
-  inline static void solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
-    _eigensolver<NumericVector<T>, NumericSquareMatrix<T> >::symmetricMatrixSolve(evecs,evals,A);
+  inline static std::vector<double> solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
+    return _eigensolver<NumericVector<T>, NumericSquareMatrix<T> >::symmetricMatrixSolve(evecs,evals,A);
   }
 };
 
 template<typename T>
 struct _symmetricMatrixEigensolve<T,1>{
-  static void solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
+  static std::vector<T> solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
     assert(A.size() > 0);
     const int size = A.size();
     const int nsample = A(0,0).size();
@@ -78,31 +85,36 @@ struct _symmetricMatrixEigensolve<T,1>{
     std::vector<NumericVector<type> > evecs_s(size, NumericVector<type>(size));
     std::vector<type> evals_s(size);
 
+    std::vector<T> residuals(size, T(nsample));
+    
     const int nit = iterate<T>::size(A(0,0));
     for(int s=0;s<nit;s++){
       for(int i=0;i<size;i++)
 	for(int j=0;j<size;j++)
 	  A_s(i,j) = iterate<T>::at(s, A(i,j));
 	
-      _eigensolver<NumericVector<type>, NumericSquareMatrix<type> >::symmetricMatrixSolve(evecs_s,evals_s,A_s, false); //don't sort
+      std::vector<double> r = _eigensolver<NumericVector<type>, NumericSquareMatrix<type> >::symmetricMatrixSolve(evecs_s,evals_s,A_s, false); //don't sort
 
       for(int i=0;i<size;i++){
+	iterate<T>::at(s, residuals[i]) = r[i];
 	iterate<T>::at(s, evals[i]) = evals_s[i];
 	
 	for(int j=0;j<size;j++)
 	  iterate<T>::at(s, evecs[i](j)) = evecs_s[i](j);
       }
     }
+    return residuals;
   }
 };
 
 
+//Returns residuals
 template<typename T>
-void symmetricMatrixEigensolve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
+std::vector<T> symmetricMatrixEigensolve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
   const int size = A.size();
   evecs.resize(size, NumericVector<T>(size));
   evals.resize(size);
-  _symmetricMatrixEigensolve<T, hasSampleMethod<T>::value>::solve(evecs,evals,A);
+  return _symmetricMatrixEigensolve<T, hasSampleMethod<T>::value>::solve(evecs,evals,A);
 }
 
 

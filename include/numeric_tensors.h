@@ -91,6 +91,18 @@ std::ostream & operator<<(std::ostream & stream, const NumericVector<Numeric> &v
   return stream;
 }
 
+//Vector dot product
+template<typename T>
+T dot(const NumericVector<T> &a, const NumericVector<T> &b){
+  assert(a.size() == b.size());
+  T out(a(0)); zeroit(out);
+  for(int i=0;i<a.size();i++) out = out + a(i) * b(i);
+  return out;
+}
+template<typename T>
+T mod2(const NumericVector<T> &m){
+  return dot(m,m);
+}
 
 template<typename Numeric>
 class NumericSquareMatrix{ //square matrix
@@ -179,7 +191,7 @@ template<typename D>
 inline void read(HDF5reader &reader, NumericSquareMatrix<D> &d, const std::string &tag){ d.read(reader,tag); }
 #endif
 
-
+//Modulus operator for matrices
 template<typename T>
 T mod2(const NumericSquareMatrix<T> &m){
   assert(m.size() > 0);
