@@ -9,12 +9,42 @@ struct UncorrelatedFit;
 struct CorrelatedFit;
 struct PartiallyCorrelatedFit;
 
+
+void sort(std::vector<NumericVector<jackknifeDistributionD> > &evecs_out,
+	  std::vector<jackknifeDistributionD> &evals_out,
+	  const std::vector<NumericVector<jackknifeDistributionD> > &evecs_in,
+	  const std::vector<jackknifeDistributionD> &evals_in){
+  const int nev = evals_in.size();
+  const int nsample = evals_in[0].size();
+
+  evecs_out.resize(nev, NumericVector<jackknifeDistributionD>(nev, jackknifeDistributionD(nsample)));
+  evals_out.resize(nev, jackknifeDistributionD(jackknifeDistributionD(nsample)));
+
+  for(int s=0;s<nsample;s++){  
+    std::vector< std::pair<int,double> > evs(nev);
+    for(int i=0;i<nev;i++){
+      evs[i].first = i;
+      evs[i].second = evals_in[i].sample(s);
+    }
+    std::sort(evs.begin(), evs.end(),
+	      [](const std::pair<int,double>& a, const std::pair<int,double>& b) {
+		return a.second > b.second;
+	      }
+	      );
+    for(int i=0;i<nev;i++){
+      const int mpi = evs[i].first;
+      evals_out[i].sample(s) = evals_in[mpi].sample(s);
+      for(int j=0;j<nev;j++) evecs_out[i][j].sample(s) =  evecs_in[mpi][j].sample(s);
+    }
+  }
+}
+
 void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
 			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
   //Examine the eigenvalues and eigenvectors of the correlation matrix
   std::vector<NumericVector<jackknifeDistributionD> > evecs;
   std::vector<jackknifeDistributionD> evals;
-  std::vector<jackknifeDistributionD> residuals = symmetricMatrixEigensolve(evecs,evals,corr);
+  std::vector<jackknifeDistributionD> residuals = symmetricMatrixEigensolve(evecs,evals,corr,true);
   std::cout << "Computed eigenvalues of correlation matrix. Residuals:\n";
   for(int i=0;i<residuals.size();i++){
     std::cout << i << " " << residuals[i] << std::endl;
@@ -43,7 +73,7 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   for(int i=0;i<nev;i++)
     Delta_dot_v[i] = dot(Delta, evecs[i]);
 
-  jackknifeDistributionD chisq; zeroit(chisq);
+  jackknifeDistributionD chisq(nsample); zeroit(chisq);
   std::cout << "chi^2 contributions per eigenvalue:\n";
   for(int i=0;i<nev;i++){
     jackknifeDistributionD chisq_contrib = Delta_dot_v[i] * Delta_dot_v[i] / evals[i];

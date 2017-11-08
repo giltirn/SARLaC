@@ -37,7 +37,7 @@ struct _eigensolver{
     gsl_eigen_symmv_free(w);
 
     if(sort) gsl_eigen_symmv_sort(eval, evec, 
-				  GSL_EIGEN_SORT_ABS_ASC);
+				  GSL_EIGEN_SORT_VAL_DESC);
 
     for(int i=0;i<size;i++){
       evals[i] = gsl_vector_get(eval,i);
@@ -62,14 +62,14 @@ struct _symmetricMatrixEigensolve{};
 
 template<typename T>
 struct _symmetricMatrixEigensolve<T,0>{
-  inline static std::vector<double> solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
-    return _eigensolver<NumericVector<T>, NumericSquareMatrix<T> >::symmetricMatrixSolve(evecs,evals,A);
+  inline static std::vector<double> solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A, bool sort = true){
+    return _eigensolver<NumericVector<T>, NumericSquareMatrix<T> >::symmetricMatrixSolve(evecs,evals,A,sort);
   }
 };
 
 template<typename T>
 struct _symmetricMatrixEigensolve<T,1>{
-  static std::vector<T> solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
+  static std::vector<T> solve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A, bool sort = true){
     assert(A.size() > 0);
     const int size = A.size();
     const int nsample = A(0,0).size();
@@ -93,7 +93,7 @@ struct _symmetricMatrixEigensolve<T,1>{
 	for(int j=0;j<size;j++)
 	  A_s(i,j) = iterate<T>::at(s, A(i,j));
 	
-      std::vector<double> r = _eigensolver<NumericVector<type>, NumericSquareMatrix<type> >::symmetricMatrixSolve(evecs_s,evals_s,A_s, false); //don't sort
+      std::vector<double> r = _eigensolver<NumericVector<type>, NumericSquareMatrix<type> >::symmetricMatrixSolve(evecs_s,evals_s,A_s, sort);
 
       for(int i=0;i<size;i++){
 	iterate<T>::at(s, residuals[i]) = r[i];
@@ -110,11 +110,11 @@ struct _symmetricMatrixEigensolve<T,1>{
 
 //Returns residuals
 template<typename T>
-std::vector<T> symmetricMatrixEigensolve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A){
+std::vector<T> symmetricMatrixEigensolve(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A, bool sort=true){
   const int size = A.size();
   evecs.resize(size, NumericVector<T>(size));
   evals.resize(size);
-  return _symmetricMatrixEigensolve<T, hasSampleMethod<T>::value>::solve(evecs,evals,A);
+  return _symmetricMatrixEigensolve<T, hasSampleMethod<T>::value>::solve(evecs,evals,A,sort);
 }
 
 
