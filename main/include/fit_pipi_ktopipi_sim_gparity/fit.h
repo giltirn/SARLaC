@@ -3,11 +3,25 @@
 #include<plot.h>
 #include<gsl_eigensolve.h>
 
-void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr){
+typedef FitTwoPointThreePointSim FitFunc;
+
+struct UncorrelatedFit;
+struct CorrelatedFit;
+struct PartiallyCorrelatedFit;
+
+void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
+			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
   //Examine the eigenvalues and eigenvectors of the correlation matrix
   std::vector<NumericVector<jackknifeDistributionD> > evecs;
   std::vector<jackknifeDistributionD> evals;
-  symmetricMatrixEigensolve(evecs,evals,corr);
+  std::vector<jackknifeDistributionD> residuals = symmetricMatrixEigensolve(evecs,evals,corr);
+  std::cout << "Computed eigenvalues of correlation matrix. Residuals:\n";
+  for(int i=0;i<residuals.size();i++){
+    std::cout << i << " " << residuals[i] << std::endl;
+    double min,max;
+    residuals[i].range(min,max);
+    assert(max < 1e-10);
+  }
 
   const int nsample = evals[0].size();
   const int nev = evals.size();
@@ -18,6 +32,29 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   std::cout << "Correlation matrix has size " << corr.size() << " and eigenvalues:\n";
   for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
 
+  //Compute the contributions of each evec towards chi^2
+  const int ndata = data.size();
+  NumericVector<jackknifeDistributionD> Delta(ndata, jackknifeDistributionD(nsample));
+  for(int i=0;i<ndata;i++)
+    for(int s=0;s<nsample;s++)
+      Delta[i].sample(s) = (data.value(i).sample(s) - fitfunc.value(data.coord(i), params.sample(s)))/sigma(i).sample(s);
+  
+  std::vector<jackknifeDistributionD> Delta_dot_v(nev);
+  for(int i=0;i<nev;i++)
+    Delta_dot_v[i] = dot(Delta, evecs[i]);
+
+  jackknifeDistributionD chisq; zeroit(chisq);
+  std::cout << "chi^2 contributions per eigenvalue:\n";
+  for(int i=0;i<nev;i++){
+    jackknifeDistributionD chisq_contrib = Delta_dot_v[i] * Delta_dot_v[i] / evals[i];
+    std::cout << i << " eval = " << evals[i] << " d(chi^2) = " << chisq_contrib << std::endl;
+    chisq = chisq + chisq_contrib;
+  }
+  std::cout << "Total chi^2 = " << chisq << std::endl;
+
+  
+#if 0
+  //Plot evals (DEPRECATED)
   typedef DistributionArrayAccessor<std::vector<jackknifeDistributionD>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
   typedef DistributionSampleAccessor<jackknifeDistributionD> sample_accessor;
   {
@@ -36,7 +73,9 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     }
     plt.write("corrmat_evals_samples.py", "corrmat_evals_samples.pdf");
   }
-    
+#endif
+
+  //Write the correlation matrix and its inverse to disk
 #ifdef HAVE_HDF5
   writeParamsStandard(evals,"corrmat_evals.hdf5");
   {
@@ -53,13 +92,6 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   
 }
 
-
-typedef FitTwoPointThreePointSim FitFunc;
-
-struct UncorrelatedFit;
-struct CorrelatedFit;
-struct PartiallyCorrelatedFit;
-
 template<typename CorrelationStatusStruct>
 struct CorrelationPolicy{};
 
@@ -72,6 +104,8 @@ struct CorrelationPolicy<UncorrelatedFit>{
 		   const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj){
     prep.reset(new importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>(fitter, data_combined_dj));
   }
+  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+  }
 };
 template<>
 struct CorrelationPolicy<CorrelatedFit>{
@@ -80,8 +114,10 @@ struct CorrelationPolicy<CorrelatedFit>{
     
   void setupFitter(fitter<FitPolicies> &fitter,
 		   const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj){
-    prep.reset(new importCostFunctionParameters<correlatedFitPolicy,FitPolicies>(fitter, data_combined_dj));
-    analyzeCorrelationMatrix(prep->corr, prep->inv_corr);
+    prep.reset(new importCostFunctionParameters<correlatedFitPolicy,FitPolicies>(fitter, data_combined_dj));    
+  }
+  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+    analyzeCorrelationMatrix(prep->corr, prep->inv_corr, prep->sigma, data_combined_j, params, fitfunc);
   }
 };
 template<>
@@ -132,8 +168,12 @@ struct CorrelationPolicy<PartiallyCorrelatedFit>{
 
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
-    analyzeCorrelationMatrix(corr,inv_corr);
   }
+
+  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+    analyzeCorrelationMatrix(corr, inv_corr, sigma, data_combined_j, params, fitfunc);
+  }
+  
 };
 
 
@@ -163,6 +203,8 @@ struct fitSpec{
     std::cout << "Chisq: " << chisq << std::endl;
     std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
 
+    prepare.postFitAnalysis(data_combined_j, params, fitfunc);
+    
     writeParamsStandard(params,"params_7basis.hdf5");
     
     std::vector<jackknifeDistributionD> params_10basis;

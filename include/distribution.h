@@ -126,6 +126,14 @@ public:
   inline bool operator!=(const distribution<DataType> &r) const{
     return !(*this == r);
   }
+
+  void range(DataType &min, DataType &max) const{
+    max = min = _data[0];
+    for(int s=1;s<_data.size();s++){
+      if(_data[s] > max) max = _data[s];
+      if(_data[s] < min) min = _data[s];
+    }    
+  }
   
 };
 
