@@ -82,29 +82,6 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   }
   std::cout << "Total chi^2 = " << chisq << std::endl;
 
-  
-#if 0
-  //Plot evals (DEPRECATED)
-  typedef DistributionArrayAccessor<std::vector<jackknifeDistributionD>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
-  typedef DistributionSampleAccessor<jackknifeDistributionD> sample_accessor;
-  {
-    MatPlotLibScriptGenerate plt;
-    accessor v(evals);
-    plt.plotData(v);
-    accessor w(inv_evals);
-    plt.plotData(w);
-    plt.write("corrmat_evals.py", "corrmat_evals.pdf");
-  }
-  {
-    MatPlotLibScriptGenerate plt;
-    for(int i=0;i<nev;i++){
-      sample_accessor acc(evals[i]);
-      plt.plotData(acc);
-    }
-    plt.write("corrmat_evals_samples.py", "corrmat_evals_samples.pdf");
-  }
-#endif
-
   //Write the correlation matrix and its inverse to disk
 #ifdef HAVE_HDF5
   writeParamsStandard(evals,"corrmat_evals.hdf5");
@@ -119,7 +96,44 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     write(wr,inv_corr,"inverse_correlation_matrix");    
   }  
 #endif
+
+  //Do the same for the covariance matrix
+  NumericSquareMatrix<jackknifeDistributionD> cov(ndata, [&](const int i, const int j){ return corr(i,j) * sigma(i) * sigma(j); });
   
+  residuals = symmetricMatrixEigensolve(evecs,evals,cov,true);
+  std::cout << "Computed eigenvalues of covariance matrix. Residuals:\n";
+  for(int i=0;i<residuals.size();i++){
+    std::cout << i << " " << residuals[i] << std::endl;
+    double min,max;
+    residuals[i].range(min,max);
+    assert(max < 1e-10);
+  }
+  
+  for(int i=0;i<nev;i++)
+    Delta_dot_v[i] = dot(Delta, evecs[i]);
+
+  zeroit(chisq);
+  std::cout << "chi^2 contributions per eigenvalue:\n";
+  for(int i=0;i<nev;i++){
+    jackknifeDistributionD chisq_contrib = Delta_dot_v[i] * Delta_dot_v[i] / evals[i];
+    std::cout << i << " eval = " << evals[i] << " d(chi^2) = " << chisq_contrib << std::endl;
+    chisq = chisq + chisq_contrib;
+  }
+  std::cout << "Total chi^2 = " << chisq << std::endl;
+  
+  //Write the covariance matrix to disk
+#ifdef HAVE_HDF5
+  writeParamsStandard(evals,"covmat_evals.hdf5");
+  {
+    std::vector<std::vector<jackknifeDistributionD> > tmp(nev, std::vector<jackknifeDistributionD>(nev));
+    for(int i=0;i<nev;i++) for(int j=0;j<nev;j++) tmp[i][j] = evecs[i](j);
+    writeParamsStandard(tmp,"covmat_evecs.hdf5");
+  }
+  {
+    HDF5writer wr("covmat.hdf5");
+    write(wr,cov,"covariance_matrix");
+  }  
+#endif
 }
 
 template<typename CorrelationStatusStruct>
