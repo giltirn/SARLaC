@@ -60,7 +60,7 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     residuals[i].range(min,max);
     if(max > 1e-10) fail = true;
   }
-  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of matrix:\n" << corr << std::endl);
+  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of correlation matrix:\n" << corr << std::endl);
 
   //Compute the contributions of each evec towards chi^2
   const int ndata = data.size();
@@ -97,10 +97,17 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   }  
 #endif
 
-  //Do the same for the covariance matrix
+  //Do the same for the covariance matrix  
   NumericSquareMatrix<jackknifeDistributionD> cov(ndata, [&](const int i, const int j){ return corr(i,j) * sigma(i) * sigma(j); });
+
+  //This thing can have very large entries. Convenient to scale such that it's easier to judge if it converged; here with the first diagonal element (ie sigma(0)^2)
+  jackknifeDistributionD cov_scale = sigma(0)*sigma(0);
+  NumericSquareMatrix<jackknifeDistributionD> cov_scaled(ndata, [&](const int i, const int j){ return cov(i,j)/cov_scale; });
   
-  residuals = symmetricMatrixEigensolve(evecs,evals,cov,true);
+  residuals = symmetricMatrixEigensolve(evecs,evals,cov_scaled,true);
+
+  for(int i=0;i<nev;i++) evals[i] = evals[i] * cov_scale; //rescale the evals
+  
   std::cout << "Computed eigenvalues of covariance matrix of size " << corr.size() << ":\n";
   for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
 
@@ -112,7 +119,7 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     residuals[i].range(min,max);
     if(max > 1e-10) fail = true;
   }
-  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of matrix:\n" << cov << std::endl);
+  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of scaled covariance matrix:\n" << cov << std::endl);
   
   for(int i=0;i<nev;i++)
     Delta_dot_v[i] = dot(Delta, evecs[i]);
