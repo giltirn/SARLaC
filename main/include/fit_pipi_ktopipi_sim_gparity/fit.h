@@ -120,9 +120,11 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     if(max > 1e-10) fail = true;
   }
   if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of scaled covariance matrix:\n" << cov << std::endl);
+
+  NumericVector<jackknifeDistributionD> Delta_abs(ndata, [&](const int i){ return Delta(i) * sigma(i); });
   
   for(int i=0;i<nev;i++)
-    Delta_dot_v[i] = dot(Delta, evecs[i]);
+    Delta_dot_v[i] = dot(Delta_abs, evecs[i]);
 
   zeroit(chisq);
   std::cout << "chi^2 contributions per eigenvalue:\n";
