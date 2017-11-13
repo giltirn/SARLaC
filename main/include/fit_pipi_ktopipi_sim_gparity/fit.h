@@ -39,6 +39,35 @@ void sort(std::vector<NumericVector<jackknifeDistributionD> > &evecs_out,
   }
 }
 
+void plotSampleEvecs(const std::vector<NumericVector<jackknifeDistributionD> > &evecs, const std::string &file_stub, const int sample = 0){
+  MatPlotLibScriptGenerate plot;
+  
+  class accessor{
+    const int sample;
+    const int idx;
+    const std::vector<NumericVector<jackknifeDistributionD> > &evecs;
+  public:
+    accessor(const std::vector<NumericVector<jackknifeDistributionD> > &_evecs, const int _idx, const int _sample): idx(_idx), sample(_sample), evecs(_evecs){
+    }
+    
+    inline double x(const int i) const{ return i; }
+    inline double y(const int i) const{ return evecs[idx](i).sample(sample); }
+    inline double dxm(const int i) const{ return 0; }
+    inline double dxp(const int i) const{ return 0; }
+    inline double dym(const int i) const{ return 0; }
+    inline double dyp(const int i) const{ return 0; }
+    
+    inline int size() const{ return evecs.size(); }
+  };
+
+  for(int i=0;i<evecs.size();i++){
+    accessor acc(evecs, i, sample);
+    plot.plotData(acc);
+  }
+
+  plot.write(file_stub + ".py", file_stub + ".eps");
+}
+
 void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
 			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
   //Examine the eigenvalues and eigenvectors of the correlation matrix
@@ -97,6 +126,8 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   }  
 #endif
 
+  plotSampleEvecs(evecs, "corrmat_evecs", 0);
+
   //Do the same for the covariance matrix  
   NumericSquareMatrix<jackknifeDistributionD> cov(ndata, [&](const int i, const int j){ return corr(i,j) * sigma(i) * sigma(j); });
 
@@ -148,6 +179,8 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     write(wr,cov,"covariance_matrix");
   }  
 #endif
+
+  plotSampleEvecs(evecs, "covmat_evecs", 0);
 }
 
 template<typename CorrelationStatusStruct>
