@@ -42,25 +42,23 @@ void sort(std::vector<NumericVector<jackknifeDistributionD> > &evecs_out,
 void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
 			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
   //Examine the eigenvalues and eigenvectors of the correlation matrix
+  const int nsample = sigma(0).size();
+  const int nev = corr.size();
+  
   std::vector<NumericVector<jackknifeDistributionD> > evecs;
   std::vector<jackknifeDistributionD> evals;
   std::vector<jackknifeDistributionD> residuals = symmetricMatrixEigensolve(evecs,evals,corr,true);
-  std::cout << "Computed eigenvalues of correlation matrix. Residuals:\n";
+
+  std::cout << "Computed eigenvalues of correlation matrix of size " << corr.size() << ":\n";
+  for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
+  
+  std::cout << "Residuals:\n";
   for(int i=0;i<residuals.size();i++){
     std::cout << i << " " << residuals[i] << std::endl;
     double min,max;
     residuals[i].range(min,max);
     assert(max < 1e-10);
   }
-
-  const int nsample = evals[0].size();
-  const int nev = evals.size();
-  jackknifeDistributionD one(nsample, 1.);
-  std::vector<jackknifeDistributionD> inv_evals(nev);
-  for(int i=0;i<nev;i++) inv_evals[i] = one/evals[i];
-  
-  std::cout << "Correlation matrix has size " << corr.size() << " and eigenvalues:\n";
-  for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
 
   //Compute the contributions of each evec towards chi^2
   const int ndata = data.size();
@@ -101,7 +99,10 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   NumericSquareMatrix<jackknifeDistributionD> cov(ndata, [&](const int i, const int j){ return corr(i,j) * sigma(i) * sigma(j); });
   
   residuals = symmetricMatrixEigensolve(evecs,evals,cov,true);
-  std::cout << "Computed eigenvalues of covariance matrix. Residuals:\n";
+  std::cout << "Computed eigenvalues of covariance matrix of size " << corr.size() << ":\n";
+  for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
+  
+  std::cout << "Residuals:\n";
   for(int i=0;i<residuals.size();i++){
     std::cout << i << " " << residuals[i] << std::endl;
     double min,max;
