@@ -51,14 +51,16 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
 
   std::cout << "Computed eigenvalues of correlation matrix of size " << corr.size() << ":\n";
   for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
-  
+
+  bool fail = false;
   std::cout << "Residuals:\n";
   for(int i=0;i<residuals.size();i++){
     std::cout << i << " " << residuals[i] << std::endl;
     double min,max;
     residuals[i].range(min,max);
-    assert(max < 1e-10);
+    if(max > 1e-10) fail = true;
   }
+  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of matrix:\n" << corr << std::endl);
 
   //Compute the contributions of each evec towards chi^2
   const int ndata = data.size();
@@ -101,14 +103,16 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   residuals = symmetricMatrixEigensolve(evecs,evals,cov,true);
   std::cout << "Computed eigenvalues of covariance matrix of size " << corr.size() << ":\n";
   for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
-  
+
+  fail = false;
   std::cout << "Residuals:\n";
   for(int i=0;i<residuals.size();i++){
     std::cout << i << " " << residuals[i] << std::endl;
     double min,max;
     residuals[i].range(min,max);
-    assert(max < 1e-10);
+    if(max > 1e-10) fail = true;
   }
+  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of matrix:\n" << cov << std::endl);
   
   for(int i=0;i<nev;i++)
     Delta_dot_v[i] = dot(Delta, evecs[i]);
