@@ -109,7 +109,18 @@ jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, c
       erase[i] = true;
       erase_required = true;
     }else{
-      //std::cout << effmass.coord(i) << " " << effmass.value(i) << std::endl;
+      jackknifeDistributionD y(nsample);
+      jackknifeDistributionD yfit(nsample);
+      jackknifeDistributionD resid(nsample);
+      for(int s=0;s<nsample;s++){
+	double t = edata.coord(i);
+	y.sample(s) = edata.value(i).sample(s);
+	MLwrapper<double> m(effmass.value(i).sample(s));
+	yfit.sample(s) = fiteffmass.value(t,m);
+
+	resid.sample(s) = (y.sample(s) - yfit.sample(s))/y.sample(s);
+      }
+      std::cout << "Effmass t="<<  effmass.coord(i) << " m=" << effmass.value(i) << " y=" << y << " yfit=" << yfit << " resid=" << resid << std::endl;
     }
   }
   distributionPrint<jackknifeDistributionD>::printer(orig_printer);
