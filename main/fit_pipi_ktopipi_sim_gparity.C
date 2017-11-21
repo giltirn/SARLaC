@@ -24,9 +24,9 @@ int main(const int argc, const char** argv){
     HDF5reader reader(args.pipi_combined_data_file);
     read(reader, pipi_data_dj, "data");
   }
-  std::vector<jackAmplitudeCorrelationFunction> ktopipi_data_j;
-  std::vector<doubleJackAmplitudeCorrelationFunction> ktopipi_data_dj;
-  {
+  std::vector<jackAmplitudeCorrelationFunction> ktopipi_data_j(10);
+  std::vector<doubleJackAmplitudeCorrelationFunction> ktopipi_data_dj(10);
+  if(args.tmin_k_op < args.Lt){
     HDF5reader reader(args.ktopipi_amplitude_data_file);
     read(reader, ktopipi_data_j, "A0_all_j");
     read(reader, ktopipi_data_dj, "A0_all_dj");

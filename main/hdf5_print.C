@@ -8,6 +8,7 @@
 #include<distribution.h>
 #include<superjackknife.h>
 #include<parser.h>
+#include<plot.h>
 //A program to print arrays of distributions stored in the conventional format (cf distribution_IO.h writeParamsStandard/readParamsStandard)
 
 
@@ -32,6 +33,8 @@ struct CmdLine{
 
   bool spec_pub_exp;
   int spec_pub_exp_val;
+
+  std::string sample_plot_file_stub;
   
   CmdLine(){
     spec_elem = false;
@@ -55,10 +58,13 @@ struct CmdLine{
 	}
 	spec_elem = true;
 	i += 2;
-      }else if(si == "-format"){ //"publication","basic" (default)
+      }else if(si == "-format"){ //"publication","basic" (default), "sample_plot" (plot of samples)
 	spec_format = true;
 	spec_format_val = argv[i+1];
 	i += 2;
+
+	if(spec_format_val == "sample_plot")
+	  sample_plot_file_stub = argv[i++];
 
 	//-------------------- Options specific to publication format ---------------------------------
 	//Defaults: Prints 3 sig figs from the largest of the central-value/error
@@ -118,18 +124,28 @@ struct visitor<D,Action,0>{
 };
 
 template<typename D>
-struct ActionPrint{
+struct formatter{
+  virtual void operator()(const std::vector<int> &coord, const D &v) = 0;
+  virtual ~formatter(){}
+};
+
+template<typename D>
+struct actionBasic{
+  formatter<D> &fmt;
+
+  actionBasic(formatter<D> &_fmt): fmt(_fmt){}
+  
   void operator()(const std::vector<int> &coord, const D &v) const{
-    for(int i=0;i<coord.size();i++) std::cout << coord[i] << " ";
-    std::cout << v << std::endl; 
+    fmt(coord,v);
   }
 };
 template<typename D>
-class ActionFilteredPrint{
+class actionFilter{
+  formatter<D> &fmt;
   std::vector<int> filter;
 
 public:
-  ActionFilteredPrint(const std::vector<std::string> &f){
+  actionFilter(const std::vector<std::string> &f, formatter<D> &_fmt): fmt(_fmt){
     filter.resize(f.size());
     for(int i=0;i<f.size();i++){
       if(f[i] == "*"){
@@ -144,37 +160,72 @@ public:
     assert(filter.size() == coord.size());
     for(int i=0;i<coord.size();i++){
       if(filter[i] != -1 && filter[i] != coord[i]){
-	//std::cout << "Coord " << coord << " fail filter " << filter << std::endl;
 	return;
       }
     }
-    //std::cout << "Coord " << coord << " pass filter " << filter << std::endl;
-    
+    fmt(coord,v);
+  }
+};
+
+template<typename VD,typename D, int depth>
+void specVDtype(const std::string &filename, const CmdLine &cmdline, formatter<D> &fmt){
+  VD data;
+  readParamsStandard(data,filename);
+
+  if(cmdline.spec_elem){
+    actionFilter<D> action(cmdline.spec_elem_vals,fmt);
+    visitor<VD,actionFilter<D>,depth>::go(action, data);  
+  }else{
+    actionBasic<D> action(fmt);
+    visitor<VD,actionBasic<D>,depth>::go(action, data);
+  }    
+}
+
+
+template<typename D>
+struct formatPrint: public formatter<D>{
+  void operator()(const std::vector<int> &coord, const D &v){
     for(int i=0;i<coord.size();i++) std::cout << coord[i] << " ";
     std::cout << v << std::endl; 
   }
 };
 
-template<typename VD,typename D, int depth>
-void specVDtype(const std::string &filename, const CmdLine &cmdline){
-  //std::cout << "Parsing " << printType<VD>() << std::endl;
+template<typename D>
+class formatSamplePlot: public formatter<D>{
+  MatPlotLibScriptGenerate plot;
+  std::string file_stub;
+public:
+  formatSamplePlot(const std::string &_file_stub): file_stub(_file_stub){}
 
-  VD data;
-  readParamsStandard(data,filename);
+  void operator()(const std::vector<int> &coord, const D &v){
+    DistributionSampleAccessor<D> acc(v);
+    typename MatPlotLibScriptGenerate::handleType h = plot.plotData(acc);
 
-  //std::cout << data << std::endl;
-  if(cmdline.spec_elem){
-    ActionFilteredPrint<D> action(cmdline.spec_elem_vals);
-    visitor<VD,ActionFilteredPrint<D>,depth>::go(action, data);  
-  }else{
-    ActionPrint<D> action;
-    visitor<VD,ActionPrint<D>,depth>::go(action, data);
-  }    
-}
+    std::ostringstream os;
+    for(int i=0;i<coord.size();i++) os << coord[i] << " ";
+    
+    plot.setLegend(h,os.str());
+  }
+
+  ~formatSamplePlot(){
+    plot.createLegend();
+    plot.write(file_stub + ".py", file_stub + ".eps");    
+  }
+};
+template<typename T>
+class formatSamplePlot<superJackknifeDistribution<T> >: public formatter<superJackknifeDistribution<T> >{
+public:
+  formatSamplePlot(const std::string &_file_stub){
+    error_exit(std::cout << "formatSamplePlot doesn't support superJackknifeDistribution\n");
+  }
+  void operator()(const std::vector<int> &coord, const superJackknifeDistribution<T> &v){
+  }
+};
+
 
 template<typename D>
 struct setFormat{
-  static inline void doit(const std::string &format, const CmdLine &cmdline){
+  static inline formatter<D>* doit(const std::string &format, const CmdLine &cmdline){
     if(format == "publication"){
       int nsf = 3;
       SigFigsSource sfsrc = Largest;
@@ -199,18 +250,26 @@ struct setFormat{
 	printer->setExponent(cmdline.spec_pub_exp_val);
       
       distributionPrint<D>::printer(printer);
-    }else if(format != "basic"){
+
+      return new formatPrint<D>;
+    }else if(format == "basic"){
+      return new formatPrint<D>;
+    }else if(format == "sample_plot"){
+      return new formatSamplePlot<D>(cmdline.sample_plot_file_stub);      
+    }else{
       error_exit(std::cout << "setFormat: Unknown format " << format << std::endl);
     }
   }
 };
 template<typename T>
 struct setFormat<doubleJackknifeDistribution<T> >{
-  static inline void doit(const std::string &format, const CmdLine &cmdline){
+  static inline formatter<doubleJackknifeDistribution<T> >* doit(const std::string &format, const CmdLine &cmdline){
     if(format == "publication"){
       error_exit(std::cout << "setFormat: Double-jackknife does not support format " << format << std::endl);
-    }else if(format != "basic"){
-      error_exit(std::cout << "setFormat: Unknown format " << format << std::endl);
+    }else if(format == "basic"){
+      return new formatPrint<doubleJackknifeDistribution<T> >;      
+    }else{
+      error_exit(std::cout << "setFormat: Unknown/unsupported format " << format << std::endl);
     }
   }
 };
@@ -218,18 +277,21 @@ struct setFormat<doubleJackknifeDistribution<T> >{
 
 template<typename D>
 void specDtype(const std::string &filename, const int vector_depth, const CmdLine &cmdline){
+  formatter<D> *fmt;
   if(cmdline.spec_format){
-    setFormat<D>::doit(cmdline.spec_format_val,cmdline);
-  }
+    fmt = setFormat<D>::doit(cmdline.spec_format_val,cmdline);
+  }else fmt = new formatPrint<D>;
   
   switch(vector_depth){
   case 1:
-    specVDtype<std::vector<D>,D, 1 >(filename,cmdline); break;
+    specVDtype<std::vector<D>,D, 1 >(filename,cmdline,*fmt); break;
   case 2:
-    specVDtype<std::vector<std::vector<D> >,D, 2 >(filename,cmdline); break;
+    specVDtype<std::vector<std::vector<D> >,D, 2 >(filename,cmdline,*fmt); break;
   default:
     error_exit(std::cout << "specDtype(const std::string &filename, const int vector_depth) Does not support vector depths other than 1 or 2, got " << vector_depth << std::endl);
   }
+
+  delete fmt;
 }
 
 void run(const std::string &filename, const DistributionTypeEnum type, const int vector_depth, const CmdLine &cmdline){

@@ -68,19 +68,31 @@ void plotSampleEvecs(const std::vector<NumericVector<jackknifeDistributionD> > &
   plot.write(file_stub + ".py", file_stub + ".eps");
 }
 
-void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
-			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
-  //Examine the eigenvalues and eigenvectors of the correlation matrix
-  const int nsample = sigma(0).size();
-  const int nev = corr.size();
+void calcEvecsEvals(std::vector<NumericVector<jackknifeDistributionD> > &evecs,
+		    std::vector<jackknifeDistributionD> &evals,
+		    const NumericSquareMatrix<jackknifeDistributionD> &mat,
+		    const std::string &descr,
+		    const bool do_scale){
   
-  std::vector<NumericVector<jackknifeDistributionD> > evecs;
-  std::vector<jackknifeDistributionD> evals;
-  std::vector<jackknifeDistributionD> residuals = symmetricMatrixEigensolve(evecs,evals,corr,true);
+  const int ndata = mat.size();
+  const int nev = ndata;
+  NumericSquareMatrix<jackknifeDistributionD> mattmp;
+  NumericSquareMatrix<jackknifeDistributionD> const* matp = &mat;
+  jackknifeDistributionD scale;
+  if(do_scale){
+    //Matrix can have very large entries. Convenient to scale such that it's easier to judge if it converged; here with the first diagonal element (ie sigma(0)^2)
+    scale = mat(0,0);
+    mattmp = NumericSquareMatrix<jackknifeDistributionD>(ndata, [&](const int i, const int j){ return mat(i,j)/scale; });
+    matp = &mattmp;
+  }
 
-  std::cout << "Computed eigenvalues of correlation matrix of size " << corr.size() << ":\n";
+  std::vector<jackknifeDistributionD> residuals = symmetricMatrixEigensolve(evecs,evals,*matp,true);
+
+  if(do_scale) for(int i=0;i<nev;i++) evals[i] = evals[i] * scale; //rescale the evals
+  
+  std::cout << "Computed eigenvalues of " << descr << " of size " << mat.size() << ":\n";
   for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
-
+  
   bool fail = false;
   std::cout << "Residuals:\n";
   for(int i=0;i<residuals.size();i++){
@@ -89,7 +101,19 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     residuals[i].range(min,max);
     if(max > 1e-10) fail = true;
   }
-  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of correlation matrix:\n" << corr << std::endl);
+  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of " << descr << ":\n" << mat << std::endl);
+}
+
+
+void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
+			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+  //Examine the eigenvalues and eigenvectors of the correlation matrix
+  const int nsample = sigma(0).size();
+  const int nev = corr.size();
+
+  std::vector<NumericVector<jackknifeDistributionD> > evecs;
+  std::vector<jackknifeDistributionD> evals;
+  calcEvecsEvals(evecs, evals, corr, "correlation matrix", false);
 
   //Compute the contributions of each evec towards chi^2
   const int ndata = data.size();
@@ -103,16 +127,18 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
     Delta_dot_v[i] = dot(Delta, evecs[i]);
 
   jackknifeDistributionD chisq(nsample); zeroit(chisq);
+  std::vector<jackknifeDistributionD> chisq_contrib(nev);
   std::cout << "chi^2 contributions per eigenvalue:\n";
   for(int i=0;i<nev;i++){
-    jackknifeDistributionD chisq_contrib = Delta_dot_v[i] * Delta_dot_v[i] / evals[i];
-    std::cout << i << " eval = " << evals[i] << " d(chi^2) = " << chisq_contrib << std::endl;
-    chisq = chisq + chisq_contrib;
+    chisq_contrib[i] = Delta_dot_v[i] * Delta_dot_v[i] / evals[i];
+    std::cout << i << " eval = " << evals[i] << " d(chi^2) = " << chisq_contrib[i] << std::endl;
+    chisq = chisq + chisq_contrib[i];
   }
   std::cout << "Total chi^2 = " << chisq << std::endl;
 
   //Write the correlation matrix and its inverse to disk
 #ifdef HAVE_HDF5
+  writeParamsStandard(chisq_contrib, "corrmat_evecs_chisq_contrib.hdf5");
   writeParamsStandard(evals,"corrmat_evals.hdf5");
   {
     std::vector<std::vector<jackknifeDistributionD> > tmp(nev, std::vector<jackknifeDistributionD>(nev));
@@ -131,27 +157,8 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   //Do the same for the covariance matrix  
   NumericSquareMatrix<jackknifeDistributionD> cov(ndata, [&](const int i, const int j){ return corr(i,j) * sigma(i) * sigma(j); });
 
-  //This thing can have very large entries. Convenient to scale such that it's easier to judge if it converged; here with the first diagonal element (ie sigma(0)^2)
-  jackknifeDistributionD cov_scale = sigma(0)*sigma(0);
-  NumericSquareMatrix<jackknifeDistributionD> cov_scaled(ndata, [&](const int i, const int j){ return cov(i,j)/cov_scale; });
+  calcEvecsEvals(evecs, evals, cov, "covariance matrix", true);
   
-  residuals = symmetricMatrixEigensolve(evecs,evals,cov_scaled,true);
-
-  for(int i=0;i<nev;i++) evals[i] = evals[i] * cov_scale; //rescale the evals
-  
-  std::cout << "Computed eigenvalues of covariance matrix of size " << corr.size() << ":\n";
-  for(int i=0;i<nev;i++) std::cout << i << " " << evals[i] << std::endl;
-
-  fail = false;
-  std::cout << "Residuals:\n";
-  for(int i=0;i<residuals.size();i++){
-    std::cout << i << " " << residuals[i] << std::endl;
-    double min,max;
-    residuals[i].range(min,max);
-    if(max > 1e-10) fail = true;
-  }
-  if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of scaled covariance matrix:\n" << cov << std::endl);
-
   NumericVector<jackknifeDistributionD> Delta_abs(ndata, [&](const int i){ return Delta(i) * sigma(i); });
   
   for(int i=0;i<nev;i++)
@@ -160,14 +167,15 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   zeroit(chisq);
   std::cout << "chi^2 contributions per eigenvalue:\n";
   for(int i=0;i<nev;i++){
-    jackknifeDistributionD chisq_contrib = Delta_dot_v[i] * Delta_dot_v[i] / evals[i];
-    std::cout << i << " eval = " << evals[i] << " d(chi^2) = " << chisq_contrib << std::endl;
-    chisq = chisq + chisq_contrib;
+    chisq_contrib[i] = Delta_dot_v[i] * Delta_dot_v[i] / evals[i];
+    std::cout << i << " eval = " << evals[i] << " d(chi^2) = " << chisq_contrib[i] << std::endl;
+    chisq = chisq + chisq_contrib[i];
   }
   std::cout << "Total chi^2 = " << chisq << std::endl;
   
   //Write the covariance matrix to disk
 #ifdef HAVE_HDF5
+  writeParamsStandard(chisq_contrib,"covmat_evecs_chisq_contrib.hdf5");
   writeParamsStandard(evals,"covmat_evals.hdf5");
   {
     std::vector<std::vector<jackknifeDistributionD> > tmp(nev, std::vector<jackknifeDistributionD>(nev));
@@ -294,6 +302,9 @@ struct fitSpec{
     std::cout << "Chisq: " << chisq << std::endl;
     std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
 
+    writeParamsStandard(chisq, "chisq.hdf5");
+    writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
+    
     prepare.postFitAnalysis(data_combined_j, params, fitfunc);
     
     writeParamsStandard(params,"params_7basis.hdf5");
@@ -301,7 +312,7 @@ struct fitSpec{
     std::vector<jackknifeDistributionD> params_10basis;
     vectorizeAndConvert10basis(params_10basis, params);
 
-    writeParamsStandard(params_10basis,"params_10basis.hdf5");    
+    writeParamsStandard(params_10basis,"params_10basis.hdf5"); 
   }
 
 };

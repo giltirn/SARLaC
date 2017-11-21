@@ -115,5 +115,17 @@ struct iterate<jackknifeDistribution<T> >{
     return std::vector<int>({i});
   }
 };
-
+template<typename T>
+struct iterate<jackknifeCdistribution<T> >{
+  static inline int size(const jackknifeCdistribution<T> &from){ return from.size()+1; } 
+  static inline const T& at(const int i, const jackknifeCdistribution<T> &from){
+    return i==0 ? from.best() : from.sample(i-1);
+  }
+  static inline T & at(const int i, jackknifeCdistribution<T> &from){
+    return i==0 ? from.best() : from.sample(i-1);
+  }
+  static inline std::vector<int> unmap(const int i, const jackknifeCdistribution<T> &from){ 
+    return std::vector<int>({i});
+  }
+};
 #endif
