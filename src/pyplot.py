@@ -141,6 +141,10 @@ class ErrorBand:
                 self.upper = None
                 self.lower = None
 
+class HistogramData:
+        def __init__(self):
+                self.y = None
+                
 class DataSet3D:
         def __init__(self):
                 self.x = None
@@ -242,6 +246,18 @@ def plotErrorBand(axes, band, **kwargs):
         axes.plot(x,ly,marker='None',linestyle='--',linewidth=1.5,color=chex,zorder=boundary_lines_zorder)
 
     return plot_band
+
+
+def plotHistogram(axes, data, **kwargs):
+    if "nbins" in kwargs.keys() and "bins" not in kwargs.keys():
+        binwidth = (max(data.y) - min(data.y))/(kwargs["nbins"])
+        kwargs["bins"]=numpy.arange(min(data.y), max(data.y) + binwidth, binwidth)
+        del kwargs["nbins"]
+    if "color" not in kwargs.keys():
+        kwargs["color"] = 'r'
+        
+    plot_hist = axes.hist(data.y,**kwargs)
+    return plot_hist
 
 
 

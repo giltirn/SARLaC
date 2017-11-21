@@ -36,6 +36,9 @@ struct CmdLine{
 
   std::string sample_plot_file_stub;
   
+  bool spec_sample_plot_type;
+  std::string spec_sample_plot_type_val;
+  
   CmdLine(){
     spec_elem = false;
     spec_format = false;
@@ -44,6 +47,7 @@ struct CmdLine{
     spec_sci_fmt_threshold = false;
     spec_pub_exp = false;
     spec_round_pow = false;
+    spec_sample_plot_type = false;
   }
   void parse(const int argc, const char* argv[]){
     int i = 2;
@@ -89,6 +93,15 @@ struct CmdLine{
 	spec_pub_exp = true;
 	std::stringstream ss(argv[i+1]); ss >> spec_pub_exp_val;
 	i+=2;
+
+
+	//-------------------- Options specific to sample_plot format -------------------------------------
+	//Defaults: scatter plot
+      }else if(si == "-sample_plot_type"){ //specify the type of plot produced (Scatter, Histogram), default: Scatter
+	spec_sample_plot_type = true;
+	spec_sample_plot_type_val = argv[i+1];
+	i+=2;
+
 
 	//--------------------------------------------------------------------------------------------
       }else{
@@ -193,14 +206,20 @@ struct formatPrint: public formatter<D>{
 template<typename D>
 class formatSamplePlot: public formatter<D>{
   MatPlotLibScriptGenerate plot;
-  std::string file_stub;
+  const CmdLine &cmdline;
 public:
-  formatSamplePlot(const std::string &_file_stub): file_stub(_file_stub){}
+  formatSamplePlot(const CmdLine &_cmdline): cmdline(_cmdline){}
 
   void operator()(const std::vector<int> &coord, const D &v){
     DistributionSampleAccessor<D> acc(v);
-    typename MatPlotLibScriptGenerate::handleType h = plot.plotData(acc);
+    typename MatPlotLibScriptGenerate::handleType h;
 
+    if(cmdline.spec_sample_plot_type){
+      if(cmdline.spec_sample_plot_type_val == "Scatter") h = plot.plotData(acc);
+      else if(cmdline.spec_sample_plot_type_val == "Histogram") h = plot.histogram(acc);
+      else error_exit(std::cout << "formatSamplePlot: Unknown plot type " << cmdline.spec_sample_plot_type_val << std::endl);
+    }else h = plot.plotData(acc);
+      
     std::ostringstream os;
     for(int i=0;i<coord.size();i++) os << coord[i] << " ";
     
@@ -209,13 +228,16 @@ public:
 
   ~formatSamplePlot(){
     plot.createLegend();
+    const std::string &file_stub = cmdline.sample_plot_file_stub;
     plot.write(file_stub + ".py", file_stub + ".eps");    
   }
 };
+
+
 template<typename T>
 class formatSamplePlot<superJackknifeDistribution<T> >: public formatter<superJackknifeDistribution<T> >{
 public:
-  formatSamplePlot(const std::string &_file_stub){
+  formatSamplePlot(const CmdLine &cmdline){
     error_exit(std::cout << "formatSamplePlot doesn't support superJackknifeDistribution\n");
   }
   void operator()(const std::vector<int> &coord, const superJackknifeDistribution<T> &v){
@@ -255,7 +277,7 @@ struct setFormat{
     }else if(format == "basic"){
       return new formatPrint<D>;
     }else if(format == "sample_plot"){
-      return new formatSamplePlot<D>(cmdline.sample_plot_file_stub);      
+      return new formatSamplePlot<D>(cmdline);      
     }else{
       error_exit(std::cout << "setFormat: Unknown format " << format << std::endl);
     }

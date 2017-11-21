@@ -10,7 +10,7 @@
 #include <distribution.h>
 #include <distribution_iterate.h>
 
-enum SetType{ DataSetType, ErrorBandType };
+enum SetType{ DataSetType, ErrorBandType, HistogramType };
 
 
 #ifdef HAVE_PYTHON
@@ -444,6 +444,35 @@ public:
   const std::string &tag() const{ return set_tag; }  
 };
 
+
+class PythonHistogramContainer{
+  std::vector<double> y;
+  std::string set_tag;
+
+public:
+  
+  template<typename Data>
+  void import(const Data &data, const std::string &tag){
+    set_tag = tag;
+    
+    int sz = data.size();
+    for(int i=0;i<sz;i++){
+      y.push_back(data.y(i));
+    }
+  }
+
+  void write(std::ostream &os) const{
+    os << set_tag << "= pyplot.HistogramData()\n";
+    os << set_tag << ".y = " << ListPrint<double>(y) << '\n';
+  }
+
+  const std::string &tag() const{ return set_tag; }  
+};
+
+
+
+
+
 class MatPlotLibScriptGenerateBase{
 public:
   typedef std::map<std::string,KWargElem> kwargsType;
@@ -480,6 +509,9 @@ private:
   std::vector<PythonErrorBandContainer> ploterrorband_sets;
   std::vector<kwargsType> ploterrorband_args;
 
+  std::vector<PythonHistogramContainer> plothistogram_sets;
+  std::vector<kwargsType> plothistogram_args;
+  
   std::vector<handleType> leg_handles;
   std::vector<std::string> legends;
   std::string leg_py;
@@ -525,6 +557,25 @@ public:
     kwargsType kwargs;
     return errorBand(band,kwargs);
   }
+
+
+  //Data is an accessors with methods:
+  //double y(const int)
+  //int size()
+  template<typename Data>
+  handleType histogram(const Data &data, kwargsType &kwargs){
+    std::ostringstream os; os << "histogram" << plothistogram_sets.size();
+    plothistogram_sets.push_back(PythonHistogramContainer());
+    plothistogram_sets.back().import(data, os.str());
+    plothistogram_args.push_back(kwargs);
+    return handleType(plothistogram_sets.size()-1,HistogramType);
+  }
+  template<typename Data>
+  inline handleType histogram(const Data &data){
+    kwargsType kwargs;
+    return histogram(data,kwargs);
+  }
+
   
   void write(std::ostream &os, const std::string &script_gen_filename = "plot.pdf") const{
     os << "import pyplot\n\n";
@@ -535,6 +586,9 @@ public:
     for(int i=0;i<ploterrorband_sets.size();i++)
       ploterrorband_sets[i].write(os);
 
+    for(int i=0;i<plothistogram_sets.size();i++)
+      plothistogram_sets[i].write(os);
+    
     os << "\nfig = pyplot.plt.figure()\n";
     os << "ax = fig.add_subplot(1,1,1)\n";
 
@@ -544,6 +598,9 @@ public:
     for(int i=0;i<ploterrorband_sets.size();i++)
       os << "plot_" << ploterrorband_sets[i].tag() << " = " << "pyplot.plotErrorBand(ax, " << ploterrorband_sets[i].tag() << kwargsPrint(ploterrorband_args[i]) << ")\n";    
 
+    for(int i=0;i<plothistogram_sets.size();i++)
+      os << "plot_" << plothistogram_sets[i].tag() << " = " << "pyplot.plotHistogram(ax, " << plothistogram_sets[i].tag() << kwargsPrint(plothistogram_args[i]) << ")\n";
+    
     os << user.str(); //user code
     
     os << leg_py;    
@@ -575,6 +632,9 @@ public:
       if(leg_handles[i].second == ErrorBandType){
 	const std::string pyhandle = "plot_" + ploterrorband_sets[set_idx].tag();
 	handles_str.push_back(pyhandle);
+      }else if(leg_handles[i].second == HistogramType){
+	const std::string pyhandle = "plot_" + plothistogram_sets[set_idx].tag() + "[2][0]";
+	handles_str.push_back(pyhandle);	
       }else{
 	const std::string pyhandle = "plot_" + plotdata_sets[set_idx].tag() + "[0]";
 	handles_str.push_back(pyhandle);
