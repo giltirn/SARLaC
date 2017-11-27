@@ -2,6 +2,7 @@
 #define _FIT_PIPI_KTOPIPI_SIM_GPARITY_FIT_H_
 #include<plot.h>
 #include<gsl_eigensolve.h>
+#include<pvalue.h>
 
 typedef FitTwoPointThreePointSim FitFunc;
 
@@ -297,22 +298,32 @@ struct fitSpec{
     jackknifeDistributionD chisq;
     jackknifeDistributionD chisq_per_dof;
     fitter.fit(params, chisq, chisq_per_dof, data_combined_j);
+
+    double dof = chisq.sample(0)/chisq_per_dof.sample(0);
     
     std::cout << "Params: " << params << std::endl;
     std::cout << "Chisq: " << chisq << std::endl;
     std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
-
+    std::cout << "Dof: " << dof << std::endl;
+    
     writeParamsStandard(chisq, "chisq.hdf5");
     writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
-    
+
+    //Compute p-value
+    jackknifeDistributionD pvalue(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
+    std::cout << "p-value: " << pvalue << std::endl;
+    writeParamsStandard(pvalue, "pvalue.hdf5");
+
+    //Other post-fit analysis
     prepare.postFitAnalysis(data_combined_j, params, fitfunc);
-    
+
+    //Write params
     writeParamsStandard(params,"params_7basis.hdf5");
     
     std::vector<jackknifeDistributionD> params_10basis;
     vectorizeAndConvert10basis(params_10basis, params);
 
-    writeParamsStandard(params_10basis,"params_10basis.hdf5"); 
+    writeParamsStandard(params_10basis,"params_10basis.hdf5");
   }
 
 };

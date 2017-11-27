@@ -68,7 +68,7 @@ public:
   }
 
 
-  //p = \int_x^inf chi^2(k,x)
+  //p = \int_x^inf dx P(k, x)     k=dof, x=chi^2
   static inline double pvalue(const double k, const double x){
     return 1.-CDF(k,x); //chi^2 is unit-normalized
   }
