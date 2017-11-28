@@ -105,9 +105,9 @@ void calcEvecsEvals(std::vector<NumericVector<jackknifeDistributionD> > &evecs,
   if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of " << descr << ":\n" << mat << std::endl);
 }
 
-
+template<typename FitFunc>
 void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
-			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<typename FitFunc::Params> &params, const FitFunc &fitfunc){
   //Examine the eigenvalues and eigenvectors of the correlation matrix
   const int nsample = sigma(0).size();
   const int nev = corr.size();
@@ -192,11 +192,11 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   plotSampleEvecs(evecs, "covmat_evecs", 0);
 }
 
-template<typename CorrelationStatusStruct>
+template<typename CorrelationStatusStruct, typename FitFunc>
 struct CorrelationPolicy{};
 
-template<>
-struct CorrelationPolicy<UncorrelatedFit>{
+template<typename FitFunc>
+struct CorrelationPolicy<UncorrelatedFit, FitFunc>{
   typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
   std::unique_ptr<importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies> > prep;
     
@@ -204,11 +204,11 @@ struct CorrelationPolicy<UncorrelatedFit>{
 		   const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj){
     prep.reset(new importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>(fitter, data_combined_dj));
   }
-  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<typename FitFunc::Params> &params, const FitFunc &fitfunc){
   }
 };
-template<>
-struct CorrelationPolicy<CorrelatedFit>{
+template<typename FitFunc>
+struct CorrelationPolicy<CorrelatedFit, FitFunc>{
   typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
   std::unique_ptr<importCostFunctionParameters<correlatedFitPolicy,FitPolicies> > prep;
     
@@ -216,15 +216,15 @@ struct CorrelationPolicy<CorrelatedFit>{
 		   const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj){
     prep.reset(new importCostFunctionParameters<correlatedFitPolicy,FitPolicies>(fitter, data_combined_dj));    
   }
-  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<typename FitFunc::Params> &params, const FitFunc &fitfunc){
     analyzeCorrelationMatrix(prep->corr, prep->inv_corr, prep->sigma, data_combined_j, params, fitfunc);
   }
 };
-template<>
-struct CorrelationPolicy<PartiallyCorrelatedFit>{
+template<typename FitFunc>
+struct CorrelationPolicy<PartiallyCorrelatedFit, FitFunc>{
   typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-  typedef FitPolicies::jackknifeMatrix jackknifeMatrix;
-  typedef FitPolicies::jackknifeVector jackknifeVector;
+  typedef typename FitPolicies::jackknifeMatrix jackknifeMatrix;
+  typedef typename FitPolicies::jackknifeVector jackknifeVector;
 
   jackknifeMatrix corr;
   jackknifeMatrix inv_corr;
@@ -270,7 +270,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit>{
     fitter.importCostFunctionParameters(inv_corr,sigma);
   }
 
-  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<TwoPointThreePointSimFitParams> &params, const FitFunc &fitfunc){
+  void postFitAnalysis(const jackAmplitudeSimCorrelationFunction &data_combined_j, const jackknifeDistribution<typename FitFunc::Params> &params, const FitFunc &fitfunc){
     analyzeCorrelationMatrix(corr, inv_corr, sigma, data_combined_j, params, fitfunc);
   }
   
@@ -278,14 +278,14 @@ struct CorrelationPolicy<PartiallyCorrelatedFit>{
 
 
 
-template<typename CorrelationStatusStruct>
+template<typename CorrelationStatusStruct, typename FitFunc>
 struct fitSpec{
   static void fit(const FitFunc &fitfunc,
 		  const jackAmplitudeSimCorrelationFunction &data_combined_j,
 		  const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj,
 		  const Args &args){
-    typedef typename CorrelationPolicy<CorrelationStatusStruct>::FitPolicies FitPolicies;
-    CorrelationPolicy<CorrelationStatusStruct> prepare;
+    typedef typename CorrelationPolicy<CorrelationStatusStruct,FitFunc>::FitPolicies FitPolicies;
+    CorrelationPolicy<CorrelationStatusStruct,FitFunc> prepare;
     fitter<FitPolicies> fitter;
     fitter.importFitFunc(fitfunc);
     prepare.setupFitter(fitter, data_combined_dj);
@@ -293,8 +293,8 @@ struct fitSpec{
     const int nsample = data_combined_j.value(0).size();
     readFrozenParams(fitter,args.freeze_file,nsample);
     
-    TwoPointThreePointSimFitParams guess;  
-    jackknifeDistribution<TwoPointThreePointSimFitParams> params(nsample, guess);
+    typename FitFunc::Params guess;  
+    jackknifeDistribution<typename FitFunc::Params> params(nsample, guess);
     jackknifeDistributionD chisq;
     jackknifeDistributionD chisq_per_dof;
     fitter.fit(params, chisq, chisq_per_dof, data_combined_j);
@@ -328,19 +328,34 @@ struct fitSpec{
 
 };
 
-void fit(const FitFunc &fitfunc,
+template<typename FitFunc>
+void fitFspec(const FitFunc &fitfunc,
 	 const jackAmplitudeSimCorrelationFunction &data_combined_j,
 	 const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj,
 	 const Args &args){
   switch(args.correlation_status){
   case Uncorrelated:
-    return fitSpec<UncorrelatedFit>::fit(fitfunc,data_combined_j,data_combined_dj,args);
+    return fitSpec<UncorrelatedFit,FitFunc>::fit(fitfunc,data_combined_j,data_combined_dj,args);
   case Correlated:
-    return fitSpec<CorrelatedFit>::fit(fitfunc,data_combined_j,data_combined_dj,args);    
+    return fitSpec<CorrelatedFit,FitFunc>::fit(fitfunc,data_combined_j,data_combined_dj,args);    
   case PartiallyCorrelated:
-    return fitSpec<PartiallyCorrelatedFit>::fit(fitfunc,data_combined_j,data_combined_dj,args);
+    return fitSpec<PartiallyCorrelatedFit,FitFunc>::fit(fitfunc,data_combined_j,data_combined_dj,args);
   default:
     error_exit(std::cout << "Unknown correlationStatus " << args.correlation_status << std::endl);    
+  }
+}
+
+void fit(const jackAmplitudeSimCorrelationFunction &data_combined_j,
+	 const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj,
+	 const Args &args){
+  if(args.fitfunc == OneExp){
+    FitTwoPointThreePointSim fitfunc(args.Lt,args.tsep_pipi,args.Ascale,args.Cscale);
+    fitFspec(fitfunc,data_combined_j,data_combined_dj,args);
+  }else if(args.fitfunc == TwoExpPiPi){
+    FitTwoExpTwoPointThreePointSim fitfunc(args.Lt,args.tsep_pipi,args.Ascale,args.Cscale);
+    fitFspec(fitfunc,data_combined_j,data_combined_dj,args);
+  }else{
+    error_exit(std::cout << "Unknown fit function " << args.fitfunc << std::endl);
   }
 }
 

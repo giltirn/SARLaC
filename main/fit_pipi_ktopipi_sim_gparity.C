@@ -80,8 +80,7 @@ int main(const int argc, const char** argv){
     }
   }
 
-  FitFunc fitfunc(args.Lt,args.tsep_pipi,args.Ascale,args.Cscale);
-  fit(fitfunc,data_combined_j,data_combined_dj,args);
+  fit(data_combined_j,data_combined_dj,args);
 
   std::cout << "Done\n";
   

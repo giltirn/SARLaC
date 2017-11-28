@@ -76,22 +76,25 @@ void insertPipi(jackAmplitudeSimCorrelationFunction &data_combined_j,
   }
 }
 
+
+template<typename ParamsType>
 void vectorizeAndConvert10basis(std::vector<jackknifeDistributionD> &into,		    
-				const jackknifeDistribution<TwoPointThreePointSimFitParams> &params){
+				const jackknifeDistribution<ParamsType> &params){
   const int nsample = params.size();
+  const int nprelim = ParamsType::nprelim;
   
-  into.resize(15,jackknifeDistributionD(nsample,0.));
+  into.resize(nprelim + 10,jackknifeDistributionD(nsample,0.));
 #pragma omp parallel for
   for(int s=0;s<nsample;s++){
-    for(int i=0;i<5;i++)
+    for(int i=0;i<nprelim;i++)
       into[i].sample(s) = params.sample(s)(i);
   
     //Convert Q'123 -> Q123
     static const double Q123invrot[3][3] = {  {1./5,   1,   0},
 					      {1./5,   0,   1},
 					      {  0 ,   3,   2} };
-#define MO(i) into[i+5-1].sample(s)
-#define MI(i) params.sample(s)(i+5-1)
+#define MO(i) into[nprelim + i-1].sample(s)
+#define MI(i) params.sample(s)(nprelim + i-1)
 #define Qinv(i,j) Q123invrot[i-1][j-1]
 
     for(int i=1;i<=3;i++)
