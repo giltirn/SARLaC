@@ -1,4 +1,4 @@
-bin_PROGRAMS = fit_example test_ET test_hdf5 test_tensor test_expression_parse simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity fit_ktopipi_gparity fit_simple benchmark hdf5_print hdf5_calc analyze_ktopipi_gparity fit_pipi_ktopipi_sim_gparity fit_pipi_gparity_ratio
+bin_PROGRAMS = fit_example test_ET test_hdf5 test_tensor test_expression_parse simfit_example superjack_example generic_freeze_example fit_mpi_gparity_AMA fit_pipi_gparity fit_ktopipi_gparity fit_simple benchmark hdf5_print hdf5_calc analyze_ktopipi_gparity fit_pipi_ktopipi_sim_gparity fit_pipi_gparity_ratio dist_compare
 fit_example_SOURCES = fit_example.C
 test_ET_SOURCES = test_ET.C
 test_tensor_SOURCES = test_tensor.C
@@ -14,6 +14,7 @@ test_hdf5_SOURCES = test_hdf5.C
 test_expression_parse_SOURCES = test_expression_parse.C
 hdf5_print_SOURCES = hdf5_print.C
 hdf5_calc_SOURCES = hdf5_calc.C
+dist_compare_SOURCES = dist_compare.C
 analyze_ktopipi_gparity_SOURCES = analyze_ktopipi_gparity.C
 fit_pipi_ktopipi_sim_gparity_SOURCES = fit_pipi_ktopipi_sim_gparity.C
 fit_pipi_gparity_ratio_SOURCES = fit_pipi_gparity_ratio.C
