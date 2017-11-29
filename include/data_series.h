@@ -4,6 +4,7 @@
 #include<ostream>
 #include<template_wizardry.h>
 #include<hdf5_serialize.h>
+#include<distribution_iterate.h>
 
 //A class containing a series of data, for example a time series
 template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType = std::pair>
@@ -140,7 +141,7 @@ private:
 public:
   sampleSeries(SeriesType &_series, const int _sample):series(_series), sample(_sample){ }
   inline int size() const{ return series.size(); }
-  inline typename add_const_if<DataType, SeriesType>::type & value(const int i) const{ return series.value(i).sample(sample); }
+  inline typename add_const_if<DataType, SeriesType>::type & value(const int i) const{ return iterate<ElementType>::at(sample, series.value(i)); }
   inline typename add_const_if<GeneralizedCoordinate, SeriesType>::type & coord(const int i) const{ return series.coord(i); }
 };
 
