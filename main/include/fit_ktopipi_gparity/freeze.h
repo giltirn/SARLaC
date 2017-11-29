@@ -34,8 +34,8 @@ GENERATE_PARSER(KtoPiPiFreezeParams, KTOPIPI_FREEZE_PARAMS_MEMBERS);
 //Use Q=-1 for all Q
 template<typename FitFuncPolicies>
 void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const std::string &freeze_file, const int nsample){
-  typedef typename FitFuncPolicies::jackknifeFitParameters jackknifeFitParameters;
-  jackknifeFitParameters values(nsample);
+  typedef typename FitFuncPolicies::FitParameterDistribution FitParameterDistribution;
+  FitParameterDistribution values(nsample);
   
   std::vector<int> freeze;
   KtoPiPiFreezeParams fparams;

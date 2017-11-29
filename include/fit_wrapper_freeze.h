@@ -97,8 +97,8 @@ void applyOperation(jackknifeDistribution<double> &fval, const std::string &oper
 
 template<typename FitFuncPolicies>
 void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze_file, const int nsample){
-  typedef typename FitFuncPolicies::jackknifeFitParameters jackknifeFitParameters;
-  jackknifeFitParameters values(nsample);
+  typedef typename FitFuncPolicies::FitParameterDistribution FitParameterDistribution;
+  FitParameterDistribution values(nsample);
   
   std::vector<int> freeze;
   FreezeParams fparams;

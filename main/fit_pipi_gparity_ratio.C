@@ -189,7 +189,7 @@ int main(const int argc, const char** argv){
 
 #ifdef FIT_EXACT
   //Freeze in Epi
-  typename FitPolicies::jackknifeFitParameters freeze(nsample,typename FitFunc::ParameterType(3));
+  typename FitPolicies::FitParameterDistribution freeze(nsample,typename FitFunc::ParameterType(3));
   for(int s=0;s<nsample;s++) freeze.sample(s)(2) = Epi.sample(s);
   fit.freeze(std::vector<int>({2}), freeze);
 #endif
@@ -198,7 +198,7 @@ int main(const int argc, const char** argv){
 
   typename FitFunc::ParameterType guess(fitfunc.Nparams()); guess(0) = 1; guess(1) = 0;
 
-  typename FitPolicies::jackknifeFitParameters params(nsample, guess);
+  typename FitPolicies::FitParameterDistribution params(nsample, guess);
   jackknifeDistributionD chisq(nsample);
   jackknifeDistributionD chisq_per_dof(nsample);
 

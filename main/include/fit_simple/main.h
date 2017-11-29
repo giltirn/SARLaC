@@ -5,7 +5,7 @@ template<typename FitFunc, template<typename> class CostFunctionPolicy>
 void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, const CMDline &cmdline){
   typedef typename composeFitPolicy<double,FitFunc, standardFitFuncPolicy, CostFunctionPolicy>::type FitPolicies;
   typedef fitter<FitPolicies> Fitter;
-  typedef typename FitPolicies::jackknifeFitParameters jackknifeFitParameters;
+  typedef typename FitPolicies::FitParameterDistribution FitParameterDistribution;
   
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   doubleJackknifeCorrelationFunctionD data_dj(args.Lt, 
@@ -53,7 +53,7 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
       guess(i) = 1;
   }
 
-  jackknifeFitParameters params(nsample, guess);
+  FitParameterDistribution params(nsample, guess);
   jackknifeDistributionD chisq(nsample);
   jackknifeDistributionD chisq_per_dof(nsample);
 

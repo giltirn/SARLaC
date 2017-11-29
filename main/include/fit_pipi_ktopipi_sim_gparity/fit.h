@@ -4,8 +4,6 @@
 #include<gsl_eigensolve.h>
 #include<pvalue.h>
 
-typedef FitTwoPointThreePointSim FitFunc;
-
 struct UncorrelatedFit;
 struct CorrelatedFit;
 struct PartiallyCorrelatedFit;
@@ -105,6 +103,58 @@ void calcEvecsEvals(std::vector<NumericVector<jackknifeDistributionD> > &evecs,
   if(fail) error_exit(std::cout << "Failed to compute eigenvectors/values of " << descr << ":\n" << mat << std::endl);
 }
 
+void plotRotatedFitFunc(const jackAmplitudeSimCorrelationFunction &data,
+			const std::vector<NumericVector<jackknifeDistributionD> > &evecs, const std::vector<jackknifeDistributionD> &evals,
+			const std::vector<jackknifeDistributionD> &fit_vals){
+  //For *covariance matrix* write
+  //\Delta'_i = (1/\sqrt(\lambda_i)) (\vec v_i^T \Delta) = ( y'_i - f'_i )
+  //f'_i = (1/\sqrt(\lambda_i)) \sum_j v^i_j f(x_j)
+
+  //Examine  (1/\sqrt(\lambda_i))v^i_j  ,  f(x_j) and their product as a function of j (time)
+  const int ndata = data.size();
+  const int nev = evecs.size();
+  jackknifeCorrelationFunctionD vnorm(ndata);
+  jackknifeCorrelationFunctionD f(ndata);
+  jackknifeCorrelationFunctionD prod(ndata);
+
+  MatPlotLibScriptGenerate plot;
+  typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
+  
+  for(int i=0;i<nev;i++){
+
+    const jackknifeDistributionD &nrm = fit_vals[0];
+    
+    for(int j=0;j<ndata;j++){
+      vnorm.coord(j) = f.coord(j) = prod.coord(j) = data.coord(j).t;
+      vnorm.value(j) = evecs[i](j)/sqrt(evals[i])*nrm;
+      f.value(j) = fit_vals[j]/nrm;
+      prod.value(j) = vnorm.value(j) * f.value(j);
+    }
+    typename MatPlotLibScriptGenerate::kwargsType args;
+    
+    accessor acc0(vnorm);
+    args["color"] = "r";
+    args["marker"] = "o";
+    plot.plotData(acc0,args);
+
+    accessor acc1(f);
+    args["color"] = "g";
+    args["marker"] = "s";
+    plot.plotData(acc1,args);
+    
+    accessor acc2(prod);
+    args["color"] = "b";
+    args["marker"] = "^";
+    plot.plotData(acc2,args);
+  }
+
+  plot.invoke() << "datasets = [";
+  for(int i=0;i<3*nev-1;i++) plot.invoke() << "dset" << i << ", ";
+  plot.invoke() << "dset" << 3*nev-1 << "]\n";
+  
+  plot.write("covmat_rotated_fitfunc.py","covmat_rotated_fitfunc.eps");  
+}
+
 template<typename FitFunc>
 void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> &corr, const NumericSquareMatrix<jackknifeDistributionD> &inv_corr, const NumericVector<jackknifeDistributionD> &sigma,
 			      const jackAmplitudeSimCorrelationFunction &data, const jackknifeDistribution<typename FitFunc::Params> &params, const FitFunc &fitfunc){
@@ -117,16 +167,38 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   calcEvecsEvals(evecs, evals, corr, "correlation matrix", false);
 
   //Compute the contributions of each evec towards chi^2
+
+  // \chi^2 = \vec \Delta^T M^{-1} \vec \Delta
+  // \Delta_i = (y_i - f(x_i))/\sigma_i
+
+  // M is the correlation matrix.
+  // After computing evals \lambda , evecs  \vec v
+
+  // M^{-1} = \sum_i \vec v_i (1/\lambda_i) \vec v_i^T
+
+  // \delta\chi^2_i = (\vec \Delta^T \vec v_i) (1/\lambda_i) (\vec v_i^T \Delta)
+
+  //Note if we define  \Delta'_i = (1/\sqrt(\lambda_i)) (\vec v_i^T \Delta) then
+  // \chi^2 = \sum_{ij} \Delta'_i \delta_{ij} \Delta'_j
+  //        = \vec \Delta'^T I \vec \Delta'     where I is the unit matrix.
+  //Thus \Delta is rotated into an uncorrelated basis
+
   const int ndata = data.size();
   NumericVector<jackknifeDistributionD> Delta(ndata, jackknifeDistributionD(nsample));
+  std::vector<jackknifeDistributionD> fit_vals(ndata, jackknifeDistributionD(nsample));
   for(int i=0;i<ndata;i++)
-    for(int s=0;s<nsample;s++)
-      Delta[i].sample(s) = (data.value(i).sample(s) - fitfunc.value(data.coord(i), params.sample(s)))/sigma(i).sample(s);
-  
+    for(int s=0;s<nsample;s++){
+      fit_vals[i].sample(s) = fitfunc.value(data.coord(i), params.sample(s));
+      Delta[i].sample(s) = ( data.value(i).sample(s) - fit_vals[i].sample(s) )/sigma(i).sample(s);
+    }
+      
   std::vector<jackknifeDistributionD> Delta_dot_v(nev);
-  for(int i=0;i<nev;i++)
+  std::vector<jackknifeDistributionD> Delta_prime(nev);
+  for(int i=0;i<nev;i++){
     Delta_dot_v[i] = dot(Delta, evecs[i]);
-
+    Delta_prime[i] = Delta_dot_v[i]/sqrt(evals[i]);
+  }
+    
   jackknifeDistributionD chisq(nsample); zeroit(chisq);
   std::vector<jackknifeDistributionD> chisq_contrib(nev);
   std::cout << "chi^2 contributions per eigenvalue:\n";
@@ -140,6 +212,7 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   //Write the correlation matrix and its inverse to disk
 #ifdef HAVE_HDF5
   writeParamsStandard(chisq_contrib, "corrmat_evecs_chisq_contrib.hdf5");
+  writeParamsStandard(Delta_prime, "corrmat_delta_prime.hdf5");
   writeParamsStandard(evals,"corrmat_evals.hdf5");
   {
     std::vector<std::vector<jackknifeDistributionD> > tmp(nev, std::vector<jackknifeDistributionD>(nev));
@@ -162,9 +235,12 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   
   NumericVector<jackknifeDistributionD> Delta_abs(ndata, [&](const int i){ return Delta(i) * sigma(i); });
   
-  for(int i=0;i<nev;i++)
+  
+  for(int i=0;i<nev;i++){
     Delta_dot_v[i] = dot(Delta_abs, evecs[i]);
-
+    Delta_prime[i] = Delta_dot_v[i]/sqrt(evals[i]);
+  }
+  
   zeroit(chisq);
   std::cout << "chi^2 contributions per eigenvalue:\n";
   for(int i=0;i<nev;i++){
@@ -177,6 +253,7 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
   //Write the covariance matrix to disk
 #ifdef HAVE_HDF5
   writeParamsStandard(chisq_contrib,"covmat_evecs_chisq_contrib.hdf5");
+  writeParamsStandard(Delta_prime, "covmat_delta_prime.hdf5");
   writeParamsStandard(evals,"covmat_evals.hdf5");
   {
     std::vector<std::vector<jackknifeDistributionD> > tmp(nev, std::vector<jackknifeDistributionD>(nev));
@@ -190,6 +267,44 @@ void analyzeCorrelationMatrix(const NumericSquareMatrix<jackknifeDistributionD> 
 #endif
 
   plotSampleEvecs(evecs, "covmat_evecs", 0);
+
+  plotRotatedFitFunc(data,evecs,evals,fit_vals);
+
+  //For *covariance matrix* write
+  //\Delta'_i = (1/\sqrt(\lambda_i)) (\vec v_i^T \Delta) = ( y'_i - f'_i )
+  //f'_i = (1/\sqrt(\lambda_i)) \sum_j v^i_j f(x_j)
+  //Compute derivatives of f'_i with respect to parameters at minima
+  const int nparams = fitfunc.Nparams();
+  std::vector<std::vector<jackknifeDistributionD > > all_deriv(ndata, std::vector<jackknifeDistributionD >(nparams, jackknifeDistributionD(nsample))); //[data idx][param]
+  for(int tt=0;tt<ndata;tt++){
+    for(int s=0;s<nsample;s++){
+      typename FitFunc::ValueDerivativeType d = fitfunc.parameterDerivatives(data.coord(tt), params.sample(s));
+      for(int p=0;p<nparams;p++) all_deriv[tt][p].sample(s) = d(p);
+    }
+  }
+
+  for(int i=0;i<nev;i++){
+    //f'_i = (1/\sqrt(\lambda_i)) \sum_j v^i_j f(x_j)
+    jackknifeDistributionD f(nsample,0.);
+    for(int j=0;j<ndata;j++)
+	f = f + evecs[i](j) * fit_vals[j];
+    f = f / sqrt(evals[i]);
+    
+    //d/dp(f'_i) = (1/\sqrt(\lambda_i)) \sum_j v^i_j df(x_j)/dp
+    std::cout << "Evec idx " << i << "rotated function " << f << " , derivative of rotated function wrt params and sensitivity ( df/dp * p/f ):\n";
+    for(int p=0;p<nparams;p++){
+      jackknifeDistributionD df_by_dp(nsample,0.);
+      for(int j=0;j<ndata;j++)
+	df_by_dp = df_by_dp + evecs[i](j) * all_deriv[j][p];
+      df_by_dp = df_by_dp / sqrt(evals[i]);
+
+      jackknifeDistributionD pv(nsample, [&](const int s){ return params.sample(s)(p); });
+      jackknifeDistributionD sens = df_by_dp * pv / f;
+      
+      std::cout << p << " " << df_by_dp << " " << sens << std::endl;
+    }
+  }
+  
 }
 
 template<typename CorrelationStatusStruct, typename FitFunc>
@@ -223,12 +338,12 @@ struct CorrelationPolicy<CorrelatedFit, FitFunc>{
 template<typename FitFunc>
 struct CorrelationPolicy<PartiallyCorrelatedFit, FitFunc>{
   typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-  typedef typename FitPolicies::jackknifeMatrix jackknifeMatrix;
-  typedef typename FitPolicies::jackknifeVector jackknifeVector;
+  typedef typename FitPolicies::MatrixDistribution MatrixDistribution;
+  typedef typename FitPolicies::VectorDistribution VectorDistribution;
 
-  jackknifeMatrix corr;
-  jackknifeMatrix inv_corr;
-  jackknifeVector sigma;
+  MatrixDistribution corr;
+  MatrixDistribution inv_corr;
+  VectorDistribution sigma;
   
   void setupFitter(fitter<FitPolicies> &fitter,
 		   const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj){
@@ -238,7 +353,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit, FitFunc>{
 
     sigma.resize(ndata);   
     
-    jackknifeMatrix cov(ndata, jackknifeDistributionD(nsample,0.));
+    MatrixDistribution cov(ndata, jackknifeDistributionD(nsample,0.));
     for(int i=0;i<ndata;i++){
       cov(i,i) = doubleJackknifeDistributionD::covariance(data_combined_dj.value(i),data_combined_dj.value(i));
       sigma(i) = sqrt(cov(i,i));
@@ -249,7 +364,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit, FitFunc>{
       }
     }
 
-    corr = jackknifeMatrix(ndata);
+    corr = MatrixDistribution(ndata);
     
     for(int i=0;i<ndata;i++){
       corr(i,i) = jackknifeDistributionD(nsample,1.);
@@ -262,7 +377,7 @@ struct CorrelationPolicy<PartiallyCorrelatedFit, FitFunc>{
     svd_inverse(inv_corr, corr);
 
     //Test the quality of the inverse
-    jackknifeMatrix test = corr * inv_corr;
+    MatrixDistribution test = corr * inv_corr;
     for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistributionD(nsample,1.0);    
     std::cout << "|CorrMat * CorrMat^{-1} - 1|^2 = " << mod2(test) << std::endl;
 

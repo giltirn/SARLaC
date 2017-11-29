@@ -9,33 +9,37 @@
 #include<fitfunc_mapping.h>
 #include<cost_function.h>
 #include<minimizer.h>
+#include<distribution_iterate.h>
 
-template<typename GeneralizedCoordinate>
+template<typename GeneralizedCoordinate, typename _DistributionType>
 struct baseFitTypedefs{
-  typedef correlationFunction<GeneralizedCoordinate,jackknifeDistributionD> jackknifeCorrelationFunction;
-  typedef NumericSquareMatrix<jackknifeDistributionD> jackknifeMatrix;
-  typedef NumericVector<jackknifeDistributionD> jackknifeVector;
+  typedef _DistributionType DistributionType;
+  typedef correlationFunction<GeneralizedCoordinate,DistributionType> CorrelationFunctionDistribution;
+  typedef NumericSquareMatrix<DistributionType> MatrixDistribution;
+  typedef NumericVector<DistributionType> VectorDistribution;
 
-  typedef sampleSeries<const jackknifeCorrelationFunction> sampleSeriesType;
-  typedef NumericSquareMatrixSampleView<const jackknifeMatrix> sampleInvCorrType;
+  typedef sampleSeries<const CorrelationFunctionDistribution> sampleSeriesType;
+  typedef NumericSquareMatrixSampleView<const MatrixDistribution> sampleInvCorrType;
 };
 #define INHERIT_TYPEDEF(FROM,DEF) typedef typename FROM::DEF DEF
 
 #define INHERIT_BASE_FIT_TYPEDEFS(FROM)			       \
-  INHERIT_TYPEDEF(FROM,jackknifeCorrelationFunction); \
-  INHERIT_TYPEDEF(FROM,jackknifeMatrix); \
-  INHERIT_TYPEDEF(FROM,jackknifeVector); \
+  INHERIT_TYPEDEF(FROM,DistributionType); \
+  INHERIT_TYPEDEF(FROM,CorrelationFunctionDistribution); \
+  INHERIT_TYPEDEF(FROM,MatrixDistribution); \
+  INHERIT_TYPEDEF(FROM,VectorDistribution); \
   INHERIT_TYPEDEF(FROM,sampleSeriesType); \
   INHERIT_TYPEDEF(FROM,sampleInvCorrType)
 
 
-template<typename GeneralizedCoordinate, typename _fitFunc>
-class standardFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate>{
+template<typename GeneralizedCoordinate, typename _DistributionType, typename _fitFunc>
+class standardFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate, _DistributionType>{
 public:
-  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs<GeneralizedCoordinate>);
+  typedef baseFitTypedefs<GeneralizedCoordinate, _DistributionType> baseDefs;
+  INHERIT_BASE_FIT_TYPEDEFS(baseDefs);
   typedef _fitFunc baseFitFunc;
   typedef _fitFunc fitFunc;
-  typedef jackknifeDistribution<typename fitFunc::ParameterType> jackknifeFitParameters;
+  typedef typename DistributionType::template rebase<typename fitFunc::ParameterType> FitParameterDistribution;
 
   class fitFuncPolicyState{
     fitFunc const* ff;
@@ -45,8 +49,8 @@ public:
       assert(ff != NULL);
       return *ff;
     }
-    typename fitFunc::ParameterType getParamsSample(const jackknifeFitParameters &params, const int s){ return params.sample(s); }
-    void setParamsSample(jackknifeFitParameters &params, const typename fitFunc::ParameterType &p_s, const int s){ params.sample(s) = p_s; }
+    typename fitFunc::ParameterType getParamsSample(const FitParameterDistribution &params, const int s){ return iterate<FitParameterDistribution>::at(s,params); }
+    void setParamsSample(FitParameterDistribution &params, const typename fitFunc::ParameterType &p_s, const int s){ iterate<FitParameterDistribution>::at(s,params) = p_s; }
   };
 private:
   fitFunc const* ff;
@@ -60,24 +64,25 @@ public:
   }
 };
 
-template<typename GeneralizedCoordinate, typename _fitFunc>
-class frozenFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate>{
+template<typename GeneralizedCoordinate, typename _DistributionType, typename _fitFunc>
+class frozenFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate, _DistributionType>{
 public:
-  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs<GeneralizedCoordinate>);
+  typedef baseFitTypedefs<GeneralizedCoordinate, _DistributionType> baseDefs;
+  INHERIT_BASE_FIT_TYPEDEFS(baseDefs);
 
   typedef _fitFunc baseFitFunc;
   typedef FrozenFitFunc<_fitFunc> fitFunc;
-  typedef jackknifeDistribution<typename baseFitFunc::ParameterType> jackknifeFitParameters; //going to intercept and transform to internal representation
+  typedef jackknifeDistribution<typename baseFitFunc::ParameterType> FitParameterDistribution; //going to intercept and transform to internal representation
 
   class fitFuncPolicyState{
     std::unique_ptr<fitFunc> ff_frz;
   public:
-    fitFuncPolicyState(baseFitFunc const* ff, const std::vector<int> &freeze_params, const std::unique_ptr<jackknifeFitParameters> &freeze_vals, const int s){
+    fitFuncPolicyState(baseFitFunc const* ff, const std::vector<int> &freeze_params, const std::unique_ptr<FitParameterDistribution> &freeze_vals, const int s){
       assert(ff != NULL);
       ff_frz.reset(new fitFunc(*ff));
       if(freeze_params.size() > 0){
 	assert(freeze_vals);
-	ff_frz->freeze(freeze_params, freeze_vals->sample(s));
+	ff_frz->freeze(freeze_params, iterate<FitParameterDistribution>::at(s,*freeze_vals));
       }
     }
     fitFuncPolicyState(fitFuncPolicyState &&r): ff_frz(std::move(r.ff_frz)){}
@@ -85,20 +90,20 @@ public:
     const fitFunc & getFitFunc() const{
       return *ff_frz;
     }
-    typename fitFunc::ParameterType getParamsSample(const jackknifeFitParameters &params, const int s){ return ff_frz->mapParamsSupersetToSubset(params.sample(s)); }
-    void setParamsSample(jackknifeFitParameters &params, const typename fitFunc::ParameterType &p_s, const int s){ params.sample(s) = ff_frz->mapParamsSubsetToSuperset(p_s); }    
+    typename fitFunc::ParameterType getParamsSample(const FitParameterDistribution &params, const int s){ return ff_frz->mapParamsSupersetToSubset(iterate<FitParameterDistribution>::at(s,params)); }
+    void setParamsSample(FitParameterDistribution &params, const typename fitFunc::ParameterType &p_s, const int s){ iterate<FitParameterDistribution>::at(s,params) = ff_frz->mapParamsSubsetToSuperset(p_s); }    
   };
 private:
   baseFitFunc const* ff;
-  std::unique_ptr<jackknifeFitParameters> freeze_vals;
+  std::unique_ptr<FitParameterDistribution> freeze_vals;
   std::vector<int> freeze_params;
 public:
   frozenFitFuncPolicy(): ff(NULL){}
   
   void importFitFunc(const baseFitFunc &fitfunc){ ff = &fitfunc; }
 
-  void freeze(const std::vector<int> &_freeze_params, const jackknifeFitParameters &_freeze_vals){
-    freeze_vals.reset(new jackknifeFitParameters(_freeze_vals));   freeze_params = _freeze_params;
+  void freeze(const std::vector<int> &_freeze_params, const FitParameterDistribution &_freeze_vals){
+    freeze_vals.reset(new FitParameterDistribution(_freeze_vals));   freeze_params = _freeze_params;
   }
   
   inline fitFuncPolicyState generateFitFuncPolicyState(const int s){
@@ -113,7 +118,7 @@ public:
   INHERIT_BASE_FIT_TYPEDEFS(FROM);			       \
   INHERIT_TYPEDEF(FROM,fitFunc); \
   INHERIT_TYPEDEF(FROM,baseFitFunc); \
-  INHERIT_TYPEDEF(FROM,jackknifeFitParameters); \
+  INHERIT_TYPEDEF(FROM,FitParameterDistribution); \
   INHERIT_TYPEDEF(FROM,fitFuncPolicyState)
 
 
@@ -135,10 +140,10 @@ public:
     std::unique_ptr<costFunctionType> cost_func;
 
   public:
-    costFunctionState(fitFuncPolicyState &&_fitfuncstate, const jackknifeCorrelationFunction &data, const jackknifeMatrix &inv_corr, const jackknifeVector &sigma, const int s):
+    costFunctionState(fitFuncPolicyState &&_fitfuncstate, const CorrelationFunctionDistribution &data, const MatrixDistribution &inv_corr, const VectorDistribution &sigma, const int s):
       data_s(data,s), inv_corr_s(inv_corr,s), sigma_s(data.size()), fitFuncPolicyState(std::forward<fitFuncPolicyState>(_fitfuncstate)){
       for(int d=0;d<data.size();d++)
-	sigma_s[d] = sigma[d].sample(s);
+	sigma_s[d] = iterate<DistributionType>::at(s,sigma[d]);
       cost_func.reset(new costFunctionType(this->getFitFunc(),data_s, sigma_s, inv_corr_s));
     }
     const costFunctionType &getCostFunction() const{ return *cost_func; }
@@ -147,18 +152,18 @@ public:
   };
 
 private:
-  jackknifeMatrix const* inv_corr;
-  jackknifeVector const* sigma;
+  MatrixDistribution const* inv_corr;
+  VectorDistribution const* sigma;
 public:
   correlatedFitPolicy(): inv_corr(NULL), sigma(NULL){}
   
-  void importCostFunctionParameters(const jackknifeMatrix &_inv_corr, 
-				    const jackknifeVector &_sigma){
+  void importCostFunctionParameters(const MatrixDistribution &_inv_corr, 
+				    const VectorDistribution &_sigma){
     inv_corr = &_inv_corr;
     sigma = &_sigma;
   }
 protected:
-  inline costFunctionState generateCostFunctionState(const jackknifeCorrelationFunction &data, const int s){
+  inline costFunctionState generateCostFunctionState(const CorrelationFunctionDistribution &data, const int s){
     assert(inv_corr != NULL && sigma != NULL);
     return costFunctionState(this->generateFitFuncPolicyState(s),data,*inv_corr,*sigma,s);
   }
@@ -178,10 +183,10 @@ public:
     std::unique_ptr<costFunctionType> cost_func;
 
   public:
-    costFunctionState(fitFuncPolicyState &&_fitfuncstate, const jackknifeCorrelationFunction &data, const jackknifeVector &sigma, const int s):
+    costFunctionState(fitFuncPolicyState &&_fitfuncstate, const CorrelationFunctionDistribution &data, const VectorDistribution &sigma, const int s):
       data_s(data,s), sigma_s(data.size()), fitFuncPolicyState(std::forward<fitFuncPolicyState>(_fitfuncstate)){
       for(int d=0;d<data.size();d++)
-	sigma_s[d] = sigma[d].sample(s);
+	sigma_s[d] = iterate<DistributionType>::at(s,sigma[d]);
       cost_func.reset(new costFunctionType(this->getFitFunc(),data_s, sigma_s));
     }
     const costFunctionType &getCostFunction() const{ return *cost_func; }
@@ -190,15 +195,15 @@ public:
   };
 
 private:
-  jackknifeVector const* sigma;
+  VectorDistribution const* sigma;
 public:
   uncorrelatedFitPolicy(): sigma(NULL){}
   
-  void importCostFunctionParameters(const jackknifeVector &_sigma){
+  void importCostFunctionParameters(const VectorDistribution &_sigma){
     sigma = &_sigma;
   }
 protected:
-  inline costFunctionState generateCostFunctionState(const jackknifeCorrelationFunction &data, const int s){
+  inline costFunctionState generateCostFunctionState(const CorrelationFunctionDistribution &data, const int s){
     assert(sigma != NULL);
     return costFunctionState(this->generateFitFuncPolicyState(s),data,*sigma,s);
   }
@@ -213,9 +218,9 @@ protected:
 
 
 //Convenience wrapper for composing the fit policy
-template<typename GeneralizedCoordinate, typename FitFunc, template<typename,typename> class FitFuncPolicy, template<typename> class CostFunctionPolicy>
+template<typename GeneralizedCoordinate, typename FitFunc, template<typename,typename,typename> class FitFuncPolicy, template<typename> class CostFunctionPolicy, typename DistributionType = jackknifeDistributionD>
 struct composeFitPolicy{
-  typedef CostFunctionPolicy<FitFuncPolicy<GeneralizedCoordinate,FitFunc> > type;
+  typedef CostFunctionPolicy<FitFuncPolicy<GeneralizedCoordinate,DistributionType,FitFunc> > type;
 };
 
 
@@ -234,10 +239,10 @@ public:
   }
   fitter(const minimizerParamsType &_min_params): min_params(_min_params){}
   
-  void fit(jackknifeFitParameters &params,
-	   jackknifeDistributionD &chisq,
-	   jackknifeDistributionD &chisq_per_dof,
-	   const jackknifeCorrelationFunction &data){
+  void fit(FitParameterDistribution &params,
+	   DistributionType &chisq,
+	   DistributionType &chisq_per_dof,
+	   const CorrelationFunctionDistribution &data){
 
     const int ndata_fit = data.size();
     assert(ndata_fit > 0);
@@ -249,18 +254,20 @@ public:
     
     std::cout << "Starting fit with guess " << params << std::endl;
 
+    int nosample = iterate<DistributionType>::size(data.value(0)); //some distributions have extra 'samples', eg jackknifeCdistribution has a sample representing the central value
+    
     int nparams;
 #pragma omp parallel for
-    for(int s=0;s<nsample;s++){
+    for(int s=0;s<nosample;s++){
       costFunctionState state = this->generateCostFunctionState(data,s);
       const costFunctionType &cost_func = state.getCostFunction();
       minimizerType minimizer(cost_func,min_params);
 
       typename fitFunc::ParameterType p_s = state.getParamsSample(params,s); //allows for arbitrary mapping from external to internal parameter type
-      chisq.sample(s) = minimizer.fit(p_s);
+      iterate<DistributionType>::at(s,chisq) = minimizer.fit(p_s);
       state.setParamsSample(params, p_s, s);
       
-      chisq_per_dof.sample(s) = chisq.sample(s)/state.Ndof();
+      iterate<DistributionType>::at(s,chisq_per_dof) = iterate<DistributionType>::at(s,chisq)/state.Ndof();
       assert(minimizer.hasConverged());
     }
   }
@@ -274,6 +281,8 @@ struct importCostFunctionParameters{};
 
 template<typename FitPolicies>
 struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
+  static_assert(std::is_same<typename FitPolicies::DistributionType,jackknifeDistributionD>::value, "Currently only support jackknifeDistributionD");
+  
   NumericVector<jackknifeDistributionD> sigma;
 
   template<typename GeneralizedCoord>
@@ -287,6 +296,8 @@ struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
 };
 template<typename FitPolicies>
 struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
+  static_assert(std::is_same<typename FitPolicies::DistributionType,jackknifeDistributionD>::value, "Currently only support jackknifeDistributionD");
+  
   NumericSquareMatrix<jackknifeDistributionD> corr;
   NumericSquareMatrix<jackknifeDistributionD> inv_corr;
   NumericVector<jackknifeDistributionD> sigma;
