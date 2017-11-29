@@ -19,7 +19,7 @@ jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeC
   
   FitFunc fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
 
-  typedef typename composeFitPolicy<double, FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
+  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
   fitter<FitPolicies> fitter;
   fitter.importFitFunc(fitfunc);
 

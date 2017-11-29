@@ -3,7 +3,7 @@
 
 template<typename FitFunc, template<typename> class CostFunctionPolicy>
 void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, const CMDline &cmdline){
-  typedef typename composeFitPolicy<double,FitFunc, standardFitFuncPolicy, CostFunctionPolicy>::type FitPolicies;
+  typedef typename composeFitPolicy<FitFunc, standardFitFuncPolicy, CostFunctionPolicy>::type FitPolicies;
   typedef fitter<FitPolicies> Fitter;
   typedef typename FitPolicies::FitParameterDistribution FitParameterDistribution;
   

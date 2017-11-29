@@ -13,6 +13,7 @@
 #include <common_defs.h>
 #include <sstream>
 #include <effective_mass.h>
+#include <fit_wrapper.h>
 
 #define FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
 
@@ -57,7 +58,16 @@ public:
   }
 };
 
+typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;
+typedef dataSeries<Coord, jackknifeDistributionType> jackknifeAllData;
 
+typedef filteredDataSeries<doubleJackknifeAllData> filteredDoubleJackknifeAllData;
+typedef filteredDataSeries<jackknifeAllData> filteredJackknifeAllData;
+
+struct fitTypeDefs{
+  typedef jackknifeDistributionType DistributionType;
+  typedef filteredJackknifeAllData CorrelationFunctionDistribution;
+};
 
 int main(const int argc, const char** argv){
   Args args;
@@ -97,9 +107,6 @@ int main(const int argc, const char** argv){
   //Combine data and double-jackknife resample
   const int nx = ndata_types * args.Lt; //t + Lt*type
 
-  typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;
-  typedef dataSeries<Coord, jackknifeDistributionType> jackknifeAllData;
-  
   doubleJackknifeAllData data_dj(nx, ntraj);
   jackknifeAllData data_j(nx, ntraj);
   for(int tt=0;tt<nx;tt++){
@@ -118,9 +125,6 @@ int main(const int argc, const char** argv){
   }
 
   //Setup fit range
-  typedef filteredDataSeries<doubleJackknifeAllData> filteredDoubleJackknifeAllData;
-  typedef filteredDataSeries<jackknifeAllData> filteredJackknifeAllData;
-
   filterCoordTrange tfilter(args.t_min,args.t_max);
   
   filteredDoubleJackknifeAllData inrange_data_dj(data_dj,tfilter);
@@ -135,8 +139,7 @@ int main(const int argc, const char** argv){
   //Uncorrelated fit
   typedef NumericSquareMatrix<jackknifeDistributionType> jackknifeMatrix;
   jackknifeMatrix cov(ndata_fit,jackknifeDistributionType(ntraj,0.));
-  std::vector<jackknifeDistributionType> sigma(ndata_fit);
-  NumericSquareMatrix<double> corr(ndata_fit,0.);
+  NumericVector<jackknifeDistributionType> sigma(ndata_fit);
   for(int x=0;x<ndata_fit;x++){
 #ifdef FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
     jackknifeDistributionD tmp = doubleJackknifeDistributionD::covariance(inrange_data_dj.value(x), inrange_data_dj.value(x));
@@ -144,11 +147,8 @@ int main(const int argc, const char** argv){
 #else
     cov(x,x) = doubleJackknifeDistributionD::covariance(inrange_data_dj.value(x), inrange_data_dj.value(x));
 #endif
-    cov(x,x) = cov(x,x) * double(ntraj-1); //properly normalize
-
-    sigma[x] = sqrt(cov(x,x));
-    corr(x,x) = 1.;
-    std::cout << inrange_data_dj.coord(x) << " cov " << cov(x,x) << " sigma " << sigma[x] << std::endl; 
+    sigma(x) = sqrt(cov(x,x));
+    std::cout << inrange_data_dj.coord(x) << " cov " << cov(x,x) << " sigma " << sigma(x) << std::endl; 
   }
 
   std::cout << "Data included in fit:\n";
@@ -181,37 +181,19 @@ int main(const int argc, const char** argv){
   
   
   //Do the fit
-  FitMpi fitfunc(2*args.Lt, param_map);
-  
-  typedef sampleSeries<const filteredJackknifeAllData> sampleSeriesConstType; //const access
-  typedef UncorrelatedChisqCostFunction<decltype(fitfunc), sampleSeriesConstType, double, NumericVector<double> > CostFunctionType;
-  typedef CostFunctionType::CostType CostType;
-
-  //Setup minimizer
-  typedef MarquardtLevenbergMinimizer<CostFunctionType> MinimizerType;
-
-  MarquardtLevenbergParameters<CostType> mlparams;
   jackknifeDistributionT<ParamContainer> params(ntraj, guess);
+  
+  FitMpi fitfunc(2*args.Lt, param_map);
 
-  jackknifeDistributionT<CostType> chisq(ntraj);
-  jackknifeDistributionT<CostType> chisqperdof(ntraj);
-  int dof = ndata_fit - fitfunc.Nparams();
+  typedef composeFitPolicy<FitMpi, standardFitFuncPolicy, uncorrelatedFitPolicy, fitTypeDefs>::type FitPolicies;
 
-#pragma omp parallel for
-  for(int j=first_sample;j<ntraj;j++){    
-    sampleSeriesConstType dsample(inrange_data_j, j);
-    std::vector<double> sigma_j(sigma.size()); for(int p=0;p<sigma.size();p++) sigma_j[p] = sigma[p].sample(j);
-    CostFunctionType costfunc(fitfunc, dsample, sigma_j);
-
-    MinimizerType fitter(costfunc, mlparams);
-    
-    ParamContainer &pj = params.sample(j);
-    CostType cost = fitter.fit(pj);
-    assert(fitter.hasConverged());
-    chisq.sample(j) = cost;
-    chisqperdof.sample(j) = cost/dof;
-  }
-  std::cout << "chi^2 = " << chisq << "\nchi^2/dof = " << chisqperdof << " (" << dof << " degrees of freedom)\n";
+  jackknifeDistributionType chisq;
+  jackknifeDistributionType chisq_per_dof;
+  
+  fitter<FitPolicies> fit;
+  fit.importCostFunctionParameters(sigma);
+  fit.importFitFunc(fitfunc);
+  fit.fit(params, chisq, chisq_per_dof, inrange_data_j);
 
   std::cout << "Fit results:\n";
   for(int i=0;i<param_map.nParams();i++){
@@ -275,6 +257,8 @@ int main(const int argc, const char** argv){
   plotter.write("mpi_plot.py");
 
 #ifdef HAVE_HDF5
+  writeParamsStandard(chisq, "chisq.hdf5");
+  writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
   writeParamsStandard(params, "params.hdf5");  
 #endif
   

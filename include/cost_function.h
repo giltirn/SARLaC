@@ -32,7 +32,7 @@ struct CostFunctionSVDinvert{
 };
 
 template<typename FitFunction, typename DataContainer, typename _CostType = double,
-	 typename _CostDerivativeType = typename FitFunction::ValueDerivativeType,
+	 typename _CostDerivativeType = NumericVector<_CostType>,
 	 typename _CostSecondDerivativeMatrixType = NumericSquareMatrix<_CostType>,
 	 typename _CostSecondDerivativeInverseMatrixType = NumericSquareMatrix<_CostType>,
 	 typename MatrixInvertPolicy = CostFunctionSVDinvert<_CostType>,
@@ -113,7 +113,7 @@ public:
 template<typename FitFunction, typename DataContainer,
 	 typename InvCorrMatrixType = NumericSquareMatrix<double>,
 	 typename _CostType = double,
-	 typename _CostDerivativeType = typename FitFunction::ValueDerivativeType,
+	 typename _CostDerivativeType = NumericVector<_CostType>,
 	 typename _CostSecondDerivativeMatrixType = NumericSquareMatrix<_CostType>,
 	 typename _CostSecondDerivativeInverseMatrixType = NumericSquareMatrix<_CostType>,
 	 typename MatrixInvertPolicy = CostFunctionSVDinvert<_CostType>,

@@ -11,32 +11,43 @@
 #include<minimizer.h>
 #include<distribution_iterate.h>
 
-template<typename GeneralizedCoordinate, typename _DistributionType>
-struct baseFitTypedefs{
-  typedef _DistributionType DistributionType;
+#define INHERIT_TYPEDEF(FROM,DEF) typedef typename FROM::DEF DEF
+
+//User can override these basic input types with custom types
+template<typename GeneralizedCoordinate>
+struct standardInputFitTypes{
+  typedef jackknifeDistributionD DistributionType;
   typedef correlationFunction<GeneralizedCoordinate,DistributionType> CorrelationFunctionDistribution;
+};
+
+#define INHERIT_INPUT_FIT_TYPEDEFS(FROM)			       \
+  INHERIT_TYPEDEF(FROM,DistributionType); \
+  INHERIT_TYPEDEF(FROM,CorrelationFunctionDistribution)
+
+
+template<typename BaseTypes>
+struct baseFitTypedefs{
+  INHERIT_INPUT_FIT_TYPEDEFS(BaseTypes);
+  
   typedef NumericSquareMatrix<DistributionType> MatrixDistribution;
   typedef NumericVector<DistributionType> VectorDistribution;
 
   typedef sampleSeries<const CorrelationFunctionDistribution> sampleSeriesType;
   typedef NumericSquareMatrixSampleView<const MatrixDistribution> sampleInvCorrType;
 };
-#define INHERIT_TYPEDEF(FROM,DEF) typedef typename FROM::DEF DEF
 
 #define INHERIT_BASE_FIT_TYPEDEFS(FROM)			       \
-  INHERIT_TYPEDEF(FROM,DistributionType); \
-  INHERIT_TYPEDEF(FROM,CorrelationFunctionDistribution); \
+  INHERIT_INPUT_FIT_TYPEDEFS(FROM);			       \
   INHERIT_TYPEDEF(FROM,MatrixDistribution); \
   INHERIT_TYPEDEF(FROM,VectorDistribution); \
   INHERIT_TYPEDEF(FROM,sampleSeriesType); \
   INHERIT_TYPEDEF(FROM,sampleInvCorrType)
 
 
-template<typename GeneralizedCoordinate, typename _DistributionType, typename _fitFunc>
-class standardFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate, _DistributionType>{
+template<typename InputFitTypes, typename _fitFunc>
+class standardFitFuncPolicy: public baseFitTypedefs<InputFitTypes>{
 public:
-  typedef baseFitTypedefs<GeneralizedCoordinate, _DistributionType> baseDefs;
-  INHERIT_BASE_FIT_TYPEDEFS(baseDefs);
+  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs<InputFitTypes>);
   typedef _fitFunc baseFitFunc;
   typedef _fitFunc fitFunc;
   typedef typename DistributionType::template rebase<typename fitFunc::ParameterType> FitParameterDistribution;
@@ -64,11 +75,10 @@ public:
   }
 };
 
-template<typename GeneralizedCoordinate, typename _DistributionType, typename _fitFunc>
-class frozenFitFuncPolicy: public baseFitTypedefs<GeneralizedCoordinate, _DistributionType>{
+template<typename InputFitTypes, typename _fitFunc>
+class frozenFitFuncPolicy: public baseFitTypedefs<InputFitTypes>{
 public:
-  typedef baseFitTypedefs<GeneralizedCoordinate, _DistributionType> baseDefs;
-  INHERIT_BASE_FIT_TYPEDEFS(baseDefs);
+  INHERIT_BASE_FIT_TYPEDEFS(baseFitTypedefs<InputFitTypes>);
 
   typedef _fitFunc baseFitFunc;
   typedef FrozenFitFunc<_fitFunc> fitFunc;
@@ -218,9 +228,9 @@ protected:
 
 
 //Convenience wrapper for composing the fit policy
-template<typename GeneralizedCoordinate, typename FitFunc, template<typename,typename,typename> class FitFuncPolicy, template<typename> class CostFunctionPolicy, typename DistributionType = jackknifeDistributionD>
+template<typename FitFunc, template<typename,typename> class FitFuncPolicy, template<typename> class CostFunctionPolicy, typename InputFitTypes = standardInputFitTypes<typename FitFunc::GeneralizedCoordinate> >
 struct composeFitPolicy{
-  typedef CostFunctionPolicy<FitFuncPolicy<GeneralizedCoordinate,DistributionType,FitFunc> > type;
+  typedef CostFunctionPolicy<FitFuncPolicy<InputFitTypes,FitFunc> > type;
 };
 
 

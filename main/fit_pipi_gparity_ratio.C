@@ -172,12 +172,12 @@ int main(const int argc, const char** argv){
   //#define FIT_LIN_APPROX
   #define FIT_EXACT
 #ifdef FIT_LIN_APPROX
-  typedef composeFitPolicy<double,FitFunc,standardFitFuncPolicy,correlatedFitPolicy>::type FitPolicies;
+  typedef composeFitPolicy<FitFunc,standardFitFuncPolicy,correlatedFitPolicy>::type FitPolicies;
   typedef FitRatio FitFunc;
   FitFunc fitfunc;
 #elif defined(FIT_EXACT)  
   typedef FitExactRatio FitFunc;
-  typedef composeFitPolicy<double,FitFunc,frozenFitFuncPolicy,correlatedFitPolicy>::type FitPolicies;  
+  typedef composeFitPolicy<FitFunc,frozenFitFuncPolicy,correlatedFitPolicy>::type FitPolicies;  
   FitFunc fitfunc(args.Lt, args.tsep_pipi);
 #else
   #error "Invalid fit type"

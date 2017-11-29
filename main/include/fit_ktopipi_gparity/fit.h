@@ -26,7 +26,7 @@ struct fit_corr_uncorr{
     std::vector<jackknifeDistribution<Params> > fit_params(10);
 
     //Perform the fit
-    typedef typename composeFitPolicy<amplitudeDataCoord, FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
+    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
     FitFunc fitfunc;
   
     for(int q=0;q<10;q++){
@@ -91,7 +91,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
 											    return typename correlationFunction<amplitudeDataCoordSim, doubleJackknifeDistributionD>::ElementType(cc,v);
 											  });
     //Perform the fit
-    typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
+    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
     FitFunc fitfunc;
   
     std::cout << "Starting fit for all Q simultaneously" << std::endl;
@@ -179,7 +179,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
     }
 
     //Perform the fit
-    typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
+    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
     FitFunc fitfunc;
   
     std::cout << "Starting fit for all Q simultaneously" << std::endl;

@@ -312,7 +312,7 @@ struct CorrelationPolicy{};
 
 template<typename FitFunc>
 struct CorrelationPolicy<UncorrelatedFit, FitFunc>{
-  typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
+  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
   std::unique_ptr<importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies> > prep;
     
   void setupFitter(fitter<FitPolicies> &fitter,
@@ -324,7 +324,7 @@ struct CorrelationPolicy<UncorrelatedFit, FitFunc>{
 };
 template<typename FitFunc>
 struct CorrelationPolicy<CorrelatedFit, FitFunc>{
-  typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
   std::unique_ptr<importCostFunctionParameters<correlatedFitPolicy,FitPolicies> > prep;
     
   void setupFitter(fitter<FitPolicies> &fitter,
@@ -337,7 +337,7 @@ struct CorrelationPolicy<CorrelatedFit, FitFunc>{
 };
 template<typename FitFunc>
 struct CorrelationPolicy<PartiallyCorrelatedFit, FitFunc>{
-  typedef typename composeFitPolicy<amplitudeDataCoordSim, FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
   typedef typename FitPolicies::MatrixDistribution MatrixDistribution;
   typedef typename FitPolicies::VectorDistribution VectorDistribution;
 
