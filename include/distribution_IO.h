@@ -266,6 +266,36 @@ struct standardIOhelper{
     }
   }
 };
+
+template<typename PODtype, typename StructType>
+struct standardIOhelper<jackknifeCdistribution<PODtype>, jackknifeCdistribution<StructType> >{
+  typedef jackknifeCdistribution<PODtype> DistributionOfPODtype;
+  typedef jackknifeCdistribution<StructType> DistributionOfStructType;
+
+  static inline void extractStructEntry(DistributionOfPODtype &to, const DistributionOfStructType &from, const int param_idx){
+    const int nsample = from.size();
+    to.resize(from.size());
+    for(int s=0;s<nsample;s++) to.sample(s) = from.sample(s)(param_idx);
+    to.best() = from.best()(param_idx);
+  }
+  static inline void setupDistributionOfStruct(DistributionOfStructType &to, const int nparams, const int nsample){
+    to.resize(nsample);
+    StructType base;
+    _actionResize<StructType, hasResizeMethod<StructType>::value>::doit(base, nparams);
+    for(int s=0;s<nsample;s++) to.sample(s) = base;
+    to.best() = base;
+  }
+      
+  static inline void insertStructEntry(DistributionOfStructType &to, const DistributionOfPODtype &from, const int param_idx){
+    const int nsample = from.size();
+    for(int s=0;s<nsample;s++){
+      to.sample(s)(param_idx) = from.sample(s);
+    }
+    to.best()(param_idx) = from.best();
+  }
+};
+
+
 template<typename PODtype, typename StructType>
 struct standardIOhelper<doubleJackknifeDistribution<PODtype>, doubleJackknifeDistribution<StructType> >{
   typedef doubleJackknifeDistribution<PODtype> DistributionOfPODtype;
