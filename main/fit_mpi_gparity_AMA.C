@@ -200,6 +200,9 @@ int main(const int argc, const char** argv){
     std::cout << param_map.paramName(i) << " = " << ParameterPrint<decltype(params)>(params,i) << std::endl;
   }
 
+  std::cout << "chi^2 = " << chisq << std::endl;
+  std::cout << "chi^2/dof = " << chisq_per_dof << std::endl;
+
   //Plot some nice things  
   MatPlotLibScriptGenerate plotter;
   std::string pallete[] = {
