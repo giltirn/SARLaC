@@ -49,6 +49,8 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const std::s
 
     jackknifeDistribution<double> fval;
     if(fparams.sources[i].reader == UKfitXMLvectorReader) readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
+    else if(fparams.sources[i].reader == HDF5fileReader) readHDF5file(fval, fparams.sources[i].filename, std::vector<int>(1,fparams.sources[i].input_idx));
+    else if(fparams.sources[i].reader == ConstantValue) fval.resize(nsample);
     else error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
 
     if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read jackknife of size " << fval.size() << ", expected " << nsample << std::endl);
