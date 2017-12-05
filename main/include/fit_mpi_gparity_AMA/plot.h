@@ -19,7 +19,7 @@ public:
 };
 
 
-jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const DataType type, const int Lt){
+jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const std::string &type, const int Lt, const TypeInfo &pmap){
   if(data.size() == 0) return jackknifeTimeSeriesType(0);
   if(data.size() != Lt) error_exit(std::cout << "effectiveMass called with data of size " << data.size() << ". Expect 0 or Lt=" << Lt << std::endl);
   
@@ -35,7 +35,7 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
   }
   typedef UncorrelatedChisqCostFunction<FitMpiEffectiveMass, dataSeries<double,double> > CostFunction;
   typedef MarquardtLevenbergMinimizer<CostFunction> MinimizerType;
-  FitMpiEffectiveMass fiteffmass(2*Lt, type);
+  FitMpiEffectiveMass fiteffmass(2*Lt, type, pmap);
   
   MarquardtLevenbergParameters<typename CostFunction::CostType> mlparams;
   mlparams.verbose = false;

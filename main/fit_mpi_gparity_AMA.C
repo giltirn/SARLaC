@@ -58,6 +58,10 @@ public:
   }
 };
 
+inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
+  return NumericVector<double>(a.size(), [&](const int i){ return a(i) * b(i); });
+}
+
 typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;
 typedef dataSeries<Coord, jackknifeDistributionType> jackknifeAllData;
 
@@ -85,14 +89,12 @@ int main(const int argc, const char** argv){
 
   std::cout << "Read arguments: \n" << args << std::endl;
 
-
-  AllParamMap param_map(args);
-  
   const int ntraj = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   assert(ntraj > 0);
 
   //Read and resample the data
-  std::vector<DataType> types;
+  TypeInfo type_map;
+  std::vector<std::string> types;
   std::vector<rawDataDistributionVector> raw;
   std::vector<jackknifeTimeSeriesType> jack;
   for(int i=0;i<args.data.size();i++){
@@ -100,6 +102,7 @@ int main(const int argc, const char** argv){
       raw.push_back( readCombine(args, i) );
       jack.push_back( resampleVector(raw.back(), args.Lt) );
       types.push_back( args.data[i].type );
+      type_map.registerType( args.data[i].type, args.data[i].fitfunc );
     }
   }
   const int ndata_types = raw.size();
@@ -112,11 +115,11 @@ int main(const int argc, const char** argv){
   for(int tt=0;tt<nx;tt++){
     const int t = tt % args.Lt;
     const int type_idx = tt / args.Lt;    
-    const DataType d = types[type_idx];
+    const std::string &d = types[type_idx];
     
     const rawDataDistributionVector &vraw = raw[type_idx];
     assert(vraw.size() == args.Lt);    
-    data_dj.coord(tt) = data_j.coord(tt) = Coord(t,d);
+    data_dj.coord(tt) = data_j.coord(tt) = Coord(t,d,type_map);
     data_dj.value(tt).resample(vraw[t]);
 
     const jackknifeTimeSeriesType &vjack = jack[type_idx];
@@ -156,25 +159,34 @@ int main(const int argc, const char** argv){
     std::cout << inrange_data_j.coord(i) << "  " << inrange_data_j.value(i) << " with sigma " << sigma[i] << std::endl;
   }
 
+  FitMpi fitfunc(2*args.Lt, type_map);
 
   //Load guesses if applicable
   typedef typename FitMpi::ParameterType ParamContainer;
-  ParamContainer guess(param_map);
+  ParamContainer guess(fitfunc.Nparams());
 
   if(cmdline.load_guess){
     std::ifstream f(cmdline.guess_file.c_str());
-    assert(f.good());
-    f >> std::noskipws;
-    boost::spirit::istream_iterator fiter(f), fend;
-    while(fiter != fend){
-      Params p; double v;
-      fiter >> p >> v;
-      std::cout << "Read guess " << p << " " << v << std::endl;      
-      guess(p) = v;
+    f.exceptions( std::ifstream::failbit | std::ifstream::badbit );
+    while(!f.eof()){
+      std::string param;
+      std::getline(f, param, ' ');
+      double v;
+      f >> v;
+
+      if(param == "Mass") guess[0] = v;
+      else{
+	if(!type_map.containsType(param)){
+	  std::cout << "Warning: Guess provided for fit parameter " << param << " but this parameter is not in the map\n";
+	}else{
+	  int idx = type_map.typeIdx(param);
+	  guess[idx+1] = v;
+	}
+      }
     }
   }else{
+    guess(0) = 0.5;
     for(int i=1;i<guess.size();i++) guess(i) = 1e3;
-    guess(Mass) = 0.5;
   }
   
   std::cout << "Using guess: " << guess << std::endl;
@@ -183,7 +195,7 @@ int main(const int argc, const char** argv){
   //Do the fit
   jackknifeDistributionT<ParamContainer> params(ntraj, guess);
   
-  FitMpi fitfunc(2*args.Lt, param_map);
+
 
   typedef composeFitPolicy<FitMpi, standardFitFuncPolicy, uncorrelatedFitPolicy, fitTypeDefs>::type FitPolicies;
 
@@ -196,8 +208,9 @@ int main(const int argc, const char** argv){
   fit.fit(params, chisq, chisq_per_dof, inrange_data_j);
 
   std::cout << "Fit results:\n";
-  for(int i=0;i<param_map.nParams();i++){
-    std::cout << param_map.paramName(i) << " = " << ParameterPrint<decltype(params)>(params,i) << std::endl;
+  std::cout << "Mass = " << ParameterPrint<decltype(params)>(params,0) << std::endl;
+  for(int i=0;i<type_map.nTypes();i++){
+    std::cout << type_map.typeName(i) << " = " << ParameterPrint<decltype(params)>(params,i+1) << std::endl;
   }
 
   std::cout << "chi^2 = " << chisq << std::endl;
@@ -222,20 +235,18 @@ int main(const int argc, const char** argv){
   for(int type_idx=0;type_idx<ndata_types;type_idx++){
     typedef DataSeriesAccessor<jackknifeTimeSeriesType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionType> > Accessor;
 
-    jackknifeTimeSeriesType effmass = effectiveMass(jack[type_idx], types[type_idx], args.Lt);
+    jackknifeTimeSeriesType effmass = effectiveMass(jack[type_idx], types[type_idx], args.Lt, type_map);
     Accessor a(effmass);
     plot_args["color"] = pallete[type_idx];
     Handle ah = plotter.plotData(a,plot_args);
-    std::string nm = toString(types[type_idx]);
-    nm = nm.substr(0,nm.size()-5);    
-    plotter.setLegend(ah, nm);
+    plotter.setLegend(ah, types[type_idx]);
   }
   //   Plot the fitted mass as constant
   {
     ParamContainer mn = params.best();
     ParamContainer err = params.standardError();
-    const double m = mn(Mass);
-    const double dm = err(Mass);
+    const double m = mn(0);
+    const double dm = err(0);
     
     std::vector<double> x = {double(args.t_min), double(args.t_max)};
     std::vector<double> upper = {m + dm, m + dm};
@@ -252,8 +263,8 @@ int main(const int argc, const char** argv){
   plotter.setYlabel("$m_{\\rm eff}(t)$");
   plotter.setXaxisBounds(-0.2,args.Lt+0.2);
 
-  const double ymid = params.best()(Mass);
-  const double yw = params.standardError()(Mass) * 20;
+  const double ymid = params.best()(0);
+  const double yw = params.standardError()(0) * 20;
   
   plotter.setYaxisBounds(ymid-yw, ymid+yw);
   

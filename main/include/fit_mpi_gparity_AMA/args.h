@@ -2,6 +2,7 @@
 #define _FIT_MPI_GPARITY_AMA_ARGS_H
 
 GENERATE_ENUM_AND_PARSER(DataType, (PP_LW_data)(AA_LW_data)(AP_LW_data)(PP_WW_data)(AP_WW_data)(DataType_size) )
+GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp) );
 
 #define SLOPPY_EXACT_MEMBERS \
   ( std::string, sloppy_fmt )     \
@@ -15,7 +16,8 @@ struct SloppyExact{
 GENERATE_PARSER(SloppyExact,SLOPPY_EXACT_MEMBERS)
 
 #define TWOPOINTFUNCTION_MEMBERS \
-  ( DataType, type )	       \
+  ( std::string, type )		 \
+  ( FitFuncType, fitfunc )	 \
   ( SloppyExact, FF_data )     \
   ( SloppyExact, BB_data )
 

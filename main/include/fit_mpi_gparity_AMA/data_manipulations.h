@@ -78,8 +78,9 @@ rawDataDistributionVector readCombine(const Args &args, const int type_idx){
   assert(ntraj > 0);
 
   TwoPointFunction const & fargs = args.data[type_idx];
-  DataType type = fargs.type;
-
+  const std::string& type = fargs.type;
+  FitFuncType fitfunc = fargs.fitfunc;
+  
   rawDataDistributionVector corrected[2];
   int FF=0, BB=1;
   
@@ -101,7 +102,7 @@ rawDataDistributionVector readCombine(const Args &args, const int type_idx){
     if(fb == BB){
       exact_data = timeReflect(exact_data);
       sloppy_data = timeReflect(sloppy_data);
-      if(type == AP_LW_data || type == AP_WW_data){ //sinh-form data pick up - sign under reflection
+      if(fitfunc == FSinh){ //sinh-form data pick up - sign under reflection
 	exact_data = -exact_data;
 	sloppy_data = -sloppy_data;
       }

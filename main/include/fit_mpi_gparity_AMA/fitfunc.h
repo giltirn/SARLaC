@@ -3,125 +3,115 @@
 
 #include<fitfunc.h>
 
-//Define the amplitudes, their enumerations (starting from 1) and their associated fit forms
-GENERATE_ENUM_AND_PARSER(Params, (Mass)(A_PP_LW)(A_AA_LW)(A_AP_LW)(A_PP_WW)(A_AP_WW)(Params_size) )
+class TypeInfo{
+  std::map<std::string, int> pmap;
+  std::map<int, std::string> upmap;
+  std::map<int, FitFuncType> fitfuncs;
+  int cur;
+public:
+  TypeInfo(): cur(0){}
 
-struct FitControls{
-
-  //Get the amplitude enum associated with a particular data type
-  static inline Params amplitude(const DataType type){
-    switch(type){
-    case PP_LW_data:
-      return A_PP_LW;
-    case AA_LW_data:
-      return A_AA_LW;
-    case AP_LW_data:
-      return A_AP_LW;
-    case PP_WW_data:
-      return A_PP_WW;
-    case AP_WW_data:
-      return A_AP_WW;
-    default:
-      error_exit(std::cout << "FitControls::amplitude invalid type " << type << std::endl);
-    };
-  }
-  static inline StandardFitFuncBase const* baseFitFunc(const DataType type, StandardFitFuncBase const* fcosh, StandardFitFuncBase const* fsinh){
-    switch(type){
-    case PP_LW_data:
-    case AA_LW_data:
-    case PP_WW_data:
-      return fcosh;
-    case AP_LW_data:
-    case AP_WW_data:
-      return fsinh;
-    default:
-      error_exit(std::cout << "FitControls::baseFitFunc invalid type\n");
+  void registerType(const std::string &type, const FitFuncType ff){
+    std::map<std::string, int>::const_iterator it = pmap.find(type);
+    if(it != pmap.end())
+      assert(fitfuncs[it->second] == ff);
+    else{
+      pmap[type] = cur;
+      upmap[cur] = type;
+      fitfuncs[cur] = ff;
+      ++cur;
     }
   }
 
-};
-
-
-class AllParamMap{
-public:
-
-  typedef Params tagType;
-private:
-  std::vector<int> pmap; //(int)Params -> index
-  std::vector<Params> upmap; //index -> Params
-
-public:
-  AllParamMap(const Args &args): pmap((int)Params_size), upmap(1){
-    pmap[(int)Mass] = 0;
-    upmap[0] = Mass;
-
-    int idx = 1;
-    for(int i=0;i<args.data.size();i++){
-      if(args.data[i].FF_data.include_data || args.data[i].BB_data.include_data){      
-	Params amp = FitControls::amplitude(args.data[i].type);
-	pmap[(int)amp] = idx++;
-	upmap.push_back(amp);
-      }
-    }
+  FitFuncType fitFunc(const int idx) const{
+    std::map<int, FitFuncType>::const_iterator it = fitfuncs.find(idx);
+    if(it == fitfuncs.end()) error_exit(std::cout << "TypeInfo::fitFunc could not find index " << idx << " in type map\n");
+    return it->second;
   }
-  inline int map(const Params param) const{
-    return pmap[(int)param];
-  }
-  inline Params unmap(const int idx) const{
-    return upmap[idx];
-  }
-  inline int size() const{ return upmap.size(); }
   
-  inline std::string paramName(const int idx) const{
-    return toString(upmap[idx]);
+  int typeIdx(const std::string &type) const{
+    std::map<std::string, int>::const_iterator it = pmap.find(type);
+    if(it == pmap.end()) error_exit(std::cout << "TypeInfo::typeIdx could not find string " << type << " in type map\n");
+    return it->second;
   }
-  inline int nParams() const{ return upmap.size(); }
+
+  inline bool containsType(const std::string &type) const{ return pmap.count(type) != 0; }
+  
+  const std::string & typeName(const int idx) const{
+    std::map<int, std::string>::const_iterator it = upmap.find(idx);
+    if(it == upmap.end()) error_exit(std::cout << "TypeInfo::typeName could not find index " << idx << " in type map\n");
+    return it->second;
+  }
+
+  inline int nTypes() const{ return pmap.size(); }
 };
-
-
+    
+  
 
 //Coordinate, parameters and param derivatives for aggregate fit func
 struct Coord{
   double t; //time
-  DataType type;
+  int type;
+  TypeInfo const* pmap;
+  
   Coord(){}
-  Coord(const double _t, const DataType _type): t(_t), type(_type){}
+  Coord(const double _t, const std::string _type, const TypeInfo &_pmap): t(_t), pmap(&_pmap){
+    type = _pmap.typeIdx(_type);
+  }
 };
 std::ostream & operator<<(std::ostream &os, const Coord &c){
-  os << "(" << c.t << "," << c.type << ")";
+  os << "(" << c.t << "," << c.pmap->typeName(c.type) << ")";
   return os;
 }
 
 class FitMpi{
 public:
   typedef double ValueType;
-  typedef mappedVector<double, AllParamMap> ParameterType;
-  typedef mappedVector<double, AllParamMap> ValueDerivativeType;
+  typedef NumericVector<double> ParameterType;
+  typedef NumericVector<double> ValueDerivativeType;
   typedef Coord GeneralizedCoordinate;
 private:
   FitCosh fcosh;
   FitSinh fsinh;
-    
-  inline StandardFitParams reduce(const ParameterType &p, const DataType type) const{
-    const double &A = p(FitControls::amplitude(type));
-    const double &m = p(Mass);
+  FitExp fexp;
+  
+  inline StandardFitParams reduce(const ParameterType &p, const int type) const{
+    const double &m = p(0);
+    const double &A = p(type+1);
     return StandardFitParams(A,m);
   }
   int nparams;
+  int ntypes;
+  std::vector<StandardFitFuncBase const*> fitfuncs;
 public:
 
-  FitMpi(const double _Lt, const AllParamMap &param_map): fcosh(_Lt), fsinh(_Lt), nparams(param_map.nParams()){  }
+  FitMpi(const double _Lt, const TypeInfo &pmap): fcosh(_Lt), fsinh(_Lt), ntypes(pmap.nTypes()){
+    nparams = ntypes+1; //mass, A0, A1, ....
+    fitfuncs.resize(ntypes);
+    for(int i=0;i<ntypes;i++){
+      switch(pmap.fitFunc(i)){
+      case FCosh:
+	fitfuncs[i] = &fcosh; break;
+      case FSinh:
+	fitfuncs[i] = &fsinh; break;
+      case FExp:
+	fitfuncs[i] = &fexp; break;
+      default:
+	assert(0);
+      }
+    }    
+  }
   
   inline ValueType value(const GeneralizedCoordinate &c, const ParameterType &p) const{
-    return FitControls::baseFitFunc(c.type, &fcosh, &fsinh)->value(c.t,reduce(p,c.type));
+    return fitfuncs[c.type]->value(c.t,reduce(p,c.type));
   }
 
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &c, const ParameterType &p) const{
-    ValueDerivativeType yderivs(p.getMapping());
+    ValueDerivativeType yderivs(nparams);
     yderivs.zero();
-    StandardFitParamDerivs subderivs = FitControls::baseFitFunc(c.type, &fcosh, &fsinh)->parameterDerivatives(c.t,reduce(p,c.type));
-    yderivs(Mass) = subderivs.dm;
-    yderivs(FitControls::amplitude(c.type)) = subderivs.dA;
+    StandardFitParamDerivs subderivs = fitfuncs[c.type]->parameterDerivatives(c.t,reduce(p,c.type));
+    yderivs(0) = subderivs.dm;
+    yderivs(c.type+1) = subderivs.dA;
     return yderivs;
   }
 
@@ -132,15 +122,27 @@ public:
 class FitMpiEffectiveMass{
   FitCosh fcosh;
   FitSinh fsinh;
-  DataType type;
-  StandardFitFuncBase const* fitfunc;
+  FitExp fexp;
+  StandardFitFuncBase* fitfunc;
 public:
   typedef double ValueType;
   typedef MLwrapper<double> ParameterType;
   typedef MLwrapper<double> ValueDerivativeType;
   typedef double GeneralizedCoordinate;
 
-  FitMpiEffectiveMass(const double _Lt, const DataType _type): fcosh(_Lt), fsinh(_Lt), type(_type), fitfunc(FitControls::baseFitFunc(_type, &fcosh, &fsinh)){}
+  FitMpiEffectiveMass(const double _Lt, const std::string &_type, const TypeInfo &pmap): fcosh(_Lt), fsinh(_Lt){
+    int idx = pmap.typeIdx(_type);
+    switch(pmap.fitFunc(idx)){
+    case FCosh:
+      fitfunc = new FitCosh(_Lt); break;
+    case FSinh:
+      fitfunc = new FitSinh(_Lt); break;
+    case FExp:
+      fitfunc = new FitExp; break;
+    default:
+      assert(0);
+    }
+  }    
 
   inline double value(const double t, const ParameterType &params) const{    
     StandardFitParams p(1000, *params);
@@ -162,7 +164,10 @@ public:
   }
 
   inline int Nparams() const{ return 1; }
-  
+
+  ~FitMpiEffectiveMass(){
+    delete fitfunc;
+  }
   
 };
 
