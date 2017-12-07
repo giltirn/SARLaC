@@ -31,6 +31,8 @@ public:
   inline void resize(const int n){ series.resize(n); }
   inline void resize(const int n, const ElementType &init){ series.resize(n,init); }
 
+  inline void clear(){ series.clear(); }
+  
   //Resize where the elements are populated according to an initializer object
   //Initializer must have   ElementType operator()(const int i) const   where 0<=i<n
   template<typename Initializer>

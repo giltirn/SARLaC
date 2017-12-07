@@ -342,8 +342,9 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	write(writer, A0_all_j, "A0_all_j");
 	write(writer, A0_all_dj, "A0_all_dj");
 	//Clear the data
-	std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> >().swap(A0_all_j);
-	std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> >().swap(A0_all_dj);
+	for(int q=0;q<10;q++){
+	  A0_all_j[q].clear(); A0_all_dj[q].clear();
+	}
 #endif
 	printMem("Post-scratch write");
       }
@@ -358,9 +359,11 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > tmp_A0_all_dj;
 	read(reader, tmp_A0_all_j, "A0_all_j");
 	read(reader, tmp_A0_all_dj, "A0_all_dj");
-	for(int i=0;i<tmp_A0_all_j.size();i++){
-	  A0_all_j.push_back(std::move(tmp_A0_all_j[i]));
-	  A0_all_dj.push_back(std::move(tmp_A0_all_dj[i]));
+	for(int q=0;q<10;q++){
+	  for(int i=0;i<A0_all_j[q].size();i++){
+	    A0_all_j[q].push_back(tmp_A0_all_j[q][i]);
+	    A0_all_dj[q].push_back(tmp_A0_all_dj[q][i]);
+	  }
 	}
 #endif
       }
