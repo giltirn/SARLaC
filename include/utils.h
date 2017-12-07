@@ -176,7 +176,7 @@ inline void printMem(const std::string &reason = "", FILE* stream = stdout){
     }
     file.close();
 
-    fprintf(stream,"Memory (/proc/meminfo): total: %.2f MB, avail: %.2f MB, used %.2f MB\n",total_mem2, free_mem2, total_mem2-free_mem2);
+    fprintf(stream,"Memory (/proc/meminfo): total: %.2f MB, avail: %.2f MB, used %.2f MB\n",total_mem2/1024., free_mem2/1024., (total_mem2-free_mem2)/1024.);
   }
 #endif
   
