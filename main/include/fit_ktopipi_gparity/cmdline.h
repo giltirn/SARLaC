@@ -19,6 +19,8 @@ struct CMDline{
   
   bool load_freeze_data;
   std::string freeze_data;
+
+  bool use_scratch; //save memory at peak times by storing to disk and reloading later
   
   CMDline(){
     load_guess = false;
@@ -27,6 +29,7 @@ struct CMDline{
     load_amplitude_data = false;
     save_amplitude_data = false;
     load_freeze_data = false;
+    use_scratch = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -61,7 +64,10 @@ struct CMDline{
       }else if(sargv[i] == "-save_amplitude_data"){
 	save_amplitude_data = true;
 	save_amplitude_data_file = sargv[i+1];
-	i+=2;	
+	i+=2;
+      }else if(sargv[i] == "-use_scratch"){
+	use_scratch = true;
+	i++;	
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];

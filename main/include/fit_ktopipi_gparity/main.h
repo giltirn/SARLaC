@@ -312,8 +312,51 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
     NumericTensor<doubleJackknifeDistributionD,1> bubble_dj = bubble.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
     
     //Read and prepare the amplitude data for fitting
-    for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++)
+
+    //Setup scratch space if in use
+    std::vector<std::string> scratch_files(args.tsep_k_pi.size());
+    if(cmdline.use_scratch){
+#ifndef HAVE_HDF5
+      error_exit("getData: scratch usage requires HDF5\n");
+#endif
+      for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
+	std::ostringstream f; f << "scratch_" << tsep_k_pi_idx;
+	scratch_files[tsep_k_pi_idx] = f.str();
+      }
+    }
+
+    //Load data
+    for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
       getData(A0_all_j,A0_all_dj,bubble,bubble_dj,bubble_j,tsep_k_pi_idx,args,cmdline);
+      if(cmdline.use_scratch){
+#ifdef HAVE_HDF5
+	HDF5writer writer(scratch_files[tsep_k_pi_idx]);
+	write(writer, A0_all_j, "A0_all_j");
+	write(writer, A0_all_dj, "A0_all_dj");
+	//Clear the data
+	std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> >().swap(A0_all_j);
+	std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> >().swap(A0_all_dj);
+#endif
+      }
+    }	
+
+    //Reload scratch data
+    if(cmdline.use_scratch){
+      for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
+#ifdef HAVE_HDF5
+	HDF5reader reader(scratch_files[tsep_k_pi_idx]);
+	std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > tmp_A0_all_j;
+	std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > tmp_A0_all_dj;
+	read(reader, tmp_A0_all_j, "A0_all_j");
+	read(reader, tmp_A0_all_dj, "A0_all_dj");
+	for(int i=0;i<tmp_A0_all_j.size();i++){
+	  A0_all_j.push_back(std::move(tmp_A0_all_j[i]));
+	  A0_all_dj.push_back(std::move(tmp_A0_all_dj[i]));
+	}
+#endif
+      }
+    }	
+      
   }
 
   if(cmdline.save_amplitude_data){
