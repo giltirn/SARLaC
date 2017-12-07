@@ -360,7 +360,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	read(reader, tmp_A0_all_j, "A0_all_j");
 	read(reader, tmp_A0_all_dj, "A0_all_dj");
 	for(int q=0;q<10;q++){
-	  for(int i=0;i<A0_all_j[q].size();i++){
+	  for(int i=0;i<tmp_A0_all_j[q].size();i++){
 	    A0_all_j[q].push_back(tmp_A0_all_j[q][i]);
 	    A0_all_dj[q].push_back(tmp_A0_all_dj[q][i]);
 	  }
