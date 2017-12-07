@@ -7,6 +7,7 @@
 #include<iostream>
 #include<cxxabi.h>
 #include<sstream>
+#include<limits>
 #include<omp.h>
 #include<sys/sysinfo.h>
 
@@ -157,6 +158,28 @@ inline void printMem(const std::string &reason = "", FILE* stream = stdout){
 
   fprintf(stream,"Memory: total: %.2f MB, avail: %.2f MB, used %.2f MB\n",total_mem, free_mem, total_mem-free_mem);
 
+#define REPORT_MEMINFO
+#ifdef REPORT_MEMINFO
+  {
+    double total_mem2;
+    double free_mem2;
+  
+    std::string token;
+    std::ifstream file("/proc/meminfo");
+    while(file >> token) {
+        if(token == "MemTotal:") {
+	  file >> total_mem2;
+	}else if(token == "MemAvailable:"){
+	  file >> free_mem2;
+	}
+        file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');        // ignore rest of the line
+    }
+    file.close();
+
+    fprintf(stream,"Memory (/proc/meminfo): total: %.2f MB, avail: %.2f MB, used %.2f MB\n",total_mem2, free_mem2, total_mem2-free_mem2);
+  }
+#endif
+  
   fflush(stream);
 }
 
