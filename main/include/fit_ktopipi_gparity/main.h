@@ -148,6 +148,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	     const NumericTensor<rawDataDistributionD,1> &bubble, const NumericTensor<doubleJackknifeDistributionD,1> &bubble_dj, const NumericTensor<jackknifeDistributionD,1> &bubble_j,
 	     const int tsep_k_pi_idx, const Args &args, const CMDline &cmdline){
   std::cout << "Getting data for tsep_k_pi = " <<  args.tsep_k_pi[tsep_k_pi_idx] << std::endl;
+  printMem("getData called");
   int tsep_k_pi = args.tsep_k_pi[tsep_k_pi_idx];
 
   type1234Data type1, type2, type3, type4;
@@ -212,12 +213,12 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
       mix4_alltK_nobub({tK,t}) = type4(tK,t).mix();
     }
 
-  printMem("Pre typedata free\n");
+  printMem("Pre typedata free");
 
   //Data is no longer needed, so free it
   type1.freeData(); type2.freeData(); type3.freeData(); type4.freeData();
 
-  printMem("Post typedata free\n");
+  printMem("Post typedata free");
   
   //Compute the type4/mix4 data with the bubble included
   std::cout << "Computing raw type4/mix4 data with bubble included" << std::endl;
@@ -234,7 +235,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   for(int q=0;q<10;q++){
     std::cout << "Starting Q" << q+1 << std::endl;
 
-    printMem("Starting new Q\n");
+    printMem("Starting new Q");
     
     //Compute alpha and type4/mix4 vacuum subtractions
     std::cout << "Computing double-jackknife alpha and vacuum subtractions\n";
@@ -335,7 +336,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
     for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
       getData(A0_all_j,A0_all_dj,bubble,bubble_dj,bubble_j,tsep_k_pi_idx,args,cmdline);
       if(cmdline.use_scratch){
-	printMem("Pre-scratch write\n");
+	printMem("Pre-scratch write");
 #ifdef HAVE_HDF5
 	HDF5writer writer(scratch_files[tsep_k_pi_idx]);
 	write(writer, A0_all_j, "A0_all_j");
@@ -344,7 +345,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> >().swap(A0_all_j);
 	std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> >().swap(A0_all_dj);
 #endif
-	printMem("Post-scratch write\n");
+	printMem("Post-scratch write");
       }
     }	
 

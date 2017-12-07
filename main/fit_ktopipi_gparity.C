@@ -31,6 +31,8 @@
 #include <fit_ktopipi_gparity/main.h>
 
 int main(const int argc, const char* argv[]){
+  printMem("Beginning of execution");
+  
   Args args;
   if(argc < 2){
     std::ofstream of("template.args");
@@ -49,8 +51,10 @@ int main(const int argc, const char* argv[]){
   //Prepare the data
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_all_dj(10);
+  printMem("Prior to getData");
   getData(A0_all_j, A0_all_dj,args,cmdline);
 
+  printMem("Prior to fitting");
   fitAndPlot(A0_all_j,A0_all_dj,args,cmdline);
 
   std::cout << "Done" << std::endl;
