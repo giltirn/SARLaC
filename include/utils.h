@@ -2,11 +2,13 @@
 #define _UTILS_H__
 #include<cstdarg>
 #include<cassert>
+#include<cstdio>
 #include<memory>
 #include<iostream>
 #include<cxxabi.h>
 #include<sstream>
 #include<omp.h>
+#include<sys/sysinfo.h>
 
 #include<template_wizardry.h>
 
@@ -138,4 +140,24 @@ inline std::string stringize(const char* format, ...){
   assert(n2 <= n);
   return std::string(buf);
 }
+
+
+
+//Print memory usage
+inline void printMem(const std::string &reason = "", FILE* stream = stdout){
+  if(reason != "") fprintf(stream, "printMem called with reason '%s': ", reason.c_str());
+  else fprintf(stream, "printMem: ");
+  
+  struct sysinfo myinfo;
+  sysinfo(&myinfo);  //cf http://man7.org/linux/man-pages/man2/sysinfo.2.html
+  double total_mem = myinfo.mem_unit * myinfo.totalram;
+  total_mem /= (1024.*1024.);
+  double free_mem = myinfo.mem_unit * myinfo.freeram;
+  free_mem /= (1024.*1024.);
+
+  fprintf(stream,"Memory: total: %.2f MB, avail: %.2f MB, used %.2f MB\n",total_mem, free_mem, total_mem-free_mem);
+
+  fflush(stream);
+}
+
 #endif
