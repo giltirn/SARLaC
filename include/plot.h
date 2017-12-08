@@ -805,12 +805,12 @@ public:
   static inline double errplus(const DistributionType &d){ return d.standardError(); }
   static inline double errminus(const DistributionType &d){ return d.standardError(); }  
 };
-template<typename T>
-class DistributionPlotAccessor<jackknifeCdistribution<T> >{
+template<typename T, template<typename> class V>
+class DistributionPlotAccessor<jackknifeCdistribution<T,V> >{
 public:
-  static inline double value(const jackknifeCdistribution<T> &d){ return d.best(); }
-  static inline double errplus(const jackknifeCdistribution<T> &d){ return d.standardError(); }
-  static inline double errminus(const jackknifeCdistribution<T> &d){ return d.standardError(); }  
+  static inline double value(const jackknifeCdistribution<T,V> &d){ return d.best(); }
+  static inline double errplus(const jackknifeCdistribution<T,V> &d){ return d.standardError(); }
+  static inline double errminus(const jackknifeCdistribution<T,V> &d){ return d.standardError(); }  
 };
 
 //Coordinate accessor that relies on implicit conversion of type to double

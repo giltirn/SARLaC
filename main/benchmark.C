@@ -61,13 +61,13 @@ struct add_flops<std::complex<T> >{
   enum {value = 2};
 };
 
-template<typename T>
-inline void gaussianRandom(doubleJackknifeDistribution<T> &v, const double mean, const double stddev){ 
+template<typename T, template<typename> class V>
+inline void gaussianRandom(doubleJackknifeDistribution<T,V> &v, const double mean, const double stddev){ 
   for(int i=0;i<v.size();i++) gaussianRandom(v.sample(i),mean,stddev);
 }
 
 //Number of elements in loop, not necessarily equal to nsample
-template< template<typename> class DistributionType >
+template< template<typename, template<typename> class> class DistributionType >
 struct num_elements{
   static inline size_t value(const int nsample){
     return nsample;
@@ -82,14 +82,14 @@ struct num_elements<doubleJackknifeDistribution>{
 
 
 
-template< template<typename> class DistributionType, typename T >
+template< template<typename, template<typename> class> class DistributionType, typename T, template<typename> class V= basic_vector >
 void benchmarkDistribution(const size_t nsample, const size_t ntest){
   size_t nelem = num_elements<DistributionType>::value(nsample);
   
-  DistributionType<T> a(nsample);
-  DistributionType<T> b(nsample);
-  DistributionType<T> c(nsample);
-  DistributionType<T> d(nsample);
+  DistributionType<T,V> a(nsample);
+  DistributionType<T,V> b(nsample);
+  DistributionType<T,V> c(nsample);
+  DistributionType<T,V> d(nsample);
   gaussianRandom(a,0.5,1.0);
   gaussianRandom(b,3,5.0);
   gaussianRandom(c,-1,9.0);
@@ -122,7 +122,7 @@ void benchmarkDistribution(const size_t nsample, const size_t ntest){
   }
   {
     performance perf;
-    DistributionType<T> out(nsample);
+    DistributionType<T,V> out(nsample);
     for(size_t i=0;i<ntest;i++){
       out = a * b;
     }
@@ -131,7 +131,7 @@ void benchmarkDistribution(const size_t nsample, const size_t ntest){
   }
   {
     performance perf;
-    DistributionType<T> out(nsample);
+    DistributionType<T,V> out(nsample);
        
     for(size_t i=0;i<ntest;i++){
       out = a * b + c;

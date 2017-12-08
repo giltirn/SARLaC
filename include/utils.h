@@ -5,6 +5,7 @@
 #include<cstdio>
 #include<memory>
 #include<iostream>
+#include<fstream>
 #include<cxxabi.h>
 #include<sstream>
 #include<limits>
@@ -109,14 +110,15 @@ auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::typ
 
   return sum[0];
 }
-
-template<typename T>
-T threadedSum(const std::vector<T> &v){
+						    
+template<typename VectorOfData>
+typename std::decay<decltype(VectorOfData()[0])>::type threadedSum(const VectorOfData &v){
+  typedef typename std::decay<decltype(VectorOfData()[0])>::type T;
   struct Op{
-    const std::vector<T> &vv;
+    const VectorOfData &vv;
     inline const T & operator()(const int idx) const{ return vv[idx]; }
     inline size_t size() const{ return vv.size(); }
-    Op(const std::vector<T> &_vv): vv(_vv){}
+    Op(const VectorOfData &_vv): vv(_vv){}
   };
   Op op(v);
   return threadedSum<Op>(op);

@@ -79,6 +79,18 @@ AC_CHECK_LIB([boost_serialization], [main], [LIBS="-lboost_serialization $LIBS"]
 AC_CHECK_LIB([boost_timer], [main], [LIBS="-lboost_timer $LIBS"],
              [AC_MSG_FAILURE([Could not link to boost_timer])])
 
+#Check for boost iostreams
+AC_CHECK_LIB([boost_iostreams], [main], [LIBS="-lboost_iostreams $LIBS"],
+             [AC_MSG_FAILURE([Could not link to boost_iostreams])])
+
+#Check for boost filesystem
+AC_CHECK_LIB([boost_filesystem], [main], [LIBS="-lboost_filesystem $LIBS"],
+             [AC_MSG_FAILURE([Could not link to boost_filesystem])])
+
+#Check for boost system
+AC_CHECK_LIB([boost_system], [main], [LIBS="-lboost_system $LIBS"],
+             [AC_MSG_FAILURE([Could not link to boost_system])])
+
 #AM_CONDITIONAL([USE_PYTHON], [test "x$with_python" = "xyes"])
 
 #Check for GSL

@@ -21,22 +21,22 @@ struct createOne<superJackknifeDistribution<T> >{
 
 template<typename DistributionType>
 struct setRandom{
-  static inline void doit(DistributionType &d){ gaussianRandom(d,1,1); }
+  static inline void doit(DistributionType &d){ gaussianRandom(d,1.,1.); }
 };
-template<typename T>
-struct setRandom<jackknifeCdistribution<T> >{
-  static inline void doit(jackknifeCdistribution<T> &d){ gaussianRandom(d,1,1); d.best() = d.mean(); }
+template<typename T, template<typename> class V>
+struct setRandom<jackknifeCdistribution<T,V> >{
+  static inline void doit(jackknifeCdistribution<T,V> &d){ gaussianRandom(d,1.,1.); d.best() = d.mean(); }
 };
-template<typename T>
-struct setRandom<doubleJackknifeDistribution<T> >{
-  static inline void doit(doubleJackknifeDistribution<T> &d){
-    for(int i=0;i<d.size();i++) gaussianRandom(d.sample(i), 1, 1);
+template<typename T, template<typename> class V>
+struct setRandom<doubleJackknifeDistribution<T,V> >{
+  static inline void doit(doubleJackknifeDistribution<T,V> &d){
+    for(int i=0;i<d.size();i++) gaussianRandom(d.sample(i), 1., 1.);
   }
 };
 template<typename T>
 struct setRandom<superJackknifeDistribution<T> >{
   static inline void doit(superJackknifeDistribution<T> &d){
-    for(int i=-1;i<d.size();i++) gaussianRandom<T>(d.osample(i), 1, 1);
+    for(int i=-1;i<d.size();i++) gaussianRandom<T>(d.osample(i), 1., 1.);
   }
 };
 
@@ -138,11 +138,11 @@ struct S{
   bool operator!=(const S &r) const{ return !(*this == r); }
 };
 
-template<template<typename> class DistributionType>
-struct setRandom<DistributionType<S> >{
-  static inline void doit(DistributionType<S> &d){
-    DistributionType<double> a(d.size()); setRandom<DistributionType<double> >::doit(a);
-    DistributionType<double> b(d.size()); setRandom<DistributionType<double> >::doit(b);
+template<template<typename,template<typename> class> class DistributionType, template<typename> class V>
+struct setRandom<DistributionType<S,V> >{
+  static inline void doit(DistributionType<S,V> &d){
+    DistributionType<double,basic_vector> a(d.size()); setRandom<DistributionType<double,basic_vector> >::doit(a);
+    DistributionType<double,basic_vector> b(d.size()); setRandom<DistributionType<double,basic_vector> >::doit(b);
     for(int s=0;s<d.size();s++){
       d.sample(s).a = a.sample(s);
       d.sample(s).b = b.sample(s);

@@ -21,15 +21,15 @@ void read(HDF5reader &reader, DistributionType &value, const std::string &tag){
   reader.leave();
 }
 //Specialization for jackknifeCdistribution
-template<typename T>
-void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag){
+template<typename T, template<typename> class V>
+void write(HDF5writer &writer, const jackknifeCdistribution<T,V> &value, const std::string &tag){
   writer.enter(tag);
   write(writer,value.cen,"cen");
   write(writer,value._data,"data");
   writer.leave();
 }
-template<typename T>
-void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::string &tag){
+template<typename T, template<typename> class V>
+void read(HDF5reader &reader, jackknifeCdistribution<T,V> &value, const std::string &tag){
   reader.enter(tag);
   read(reader,value.cen,"cen");
   read(reader,value._data,"data");  
@@ -44,19 +44,19 @@ struct extraFlattenIO{
   static inline void write(HDF5writer &writer, const std::vector<std::vector<T> > &value){}
   static inline void read(HDF5reader &reader, std::vector<std::vector<T> > &value){} 
 };
-template<typename T> //override for distributions with extra information
-struct extraFlattenIO<jackknifeCdistribution<T> >{
-  static inline void write(HDF5writer &writer, const std::vector<jackknifeCdistribution<T> > &value){
+template<typename T, template<typename> class V> //override for distributions with extra information
+struct extraFlattenIO<jackknifeCdistribution<T,V> >{
+  static inline void write(HDF5writer &writer, const std::vector<jackknifeCdistribution<T,V> > &value){
     std::vector<T> cen(value.size());
     for(int i=0;i<cen.size();i++) cen[i] = value[i].best();
     ::write(writer,cen,"central");
   }    
-  static inline void read(HDF5reader &reader, std::vector<jackknifeCdistribution<T> > &value){
+  static inline void read(HDF5reader &reader, std::vector<jackknifeCdistribution<T,V> > &value){
     std::vector<T> cen;
     ::read(reader,cen,"central");
     for(int i=0;i<cen.size();i++) value[i].best() = cen[i];
   }
-  static inline void write(HDF5writer &writer, const std::vector<std::vector<jackknifeCdistribution<T> > > &value){
+  static inline void write(HDF5writer &writer, const std::vector<std::vector<jackknifeCdistribution<T,V> > > &value){
     int sz = 0; for(int i=0;i<value.size();i++) sz += value[i].size();
     
     std::vector<T> cen(sz);
@@ -67,7 +67,7 @@ struct extraFlattenIO<jackknifeCdistribution<T> >{
 
     ::write(writer,cen,"central");
   }
-  static inline void read(HDF5reader &reader, std::vector<std::vector<jackknifeCdistribution<T> > > &value){
+  static inline void read(HDF5reader &reader, std::vector<std::vector<jackknifeCdistribution<T,V> > > &value){
     std::vector<T> cen;
     ::read(reader,cen,"central");
 
@@ -267,10 +267,10 @@ struct standardIOhelper{
   }
 };
 
-template<typename PODtype, typename StructType>
-struct standardIOhelper<jackknifeCdistribution<PODtype>, jackknifeCdistribution<StructType> >{
-  typedef jackknifeCdistribution<PODtype> DistributionOfPODtype;
-  typedef jackknifeCdistribution<StructType> DistributionOfStructType;
+template<typename PODtype, typename StructType, template<typename> class V1, template<typename> class V2>
+struct standardIOhelper<jackknifeCdistribution<PODtype,V1>, jackknifeCdistribution<StructType,V2> >{
+  typedef jackknifeCdistribution<PODtype,V1> DistributionOfPODtype;
+  typedef jackknifeCdistribution<StructType,V2> DistributionOfStructType;
 
   static inline void extractStructEntry(DistributionOfPODtype &to, const DistributionOfStructType &from, const int param_idx){
     const int nsample = from.size();
@@ -296,10 +296,10 @@ struct standardIOhelper<jackknifeCdistribution<PODtype>, jackknifeCdistribution<
 };
 
 
-template<typename PODtype, typename StructType>
-struct standardIOhelper<doubleJackknifeDistribution<PODtype>, doubleJackknifeDistribution<StructType> >{
-  typedef doubleJackknifeDistribution<PODtype> DistributionOfPODtype;
-  typedef doubleJackknifeDistribution<StructType> DistributionOfStructType;
+template<typename PODtype, typename StructType, template<typename> class V1, template<typename> class V2>
+struct standardIOhelper<doubleJackknifeDistribution<PODtype,V1>, doubleJackknifeDistribution<StructType,V2> >{
+  typedef doubleJackknifeDistribution<PODtype,V1> DistributionOfPODtype;
+  typedef doubleJackknifeDistribution<StructType,V2> DistributionOfStructType;
   
   static inline void extractStructEntry(DistributionOfPODtype &to, const DistributionOfStructType &from, const int param_idx){
     const int nsample = from.size();
@@ -336,8 +336,8 @@ struct getDataType<T,0>{ typedef void type; };
 template<typename T>
 struct getDataType<T,1>{ typedef typename T::DataType type; };
 
-template<typename T>
-struct getDataType<doubleJackknifeDistribution<T>,1>{ typedef T type; };
+template<typename T, template<typename> class V>
+struct getDataType<doubleJackknifeDistribution<T,V>,1>{ typedef T type; };
 
 #define IO_ENABLE_IF_POD(D) typename std::enable_if< hasSampleMethod<D>::value && std::is_arithmetic<typename getDataType<D,hasDataType<D>::value>::type>::value, int>::type = 0
 #define IO_ENABLE_IF_NOT_POD(D) typename std::enable_if<hasSampleMethod<D>::value && !std::is_arithmetic<typename getDataType<D,hasDataType<D>::value>::type>::value, int>::type = 0
@@ -349,12 +349,12 @@ struct standardIOformat{
   inline static void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const std::string &tag){ ::write(writer,value,tag,false); } //no flattening
   inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::string &tag){ ::read(reader,value,tag,false); }  
 };
-template<typename T>
-struct standardIOformat<doubleJackknifeDistribution<T> >{
-  inline static void write(HDF5writer &writer, const std::vector<doubleJackknifeDistribution<T> > &value, const std::string &tag){ ::write(writer,value,tag); } //no option to flatten for double jack
-  inline static void read(HDF5reader &reader, std::vector<doubleJackknifeDistribution<T> > &value, const std::string &tag){ ::read(reader,value,tag); }
-  inline static void write(HDF5writer &writer, const std::vector<std::vector<doubleJackknifeDistribution<T> > > &value, const std::string &tag){ ::write(writer,value,tag); }
-  inline static void read(HDF5reader &reader, std::vector<std::vector<doubleJackknifeDistribution<T> > > &value, const std::string &tag){ ::read(reader,value,tag); }  
+template<typename T, template<typename> class V>
+struct standardIOformat<doubleJackknifeDistribution<T,V> >{
+  inline static void write(HDF5writer &writer, const std::vector<doubleJackknifeDistribution<T,V> > &value, const std::string &tag){ ::write(writer,value,tag); } //no option to flatten for double jack
+  inline static void read(HDF5reader &reader, std::vector<doubleJackknifeDistribution<T,V> > &value, const std::string &tag){ ::read(reader,value,tag); }
+  inline static void write(HDF5writer &writer, const std::vector<std::vector<doubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ ::write(writer,value,tag); }
+  inline static void read(HDF5reader &reader, std::vector<std::vector<doubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ ::read(reader,value,tag); }  
 };
 
 
@@ -571,8 +571,8 @@ void read(XMLreader &reader, UKvalenceDistributionContainer<DistributionType> &v
   reader.leave();
 }
 
-template<typename T>
-void read(XMLreader &reader, jackknifeDistribution<T> &v, const std::string &tag){
+template<typename T, template<typename> class V>
+void read(XMLreader &reader, jackknifeDistribution<T,V> &v, const std::string &tag){
   reader.enter(tag);
 #define GETIT(type,name) type name; read(reader,name,#name)
 

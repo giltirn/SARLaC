@@ -27,9 +27,9 @@ public:
   inline void report() const{ std::cout << s << " (" << sz << ")" << std::endl; }
 };
 
-template<typename T, int is_const>
-class _distributionIterator<jackknifeCdistribution<T>,is_const>{
-  typedef typename add_const_if_int<jackknifeCdistribution<T>,is_const>::type distributionType;
+template<typename T, template<typename> class V, int is_const>
+class _distributionIterator<jackknifeCdistribution<T,V>,is_const>{
+  typedef typename add_const_if_int<jackknifeCdistribution<T,V>,is_const>::type distributionType;
   typedef typename add_const_if_int<T,is_const>::type type;
   int s;
   int sz;
@@ -43,9 +43,9 @@ public:
   inline void report() const{ std::cout << s << " (" << sz << ")" << std::endl; }
 };
 
-template<typename T, int is_const>
-class _distributionIterator<doubleJackknifeDistribution<T>, is_const>{
-  typedef typename add_const_if_int<doubleJackknifeDistribution<T>,is_const>::type distributionType;
+template<typename T, template<typename> class V, int is_const>
+class _distributionIterator<doubleJackknifeDistribution<T,V>, is_const>{
+  typedef typename add_const_if_int<doubleJackknifeDistribution<T,V>,is_const>::type distributionType;
   typedef typename add_const_if_int<T,is_const>::type type;
   int s1;
   int s2;
@@ -73,58 +73,58 @@ template<typename T> using distributionIterator = _distributionIterator<typename
 template<typename distributionType>
 struct iterate;
 
-template<typename T>
-struct iterate<doubleJackknifeDistribution<T> >{
-  static inline int size(const doubleJackknifeDistribution<T> &from){ return from.size() * (from.size()-1); } //j + (from.size()-1)*i
-  static inline const T& at(const int i, const doubleJackknifeDistribution<T> &from){
+template<typename T, template<typename> class V>
+struct iterate<doubleJackknifeDistribution<T,V> >{
+  static inline int size(const doubleJackknifeDistribution<T,V> &from){ return from.size() * (from.size()-1); } //j + (from.size()-1)*i
+  static inline const T& at(const int i, const doubleJackknifeDistribution<T,V> &from){
     const int nn = from.size()-1;
     return from.sample(i/nn).sample(i%nn);
   }
-  static inline T & at(const int i, doubleJackknifeDistribution<T> &from){
+  static inline T & at(const int i, doubleJackknifeDistribution<T,V> &from){
     const int nn = from.size()-1;
     return from.sample(i/nn).sample(i%nn);
   }
-  static inline std::vector<int> unmap(const int i, const doubleJackknifeDistribution<T> &from){ 
+  static inline std::vector<int> unmap(const int i, const doubleJackknifeDistribution<T,V> &from){ 
     const int nn = from.size()-1;
     return std::vector<int>({i/nn, i%nn});
   }
 };
-template<typename T>
-struct iterate<rawDataDistribution<T> >{
-  static inline int size(const rawDataDistribution<T> &from){ return from.size(); } 
-  static inline const T& at(const int i, const rawDataDistribution<T> &from){
+template<typename T, template<typename> class V>
+struct iterate<rawDataDistribution<T,V> >{
+  static inline int size(const rawDataDistribution<T,V> &from){ return from.size(); } 
+  static inline const T& at(const int i, const rawDataDistribution<T,V> &from){
     return from.sample(i);
   }
-  static inline T & at(const int i, rawDataDistribution<T> &from){
+  static inline T & at(const int i, rawDataDistribution<T,V> &from){
     return from.sample(i);
   }
-  static inline std::vector<int> unmap(const int i, const rawDataDistribution<T> &from){ 
+  static inline std::vector<int> unmap(const int i, const rawDataDistribution<T,V> &from){ 
     return std::vector<int>({i});
   }
 };
-template<typename T>
-struct iterate<jackknifeDistribution<T> >{
-  static inline int size(const jackknifeDistribution<T> &from){ return from.size(); } 
-  static inline const T& at(const int i, const jackknifeDistribution<T> &from){
+template<typename T, template<typename> class V>
+struct iterate<jackknifeDistribution<T,V> >{
+  static inline int size(const jackknifeDistribution<T,V> &from){ return from.size(); } 
+  static inline const T& at(const int i, const jackknifeDistribution<T,V> &from){
     return from.sample(i);
   }
-  static inline T & at(const int i, jackknifeDistribution<T> &from){
+  static inline T & at(const int i, jackknifeDistribution<T,V> &from){
     return from.sample(i);
   }
-  static inline std::vector<int> unmap(const int i, const jackknifeDistribution<T> &from){ 
+  static inline std::vector<int> unmap(const int i, const jackknifeDistribution<T,V> &from){ 
     return std::vector<int>({i});
   }
 };
-template<typename T>
-struct iterate<jackknifeCdistribution<T> >{
-  static inline int size(const jackknifeCdistribution<T> &from){ return from.size()+1; } 
-  static inline const T& at(const int i, const jackknifeCdistribution<T> &from){
+template<typename T, template<typename> class V>
+struct iterate<jackknifeCdistribution<T,V> >{
+  static inline int size(const jackknifeCdistribution<T,V> &from){ return from.size()+1; } 
+  static inline const T& at(const int i, const jackknifeCdistribution<T,V> &from){
     return i==0 ? from.best() : from.sample(i-1);
   }
-  static inline T & at(const int i, jackknifeCdistribution<T> &from){
+  static inline T & at(const int i, jackknifeCdistribution<T,V> &from){
     return i==0 ? from.best() : from.sample(i-1);
   }
-  static inline std::vector<int> unmap(const int i, const jackknifeCdistribution<T> &from){ 
+  static inline std::vector<int> unmap(const int i, const jackknifeCdistribution<T,V> &from){ 
     return std::vector<int>({i});
   }
 };

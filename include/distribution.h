@@ -18,17 +18,20 @@
 #include<utils.h>
 #include<generic_ET.h>
 #include<distribution_print.h>
+#include<distribution_vectors.h>
 
 
-template<typename _DataType>
+template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class distribution{
 public:
   typedef _DataType DataType;
-
   template<typename T>
-  using rebase = distribution<T>;
+  using VectorType = _VectorType<T>;
+  
+  template<typename T>
+  using rebase = distribution<T, VectorType>;
 protected:  
-  std::vector<DataType> _data;
+  VectorType<DataType> _data;
 
   friend class boost::serialization::access;
   template<class Archive>
@@ -42,6 +45,7 @@ protected:
   friend void read(HDF5reader &reader, DistributionType &value, const std::string &tag);
 #endif
 
+  typedef distribution<_DataType,_VectorType> myType;
 public:
   distribution(){}
   distribution(const distribution &r): _data(r._data){}
@@ -53,7 +57,7 @@ public:
   }	       
   distribution(distribution&& o) noexcept : _data(std::move(o._data)){}
 
-  ENABLE_GENERIC_ET(distribution, distribution<_DataType>);
+  ENABLE_GENERIC_ET(distribution, myType);
   
   distribution & operator=(const distribution &r){ _data = r._data; return *this; }
   
@@ -62,7 +66,7 @@ public:
   void resize(const int sz){ _data.resize(sz); } //need default constructor for DataType
   void resize(const int sz, const DataType &init_val){ _data.resize(sz,init_val); }
   
-  const std::vector<DataType> &sampleVector() const{ return _data; }
+  const VectorType<DataType> &sampleVector() const{ return _data; }
   
   inline const DataType & sample(const int idx) const{ return _data[idx]; }
   inline DataType & sample(const int idx){ return _data[idx]; }
@@ -77,7 +81,7 @@ public:
 
     struct Op{
       DataType avg;
-      const std::vector<DataType> &data;
+      const VectorType<DataType> &data;
       Op(const DataType &_avg, const std::vector<DataType> &_data): data(_data), avg(_avg){}
       inline int size() const{ return data.size(); }
       inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return tmp * tmp;  }
@@ -90,15 +94,15 @@ public:
     return sqrt(variance()); //need sqrt defined, obviously
   }
   
-  static DataType covariance(const distribution<DataType> &a, const distribution<DataType> &b){
+  static DataType covariance(const distribution<DataType,VectorType> &a, const distribution<DataType,VectorType> &b){
     assert(a.size() == b.size());
     DataType avg_a = a.mean();
     DataType avg_b = b.mean();
 
     struct Op{
       DataType avg_a, avg_b;
-      const std::vector<DataType> &data_a, &data_b;
-      Op(const DataType &_avg_a, const DataType &_avg_b, const std::vector<DataType> &_data_a, const std::vector<DataType> &_data_b): data_a(_data_a), avg_a(_avg_a), data_b(_data_b), avg_b(_avg_b){}
+      const VectorType<DataType> &data_a, &data_b;
+      Op(const DataType &_avg_a, const DataType &_avg_b, const VectorType<DataType> &_data_a, const VectorType<DataType> &_data_b): data_a(_data_a), avg_a(_avg_a), data_b(_data_b), avg_b(_avg_b){}
       inline int size() const{ return data_a.size(); }
       inline DataType operator()(const int i) const{ return (data_a[i]-avg_a)*(data_b[i]-avg_b); }
     };
@@ -107,8 +111,8 @@ public:
   }
 
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
-  distribution<typename U::value_type> real() const{
-    distribution<typename U::value_type> out(this->size());
+  distribution<typename U::value_type,VectorType> real() const{
+    distribution<typename U::value_type,VectorType> out(this->size());
 #pragma omp parallel for
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
@@ -118,12 +122,12 @@ public:
     for(int i=0;i<this->size();i++) zeroit(this->sample(i));
   }
 
-  inline bool operator==(const distribution<DataType> &r) const{
+  inline bool operator==(const distribution<DataType,VectorType> &r) const{
     if(r.size() != this->size()) return false;
     for(int s=0;s<this->size();s++) if(r.sample(s) != this->sample(s)) return false;
     return true;
   }
-  inline bool operator!=(const distribution<DataType> &r) const{
+  inline bool operator!=(const distribution<DataType,VectorType> &r) const{
     return !(*this == r);
   }
 
@@ -137,28 +141,31 @@ public:
   
 };
 
-template<typename T>
-std::ostream & operator<<(std::ostream &os, const distribution<T> &d){
-  assert(distributionPrint<distribution<T> >::printer() != NULL); distributionPrint<distribution<T> >::printer()->print(os, d);
+template<typename T, template<typename U> class V>
+std::ostream & operator<<(std::ostream &os, const distribution<T,V> &d){
+  typedef distributionPrint<distribution<T,V> > printClass;
+  assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
 }
 
 
 
 
-template<typename _DataType>
-class rawDataDistribution: public distribution<_DataType>{
+template<typename _DataType, template<typename> class _VectorType = basic_vector>
+class rawDataDistribution: public distribution<_DataType, _VectorType>{
   friend class boost::serialization::access;
+  typedef distribution<_DataType,_VectorType> baseType;
+  typedef rawDataDistribution<_DataType,_VectorType> myType;
+  
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version){
-    ar & boost::serialization::base_object<distribution<_DataType> >(*this);
+    ar & boost::serialization::base_object<baseType>(*this);
   }
-  typedef distribution<_DataType> baseType;
 public:
   typedef _DataType DataType;
   
   template<typename T>
-  using rebase = rawDataDistribution<T>;
+  using rebase = rawDataDistribution<T,_VectorType>;
 
   inline DataType best() const{ return this->mean(); } //"central value" of distribution used for printing/plotting
   DataType standardError() const{ return this->standardDeviation()/sqrt(double(this->size()-1)); }
@@ -171,47 +178,52 @@ public:
   rawDataDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   rawDataDistribution(rawDataDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
-  ENABLE_GENERIC_ET(rawDataDistribution, rawDataDistribution<_DataType>);
+  ENABLE_GENERIC_ET(rawDataDistribution, myType);
   
-  rawDataDistribution & operator=(const rawDataDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
+  rawDataDistribution & operator=(const rawDataDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
 
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
-  rawDataDistribution<typename U::value_type> real() const{
-    rawDataDistribution<typename U::value_type> out(this->size());
+  rawDataDistribution<typename U::value_type,_VectorType> real() const{
+    rawDataDistribution<typename U::value_type,_VectorType> out(this->size());
 #pragma omp parallel for
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
 
-  inline bool operator==(const rawDataDistribution<DataType> &r) const{ return this->distribution<DataType>::operator==(r); }
-  inline bool operator!=(const rawDataDistribution<DataType> &r) const{ return !( *this == r ); }
+  inline bool operator==(const rawDataDistribution<DataType,_VectorType> &r) const{ return this->baseType::operator==(r); }
+  inline bool operator!=(const rawDataDistribution<DataType,_VectorType> &r) const{ return !( *this == r ); }
 };
 
-template<typename T>
-std::ostream & operator<<(std::ostream &os, const rawDataDistribution<T> &d){
-  assert(distributionPrint<rawDataDistribution<T> >::printer() != NULL); distributionPrint<rawDataDistribution<T> >::printer()->print(os, d);
+template<typename T, template<typename> class _VectorType = basic_vector>
+std::ostream & operator<<(std::ostream &os, const rawDataDistribution<T,_VectorType> &d){
+  typedef distributionPrint<rawDataDistribution<T,_VectorType> > printClass;
+  assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
 }
 
 
-template<typename _DataType>
+template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class doubleJackknifeDistribution;
 
-template<typename _DataType>
-class jackknifeDistribution: public distribution<_DataType>{
+template<typename _DataType, template<typename> class _VectorType = basic_vector>
+class jackknifeDistribution: public distribution<_DataType,_VectorType>{
   _DataType variance() const{ assert(0); }
   _DataType standardDeviation() const{ assert(0); };
   friend class boost::serialization::access;
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version){
-    ar & boost::serialization::base_object<distribution<_DataType> >(*this);
+    ar & boost::serialization::base_object<distribution<_DataType,_VectorType> >(*this);
   }
-  typedef distribution<_DataType> baseType;
+  typedef distribution<_DataType,_VectorType> baseType;
+  typedef jackknifeDistribution<_DataType,_VectorType> myType;
 public:
   typedef _DataType DataType;
   
   template<typename T>
-  using rebase = jackknifeDistribution<T>;
+  using VectorType = _VectorType<T>;
+  
+  template<typename T>
+  using rebase = jackknifeDistribution<T,VectorType>;
 
   inline DataType best() const{ return this->mean(); }
   
@@ -243,8 +255,8 @@ public:
 
     struct Op{
       DataType avg;
-      const std::vector<DataType> &data;
-      Op(const DataType &_avg, const std::vector<DataType> &_data): data(_data), avg(_avg){}
+      const VectorType<DataType> &data;
+      Op(const DataType &_avg, const VectorType<DataType> &_data): data(_data), avg(_avg){}
       inline int size() const{ return data.size(); }
       inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return tmp * tmp;  }
     };
@@ -252,7 +264,7 @@ public:
     return sqrt( threadedSum(op) * (double(N-1)/N) );
   }
   
-  jackknifeDistribution(): distribution<DataType>(){}
+  jackknifeDistribution(): distribution<DataType,VectorType>(){}
   jackknifeDistribution(const jackknifeDistribution &r): baseType(r){}
   explicit jackknifeDistribution(const int nsample): baseType(nsample){}
   jackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
@@ -260,11 +272,12 @@ public:
   jackknifeDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   jackknifeDistribution(jackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
-  jackknifeDistribution(const rawDataDistribution<DataType> &raw): jackknifeDistribution(raw.size()){ this->resample(raw); }
+  template< template<typename> class U >
+  jackknifeDistribution(const rawDataDistribution<DataType,U> &raw): jackknifeDistribution(raw.size()){ this->resample(raw); }
   
-  ENABLE_GENERIC_ET(jackknifeDistribution, jackknifeDistribution<_DataType>);
+  ENABLE_GENERIC_ET(jackknifeDistribution, myType);
   
-  jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<distribution<DataType>*>(this)->operator=(r); return *this; }
+  jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
 
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   jackknifeDistribution<typename U::value_type> real() const{
@@ -274,40 +287,44 @@ public:
     return out;
   }
 
-  doubleJackknifeDistribution<DataType> toDoubleJackknife() const;
+  template<template<typename> class U = VectorType>
+  doubleJackknifeDistribution<DataType,U> toDoubleJackknife() const;
 
-  static DataType covariance(const jackknifeDistribution<DataType> &a, const jackknifeDistribution<DataType> &b){
+  static DataType covariance(const jackknifeDistribution<DataType,VectorType> &a, const jackknifeDistribution<DataType,VectorType> &b){
     assert(a.size() == b.size());
-    return distribution<DataType>::covariance(a,b) * double(a.size()-1);  //like the standard error, the covariance of the jackknife samples is related to the covariance of the underlying distribution by a constant factor
+    return distribution<DataType,VectorType>::covariance(a,b) * double(a.size()-1);  //like the standard error, the covariance of the jackknife samples is related to the covariance of the underlying distribution by a constant factor
   }
 
-  inline bool operator==(const jackknifeDistribution<DataType> &r) const{ return this->distribution<DataType>::operator==(r); }
-  inline bool operator!=(const jackknifeDistribution<DataType> &r) const{ return !( *this == r ); }
+  inline bool operator==(const jackknifeDistribution<DataType,VectorType> &r) const{ return this->baseType::operator==(r); }
+  inline bool operator!=(const jackknifeDistribution<DataType,VectorType> &r) const{ return !( *this == r ); }
 };
 
-template<typename T>
-std::ostream & operator<<(std::ostream &os, const jackknifeDistribution<T> &d){
-  assert(distributionPrint<jackknifeDistribution<T> >::printer() != NULL); distributionPrint<jackknifeDistribution<T> >::printer()->print(os, d);
+template<typename T, template<typename> class V>
+std::ostream & operator<<(std::ostream &os, const jackknifeDistribution<T,V> &d){
+  typedef distributionPrint<jackknifeDistribution<T,V> > printClass;
+  assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
 }
 
 
 //A jackknife distribution that independently propagates it's central value
-template<typename _DataType>
-class jackknifeCdistribution: public jackknifeDistribution<_DataType>{
+template<typename _DataType, template<typename> class _VectorType = basic_vector>
+class jackknifeCdistribution: public jackknifeDistribution<_DataType,_VectorType>{
   _DataType cen;
-  typedef jackknifeDistribution<_DataType> baseType;
+  typedef jackknifeDistribution<_DataType,_VectorType> baseType;
+  typedef jackknifeCdistribution<_DataType,_VectorType> myType;
+  
 #ifdef HAVE_HDF5
-  template<typename T>
-  friend void write(HDF5writer &writer, const jackknifeCdistribution<T> &value, const std::string &tag);
-  template<typename T>
-  friend void read(HDF5reader &reader, jackknifeCdistribution<T> &value, const std::string &tag);
+  template<typename T, template<typename> class V>
+  friend void write(HDF5writer &writer, const jackknifeCdistribution<T,V> &value, const std::string &tag);
+  template<typename T, template<typename> class V>
+  friend void read(HDF5reader &reader, jackknifeCdistribution<T,V> &value, const std::string &tag);
 #endif
 public:
   typedef _DataType DataType;
   
   template<typename T>
-  using rebase = jackknifeCdistribution<T>;
+  using rebase = jackknifeCdistribution<T,_VectorType>;
   
   jackknifeCdistribution() = default;
   jackknifeCdistribution(const jackknifeCdistribution &r) = default;
@@ -319,11 +336,12 @@ public:
   }
   jackknifeCdistribution(jackknifeCdistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
-  jackknifeCdistribution(const rawDataDistribution<DataType> &raw): jackknifeCdistribution(raw.size()){ this->resample(raw); }
+  template<template<typename> class U>
+  jackknifeCdistribution(const rawDataDistribution<DataType,U> &raw): jackknifeCdistribution(raw.size()){ this->resample(raw); }
   
-  typedef jackknifeCdistribution<DataType> ET_tag;
+  typedef myType ET_tag;
   
-  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,myType >::value, int>::type = 0>
   jackknifeCdistribution(U&& expr): jackknifeCdistribution(expr.common_properties()){
 #ifdef PARALLELIZE_DISTRIBUTION_ET
 #pragma omp parallel for
@@ -334,8 +352,8 @@ public:
     cen = expr[-1];
   }
   
-  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,jackknifeCdistribution<DataType> >::value, int>::type = 0>
-  jackknifeCdistribution<DataType> & operator=(U&& expr){
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,myType >::value, int>::type = 0>
+  myType & operator=(U&& expr){
     this->resize(expr.common_properties());
 #ifdef PARALLELIZE_DISTRIBUTION_ET
 #pragma omp parallel for
@@ -360,7 +378,7 @@ public:
 
   template<typename DistributionType>
   void resample(const DistributionType &in){
-    this->jackknifeDistribution<_DataType>::resample(in);
+    this->baseType::resample(in);
     cen = in.mean();
   }
   
@@ -371,8 +389,8 @@ public:
 
     struct Op{
       const DataType &avg;
-      const std::vector<DataType> &data;
-      Op(const DataType &_avg, const std::vector<DataType> &_data): data(_data), avg(_avg){}
+      const _VectorType<DataType> &data;
+      Op(const DataType &_avg, const _VectorType<DataType> &_data): data(_data), avg(_avg){}
       inline int size() const{ return data.size(); }
       inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return tmp * tmp;  }
     };
@@ -381,47 +399,53 @@ public:
   }
 #endif
 
-  void import(const jackknifeDistribution<DataType> &jack){
+  template<template<typename> class U>
+  void import(const jackknifeDistribution<DataType,U> &jack){
     this->resize(jack.size());
     for(int i=0;i<this->size();i++) this->sample(i) = jack.sample(i);
     cen = jack.mean();
   }
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
-  jackknifeCdistribution<typename U::value_type> real() const{
-    jackknifeCdistribution<typename U::value_type> out(this->size());
+  jackknifeCdistribution<typename U::value_type,_VectorType> real() const{
+    jackknifeCdistribution<typename U::value_type,_VectorType> out(this->size());
 #pragma omp parallel for
     for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
     return out;
   }
 
-  inline bool operator==(const jackknifeCdistribution<DataType> &r) const{ return (this->propagatedCentral() == r.propagatedCentral()) && this->distribution<DataType>::operator==(r); }
-  inline bool operator!=(const jackknifeCdistribution<DataType> &r) const{ return !( *this == r ); }
+  inline bool operator==(const myType &r) const{ return (this->propagatedCentral() == r.propagatedCentral()) && this->baseType::operator==(r); }
+  inline bool operator!=(const myType &r) const{ return !( *this == r ); }
 };
 
-template<typename T>
-std::ostream & operator<<(std::ostream &os, const jackknifeCdistribution<T> &d){
-  assert(distributionPrint<jackknifeCdistribution<T> >::printer() != NULL); distributionPrint<jackknifeCdistribution<T> >::printer()->print(os, d);
+template<typename T, template<typename> class V>
+std::ostream & operator<<(std::ostream &os, const jackknifeCdistribution<T,V> &d){
+  typedef distributionPrint<jackknifeCdistribution<T,V> > printClass;
+  assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
 }
 
 
 
 
-template<typename BaseDataType>
-class doubleJackknifeDistribution: public distribution<jackknifeDistribution<BaseDataType> >{
+template<typename BaseDataType, template<typename> class BaseVectorType>
+class doubleJackknifeDistribution: public distribution<jackknifeDistribution<BaseDataType,BaseVectorType>, basic_vector >{
   jackknifeDistribution<BaseDataType> standardDeviation() const{ assert(0); };
   jackknifeDistribution<BaseDataType> standardError() const{ assert(0); };
+  
+  typedef distribution<jackknifeDistribution<BaseDataType,BaseVectorType>, basic_vector > baseType;
+  typedef doubleJackknifeDistribution<BaseDataType, BaseVectorType> myType;
+  
   friend class boost::serialization::access;
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version){
-    ar & boost::serialization::base_object<distribution<jackknifeDistribution<BaseDataType> > >(*this);
+    ar & boost::serialization::base_object<baseType>(*this);
   }
-  typedef distribution<jackknifeDistribution<BaseDataType> > baseType;
+
 public:
-  typedef jackknifeDistribution<BaseDataType> DataType;
+  typedef jackknifeDistribution<BaseDataType,BaseVectorType> DataType;
   
   template<typename T>
-  using rebase = doubleJackknifeDistribution<T>;
+  using rebase = doubleJackknifeDistribution<T,BaseVectorType>;
   
   template<typename DistributionType> //Assumed to be a raw data distribution
   void resample(const DistributionType &in){
@@ -468,17 +492,18 @@ public:
 
   doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
 
-  static jackknifeDistribution<BaseDataType> covariance(const doubleJackknifeDistribution<BaseDataType> &a, const doubleJackknifeDistribution<BaseDataType> &b){
+  template<template<typename> class U = basic_vector>
+  static jackknifeDistribution<BaseDataType,U> covariance(const myType &a, const myType &b){
     assert(a.size() == b.size());
     const int nouter = a.size();
-    jackknifeDistribution<BaseDataType> out(nouter);
+    jackknifeDistribution<BaseDataType,U> out(nouter);
     for(int i=0;i<nouter;i++)
-      out.sample(i) = jackknifeDistribution<BaseDataType>::covariance(a.sample(i),b.sample(i));
+      out.sample(i) = DataType::covariance(a.sample(i),b.sample(i));
     return out;
   }
   template<typename U=BaseDataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
-  doubleJackknifeDistribution<typename U::value_type> real() const{
-    doubleJackknifeDistribution<typename U::value_type> out(this->size());
+  doubleJackknifeDistribution<typename U::value_type,BaseVectorType> real() const{
+    doubleJackknifeDistribution<typename U::value_type,BaseVectorType> out(this->size());
 #pragma omp parallel for
     for(int i=0;i<this->size();i++)
       for(int j=0;j<this->size()-1;j++)
@@ -493,25 +518,26 @@ public:
     return out;
   }
 
-  inline bool operator==(const doubleJackknifeDistribution<BaseDataType> &r) const{ return this->distribution<DataType>::operator==(r); }
-  inline bool operator!=(const doubleJackknifeDistribution<BaseDataType> &r) const{ return !( *this == r ); }
+  inline bool operator==(const doubleJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ return this->baseType::operator==(r); }
+  inline bool operator!=(const doubleJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ return !( *this == r ); }
 };
 
-template<typename T>
-std::ostream & operator<<(std::ostream &os, const doubleJackknifeDistribution<T> &d){
-  assert(distributionPrint<doubleJackknifeDistribution<T> >::printer() != NULL); distributionPrint<doubleJackknifeDistribution<T> >::printer()->print(os, d);
+template<typename T, template<typename> class V>
+std::ostream & operator<<(std::ostream &os, const doubleJackknifeDistribution<T,V> &d){
+  typedef distributionPrint<doubleJackknifeDistribution<T,V> > printClass;
+  assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
 }
 
-template<typename T>
-struct printStats< doubleJackknifeDistribution<T> >{
-  inline static std::string centralValue(const doubleJackknifeDistribution<T> &d){
+template<typename T, template<typename> class V>
+struct printStats< doubleJackknifeDistribution<T,V> >{
+  inline static std::string centralValue(const doubleJackknifeDistribution<T,V> &d){
     std::ostringstream os; os << "[";
     for(int s=0;s<d.size()-1;s++) os << d.sample(s).best() << ", ";
     os << d.sample(d.size()-1).best() << "]";
     return os.str();
   }
-  inline static std::string error(const doubleJackknifeDistribution<T> &d){ 
+  inline static std::string error(const doubleJackknifeDistribution<T,V> &d){ 
     std::ostringstream os; os << "[";
     for(int s=0;s<d.size()-1;s++) os << d.sample(s).standardError() << ", ";
     os << d.sample(d.size()-1).standardError() << "]";
@@ -520,11 +546,12 @@ struct printStats< doubleJackknifeDistribution<T> >{
 
 };
 
-template<typename DataType>
-doubleJackknifeDistribution<DataType> jackknifeDistribution<DataType>::toDoubleJackknife() const{
+template<typename DataType, template<typename> class V>
+template<template<typename> class U>
+doubleJackknifeDistribution<DataType,U> jackknifeDistribution<DataType,V>::toDoubleJackknife() const{
   DataType Jbar = this->mean();
   int N = this->size();
-  doubleJackknifeDistribution<DataType> out(N);
+  doubleJackknifeDistribution<DataType,U> out(N);
   for(int j=0;j<N;j++)
     for(int k=0;k<N-1;k++){
       int kp = k < j ? k : k+1;      
