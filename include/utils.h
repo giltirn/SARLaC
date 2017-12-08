@@ -183,4 +183,9 @@ inline void printMem(const std::string &reason = "", FILE* stream = stdout){
   fflush(stream);
 }
 
+inline bool fileExists(const std::string &filename){
+  std::ifstream infile(filename);
+  return infile.good();
+}
+
 #endif

@@ -21,6 +21,7 @@ struct CMDline{
   std::string freeze_data;
 
   bool use_scratch; //save memory at peak times by storing to disk and reloading later
+  bool use_existing_scratch_files; //if scratch files from a previous run exist, use these
   
   CMDline(){
     load_guess = false;
@@ -30,6 +31,7 @@ struct CMDline{
     save_amplitude_data = false;
     load_freeze_data = false;
     use_scratch = false;
+    use_existing_scratch_files = false;    
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -67,7 +69,10 @@ struct CMDline{
 	i+=2;
       }else if(sargv[i] == "-use_scratch"){
 	use_scratch = true;
-	i++;	
+	i++;
+      }else if(sargv[i] == "-use_existing_scratch_files"){
+	use_existing_scratch_files = true;
+	i++;
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];

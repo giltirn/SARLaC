@@ -334,6 +334,8 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 
     //Load data
     for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
+      if(cmdline.use_scratch && cmdline.use_existing_scratch_files && fileExists(scratch_files[tsep_k_pi_idx])) continue;
+      
       getData(A0_all_j,A0_all_dj,bubble,bubble_dj,bubble_j,tsep_k_pi_idx,args,cmdline);
       if(cmdline.use_scratch){
 	printMem("Pre-scratch write");
