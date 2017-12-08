@@ -22,8 +22,13 @@ class memmappedFileVector{
   size_t bytes;
   size_t sz;
 public:
-  memmappedFileVector(){
-    std::ostringstream os; os << "memmappedFileVector_tmp." << _memmappedFileVector_uid::getUid();
+  memmappedFileVector(): sz(0){
+    int uid;
+#pragma omp critical
+    {
+      uid = _memmappedFileVector_uid::getUid();
+    }
+    std::ostringstream os; os << "memmappedFileVector_tmp." << uid;
     filename = os.str();
   }
   memmappedFileVector(const size_t n): memmappedFileVector(){
@@ -36,8 +41,31 @@ public:
   memmappedFileVector(const basic_vector<T> &r): memmappedFileVector(r.size()){
     for(int i=0;i<r.size();i++) this->operator[](i) = r[i];
   }
-    
   
+  memmappedFileVector(const memmappedFileVector &r): memmappedFileVector(r.size()){
+    for(int i=0;i<r.size();i++) this->operator[](i) = r[i];
+  }
+  memmappedFileVector(memmappedFileVector &&r): filename(std::move(r.filename)), bytes(r.bytes), sz(r.sz){
+    r.file.close();
+    file.open(filename, boost::iostreams::mapped_file::readwrite, bytes);
+    assert(file.is_open());
+  }    
+
+  memmappedFileVector & operator=(const memmappedFileVector &r){ 
+    this->resize(r.size());
+    for(int i=0;i<r.size();i++) this->operator[](i) = r[i];
+    return *this;
+  } 
+  memmappedFileVector & operator=(memmappedFileVector &&r){ 
+    r.file.close();
+    filename = std::move(r.filename);
+    bytes=r.bytes;
+    sz = r.sz;
+    file.open(filename, boost::iostreams::mapped_file::readwrite, bytes);
+    assert(file.is_open());    
+    return *this;
+  } 
+
   inline const T &operator[](const size_t i) const{ return *((T *)file.const_data()+i); }
   inline T &operator[](const size_t i){ return *((T*)file.data()+i); }
 
@@ -50,7 +78,14 @@ public:
     sz = _sz;
     bytes = _sz * sizeof(T);
     
-    { std::ofstream of(filename); }
+    if(boost::filesystem::exists(filename)){
+      std::ofstream of(filename); 
+      if(of.fail()){
+	error_exit(std::cout << "memmappedFileVector failed to open file " << filename << " because " << strerror(errno) << std::endl);
+      }
+      std::cout << "Opened " << filename << std::endl; std::cout.flush();
+    }
+    if(!boost::filesystem::exists(filename)) error_exit(std::cout << "memmappedFileVector file " << filename << " not open!\n");
     boost::filesystem::resize_file(filename, bytes);
     
     file.open(filename, boost::iostreams::mapped_file::readwrite, bytes);
