@@ -48,7 +48,12 @@ protected:
   typedef distribution<_DataType,_VectorType> myType;
 public:
   distribution(){}
+
+  template<template<typename> class U>
+  distribution(const distribution<DataType,U> &r): _data(r._data){}
+
   distribution(const distribution &r): _data(r._data){}
+  
   explicit distribution(const int nsample): _data(nsample){}
   distribution(const int nsample, const DataType &init): _data(nsample,init){}
   template<typename Initializer>
@@ -171,7 +176,13 @@ public:
   DataType standardError() const{ return this->standardDeviation()/sqrt(double(this->size()-1)); }
   
   rawDataDistribution(): distribution<DataType>(){}
+
   rawDataDistribution(const rawDataDistribution &r): baseType(r){}
+  
+  template<template<typename> class U>
+  rawDataDistribution(const rawDataDistribution<DataType,U> &r): baseType(r){}
+
+  
   explicit rawDataDistribution(const int nsample): baseType(nsample){}
   rawDataDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
   template<typename Initializer>
@@ -265,7 +276,12 @@ public:
   }
   
   jackknifeDistribution(): distribution<DataType,VectorType>(){}
+
   jackknifeDistribution(const jackknifeDistribution &r): baseType(r){}
+  
+  template<template<typename> class U>
+  jackknifeDistribution(const jackknifeDistribution<DataType,U> &r): baseType(r){}
+  
   explicit jackknifeDistribution(const int nsample): baseType(nsample){}
   jackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}
   template<typename Initializer>
@@ -328,6 +344,10 @@ public:
   
   jackknifeCdistribution() = default;
   jackknifeCdistribution(const jackknifeCdistribution &r) = default;
+  
+  template<template<typename> class U>
+  jackknifeCdistribution(const jackknifeCdistribution<DataType,U> &r): baseType(r), cen(r.cen){}
+  
   explicit jackknifeCdistribution(const int nsample): baseType(nsample){}
   jackknifeCdistribution(const int nsample, const DataType &init): baseType(nsample,init), cen(init){}
   template<typename Initializer>
@@ -475,7 +495,16 @@ public:
   }
 
   doubleJackknifeDistribution(): baseType(){}
+
   doubleJackknifeDistribution(const doubleJackknifeDistribution &r): baseType(r){}
+  
+  template<template<typename> class U>
+  doubleJackknifeDistribution(const doubleJackknifeDistribution<BaseDataType,U> &r): doubleJackknifeDistribution(r.size()){
+    for(int i=0;i<this->size();i++)
+      for(int j=0;j<this->size()-1;j++)
+	this->sample(i).sample(j) = r.sample(i).sample(j);
+  }
+
   
   explicit doubleJackknifeDistribution(const int nsample): baseType(nsample, DataType(nsample-1)){}
   doubleJackknifeDistribution(const int nsample, const DataType &init): baseType(nsample,init){}

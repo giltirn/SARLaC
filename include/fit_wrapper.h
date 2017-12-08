@@ -295,11 +295,11 @@ struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
   
   NumericVector<jackknifeDistributionD> sigma;
 
-  template<typename GeneralizedCoord>
+  template<typename GeneralizedCoord, template<typename> class V>
   importCostFunctionParameters(fitter<FitPolicies> &fitter,
-			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistributionD> &data): sigma(data.size()){
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data): sigma(data.size()){
     for(int d=0;d<data.size();d++)
-      sigma(d) = jackknifeDistributionD(sqrt(doubleJackknifeDistributionD::covariance(data.value(d) , data.value(d) ) ) );
+      sigma(d) = jackknifeDistributionD(sqrt(doubleJackknifeDistribution<double,V>::covariance(data.value(d) , data.value(d) ) ) );
     
     fitter.importCostFunctionParameters(sigma);
   }
@@ -312,19 +312,19 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
   NumericSquareMatrix<jackknifeDistributionD> inv_corr;
   NumericVector<jackknifeDistributionD> sigma;
 
-  template<typename GeneralizedCoord>
+  template<typename GeneralizedCoord, template<typename> class V>
   importCostFunctionParameters(fitter<FitPolicies> &fitter,
-			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistributionD> &data): sigma(data.size()){
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data): sigma(data.size()){
 
     const int nsample = data.value(0).size();
     const int ndata = data.size();    
     NumericSquareMatrix<jackknifeDistributionD> cov(ndata);
     for(int i=0;i<ndata;i++){
-      cov(i,i) = doubleJackknifeDistributionD::covariance(data.value(i), data.value(i));
+      cov(i,i) = doubleJackknifeDistribution<double,V>::covariance(data.value(i), data.value(i));
       sigma(i) = sqrt(cov(i,i));
 
       for(int j=i+1;j<ndata;j++)
-	cov(i,j) = cov(j,i) = doubleJackknifeDistributionD::covariance(data.value(i),data.value(j));
+	cov(i,j) = cov(j,i) = doubleJackknifeDistribution<double,V>::covariance(data.value(i),data.value(j));
     }
 
     corr =  NumericSquareMatrix<jackknifeDistributionD>(ndata);

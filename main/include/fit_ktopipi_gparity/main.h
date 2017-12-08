@@ -143,8 +143,10 @@ void writeToTextFile(const NumericTensor<DistributionType,N> &m, const std::stri
 
 
 
+
+
 //Read and prepare the data for a particular tsep_k_pi_idx
-void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_all_dj,
+void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 	     const NumericTensor<rawDataDistributionD,1> &bubble, const NumericTensor<doubleJackknifeDistributionD,1> &bubble_dj, const NumericTensor<jackknifeDistributionD,1> &bubble_j,
 	     const int tsep_k_pi_idx, const Args &args, const CMDline &cmdline){
   std::cout << "Getting data for tsep_k_pi = " <<  args.tsep_k_pi[tsep_k_pi_idx] << std::endl;
@@ -302,7 +304,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   }
 }
 
-void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_all_dj,
+void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 	     const Args &args, const CMDline &cmdline){
   if(cmdline.load_amplitude_data){
 #ifdef HAVE_HDF5
@@ -358,7 +360,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 #ifdef HAVE_HDF5
 	HDF5reader reader(scratch_files[tsep_k_pi_idx]);
 	std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > tmp_A0_all_j;
-	std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > tmp_A0_all_dj;
+	std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > tmp_A0_all_dj;
 	read(reader, tmp_A0_all_j, "A0_all_j");
 	read(reader, tmp_A0_all_dj, "A0_all_dj");
 	for(int q=0;q<10;q++){

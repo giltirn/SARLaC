@@ -50,7 +50,7 @@ int main(const int argc, const char* argv[]){
   
   //Prepare the data
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
-  std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_all_dj(10);
+  std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > A0_all_dj(10);
   printMem("Prior to getData");
   getData(A0_all_j, A0_all_dj,args,cmdline);
 

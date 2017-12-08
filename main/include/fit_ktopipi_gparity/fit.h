@@ -18,7 +18,7 @@ struct fitReturnType<FitKtoPiPiSim<7> >{ typedef jackknifeDistribution<typename 
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr{
   static std::vector<jackknifeDistribution<typename FitFunc::Params> > fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
-									   const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
+									   const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 									   const Args &args, const CMDline &cmdline){
     const int nsample = A0_fit_j[0].value(0).size();
     typedef typename FitFunc::Params Params;
@@ -60,7 +60,7 @@ struct fit_corr_uncorr{
 template<template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
   static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
-							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
+							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 							      const Args &args, const CMDline &cmdline){
     const int nsample = A0_fit_j[0].value(0).size();
     typedef FitKtoPiPiSim<10> FitFunc;
@@ -83,12 +83,12 @@ struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
 										      amplitudeDataCoordSim cc(c, map[s].first);
 										      return typename correlationFunction<amplitudeDataCoordSim, jackknifeDistributionD>::ElementType(cc,v);
 										    });
-    correlationFunction<amplitudeDataCoordSim, doubleJackknifeDistributionD> A0_fit_dj_all(sz,
+    correlationFunction<amplitudeDataCoordSim, doubleJackknifeA0StorageType> A0_fit_dj_all(sz,
 											  [&](const int s){
 											    const amplitudeDataCoord &c = A0_fit_dj[map[s].first].coord(map[s].second);
-											    const doubleJackknifeDistributionD &v = A0_fit_dj[map[s].first].value(map[s].second);
+											    const doubleJackknifeA0StorageType &v = A0_fit_dj[map[s].first].value(map[s].second);
 											    amplitudeDataCoordSim cc(c, map[s].first);
-											    return typename correlationFunction<amplitudeDataCoordSim, doubleJackknifeDistributionD>::ElementType(cc,v);
+											    return typename correlationFunction<amplitudeDataCoordSim, doubleJackknifeA0StorageType>::ElementType(cc,v);
 											  });
     //Perform the fit
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
@@ -123,7 +123,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
 template<template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
   static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
-							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
+							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 							      const Args &args, const CMDline &cmdline){
     const int nsample = A0_fit_j[0].value(0).size();
     typedef FitKtoPiPiSim<7> FitFunc;
@@ -143,13 +143,13 @@ struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
     jackknifeDistributionD zero_j(nsample,0.);
     doubleJackknifeDistributionD zero_dj(nsample,0.);
     correlationFunction<amplitudeDataCoordSim, jackknifeDistributionD> A0_fit_j_all;
-    correlationFunction<amplitudeDataCoordSim, doubleJackknifeDistributionD> A0_fit_dj_all;
+    correlationFunction<amplitudeDataCoordSim, doubleJackknifeA0StorageType> A0_fit_dj_all;
       
     for(int d=0;d<nfit_q;d++){
       for(int i=1;i<10;i++) assert(A0_fit_j[i].coord(d) == A0_fit_j[0].coord(d)); //should all be at the same coordinate, just different q
       
       std::vector<jackknifeDistributionD> Qprime_j(7, zero_j);
-      std::vector<doubleJackknifeDistributionD> Qprime_dj(7, zero_dj);
+      std::vector<doubleJackknifeA0StorageType> Qprime_dj(7, zero_dj);
 #define Q(i,j) Q123rot[i-1][j-1]
       
 #define MOj(i) Qprime_j[i-1]
@@ -174,7 +174,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
       for(int q=0;q<7;q++){      
 	amplitudeDataCoordSim cc(A0_fit_j[0].coord(d), q);	
 	A0_fit_j_all.push_back(correlationFunction<amplitudeDataCoordSim, jackknifeDistributionD>::ElementType(cc,Qprime_j[q]));
-	A0_fit_dj_all.push_back(correlationFunction<amplitudeDataCoordSim, doubleJackknifeDistributionD>::ElementType(cc,Qprime_dj[q]));
+	A0_fit_dj_all.push_back(correlationFunction<amplitudeDataCoordSim, doubleJackknifeA0StorageType>::ElementType(cc,Qprime_dj[q]));
       }
     }
 
@@ -243,7 +243,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
 
 template<typename FitFunc>
 inline typename fitReturnType<FitFunc>::type fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
-						 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,
+						 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 						 const Args &args, const CMDline &cmdline){
   return args.correlated ?
     fit_corr_uncorr<FitFunc,correlatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,args,cmdline) :
@@ -251,9 +251,9 @@ inline typename fitReturnType<FitFunc>::type fit(const std::vector<correlationFu
 }
 
 void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
-		std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_fit_dj,		
+		std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,		
 		const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_j,
-		const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_dj,
+		const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_dj,
 		const Args &args){
   //Separate out the data in the desired fit range
   for(int q=0;q<10;q++){
@@ -272,11 +272,11 @@ void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDis
 
 template<typename FitFunc>
 inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
-			 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_all_dj,
+			 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 			 const Args &args, const CMDline &cmdline){
   //Extract the data we are going to fit
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit_j(10);
-  std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > A0_fit_dj(10);
+  std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > A0_fit_dj(10);
   getFitData(A0_fit_j,A0_fit_dj,A0_all_j,A0_all_dj,args);
   
   std::cout << "Including " << A0_fit_j[0].size() << " data points in fit\n";
@@ -297,7 +297,7 @@ inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoor
 }
 
 inline void fitAndPlot(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
-		       const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> > &A0_all_dj,
+		       const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 		       const Args &args, const CMDline &cmdline){
   switch(args.fitfunc){
   case FitSeparate:
