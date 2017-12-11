@@ -326,6 +326,6 @@ void read(HDF5reader &reader, type1234Data &value, const std::string &tag){
 #endif
 
 
-typedef doubleJackknifeDistribution<double, memmappedFileVector> doubleJackknifeA0StorageType;
+typedef doubleJackknifeDistribution<double, memmappedManagedFileVector> doubleJackknifeA0StorageType;
 
 #endif
