@@ -78,12 +78,11 @@ public:
     sz = _sz;
     bytes = _sz * sizeof(T);
     
-    if(boost::filesystem::exists(filename)){
+    if(!boost::filesystem::exists(filename)){
       std::ofstream of(filename); 
       if(of.fail()){
 	error_exit(std::cout << "memmappedFileVector failed to open file " << filename << " because " << strerror(errno) << std::endl);
       }
-      std::cout << "Opened " << filename << std::endl; std::cout.flush();
     }
     if(!boost::filesystem::exists(filename)) error_exit(std::cout << "memmappedFileVector file " << filename << " not open!\n");
     boost::filesystem::resize_file(filename, bytes);
