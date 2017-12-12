@@ -327,6 +327,18 @@ struct standardIOhelper<doubleJackknifeDistribution<PODtype,V1>, doubleJackknife
   }
 };
 
+template<typename DistributionType>
+inline std::string getDistributionTypeString(){
+  std::string base = printType<DistributionType>();
+  size_t p = base.find_first_of(','); //ignore vector type
+  if(p == std::string::npos) return base;
+  else{
+    std::ostringstream os; os << base.substr(0, p) << '>';
+    return os.str();
+  }
+}
+
+
 template<typename T, int>
 struct getDataType{};
 
@@ -364,7 +376,7 @@ void writeParamsStandard(const DistributionOfPODtype &params, const std::string 
   //std::cout << "writeParamsStandard: POD - Writing " << printType<DistributionOfPODtype>() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
   
   HDF5writer writer(filename);
-  std::string type = printType<DistributionOfPODtype>();
+  std::string type = getDistributionTypeString<DistributionOfPODtype>();
   write(writer, type, "distributionType");
   std::vector<DistributionOfPODtype> out(1,params);
   standardIOformat<DistributionOfPODtype>::write(writer, out , "value");
@@ -376,7 +388,7 @@ void readParamsStandard(DistributionOfPODtype &params, const std::string &filena
   
   std::string type;
   read(reader, type, "distributionType");
-  assert(type == printType<DistributionOfPODtype>());  
+  assert(type == getDistributionTypeString<DistributionOfPODtype>());  
   
   standardIOformat<DistributionOfPODtype>::read(reader, in, "value");
   assert(in.size() == 1);
@@ -387,7 +399,7 @@ template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)
 void writeParamsStandard(const std::vector<DistributionOfPODtype> &params, const std::string &filename){
   //std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<DistributionOfPODtype> >() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
   HDF5writer writer(filename);
-  std::string type = printType<DistributionOfPODtype>();
+  std::string type = getDistributionTypeString<DistributionOfPODtype>();
   write(writer, type, "distributionType");  
   standardIOformat<DistributionOfPODtype>::write(writer, params , "value");
 }
@@ -397,7 +409,8 @@ void readParamsStandard(std::vector<DistributionOfPODtype> &params, const std::s
   
   std::string type;
   read(reader, type, "distributionType");
-  assert(type == printType<DistributionOfPODtype>());  
+  if(type != getDistributionTypeString<DistributionOfPODtype>()) error_exit(std::cout << "readParamsStandard(std::vector<DistributionOfPODtype> &params, const std::string &filename) distribution type mismatch. Got "
+									    << type << ", my type " << getDistributionTypeString<DistributionOfPODtype>() << std::endl);
   
   standardIOformat<DistributionOfPODtype>::read(reader, params , "value");
 }
@@ -406,7 +419,7 @@ template<typename DistributionOfPODtype, IO_ENABLE_IF_POD(DistributionOfPODtype)
 void writeParamsStandard(const std::vector<std::vector<DistributionOfPODtype> > &params, const std::string &filename){
   //std::cout << "writeParamsStandard: POD - Writing " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << " as " << printType<std::vector<std::vector<DistributionOfPODtype> > >() << std::endl;
   HDF5writer writer(filename);
-  std::string type = printType<DistributionOfPODtype>();
+  std::string type = getDistributionTypeString<DistributionOfPODtype>();
   write(writer, type, "distributionType");
   standardIOformat<DistributionOfPODtype>::write(writer, params , "value");   //don't flatten
 }
@@ -416,7 +429,7 @@ void readParamsStandard(std::vector<std::vector<DistributionOfPODtype> > &params
   
   std::string type;
   read(reader, type, "distributionType");
-  assert(type == printType<DistributionOfPODtype>());  
+  assert(type == getDistributionTypeString<DistributionOfPODtype>());  
   
   standardIOformat<DistributionOfPODtype>::read(reader, params , "value");
 }
@@ -439,7 +452,7 @@ void writeParamsStandard(const DistributionOfStructType &params, const std::stri
     standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::extractStructEntry(out[p], params, p);
   
   HDF5writer writer(filename);
-  std::string type = printType<DistributionOfPODtype>();
+  std::string type = getDistributionTypeString<DistributionOfPODtype>();
   write(writer, type, "distributionType");  
   standardIOformat<DistributionOfPODtype>::write(writer, out , "value");
 }
@@ -456,7 +469,7 @@ void readParamsStandard(DistributionOfStructType &params, const std::string &fil
 
   std::string type;
   read(reader, type, "distributionType");
-  assert(type == printType<DistributionOfPODtype>());
+  assert(type == getDistributionTypeString<DistributionOfPODtype>());
   
   standardIOformat<DistributionOfPODtype>::read(reader, in , "value");
 
@@ -492,7 +505,7 @@ void writeParamsStandard(const std::vector<DistributionOfStructType> &params, co
       standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::extractStructEntry(out[o][p], params[o], p);
         
   HDF5writer writer(filename);
-  std::string type = printType<DistributionOfPODtype>();
+  std::string type = getDistributionTypeString<DistributionOfPODtype>();
   write(writer, type, "distributionType");  
   standardIOformat<DistributionOfPODtype>::write(writer, out , "value");
 }
@@ -507,7 +520,7 @@ void readParamsStandard(std::vector<DistributionOfStructType> &params, const std
   
   std::string type;
   read(reader, type, "distributionType");
-  assert(type == printType<DistributionOfPODtype>());  
+  assert(type == getDistributionTypeString<DistributionOfPODtype>());  
   
   standardIOformat<DistributionOfPODtype>::read(reader, in , "value");
 
