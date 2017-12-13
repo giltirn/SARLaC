@@ -160,6 +160,7 @@ boost::spirit::istream_iterator & operator>>(boost::spirit::istream_iterator &f,
 template<typename T, typename std::enable_if<hasParseMember<parsers::parser<T> >::value, int>::type = 0 >
 void parse(T &s, const std::string &filename){
   std::ifstream is(filename.c_str());
+  if(is.fail()) error_exit(std::cout << "parse(T&,const std::string&) error: " << strerror(errno) << std::endl);
   is >> std::noskipws;
   boost::spirit::istream_iterator f(is);
   f >> s;
