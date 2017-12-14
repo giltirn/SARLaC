@@ -149,6 +149,8 @@ struct is_scalar<double>{ enum{value = 1}; };
 template<>
 struct is_scalar<float>{ enum{value = 1}; };
 
+template<>
+struct is_scalar<int>{ enum{value = 1}; };
 
 template<typename T>
 struct hasParseMember { 

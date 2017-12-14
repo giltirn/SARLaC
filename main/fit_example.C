@@ -90,7 +90,7 @@ int main(void){
     sigma[i] = inrange_jackknife.value(i).standardError();
 
   //Compute double-jackknife covariance matrix
-  typedef dataSeries<double, doubleJackknifeDistribution<double,memmappedFileVector> > doubleJackknifeSeriesType;
+  typedef dataSeries<double, doubleJackknifeDistribution<double,constrainedMemoryVector> > doubleJackknifeSeriesType;
   doubleJackknifeSeriesType inrange_doublejacknife; resample(inrange_doublejacknife, inrange_data);
 
   auto printer = new publicationDistributionPrinter<jackknifeDistribution<double> >;
@@ -102,7 +102,7 @@ int main(void){
   jackknifeMatrixD cov(ndata_in_range);
   for(int i=0;i<ndata_in_range;i++)
     for(int j=0;j<ndata_in_range;j++)
-      cov(i,j) = doubleJackknifeDistribution<double,memmappedFileVector>::covariance(inrange_doublejacknife.value(i), inrange_doublejacknife.value(j));
+      cov(i,j) = doubleJackknifeDistribution<double,constrainedMemoryVector>::covariance(inrange_doublejacknife.value(i), inrange_doublejacknife.value(j));
   std::cout << "double Jackknife covariance matrix:\n" << cov;
 
   //Normalize covariance matrix to get correlation matrix

@@ -73,6 +73,13 @@ struct CMDline{
       }else if(sargv[i] == "-use_existing_scratch_files"){
 	use_existing_scratch_files = true;
 	i++;
+      }else if(sargv[i] == "-superjack_maxmem"){ //in GB
+	std::stringstream ss; ss << sargv[i+1];
+	size_t bytes;  ss >> bytes;
+	const size_t k = 1024;
+	bytes *= k*k*k;					  
+	constrainedMemoryManager::maxSize() = bytes;
+	i+=2;
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];
