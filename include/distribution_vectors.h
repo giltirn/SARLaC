@@ -13,7 +13,8 @@ template<typename T>
 using basic_vector = std::vector<T>;
 
 struct _memmappedFileVector_uid{
-  inline static size_t getUid(){ static size_t uid = 0; return uid++; }
+  inline static size_t & Uid(){ static size_t uid = 0; return uid; }
+  inline static size_t getUid(){ return Uid()++; }
 };
 
 template<typename T>
@@ -324,7 +325,10 @@ class constrainedMemoryManager{
     bool delete_file_on_free;
 
     memblock(): bytes(0), ptr(NULL), filename(""), ondisk(false), delete_file_on_free(false){
-      uid = _memmappedFileVector_uid::getUid();
+#pragma omp critical
+      {
+	uid = _memmappedFileVector_uid::getUid();
+      }
       std::ostringstream os; os << "swapped_mem." << uid;
       filename = os.str();
     }
@@ -450,7 +454,7 @@ public:
 
   inline char* get(const size_t uid){
     blockMapType::iterator it = blocks.find(uid);
-    if(it == blocks.end()) error_exit(std::cout << "Could not find uid " << uid << std::endl);
+    if(it == blocks.end()) error_exit(std::cout << "constrainedMemoryManager::get Could not find uid " << uid << " (present largest uid=" << _memmappedFileVector_uid::Uid() << ")\n");
 
     //(std::cout << "constrainedMemoryManager::get uid " << uid << std::endl).flush();
     if(it->second.ondisk && size + it->second.bytes > maxSize()){
@@ -462,7 +466,7 @@ public:
   
   void free(const size_t uid){
     blockMapType::iterator it = blocks.find(uid);
-    if(it == blocks.end()) error_exit(std::cout << "Could not find uid " << uid << std::endl);
+    if(it == blocks.end()) error_exit(std::cout << "constrainedMemoryManager::free Could not find uid " << uid << " (present largest uid=" << _memmappedFileVector_uid::Uid() << ")\n");
     
     size -= it->second.bytes;
     blocks.erase(it);	
@@ -497,7 +501,7 @@ public:
     }
   }
   
-  constrainedMemoryVector(const constrainedMemoryVector &r){
+  constrainedMemoryVector(const constrainedMemoryVector &r): constrainedMemoryVector(){
     *this = r;
   }
   constrainedMemoryVector(constrainedMemoryVector &&r): sz(r.sz), uid(r.uid){
@@ -535,12 +539,16 @@ public:
     if(_sz != sz){
       if(uid != -1) constrainedMemoryManager::get().free(uid);
       uid = constrainedMemoryManager::get().alloc(_sz * sizeof(T));
+      //printf("constrainedMemoryVector %p got uid %lu in resize to size %lu\n", this, uid, _sz); fflush(stdout);
       sz = _sz;
     }
   }
   
   ~constrainedMemoryVector(){
-    if(uid != -1) constrainedMemoryManager::get().free(uid);
+    if(uid != -1){
+      //printf("constrainedMemoryVector %p with uid %lu and size %lu called free\n", this, uid, sz); fflush(stdout);
+      constrainedMemoryManager::get().free(uid);
+    }
   }
 };
 
