@@ -28,6 +28,8 @@ struct CMDline{
 
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
+
+  bool use_symmetric_quark_momenta; //use data generated with mesonfields with symmetric quark momenta (_symm extension)
   
   CMDline(){
     load_guess = false;
@@ -40,6 +42,7 @@ struct CMDline{
     load_combined_data = false;
     save_combined_data = false;
     load_frozen_fit_params= false;
+    use_symmetric_quark_momenta = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -95,6 +98,9 @@ struct CMDline{
 	load_frozen_fit_params = true;
 	load_frozen_fit_params_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-use_symmetric_quark_momenta"){
+	use_symmetric_quark_momenta = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
