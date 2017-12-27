@@ -27,11 +27,11 @@ int main(const int argc, const char** argv){
   parse(args, argv[1]);
 
   std::vector<rawDataCorrelationFunctionD> channels(args.data.size());
-  for(int i=0;i<channels.size();i++) readData(channels[i], args.data[i], args, cmdline);
+  for(int i=0;i<channels.size();i++) readData(channels[i], args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
 
   rawDataCorrelationFunctionD data;
   applyCombination(data,channels,args.combination);
-  applyTimeDep(data, args.outer_time_dep, args);
+  applyTimeDep(data, args.outer_time_dep, args.Lt);
 
   fit(data, args, cmdline);
 }

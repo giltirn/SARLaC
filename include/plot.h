@@ -797,7 +797,7 @@ public:
   inline double lower(const int i) const{ return y(i)-dym(i); }
 };
 
-
+//Example ValuePolicy types
 template<typename DistributionType>
 class DistributionPlotAccessor{
 public:
@@ -813,6 +813,7 @@ public:
   static inline double errminus(const jackknifeCdistribution<T,V> &d){ return d.standardError(); }  
 };
 
+//Example CoordinatePolicy types
 //Coordinate accessor that relies on implicit conversion of type to double
 template<typename T>
 class ScalarCoordinateAccessor{
