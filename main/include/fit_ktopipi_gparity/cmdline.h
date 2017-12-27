@@ -22,6 +22,8 @@ struct CMDline{
 
   bool use_scratch; //save memory at peak times by storing to disk and reloading later
   bool use_existing_scratch_files; //if scratch files from a previous run exist, use these
+
+  bool use_symmetric_quark_momenta; //use data generated with mesonfields with symmetric quark momenta (_symm extension)
   
   CMDline(){
     load_guess = false;
@@ -31,7 +33,8 @@ struct CMDline{
     save_amplitude_data = false;
     load_freeze_data = false;
     use_scratch = false;
-    use_existing_scratch_files = false;    
+    use_existing_scratch_files = false;
+    use_symmetric_quark_momenta = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -80,6 +83,9 @@ struct CMDline{
 	bytes *= k*k*k;					  
 	constrainedMemoryManager::maxSize() = bytes;
 	i+=2;
+      }else if(sargv[i] == "-use_symmetric_quark_momenta"){
+	use_symmetric_quark_momenta = true;
+	i++;
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];
