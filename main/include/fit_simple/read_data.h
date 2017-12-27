@@ -26,12 +26,16 @@ struct ParseStandard: public Parser{ //expect Lt lines with format <t> <re> <im>
 struct ParseMultiSourceAverage: public Parser{ //expect Lt lines with format <tsrc> <tsep> <re> <im>.  Discards the imaginary part
   void setup(rawDataCorrelationFunctionD &into, const int nsample, const int Lt) const{
     into.resize(Lt);
-    for(int i=0;i<Lt;i++) into.value(i).resize(nsample);    
+    for(int t=0;t<Lt;t++){
+      into.coord(t) = t;
+      into.value(t).resize(nsample);
+    }
   }    
   
   void parse(rawDataCorrelationFunctionD &into, std::istream &is, const int sample, const int Lt) const{
-    for(int t=0;t<Lt;t++) into.value(t).sample(sample) = 0.;
-
+    for(int t=0;t<Lt;t++)
+      into.value(t).sample(sample) = 0.;
+    
     for(int tsrc=0;tsrc<Lt;tsrc++)
       for(int t=0;t<Lt;t++){
 	int tsrct, tt; double re, im;
