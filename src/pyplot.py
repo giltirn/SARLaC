@@ -183,6 +183,9 @@ def plotDataSet(axes,dataset, **kwargs):
         kwargs['ecolor'] = color
     if 'mfc' not in kwargs.keys():
         kwargs['mfc'] = color
+    if 'mec' not in kwargs.keys():
+        kwargs['mec'] = 'black'
+
 
     if(len(dataset.x)==0):
         return
