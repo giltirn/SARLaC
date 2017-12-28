@@ -8,6 +8,7 @@
 
 #include<fit_simple/read_data.h>
 #include<compare_simple_correlators/args.h>
+#include<compare_simple_correlators/compare.h>
 
 int main(const int argc, const char** argv){
   Args args;
@@ -39,23 +40,9 @@ int main(const int argc, const char** argv){
   for(int aa=0;aa<2;aa++)
     data_j[aa] = jackknifeCorrelationFunctionD(sz, [&](const int i){ return typename jackknifeCorrelationFunctionD::ElementType(data[aa].coord(i), jackknifeDistributionD(data[aa].value(i))); });
 
-  jackknifeCorrelationFunctionD reldiff_j(sz,
-					  [&](const int i){
-					    assert(data[0].coord(i) == data[1].coord(i));
-					    jackknifeDistributionD reldiff = 2.*(data_j[1].value(i) - data_j[0].value(i))/(data_j[1].value(i) + data_j[0].value(i));
-					    return typename jackknifeCorrelationFunctionD::ElementType(data[0].coord(i), std::move(reldiff));
-					  }
-					  );
-  
-  std::cout << "Jackknife relative differences:\n";
-  for(int t=0;t<sz;t++){    
-    std::cout << reldiff_j.coord(t) << " " << reldiff_j.value(t) << std::endl;
-  }
+  compareRelativeDifferences(data_j[0],data_j[1]);
 
-  MatPlotLibScriptGenerate plot;
-  typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>,  DistributionPlotAccessor<jackknifeDistributionD> > accessor;
-  accessor a(reldiff_j);
-  plot.plotData(a);
-  plot.write("reldiff.py","reldiff.eps");  
+  std::cout << "Done\n";
+  return 0;
 }
 
