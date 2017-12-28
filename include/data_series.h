@@ -1,6 +1,7 @@
 #ifndef _DATA_SERIES_H
 #define _DATA_SERIES_H
 
+#include<algorithm>
 #include<ostream>
 #include<template_wizardry.h>
 #include<hdf5_serialize.h>
@@ -59,6 +60,8 @@ public:
 
   inline void push_back(const ElementType &e){ series.push_back(e); }
   inline void push_back(const GeneralizedCoordinate &c, const DataType &d){ series.push_back(ElementType(c,d)); }
+
+  inline void reverse(){ std::reverse(series.begin(),series.end()); }
 };
 
 template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType> 
