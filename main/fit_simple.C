@@ -33,6 +33,8 @@ int main(const int argc, const char** argv){
   applyCombination(data,channels,args.combination);
   applyTimeDep(data, args.outer_time_dep, args.Lt);
 
+  bin(data, args.bin_size);
+
   fit(data, args, cmdline);
 }
 

@@ -126,5 +126,9 @@ void applyCombination(rawDataCorrelationFunctionD &to, const std::vector<rawData
   }
 }
 
+inline void bin(rawDataCorrelationFunctionD &data, const int bin_size){
+  if(bin_size == 1) return;
+  for(int d=0;d<data.size();d++) data.value(d) = data.value(d).bin(bin_size);
+}
 
 #endif

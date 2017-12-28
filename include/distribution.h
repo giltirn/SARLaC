@@ -203,6 +203,24 @@ public:
 
   inline bool operator==(const rawDataDistribution<DataType,_VectorType> &r) const{ return this->baseType::operator==(r); }
   inline bool operator!=(const rawDataDistribution<DataType,_VectorType> &r) const{ return !( *this == r ); }
+
+  rawDataDistribution<DataType,_VectorType> bin(const int bin_size) const{
+    const int nsample = this->size();
+    const int nbins = nsample / bin_size;
+    if(nsample % bin_size != 0) 
+      error_exit(std::cout << "rawDataDistribution::bin(const int) distribution size " << nsample << " is not divisible by bin size " << bin_size << std::endl);
+
+    DataType zro; zeroit(zro);
+    rawDataDistribution<DataType,_VectorType> out(nbins, zro);
+
+    for(int b=0;b<nbins;b++){
+      for(int e=0;e<bin_size;e++)
+	out.sample(b) = out.sample(b) + this->sample(e + bin_size*b);
+      out.sample(b) = out.sample(b) / double(bin_size);
+    }
+    return out;
+  }
+
 };
 
 template<typename T, template<typename> class _VectorType = basic_vector>

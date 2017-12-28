@@ -7,7 +7,7 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
   typedef fitter<FitPolicies> Fitter;
   typedef typename FitPolicies::FitParameterDistribution FitParameterDistribution;
   
-  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
+  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
   doubleJackknifeCorrelationFunctionD data_dj(args.Lt, 
 					      [&](const int t){
 						return typename doubleJackknifeCorrelationFunctionD::ElementType(t,  doubleJackknifeDistributionD(data.value(t)));
