@@ -1,7 +1,7 @@
 #ifndef _COMPARE_SIMPLE_CORRELATORS_COMPARE_H_H
 #define _COMPARE_SIMPLE_CORRELATORS_COMPARE_H_H
 
-void compareRelativeDifferences(const jackknifeCorrelationFunctionD &A, const jackknifeCorrelationFunctionD &B, const std::string plot_stub = "reldiff"){
+void compareRelativeDifferences(const jackknifeCorrelationFunctionD &A, const jackknifeCorrelationFunctionD &B, const std::string plot_stub = "reldiff", const bool logscale_y = true){
   assert(A.size() == B.size());
   const int sz = A.size();
   jackknifeCorrelationFunctionD reldiff_j(sz,
@@ -21,6 +21,7 @@ void compareRelativeDifferences(const jackknifeCorrelationFunctionD &A, const ja
   typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>,  DistributionPlotAccessor<jackknifeDistributionD> > accessor;
   accessor a(reldiff_j);
   plot.plotData(a);
+  plot.invoke() << "ax.set_yscale('log')\n";
   plot.write(plot_stub+".py",plot_stub+".eps");
 }
 
