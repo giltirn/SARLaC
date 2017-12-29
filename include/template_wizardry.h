@@ -6,6 +6,8 @@
 #include<type_traits>
 #include<vector>
 
+struct empty_t{};
+
 template<typename T>
 struct is_std_complex{ enum {value = 0}; };
 

@@ -141,13 +141,31 @@ void writeToTextFile(const NumericTensor<DistributionType,N> &m, const std::stri
   of.close();
 }
 
+template<int N>
+inline NumericTensor<rawDataDistributionD,N> bin(const NumericTensor<rawDataDistributionD,N> &t, const int bin_size){
+  return t.transform([&](int const* c, const rawDataDistributionD &e){ return e.bin(bin_size); });
+}
 
 
+struct BubbleData{
+  NumericTensor<rawDataDistributionD,1> bubble;
+  NumericTensor<rawDataDistributionD,1> bubble_binned;
+  NumericTensor<jackknifeDistributionD,1> bubble_j;
+  NumericTensor<doubleJackknifeDistributionD,1> bubble_dj;
+
+  BubbleData(const Args &args, const CMDline &cmdline){
+    bubble = getA2projectedBubble(args,cmdline);
+    bubble_binned = bin(bubble,args.bin_size);
+    bubble_j = bubble_binned.transform(resampleFunctor<jackknifeDistributionD,rawDataDistributionD>());
+    bubble_dj = bubble_binned.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+  }
+};
 
 
 //Read and prepare the data for a particular tsep_k_pi_idx
-void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
-	     const NumericTensor<rawDataDistributionD,1> &bubble, const NumericTensor<doubleJackknifeDistributionD,1> &bubble_dj, const NumericTensor<jackknifeDistributionD,1> &bubble_j,
+void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
+	     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
+	     const BubbleData &bubble_data,
 	     const int tsep_k_pi_idx, const Args &args, const CMDline &cmdline){
   std::cout << "Getting data for tsep_k_pi = " <<  args.tsep_k_pi[tsep_k_pi_idx] << std::endl;
   printMem("getData called");
@@ -188,8 +206,6 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 #endif
   }
   
-  const int nsample = type1.getNsample();
-  
   std::vector<int> type1_nonzerotK = type1.getNonZeroKaonTimeslices();
   std::cout << "Type1 data non-zero for tK=" << type1_nonzerotK << std::endl;
   std::vector<int> type2_nonzerotK = type2.getNonZeroKaonTimeslices();
@@ -229,11 +245,21 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   for(int tK=0;tK<args.Lt;tK++)
     for(int t=0;t<args.Lt;t++){
       int tB = (tK + tsep_k_pi + args.tsep_pipi) % args.Lt;
-      mix4_alltK({tK,t}) = mix4_alltK_nobub({tK,t})*bubble(&tB);
+      mix4_alltK({tK,t}) = mix4_alltK_nobub({tK,t})*bubble_data.bubble(&tB);
       for(int q=0;q<10;q++)
-	A0_type4_alltK({q,tK,t}) = A0_type4_alltK_nobub({q,tK,t})*bubble(&tB);
+	A0_type4_alltK({q,tK,t}) = A0_type4_alltK_nobub({q,tK,t})*bubble_data.bubble(&tB);
     }
-  
+
+  //Bin everything we are going to use henceforth
+  A0_type1_alltK = bin(A0_type1_alltK, args.bin_size);
+  A0_type2_alltK = bin(A0_type2_alltK, args.bin_size);
+  A0_type3_alltK = bin(A0_type3_alltK, args.bin_size);
+  A0_type4_alltK = bin(A0_type4_alltK, args.bin_size);
+  mix3_alltK = bin(mix3_alltK, args.bin_size);
+  mix4_alltK = bin(mix4_alltK, args.bin_size);
+  A0_type4_alltK_nobub = bin(A0_type4_alltK_nobub, args.bin_size);
+  mix4_alltK_nobub = bin(mix4_alltK_nobub, args.bin_size);
+
   for(int q=0;q<10;q++){
     std::cout << "Starting Q" << q+1 << std::endl;
 
@@ -245,14 +271,14 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
     NumericTensor<doubleJackknifeDistributionD,1> A0_type4_srcavg_vacsub_dj({args.Lt}); //[t]
     NumericTensor<doubleJackknifeDistributionD,1> mix4_srcavg_vacsub_dj({args.Lt}); //[t]
     computeAlphaAndVacuumSubtractions(alpha_dj,A0_type4_srcavg_vacsub_dj,mix4_srcavg_vacsub_dj,
-				      A0_type4_alltK_nobub,mix4_alltK_nobub,bubble_dj,q,type4_nonzerotK,tsep_k_pi,args);
+				      A0_type4_alltK_nobub,mix4_alltK_nobub,bubble_data.bubble_dj,q,type4_nonzerotK,tsep_k_pi,args);
 
     std::cout << "Computing single-jackknife alpha and vacuum subtractions\n";
     NumericTensor<jackknifeDistributionD,1> alpha_j({args.Lt}); //[t]
     NumericTensor<jackknifeDistributionD,1> A0_type4_srcavg_vacsub_j({args.Lt}); //[t]
     NumericTensor<jackknifeDistributionD,1> mix4_srcavg_vacsub_j({args.Lt}); //[t]
     computeAlphaAndVacuumSubtractions(alpha_j,A0_type4_srcavg_vacsub_j,mix4_srcavg_vacsub_j,
-				      A0_type4_alltK_nobub,mix4_alltK_nobub,bubble_j,q,type4_nonzerotK,tsep_k_pi,args);
+				      A0_type4_alltK_nobub,mix4_alltK_nobub,bubble_data.bubble_j,q,type4_nonzerotK,tsep_k_pi,args);
 
     //Compute double-jackknife, tK-averages type4 and mix4 diagrams from data including bubble-------------//
     std::cout << "Computing double-jackknife tK averages and mix diagrams\n";
@@ -304,7 +330,8 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
   }
 }
 
-void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
+void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
+	     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 	     const Args &args, const CMDline &cmdline){
   if(cmdline.load_amplitude_data){
 #ifdef HAVE_HDF5
@@ -316,9 +343,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 #endif
   }else{
     //Read the bubble data
-    NumericTensor<rawDataDistributionD,1> bubble = getA2projectedBubble(args,cmdline);
-    NumericTensor<jackknifeDistributionD,1> bubble_j = bubble.transform(resampleFunctor<jackknifeDistributionD,rawDataDistributionD>());
-    NumericTensor<doubleJackknifeDistributionD,1> bubble_dj = bubble.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+    BubbleData bubble_data(args,cmdline);
     
     //Read and prepare the amplitude data for fitting
 
@@ -338,7 +363,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
     for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
       if(cmdline.use_scratch && cmdline.use_existing_scratch_files && fileExists(scratch_files[tsep_k_pi_idx])) continue;
       
-      getData(A0_all_j,A0_all_dj,bubble,bubble_dj,bubble_j,tsep_k_pi_idx,args,cmdline);
+      getData(A0_all_j,A0_all_dj,bubble_data,tsep_k_pi_idx,args,cmdline);
       if(cmdline.use_scratch){
 	printMem("Pre-scratch write");
 #ifdef HAVE_HDF5
