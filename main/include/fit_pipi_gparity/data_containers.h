@@ -2,9 +2,8 @@
 #define PIPI_DATA_CONTAINERS_H
 
 #define DAIQIAN_COMPATIBILITY_MODE
-struct null_type{};
 
-template<typename DistributionType, typename Policies = null_type>
+template<typename DistributionType, typename Policies = empty_t>
 class bubbleDataBase: public Policies{
   NumericVector<DistributionType> d; //(t).sample(cfg)
   int Lt;
@@ -63,12 +62,22 @@ public:
     if(is.fail() || is.bad()){ std::cout << "Error reading file \"" << filename << "\"\n"; std::cout.flush(); exit(-1); }
     is.close();
   }
+
+  void bin(const int bin_size){
+    bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & me = upcast();
+    const int Lt = me.getLt();
+#pragma omp parallel for
+    for(int t=0;t<Lt;t++){
+      me.at(t) = me.at(t).bin(bin_size);
+    }
+  }
+
 };
 
 typedef bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> bubbleData;
 typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
 
-template<typename _DistributionType, typename Policies = null_type>
+template<typename _DistributionType, typename Policies = empty_t>
 class figureDataBase: public Policies{
 public:
   typedef _DistributionType DistributionType;

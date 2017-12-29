@@ -215,7 +215,8 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
 
   computeV(raw_data, raw_bubble_data, args.tsep_pipi);
 
-  bin(raw_data, args.bin_size);
+  raw_data.bin(args.bin_size);
+  raw_bubble_data.bin(args.bin_size);
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
   
   figureData A2_C = projectA2('C', raw_data);

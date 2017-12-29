@@ -39,8 +39,9 @@ inline sinkSourceMomenta momComb(const threeMomentum &snk, const threeMomentum &
 }
 
 
-template<typename _ContainerType>
-class figureDataAllMomentaBase{
+template<typename _ContainerType, typename Extra = empty_t>
+class figureDataAllMomentaBase: public Extra{
+  friend Extra;  
 public:
   typedef _ContainerType ContainerType;
   typedef typename std::map<sinkSourceMomenta, ContainerType>::const_iterator const_iterator;  
@@ -69,7 +70,7 @@ private:
     }
   }
   MapType const* getMap(const char fig) const{
-    return const_cast<MapType const*>( const_cast<figureDataAllMomentaBase<_ContainerType>* >(this)->getMap(fig) );
+    return const_cast<MapType const*>( const_cast<figureDataAllMomentaBase<_ContainerType,Extra>* >(this)->getMap(fig) );
   }
   ContainerType & get(const char fig, const sinkSourceMomenta &mom, bool lock){
     MapType* mp = getMap(fig);
@@ -97,7 +98,7 @@ public:
   }
   
   const ContainerType &operator()(const char fig, const sinkSourceMomenta &mom) const{
-    figureDataAllMomentaBase<ContainerType> *t = const_cast<figureDataAllMomentaBase<ContainerType> *>(this);
+    figureDataAllMomentaBase<ContainerType,Extra> *t = const_cast<figureDataAllMomentaBase<ContainerType,Extra> *>(this);
     return const_cast<const ContainerType &>( t->get(fig,mom,true) );
   }
   ContainerType &operator()(const char fig, const sinkSourceMomenta &mom){
@@ -122,27 +123,36 @@ public:
 };
 
 #ifdef HAVE_HDF5
-template<typename C>
-inline void write(HDF5writer &writer, const figureDataAllMomentaBase<C> &d, const std::string &tag){ d.write(writer,tag); }
-template<typename C>
-inline void read(HDF5reader &reader, figureDataAllMomentaBase<C> &d, const std::string &tag){ d.read(reader,tag); }
+template<typename C,typename E>
+inline void write(HDF5writer &writer, const figureDataAllMomentaBase<C,E> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename C,typename E>
+inline void read(HDF5reader &reader, figureDataAllMomentaBase<C,E> &d, const std::string &tag){ d.read(reader,tag); }
 #endif
 
 
-typedef figureDataAllMomentaBase<figureData> figureDataAllMomenta;
+struct figureDataAllMomentaExtra{
+  typedef figureDataAllMomentaBase<figureData, figureDataAllMomentaExtra> full_type;
+  inline full_type & upcast(){ return *static_cast< full_type* >(this); }
+
+  inline void bin(const int bin_size){
+    full_type & me = upcast();
+    static const char figs[4] = {'C','D','R','V'};
+    for(int f=0;f<4;f++)
+      for(full_type::iterator it = me.begin(figs[f]); it != me.end(figs[f]); it++)
+	it->second.bin(bin_size);  
+    me.Nsample /= bin_size;
+  }
+};
+
+typedef figureDataAllMomentaBase<figureData, figureDataAllMomentaExtra> figureDataAllMomenta;
 typedef figureDataAllMomentaBase<figureDataDoubleJack> figureDataDoubleJackAllMomenta;
 
 
-inline void bin(figureDataAllMomenta &raw_data, const int bin_size){
-  static const char figs[4] = {'C','D','R','V'};
-  for(int f=0;f<4;f++)
-    for(figureDataAllMomenta::iterator it = raw_data.begin(figs[f]); it != raw_data.end(figs[f]); it++)
-      it->second.bin(bin_size);  
-}
 
 
-template<typename _ContainerType>
-class bubbleDataAllMomentaBase{
+template<typename _ContainerType,typename Extra=empty_t>
+class bubbleDataAllMomentaBase: public Extra{
+  friend Extra;
 public:
   typedef _ContainerType ContainerType;
   typedef typename std::map<threeMomentum, ContainerType>::iterator iterator;  
@@ -177,7 +187,7 @@ public:
   }
   
   const ContainerType &operator()(const threeMomentum &mom) const{
-    bubbleDataAllMomentaBase<ContainerType> *t = const_cast<bubbleDataAllMomentaBase<ContainerType> *>(this);
+    bubbleDataAllMomentaBase<ContainerType,Extra> *t = const_cast<bubbleDataAllMomentaBase<ContainerType,Extra> *>(this);
     return const_cast<const ContainerType &>( t->get(mom,true) );
   }
   ContainerType &operator()(const threeMomentum &mom){
@@ -195,14 +205,30 @@ public:
   GENERATE_HDF5_SERIALIZE_METHOD((B)(Lt)(Nsample));
 };
 #ifdef HAVE_HDF5
-template<typename C>
-inline void write(HDF5writer &writer, const bubbleDataAllMomentaBase<C> &d, const std::string &tag){ d.write(writer,tag); }
-template<typename C>
-inline void read(HDF5reader &reader, bubbleDataAllMomentaBase<C> &d, const std::string &tag){ d.read(reader,tag); }
+template<typename C,typename E>
+inline void write(HDF5writer &writer, const bubbleDataAllMomentaBase<C,E> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename C,typename E>
+inline void read(HDF5reader &reader, bubbleDataAllMomentaBase<C,E> &d, const std::string &tag){ d.read(reader,tag); }
 #endif
 
-typedef bubbleDataAllMomentaBase<bubbleData> bubbleDataAllMomenta;
+struct bubbleDataAllMomentaExtra{
+  typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra> full_type;
+  inline full_type & upcast(){ return *static_cast< full_type* >(this); }
+
+  inline void bin(const int bin_size){
+    full_type & me = upcast();
+    for(full_type::iterator it = me.begin(); it != me.end(); it++)
+	it->second.bin(bin_size);  
+    me.Nsample /= bin_size;
+  }
+};
+
+
+typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra> bubbleDataAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
+
+
+
 
 template<typename archiver>
 struct archiveStream{};
