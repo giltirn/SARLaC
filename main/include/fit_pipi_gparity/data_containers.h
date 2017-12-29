@@ -62,7 +62,7 @@ public:
     parse(is,sample);
     if(is.fail() || is.bad()){ std::cout << "Error reading file \"" << filename << "\"\n"; std::cout.flush(); exit(-1); }
     is.close();
-  }    
+  }
 };
 
 typedef bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> bubbleData;
@@ -184,6 +184,17 @@ public:
       for(int sample=0;sample<me.getNsample();sample++)
 	if( me.at(tsrc,tsep).sample(sample) != 0.0 ) return false;
     return true;
+  }
+
+  void bin(const int bin_size){
+    figureDataBase<rawDataDistributionD, figureDataPolicies> &me = upcast();
+    const int Lt = me.getLt();
+#pragma omp parallel for
+    for(int i=0;i<Lt*Lt;i++){
+      int tsep = i % Lt;
+      int tsrc = i / Lt;
+      me.at(tsrc,tsep) = me.at(tsrc,tsep).bin(bin_size);
+    }
   }
 };
 

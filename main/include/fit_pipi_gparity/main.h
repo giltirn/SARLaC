@@ -182,7 +182,6 @@ void outputRawData(const std::string &filename, const correlationFunction<double
 }
 
 doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdline){
-  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
   figureDataAllMomenta raw_data;
   bubbleDataAllMomenta raw_bubble_data;
 
@@ -216,6 +215,9 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
 
   computeV(raw_data, raw_bubble_data, args.tsep_pipi);
 
+  bin(raw_data, args.bin_size);
+  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
+  
   figureData A2_C = projectA2('C', raw_data);
   figureData A2_D = projectA2('D', raw_data);
   figureData A2_R = projectA2('R', raw_data);
@@ -236,7 +238,7 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
   rawCorrelationFunction pipi_raw = 2*A2_realavg_D + A2_realavg_C - 6*A2_realavg_R + 3*A2_realavg_V;
 
   std::cout << "Raw data:\n" << pipi_raw << std::endl;
-
+  
   doubleJackCorrelationFunction pipi_dj(args.Lt,
 					[&pipi_raw,nsample](const int t)
 					{

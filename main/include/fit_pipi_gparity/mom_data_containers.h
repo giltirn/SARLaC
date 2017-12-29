@@ -133,6 +133,12 @@ typedef figureDataAllMomentaBase<figureData> figureDataAllMomenta;
 typedef figureDataAllMomentaBase<figureDataDoubleJack> figureDataDoubleJackAllMomenta;
 
 
+inline void bin(figureDataAllMomenta &raw_data, const int bin_size){
+  static const char figs[4] = {'C','D','R','V'};
+  for(int f=0;f<4;f++)
+    for(figureDataAllMomenta::iterator it = raw_data.begin(figs[f]); it != raw_data.end(figs[f]); it++)
+      it->second.bin(bin_size);  
+}
 
 
 template<typename _ContainerType>
