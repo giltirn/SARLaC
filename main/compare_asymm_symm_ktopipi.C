@@ -78,8 +78,6 @@ void errorWeightedAverage(std::vector<correlationFunction<double, jackknifeDistr
 }
 
 int main(const int argc, const char* argv[]){
-  printMem("Beginning of execution");
-  
   ComparisonArgs args;
   if(argc < 2){
     std::ofstream of("template.args");
@@ -91,7 +89,6 @@ int main(const int argc, const char* argv[]){
   parse(args, arg_file);
   
   assert( (args.traj_lessthan - args.traj_start) % args.traj_inc == 0 );  
-  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
 
   ComparisonCMDline cmdline(argc,argv,2);
   

@@ -11,6 +11,7 @@
   ( TimeDependence, outer_time_dep_A ) \
   ( TimeDependence, outer_time_dep_B ) \
   ( int, Lt) \
+  ( int, bin_size ) \
   ( int, traj_start ) \
   ( int, traj_inc ) \
   ( int, traj_lessthan )
@@ -22,7 +23,7 @@ struct Args{
     data_A(1), data_B(1),
     combination_A(CombinationAverage), combination_B(CombinationAverage),
     outer_time_dep_A(TimeDepNormal), outer_time_dep_B(TimeDepNormal),
-    traj_start(0), traj_inc(1), traj_lessthan(2){}
+    traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 

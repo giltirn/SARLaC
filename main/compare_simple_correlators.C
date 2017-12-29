@@ -31,6 +31,7 @@ int main(const int argc, const char** argv){
 
     applyCombination(data[aa],channels, aa == 0 ? args.combination_A : args.combination_B);
     applyTimeDep(data[aa], aa == 0 ? args.outer_time_dep_A : args.outer_time_dep_B, args.Lt);
+    bin(data[aa],args.bin_size);
   }
 
   if(data[0].size() != data[1].size()) error_exit(std::cout << "Error: correlation functions must be of the same size");
