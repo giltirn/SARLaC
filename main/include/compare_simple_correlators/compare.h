@@ -21,7 +21,7 @@ void compareRelativeDifferences(const jackknifeCorrelationFunctionD &A, const ja
   typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>,  DistributionPlotAccessor<jackknifeDistributionD> > accessor;
   accessor a(reldiff_j);
   plot.plotData(a);
-  if(logscale_y) plot.invoke() << "ax.set_yscale('log')\n";
+  if(logscale_y) plot.invoke() << "\tax.set_yscale('log')\n";
   plot.write(plot_stub+".py",plot_stub+".eps");
 }
 

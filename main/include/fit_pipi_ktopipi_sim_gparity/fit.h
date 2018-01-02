@@ -148,7 +148,7 @@ void plotRotatedFitFunc(const jackAmplitudeSimCorrelationFunction &data,
     plot.plotData(acc2,args);
   }
 
-  plot.invoke() << "datasets = [";
+  plot.invoke() << "\tdatasets = [";
   for(int i=0;i<3*nev-1;i++) plot.invoke() << "dset" << i << ", ";
   plot.invoke() << "dset" << 3*nev-1 << "]\n";
   

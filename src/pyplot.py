@@ -239,6 +239,8 @@ def plotErrorBand(axes, band, **kwargs):
     if "boundary_lines_zorder" in kwargs.keys():
         boundary_lines_zorder = kwargs["boundary_lines_zorder"]
         del kwargs["boundary_lines_zorder"]
+    if "color" not in kwargs.keys():
+        kwargs["color"] = 'r'
         
     plot_band = axes.fill_between(x,ly,uy,**kwargs)
 

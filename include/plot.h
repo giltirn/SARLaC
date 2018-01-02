@@ -491,6 +491,7 @@ protected:
 public:
 
   //Access an internal stream that can be used to provide arbitrary python commands that are included in the output file
+  //IMPORTANT: User must apply a tab \t in front of each line of python code as it should be executed in the if __name__ == '__main__' scope
   inline std::ostringstream & invoke(){ return user; }  
 };
 
@@ -589,23 +590,25 @@ public:
     for(int i=0;i<plothistogram_sets.size();i++)
       plothistogram_sets[i].write(os);
     
-    os << "\nfig = pyplot.plt.figure()\n";
-    os << "ax = fig.add_subplot(1,1,1)\n";
+    os << "\nif __name__ == '__main__':\n";
+
+    os << "\tfig = pyplot.plt.figure()\n";
+    os << "\tax = fig.add_subplot(1,1,1)\n";
 
     for(int i=0;i<plotdata_sets.size();i++)
-      os << "plot_" << plotdata_sets[i].tag() << " = " << "pyplot.plotDataSet(ax, " << plotdata_sets[i].tag() << kwargsPrint(plotdata_args[i]) << ")\n";
+      os << "\tplot_" << plotdata_sets[i].tag() << " = " << "pyplot.plotDataSet(ax, " << plotdata_sets[i].tag() << kwargsPrint(plotdata_args[i]) << ")\n";
 
     for(int i=0;i<ploterrorband_sets.size();i++)
-      os << "plot_" << ploterrorband_sets[i].tag() << " = " << "pyplot.plotErrorBand(ax, " << ploterrorband_sets[i].tag() << kwargsPrint(ploterrorband_args[i]) << ")\n";    
+      os << "\tplot_" << ploterrorband_sets[i].tag() << " = " << "pyplot.plotErrorBand(ax, " << ploterrorband_sets[i].tag() << kwargsPrint(ploterrorband_args[i]) << ")\n";    
 
     for(int i=0;i<plothistogram_sets.size();i++)
-      os << "plot_" << plothistogram_sets[i].tag() << " = " << "pyplot.plotHistogram(ax, " << plothistogram_sets[i].tag() << kwargsPrint(plothistogram_args[i]) << ")\n";
+      os << "\tplot_" << plothistogram_sets[i].tag() << " = " << "pyplot.plotHistogram(ax, " << plothistogram_sets[i].tag() << kwargsPrint(plothistogram_args[i]) << ")\n";
     
     os << user.str(); //user code
     
     os << leg_py;    
-    os << "fig.canvas.draw()\n";
-    os << "fig.savefig(\"" << script_gen_filename << "\")";
+    os << "\tfig.canvas.draw()\n";
+    os << "\tfig.savefig(\"" << script_gen_filename << "\")";
   }
   void write(const std::string &filename, const std::string &script_gen_filename = "plot.pdf"){
     std::ofstream of(filename.c_str());
@@ -642,8 +645,8 @@ public:
     }
 
     std::ostringstream py;
-    py << "phandles = " << ListPrint<std::string>(handles_str) << '\n';
-    py << "plegends = " << ListPrint<std::string>(legends,"\"") << '\n';
+    py << "\tphandles = " << ListPrint<std::string>(handles_str) << '\n';
+    py << "\tplegends = " << ListPrint<std::string>(legends,"\"") << '\n';
     
     if(!kwargs.count("numpoints"))
       kwargs["numpoints"] = 1;
@@ -652,21 +655,21 @@ public:
     if(!kwargs.count("fancybox"))
       kwargs["fancybox"] = true;
 
-    py << "ax.legend(phandles,plegends" << kwargsPrint(kwargs) << ")\n";
+    py << "\tax.legend(phandles,plegends" << kwargsPrint(kwargs) << ")\n";
     leg_py = py.str();
   }
   
   void setXlabel(const std::string &to, const std::string size = "x-large"){
-    invoke() << "ax.set_xlabel(r'" << to << "',size='" << size << "')\n";
+    invoke() << "\tax.set_xlabel(r'" << to << "',size='" << size << "')\n";
   }
   void setYlabel(const std::string &to, const std::string size = "x-large"){
-    invoke() << "ax.set_ylabel(r'" << to << "',size='" << size << "')\n";
+    invoke() << "\tax.set_ylabel(r'" << to << "',size='" << size << "')\n";
   }
   void setXaxisBounds(const double min, const double max){
-    invoke() << "ax.set_xlim(" << min << "," << max << ")\n";
+    invoke() << "\tax.set_xlim(" << min << "," << max << ")\n";
   }
   void setYaxisBounds(const double min, const double max){
-    invoke() << "ax.set_ylim(" << min << "," << max << ")\n";
+    invoke() << "\tax.set_ylim(" << min << "," << max << ")\n";
   }
 };
 
@@ -905,19 +908,20 @@ public:
     for(int i=0;i<scatter_sets.size();i++)
       scatter_sets[i].write(os);
     
-    os << "\nfig = pyplot.plt.figure()\n";
-    os << "ax = fig.add_subplot(1,1,1, projection='3d')\n";
+    os << "\nif __name__ == '__main__':\n";
+    os << "\tfig = pyplot.plt.figure()\n";
+    os << "\tax = fig.add_subplot(1,1,1, projection='3d')\n";
 
     for(int i=0;i<wireframe_sets.size();i++)
-      os << "plot_" << wireframe_sets[i].tag() << " = " << "pyplot.plotWireframe(ax, " << wireframe_sets[i].tag() << kwargsPrint(wireframe_args[i]) << ")\n";
+      os << "\tplot_" << wireframe_sets[i].tag() << " = " << "pyplot.plotWireframe(ax, " << wireframe_sets[i].tag() << kwargsPrint(wireframe_args[i]) << ")\n";
     
     for(int i=0;i<scatter_sets.size();i++)
-      os << "plot_" << scatter_sets[i].tag() << " = " << "pyplot.plotScatter(ax, " << scatter_sets[i].tag() << kwargsPrint(scatter_args[i]) << ")\n";
+      os << "\tplot_" << scatter_sets[i].tag() << " = " << "pyplot.plotScatter(ax, " << scatter_sets[i].tag() << kwargsPrint(scatter_args[i]) << ")\n";
 
     os << user.str(); //user code
     
-    os << "fig.canvas.draw()\n";
-    os << "fig.savefig(\"" << script_gen_filename << "\")";
+    os << "\tfig.canvas.draw()\n";
+    os << "\tfig.savefig(\"" << script_gen_filename << "\")";
   }
   void write(const std::string &filename, const std::string &script_gen_filename = "plot.pdf"){
     std::ofstream of(filename.c_str());

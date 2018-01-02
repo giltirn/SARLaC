@@ -121,6 +121,9 @@ void applyCombination(rawDataCorrelationFunctionD &to, const std::vector<rawData
     to = from[0];
     for(int i=1;i<from.size();i++) to = to + from[i];
     to = to / double(from.size());
+  }else if(CombinationAminusB){
+    if(from.size()!=2) error_exit(std::cout << "applyCombination error: CombinationAminusB requires two channels\n");
+    to = from[0] - from[1];
   }else{
     error_exit(std::cout << "applyCombination unknown combination " << comb << std::endl);
   }

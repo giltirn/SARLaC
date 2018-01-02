@@ -105,7 +105,7 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
   plotter.setYaxisBounds(ymid-yw, ymid+yw);
 
   std::cout << "Writing plot to 'effective_mass.py'\n";  
-  plotter.write("effective_mass.py");
+  plotter.write("effective_mass.py", "effective_mass.pdf");
   
   delete fitfunc;
 }

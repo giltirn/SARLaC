@@ -227,7 +227,6 @@ public:
     cen.print(os, false,true);
     os << "(";
     if(err.value()!=0. && err[0] == 0){
-      assert(err.nDigits() == cen.nDigits());
       //Remove leading zeroes
       bool start = false;
       for(int i=0;i<err.nDigits();i++){
