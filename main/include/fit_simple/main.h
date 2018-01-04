@@ -2,33 +2,11 @@
 #define _FIT_SIMPLE_MAIN_H_
 
 template<typename FitFunc, template<typename> class CostFunctionPolicy>
-void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, const CMDline &cmdline){
+void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const Args &args, const CMDline &cmdline){
   typedef typename composeFitPolicy<FitFunc, standardFitFuncPolicy, CostFunctionPolicy>::type FitPolicies;
   typedef fitter<FitPolicies> Fitter;
   typedef typename FitPolicies::FitParameterDistribution FitParameterDistribution;
   
-  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
-  doubleJackknifeCorrelationFunctionD data_dj(args.Lt, 
-					      [&](const int t){
-						return typename doubleJackknifeCorrelationFunctionD::ElementType(t,  doubleJackknifeDistributionD(data.value(t)));
-					      }
-					      );
-  jackknifeCorrelationFunctionD data_j(args.Lt, 
-				       [&](const int t){
-					 return typename jackknifeCorrelationFunctionD::ElementType(t,  jackknifeDistributionD(data.value(t))); 
-				       }
-				       );
-
-  if(cmdline.save_combined_data){
-#ifdef HAVE_HDF5
-    std::cout << "Writing double-jackknife data to " << cmdline.save_combined_data_file << std::endl;
-    HDF5writer writer(cmdline.save_combined_data_file);
-    write(writer, data_dj, "data");
-#else
-    error_exit("fitSpecFFcorr: Saving amplitude data requires HDF5\n");
-#endif
-  }
-
   const int nt_fit = args.t_max - args.t_min + 1;
 
   doubleJackknifeCorrelationFunctionD data_dj_inrange(nt_fit, 
@@ -53,6 +31,7 @@ void fitSpecFFcorr(const rawDataCorrelationFunctionD &data, const Args &args, co
       guess(i) = 1;
   }
 
+  const int nsample = data_j.value(0).size();
   FitParameterDistribution params(nsample, guess);
   jackknifeDistributionD chisq(nsample);
   jackknifeDistributionD chisq_per_dof(nsample);
