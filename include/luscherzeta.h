@@ -72,6 +72,10 @@ public:
 
   friend inline double dot(const GSLvector &a, const GSLvector &b);
 };
+inline std::ostream & operator<<(std::ostream &os, const GSLvector &v){
+  os << "(" << v[0] << "," << v[1] << "," << v[2] << ")"; return os;
+}
+
 
 inline double dot(const GSLvector &a, const GSLvector &b){
   double out;
@@ -160,13 +164,14 @@ class LuscherZeta{
       return out;
 
     //integral \int_0^1 dt e^{q^2t} (\pi/t)^{3/2} e^{-\pi^2 r^2/t} modified for APBC where appropriate (modifies r (aka n) )
-    //define n_perp = n - (n \cdot dnorm) d  is perpendicular to d
+    //define n_perp = n - (n \cdot dnorm) dnorm  is perpendicular to d
     double dcoeff = dot(n,dnorm);
-    GSLvector np = n - dcoeff*d;
+    GSLvector np = n - dcoeff*dnorm;
     double gn2 = square(dcoeff) + np.norm2();
 
     double int_n = int_zeta(q*q,gn2);
     out += int_n*pow(-1, dot(n,d));
+
     return out;
   }
   
@@ -179,7 +184,8 @@ class LuscherZeta{
   void setTwists(const double x, const double y, const double z){
     d[0] = x; d[1] = y; d[2] = z;
     double dnrm = d.norm();
-
+    if(d[0]==d[1]==d[2]==0) dnrm = 1;
+    
     for(int i=0;i<3;i++){
       if(d[i] != 0.0 && d[i] != 1.0){ std::cout << "LuscherZeta::setTwists : Error, arguments must be 0 or 1\n"; exit(-1); }
       dnorm[i] = double(d[i])/dnrm; //normalize d
@@ -209,6 +215,7 @@ class LuscherZeta{
 	}
       }
     }
+    
     //constant part
     double const_part = 0.0;
     double q2 = square(q);
