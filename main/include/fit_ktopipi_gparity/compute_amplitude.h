@@ -149,8 +149,21 @@ typename Controls::outputType computeAmplitudeType4(const typename Controls::inp
   return controls.out;
 }
 
-
-
+template<typename Controls>
+typename Controls::outputType computeAmplitudeType(const int i, const typename Controls::inputType &in){
+  switch(i){
+  case 1: 
+    return computeAmplitudeType1<Controls>(in);
+  case 2: 
+    return computeAmplitudeType2<Controls>(in);
+  case 3: 
+    return computeAmplitudeType3<Controls>(in);
+  case 4: 
+    return computeAmplitudeType4<Controls>(in);
+  default:
+    assert(0);
+  }
+};
 
 
 #endif

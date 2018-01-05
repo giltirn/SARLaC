@@ -19,15 +19,18 @@
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/read_data.h>
 
+#include <fit_ktopipi_gparity/utils.h>
 #include <fit_ktopipi_gparity/freeze.h>
 #include <fit_ktopipi_gparity/cmdline.h>
 #include <fit_ktopipi_gparity/args.h>
 #include <fit_ktopipi_gparity/data_containers.h>
 #include <fit_ktopipi_gparity/read_data.h>
 #include <fit_ktopipi_gparity/compute_amplitude.h>
+#include <fit_ktopipi_gparity/amplitude_data.h>
 #include <fit_ktopipi_gparity/fitfunc.h>
 #include <fit_ktopipi_gparity/plot.h>
 #include <fit_ktopipi_gparity/fit.h>
+#include <fit_ktopipi_gparity/scratch.h>
 #include <fit_ktopipi_gparity/main.h>
 
 int main(const int argc, const char* argv[]){
