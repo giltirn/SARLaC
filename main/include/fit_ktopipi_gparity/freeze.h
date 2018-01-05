@@ -57,10 +57,16 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const std::s
 
     if(fparams.sources[i].operation != ""){
       expressionAST AST = mathExpressionParse(fparams.sources[i].operation);
-      if(!AST.containsSymbol("x")) error_exit(std::cout << "readFrozenParams expect math expression to be a function of 'x', got \"" << fparams.sources[i].operation << "\"\n");
-      for(int s=0;s<nsample;s++){
-	AST.assignSymbol("x",fval.sample(s));
-	fval.sample(s) = AST.value();
+      if(fparams.sources[i].reader == ConstantValue){
+	if(AST.nSymbols() != 0) error_exit(std::cout << "readFrozenParams with ConstantValue expects math expression with no symbols, got \"" << fparams.sources[i].operation << "\"\n");
+	for(int s=0;s<nsample;s++)
+	  fval.sample(s) = AST.value();
+      }else{
+	if(!AST.containsSymbol("x")) error_exit(std::cout << "readFrozenParams expect math expression to be a function of 'x', got \"" << fparams.sources[i].operation << "\"\n");
+	for(int s=0;s<nsample;s++){
+	  AST.assignSymbol("x",fval.sample(s));
+	  fval.sample(s) = AST.value();
+	}
       }
     }
 
