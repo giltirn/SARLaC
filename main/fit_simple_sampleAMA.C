@@ -37,13 +37,10 @@ int main(const int argc, const char** argv){
   std::vector<rawDataCorrelationFunctionD> exact_channels_C(nChannel);
 
   for(int i=0;i<nChannel;i++){
-    DataInfo dsloppy = args.data[i].toDataInfo(Sloppy);
-    DataInfo dexact = args.data[i].toDataInfo(Exact);
-    
-    readData(sloppy_channels_S[i], dsloppy, args.Lt, args.sloppy_traj_start, args.traj_inc, args.sloppy_traj_lessthan);
+    readData(sloppy_channels_S[i], args.data[i].toDataInfo(Sloppy,'S'), args.Lt, args.sloppy_traj_start, args.traj_inc, args.sloppy_traj_lessthan);
 
-    readData(sloppy_channels_C[i], dsloppy, args.Lt, args.correction_traj_start, args.traj_inc, args.correction_traj_lessthan);
-    readData(exact_channels_C[i], dexact, args.Lt, args.correction_traj_start, args.traj_inc, args.correction_traj_lessthan);
+    readData(sloppy_channels_C[i], args.data[i].toDataInfo(Sloppy,'C'), args.Lt, args.correction_traj_start, args.traj_inc, args.correction_traj_lessthan);
+    readData(exact_channels_C[i], args.data[i].toDataInfo(Exact,'C'), args.Lt, args.correction_traj_start, args.traj_inc, args.correction_traj_lessthan);
   }
 
   //Apply time-deps/combinations/binning/resampling to each set of data separately
@@ -60,8 +57,8 @@ int main(const int argc, const char** argv){
   //Apply a superjackknife-esque procedure to correct the sloppy data
   jackknifeCorrelationFunctionD corrected_j(args.Lt);
   doubleJackknifeCorrelationFunctionD corrected_dj(args.Lt);
-  const int nS=sloppy_data_S.size();
-  const int nC=sloppy_data_C.size();
+  const int nS=sloppy_data_S.value(0).size();
+  const int nC=sloppy_data_C.value(0).size();
   
   for(int t=0;t<args.Lt;t++){
     corrected_j.coord(t) = corrected_dj.coord(t) = sloppy_data_S.coord(t);

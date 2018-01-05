@@ -6,27 +6,33 @@
 
 enum SloppyExact {Sloppy, Exact};
 
+//Ensembles are labelled S for the sloppy ensemble and C for the ensemble upon which the corrections are computed
 
 #define DATA_INFO_SAMPLE_AMA_MEMBERS \
   ( ParserType, parser )	       \
   ( std::string, operation )   \
   ( TimeDependence, time_dep ) \
-  ( std::string, sloppy_file_fmt ) \
-  ( std::string, exact_file_fmt )
+  ( std::string, sloppy_file_fmt_S ) \
+  ( std::string, sloppy_file_fmt_C ) \
+  ( std::string, exact_file_fmt_C )
   
 //*_file_fmt should contain a '%d' which is replaced by the trajectory index
 //operation is a math expression. Use x to represent the data. Use an empty string to leave as-is
 
 struct DataInfoSampleAMA{
   GENERATE_MEMBERS(DATA_INFO_SAMPLE_AMA_MEMBERS);
-  DataInfoSampleAMA(): parser(ParserStandard), operation(""), time_dep(TimeDepNormal), sloppy_file_fmt("sloppy_data.%d"), exact_file_fmt("exact_data.%d"){}
+  DataInfoSampleAMA(): parser(ParserStandard), operation(""), time_dep(TimeDepNormal), sloppy_file_fmt_S("sloppy_data_S.%d"), sloppy_file_fmt_C("sloppy_data_C.%d"), exact_file_fmt_C("exact_data_C.%d"){}
 
-  DataInfo toDataInfo(const SloppyExact &se) const{
+  DataInfo toDataInfo(const SloppyExact &se, const char ens) const{
     DataInfo out;
     out.parser = parser;
     out.operation = operation;
     out.time_dep = time_dep;
-    out.file_fmt = se == Sloppy ? sloppy_file_fmt : exact_file_fmt;
+    if(se == Exact){
+      assert(ens == 'C'); out.file_fmt = exact_file_fmt_C;
+    }else{
+      out.file_fmt = ens == 'S' ? sloppy_file_fmt_S : sloppy_file_fmt_C;
+    }
     return out;
   }
     
