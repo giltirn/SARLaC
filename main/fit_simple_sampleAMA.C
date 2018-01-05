@@ -74,6 +74,10 @@ int main(const int argc, const char** argv){
 
     corrected_j.value(t) = sloppy_S_sj_j + exact_C_sj_j - sloppy_C_sj_j;
     corrected_dj.value(t) = sloppy_S_sj_dj + exact_C_sj_dj - sloppy_C_sj_dj;
+
+    jackknifeDistributionD sigma_sloppy_j = doubleJackknifeDistributionD::covariance(sloppy_S_sj_dj, sloppy_S_sj_dj);
+    jackknifeDistributionD sigma_corrected_j = doubleJackknifeDistributionD::covariance(corrected_dj.value(t), corrected_dj.value(t));
+    std::cout << t << " " << "sloppy: value=" << sloppy_S_sj_j << " sigma=" << sigma_sloppy_j << " corrected: value=" << corrected_j.value(t) << " sigma=" << sigma_corrected_j << std::endl;
   }
   
   fitResampled(corrected_j, corrected_dj, args.toArgs(), cmdline);

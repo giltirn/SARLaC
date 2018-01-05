@@ -76,10 +76,13 @@ public:
   inline const DataType & sample(const int idx) const{ return _data[idx]; }
   inline DataType & sample(const int idx){ return _data[idx]; }
 
-  DataType mean() const{ return threadedSum(_data)/double(_data.size()); }
+  DataType mean() const{ 
+    const int N = _data.size() == 0 ? 1 : _data.size();
+    return threadedSum(_data)/double(N); 
+  }
   
   DataType variance() const{
-    const int N = _data.size();
+    const int N = _data.size() == 0 ? 1 : _data.size();
     const DataType avg = mean();
 
     const int nthread = omp_get_max_threads();
@@ -101,6 +104,7 @@ public:
   
   static DataType covariance(const distribution<DataType,VectorType> &a, const distribution<DataType,VectorType> &b){
     assert(a.size() == b.size());
+    const int N = a.size() == 0 ? 1 : a.size();
     DataType avg_a = a.mean();
     DataType avg_b = b.mean();
 
@@ -112,7 +116,7 @@ public:
       inline DataType operator()(const int i) const{ return (data_a[i]-avg_a)*(data_b[i]-avg_b); }
     };
     Op op(avg_a,avg_b,a.sampleVector(),b.sampleVector());
-    return threadedSum(op)/double(a.size());
+    return threadedSum(op)/double(N);
   }
 
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>

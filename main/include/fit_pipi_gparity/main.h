@@ -181,9 +181,11 @@ void outputRawData(const std::string &filename, const correlationFunction<double
   of.close();
 }
 
-doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdline){
+typedef correlationFunction<double,rawDataDistributionD> rawCorrelationFunction;
+
+void getRawData(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data, const Args &args, const CMDline &cmdline, const std::string &extra_descr = ""){
+  std::cout << "Reading raw data " << extra_descr << std::endl;
   figureDataAllMomenta raw_data;
-  bubbleDataAllMomenta raw_bubble_data;
 
   if(cmdline.load_data_checkpoint){
     loadCheckpoint<boost::archive::binary_iarchive>(raw_data, raw_bubble_data, cmdline.load_data_checkpoint_file);
@@ -217,28 +219,36 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
 
   raw_data.bin(args.bin_size);
   raw_bubble_data.bin(args.bin_size);
-  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
   
   figureData A2_C = projectA2('C', raw_data);
   figureData A2_D = projectA2('D', raw_data);
   figureData A2_R = projectA2('R', raw_data);
   figureData A2_V = projectA2('V', raw_data);
-
-  typedef correlationFunction<double,rawDataDistributionD> rawCorrelationFunction;
   
   rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
   rawCorrelationFunction A2_realavg_D = sourceAverage(A2_D);
   rawCorrelationFunction A2_realavg_R = sourceAverage(A2_R);
   rawCorrelationFunction A2_realavg_V = sourceAverage(A2_V);
 
-  outputRawData("raw_data_Cpart.dat", A2_realavg_C, 1.);
-  outputRawData("raw_data_Dpart.dat", A2_realavg_D, 2.);
-  outputRawData("raw_data_Rpart.dat", A2_realavg_R, -6.);
-  outputRawData("raw_data_Vpart.dat", A2_realavg_V, 3.);
-  
-  rawCorrelationFunction pipi_raw = 2*A2_realavg_D + A2_realavg_C - 6*A2_realavg_R + 3*A2_realavg_V;
+  std::string ee = extra_descr != "" ? "_" + extra_descr : "";
 
-  std::cout << "Raw data:\n" << pipi_raw << std::endl;
+  outputRawData("raw_data_Cpart"+ee+".dat", A2_realavg_C, 1.);
+  outputRawData("raw_data_Dpart"+ee+".dat", A2_realavg_D, 2.);
+  outputRawData("raw_data_Rpart"+ee+".dat", A2_realavg_R, -6.);
+  outputRawData("raw_data_Vpart"+ee+".dat", A2_realavg_V, 3.);
+  
+  pipi_raw = 2*A2_realavg_D + A2_realavg_C - 6*A2_realavg_R + 3*A2_realavg_V;
+
+  std::cout << "Raw data " << extra_descr << ":\n" << pipi_raw << std::endl;
+}
+
+
+doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdline){
+  bubbleDataAllMomenta raw_bubble_data;
+  rawCorrelationFunction pipi_raw;
+  getRawData(pipi_raw, raw_bubble_data, args, cmdline);
+
+  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
   
   doubleJackCorrelationFunction pipi_dj(args.Lt,
 					[&pipi_raw,nsample](const int t)
