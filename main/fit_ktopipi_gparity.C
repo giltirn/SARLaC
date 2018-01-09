@@ -46,9 +46,6 @@ int main(const int argc, const char* argv[]){
   const std::string arg_file = argv[1];
   parse(args, arg_file);
   
-  assert( (args.traj_lessthan - args.traj_start) % args.traj_inc == 0 );  
-  const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
-
   CMDline cmdline(argc,argv,2);
   
   //Prepare the data
@@ -56,10 +53,10 @@ int main(const int argc, const char* argv[]){
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > A0_all_dj(10);
   printMem("Prior to getData");
   getData(A0_all_j, A0_all_dj,args,cmdline);
-
+  
   printMem("Prior to fitting");
   fitAndPlot(A0_all_j,A0_all_dj,args,cmdline);
-
+  
   std::cout << "Done" << std::endl;
   
   return 0;

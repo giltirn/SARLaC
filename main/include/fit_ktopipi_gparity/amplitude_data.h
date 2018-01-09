@@ -1,6 +1,20 @@
 #ifndef _KTOPIPI_FIT_AMPLITUDE_DATA_H_
 #define _KTOPIPI_FIT_AMPLITUDE_DATA_H_
 
+template<typename Resampled, typename Raw, typename Resampler>
+struct resampleFunctorGeneral{
+  const Resampler &resampler;
+  
+  resampleFunctorGeneral(const Resampler &_resampler): resampler(_resampler){}
+
+  inline Resampled operator()(int const* coord,const Raw &from) const{
+    Resampled o(from.size());
+    resampler.resample(o,from);
+    return o;
+  }
+};
+
+
 //Structure for containing raw and resampled bubble data
 struct BubbleData{
   NumericTensor<rawDataDistributionD,1> bubble;
@@ -8,11 +22,12 @@ struct BubbleData{
   NumericTensor<jackknifeDistributionD,1> bubble_j;
   NumericTensor<doubleJackknifeDistributionD,1> bubble_dj;
 
-  BubbleData(const Args &args, const CMDline &cmdline){
+  template<typename Resampler>
+  BubbleData(const Args &args, const CMDline &cmdline, const Resampler &resampler){
     bubble = getA2projectedBubble(args,cmdline);
     bubble_binned = bin(bubble,args.bin_size);
-    bubble_j = bubble_binned.transform(resampleFunctor<jackknifeDistributionD,rawDataDistributionD>());
-    bubble_dj = bubble_binned.transform(resampleFunctor<doubleJackknifeDistributionD,rawDataDistributionD>());
+    bubble_j = bubble_binned.transform(resampleFunctorGeneral<jackknifeDistributionD,rawDataDistributionD,Resampler>(resampler));
+    bubble_dj = bubble_binned.transform(resampleFunctorGeneral<doubleJackknifeDistributionD,rawDataDistributionD,Resampler>(resampler));
   }
 };
 template<typename DistributionType> struct getResampledBubble{};

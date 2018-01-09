@@ -24,7 +24,7 @@ jackknifeDistributionD superJackknifeResampleC(const rawDataDistributionD &data,
   
   return jackknifeDistributionD(nS+nC,
 				[&](const int s){
-				  if(s<nS) Cmean;
+				  if(s<nS) return Cmean;
 				  else return 1./(nC-1)*(Csum - data.sample(s-nS));
 				}
 				);
@@ -72,6 +72,22 @@ doubleJackknifeDistributionD superDoubleJackknifeResampleC(const rawDataDistribu
   return out;
 }
 
+
+template<typename DistributionType>
+struct sampleAMAresample{};
+
+template<>
+struct sampleAMAresample<jackknifeDistributionD>{
+  static inline jackknifeDistributionD resample(const rawDataDistributionD &in, const char ens, const int nS, const int nC){
+    return ens == 'S' ? superJackknifeResampleS(in,nS,nC) : superJackknifeResampleC(in,nS,nC);
+  }
+};
+template<>
+struct sampleAMAresample<doubleJackknifeDistributionD>{
+  static inline doubleJackknifeDistributionD resample(const rawDataDistributionD &in, const char ens, const int nS, const int nC){
+    return ens == 'S' ? superDoubleJackknifeResampleS(in,nS,nC) : superDoubleJackknifeResampleC(in,nS,nC);
+  }
+};
 
 
 #endif

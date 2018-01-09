@@ -70,13 +70,19 @@ void average(DistributionType & into, const Accessor &data, const int size){
   into = into/double(size);
 }
 
-template<typename DistributionType, typename Accessor>
-void resampleAverage(DistributionType & into, const Accessor &data, const int size){
+
+struct basic_resampler{
+  template<typename DistributionType>
+  inline void resample(DistributionType &out, const rawDataDistributionD &in) const{ out.resample(in); }
+};
+
+template<typename DistributionType, typename Accessor, typename Resampler>
+void resampleAverage(DistributionType & into, const Resampler &resampler, const Accessor &data, const int size){
   assert(size > 0);
-  into.resample(data(0));
+  resampler.resample(into, data(0));
   DistributionType tmp;
   for(int i=1;i<size;i++){
-    tmp.resample(data(i));
+    resampler.resample(tmp,data(i));
     into = into+tmp;
   }
   into = into/double(size);

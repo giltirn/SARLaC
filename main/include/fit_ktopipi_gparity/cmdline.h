@@ -21,6 +21,8 @@ struct CMDline{
   std::string freeze_data;
 
   bool use_scratch; //save memory at peak times by storing to disk and reloading later
+  std::string use_scratch_stub;
+
   bool use_existing_scratch_files; //if scratch files from a previous run exist, use these
 
   bool use_symmetric_quark_momenta; //use data generated with mesonfields with symmetric quark momenta (_symm extension)
@@ -35,6 +37,7 @@ struct CMDline{
     use_scratch = false;
     use_existing_scratch_files = false;
     use_symmetric_quark_momenta = false;
+    use_scratch_stub = "scratch";
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -73,6 +76,9 @@ struct CMDline{
       }else if(sargv[i] == "-use_scratch"){
 	use_scratch = true;
 	i++;
+      }else if(sargv[i] == "-set_scratch_stub"){
+	use_scratch_stub = sargv[i+1];
+	i+=2;
       }else if(sargv[i] == "-use_existing_scratch_files"){
 	use_existing_scratch_files = true;
 	i++;
