@@ -35,7 +35,7 @@ public:
   NumericVector & operator=(const NumericVector &r) = default;
   NumericVector & operator=(NumericVector &&r) = default;
 
-  ENABLE_GENERIC_ET(NumericVector, NumericVector<Numeric>);
+  ENABLE_GENERIC_ET(NumericVector, NumericVector<Numeric>, NumericVector<Numeric>);
   
   int size() const{ return v.size(); }
   
@@ -433,8 +433,8 @@ public:
     return data[map(elem)];
   }  
   
-  inline const std::vector<int> sizes() const{ return dsizes; }
-  inline const int size(const int dir) const{ return dsizes[dir]; }
+  inline const std::vector<int> &sizes() const{ return dsizes; }
+  inline int size(const int dir) const{ return dsizes[dir]; }
 
   template<typename Rule>
   auto transform(const Rule &rule = Rule()) const -> NumericTensor<typename std::decay<decltype(rule( (int const*)(NULL), data[0]))>::type,Rank>{ 
@@ -478,7 +478,7 @@ NumericTensor<T,R1+R2-2> contract(const NumericTensor<T,R1> &A, const NumericTen
   return NumericTensor<T,R1+R2-2>(dimC,
 				  [&](const int* cC){
 				    int cA[R1], cB[R2];
-				    int c;
+				    int c=0;
 				    for(int i=0;i<R1;i++)
 				      if(i!=rankA) cA[i]=cC[c++];
 				    for(int i=0;i<R2;i++)

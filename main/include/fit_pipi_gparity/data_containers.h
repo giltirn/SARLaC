@@ -16,8 +16,8 @@ class bubbleDataBase: public Policies{
 public:
   void setup(const int _Lt, const int _Nsample){ Lt = _Lt; d.resize(_Lt, DistributionType(_Nsample)); }
   
-  inline const int getLt() const{ return Lt; }
-  inline const int getNsample() const{ return d[0].size(); }
+  inline int getLt() const{ return Lt; }
+  inline int getNsample() const{ return d[0].size(); }
   
   inline DistributionType & operator()(const int t){ return d[t]; }
   inline const DistributionType & operator()(const int t) const { return d[t]; }
@@ -118,8 +118,8 @@ public:
   
   void setup(const int _Lt, const int _Nsample){ Lt = _Lt; d.resize(_Lt, DistributionType(_Nsample)); }
   
-  inline const int getLt() const{ return Lt; }
-  inline const int getNsample() const{ return d(0,0).size(); }
+  inline int getLt() const{ return Lt; }
+  inline int getNsample() const{ return d(0,0).size(); }
   
   inline DistributionType & operator()(const int tsrc, const int tsep){ return d(tsrc,tsep); }
   inline const DistributionType & operator()(const int tsrc, const int tsep) const { return d(tsrc,tsep); }

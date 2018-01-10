@@ -50,7 +50,7 @@ public:
   distribution(){}
 
   template<template<typename> class U>
-  distribution(const distribution<DataType,U> &r): _data(r._data){}
+  distribution(const distribution<DataType,U> &r): _data(r.sampleVector()){}
 
   distribution(const distribution &r): _data(r._data){}
   
@@ -62,7 +62,7 @@ public:
   }	       
   distribution(distribution&& o) noexcept : _data(std::move(o._data)){}
 
-  ENABLE_GENERIC_ET(distribution, myType);
+  ENABLE_GENERIC_ET(distribution, myType, myType);
   
   distribution & operator=(const distribution &r){ _data = r._data; return *this; }
   
@@ -193,7 +193,7 @@ public:
   rawDataDistribution(const int nsample, const Initializer &init): baseType(nsample,init){}
   rawDataDistribution(rawDataDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
 
-  ENABLE_GENERIC_ET(rawDataDistribution, myType);
+  ENABLE_GENERIC_ET(rawDataDistribution, myType, myType);
   
   rawDataDistribution & operator=(const rawDataDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
 
@@ -297,7 +297,7 @@ public:
     return sqrt( threadedSum(op) * (double(N-1)/N) );
   }
   
-  jackknifeDistribution(): distribution<DataType,VectorType>(){}
+  jackknifeDistribution(): baseType(){}
 
   jackknifeDistribution(const jackknifeDistribution &r): baseType(r){}
   
@@ -313,7 +313,7 @@ public:
   template< template<typename> class U >
   jackknifeDistribution(const rawDataDistribution<DataType,U> &raw): jackknifeDistribution(raw.size()){ this->resample(raw); }
   
-  ENABLE_GENERIC_ET(jackknifeDistribution, myType);
+  ENABLE_GENERIC_ET(jackknifeDistribution, myType, myType);
   
   jackknifeDistribution & operator=(const jackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
 
@@ -539,7 +539,7 @@ public:
     this->resample(raw);
   }
   
-  ENABLE_GENERIC_ET(doubleJackknifeDistribution, doubleJackknifeDistribution<BaseDataType>);
+  ENABLE_GENERIC_ET(doubleJackknifeDistribution, myType, doubleJackknifeDistribution<BaseDataType>);
 
   doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
 

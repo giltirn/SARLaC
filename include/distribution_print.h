@@ -100,8 +100,8 @@ public:
   }
 
   //Vector access of individual digits
-  inline const int nDigits() const{ return v.size(); }
-  inline const int operator[](const int i) const{ return v[i]; }
+  inline int nDigits() const{ return v.size(); }
+  inline int operator[](const int i) const{ return v[i]; }
   
   int exponent() const{ return base_pow; }
 

@@ -66,7 +66,7 @@ jackknifeTimeSeriesType effectiveMass(const jackknifeTimeSeriesType &data, const
       if(!fitter.hasConverged()) fail[omp_get_thread_num()] = 1;
       else effmass.value(i).sample(j) = *p;
     }
-    int did_fail = 0; for(int i=0;i<fail.size();i++) did_fail += fail[i];
+    int did_fail = 0; for(int ii=0;ii<fail.size();i++) did_fail += fail[ii];
     if(did_fail){
       std::cout << "Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
       erase[i] = true;

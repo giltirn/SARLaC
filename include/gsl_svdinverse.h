@@ -142,7 +142,7 @@ int svd_inverse(NumericSquareMatrixType &Ainv,
 	        const NumericSquareMatrixType &A){ 
   const int nsample = A(0,0).size();
   int ret = 0;
-  int ret_thr[omp_get_max_threads()] = {0};
+  std::vector<int> ret_thr(omp_get_max_threads(),0);
   
 #pragma omp parallel for
   for(int j=0;j<nsample;j++){

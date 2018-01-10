@@ -274,19 +274,17 @@ inline void loop_eval(T &obj, U &&expr){
 
 //Put this inside your class to enable the ET
 //Tag is used to discriminate between classes of object; a binary op requires both ops have the same tag
-#define ENABLE_GENERIC_ET(CLASS, TAG)					\
+#define ENABLE_GENERIC_ET(CLASS_NAME, CLASS_FULL, TAG)			\
   typedef TAG ET_tag;							\
-  static auto _ET_self() -> typename std::remove_reference<decltype(*this)>::type; \
-  \
-  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,decltype(_ET_self())>::value, int>::type = 0> \
-  CLASS(U&& expr): CLASS(expr.common_properties()){			\
-   loop_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
+  CLASS_NAME(U&& expr): CLASS_NAME(expr.common_properties()){			\
+    loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));		\
   }\
   \
-  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,decltype(_ET_self())>::value, int>::type = 0> \
-  decltype(_ET_self()) & operator=(U && expr){ \
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
+  CLASS_FULL & operator=(U && expr){ \
     this->resize(expr.common_properties());    \
-    loop_eval<decltype(_ET_self()), U>(*this, std::forward<U>(expr));	\
+    loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
     return *this; \
   }
 

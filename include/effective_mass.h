@@ -5,7 +5,7 @@ template<typename T>
 class MLwrapper{
   T t;
 public:
-  ENABLE_GENERIC_ET(MLwrapper, MLwrapper<T>);
+  ENABLE_GENERIC_ET(MLwrapper, MLwrapper<T>, MLwrapper<T>);
   //typedef MLwrapper<T> ET_tag;
   MLwrapper(): t(0.){}
   explicit MLwrapper(const T _t): t(_t){}
@@ -103,7 +103,7 @@ jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, c
       if(!fitter.hasConverged()) fail[omp_get_thread_num()] = 1;
       else effmass.value(i).sample(j) = *p;
     }
-    int did_fail = 0; for(int i=0;i<fail.size();i++) did_fail += fail[i];
+    int did_fail = 0; for(int ii=0;ii<fail.size();ii++) did_fail += fail[ii];
     if(did_fail){
       std::cout << "Warning: Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
       erase[i] = true;

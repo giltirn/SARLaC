@@ -158,7 +158,7 @@ public:
     }
     const costFunctionType &getCostFunction() const{ return *cost_func; }
 
-    const int Ndof() const{ return data_s.size() - this->getFitFunc().Nparams(); }
+    int Ndof() const{ return data_s.size() - this->getFitFunc().Nparams(); }
   };
 
 private:
@@ -201,7 +201,7 @@ public:
     }
     const costFunctionType &getCostFunction() const{ return *cost_func; }
 
-    const int Ndof() const{ return data_s.size() - this->getFitFunc().Nparams(); }
+    int Ndof() const{ return data_s.size() - this->getFitFunc().Nparams(); }
   };
 
 private:

@@ -90,8 +90,22 @@ template<typename T>
 struct hasResizeMethod<T, typename Void<decltype( ((T*)(NULL))->resize(0) )>::type>{
   enum{ value = 1 };
 };
-
-
+template<typename T, typename U = void>
+struct hasPathenthesesConstAccessor{
+  enum{ value = 0 };
+};
+template<typename T>
+struct hasPathenthesesConstAccessor<T, typename Void<decltype( ((T const*)(NULL))->operator()(0) )>::type>{
+  enum{ value = 1 };
+};
+template<typename T, typename U = void>
+struct hasSquareBracketsConstAccessor{
+  enum{ value = 0 };
+};
+template<typename T>
+struct hasSquareBracketsConstAccessor<T, typename Void<decltype( ((T const*)(NULL))->operator[](0) )>::type>{
+  enum{ value = 1 };
+};
 
 template<class T, class Fallback = void>
 struct hasDataType{ enum{ value = 0 }; };

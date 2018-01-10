@@ -287,9 +287,9 @@ class shuntingYardParser{
   }
 
   static inline const std::string & Op(std::map<std::string, std::pair<int,int> >::const_iterator mit){ return mit->first; }
-  static inline const int Prec(std::map<std::string, std::pair<int,int> >::const_iterator mit){ return mit->second.first; }
-  static inline const int Assoc(std::map<std::string, std::pair<int,int> >::const_iterator mit){ return mit->second.second; }
-  static inline const bool isFunction(std::map<std::string, std::pair<int,int> >::const_iterator mit){ return (Prec(mit) == -1 && Op(mit) != "("); }
+  static inline int Prec(std::map<std::string, std::pair<int,int> >::const_iterator mit){ return mit->second.first; }
+  static inline int Assoc(std::map<std::string, std::pair<int,int> >::const_iterator mit){ return mit->second.second; }
+  static inline bool isFunction(std::map<std::string, std::pair<int,int> >::const_iterator mit){ return (Prec(mit) == -1 && Op(mit) != "("); }
 
   std::vector<map_const_iterator> stack;
 

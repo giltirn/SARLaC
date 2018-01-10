@@ -92,7 +92,7 @@ inline void zeroit(float &v){
   v = 0.;
 }
 
-template<typename Operation>
+template<typename Operation, typename std::enable_if<hasPathenthesesConstAccessor<Operation>::value,int>::type = 0>
 auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::type{
   typedef typename std::decay<decltype(op(0))>::type T;
   const int N = op.size();
@@ -111,7 +111,7 @@ auto threadedSum(const Operation &op)->typename std::decay<decltype(op(0))>::typ
   return sum[0];
 }
 						    
-template<typename VectorOfData>
+template<typename VectorOfData, typename std::enable_if<hasSquareBracketsConstAccessor<VectorOfData>::value,int>::type = 0>
 typename std::decay<decltype(VectorOfData()[0])>::type threadedSum(const VectorOfData &v){
   typedef typename std::decay<decltype(VectorOfData()[0])>::type T;
   struct Op{
