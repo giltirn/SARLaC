@@ -22,6 +22,8 @@ struct BubbleData{
   NumericTensor<jackknifeDistributionD,1> bubble_j;
   NumericTensor<doubleJackknifeDistributionD,1> bubble_dj;
 
+  BubbleData(){}
+
   template<typename Resampler>
   BubbleData(const Args &args, const CMDline &cmdline, const Resampler &resampler){
     bubble = getA2projectedBubble(args,cmdline);
@@ -81,6 +83,8 @@ private:
   }
  
 public:
+  RawKtoPiPiData(){}
+
   RawKtoPiPiData(const int tsep_k_pi, const BubbleData &bubble_data, const Args &args, const CMDline &cmdline){
     IndexedContainer<type1234Data, 4, 1> type_data;
     getTypeData(type_data, tsep_k_pi, args, cmdline);
