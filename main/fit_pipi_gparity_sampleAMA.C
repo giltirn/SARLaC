@@ -28,92 +28,77 @@
 #include <fit_pipi_gparity_sampleAMA/args.h>
 #include <fit_pipi_gparity_sampleAMA/cmdline.h>
 
-bubbleDataDoubleJackAllMomenta doubleJackknifeResampleBubbleSampleAMA(const bubbleDataAllMomenta &bubbles, const char ens, const int nS, const int nC){
-  int Lt = bubbles.getLt();
-  bubbleDataDoubleJackAllMomenta out(Lt,nS+nC);
-
-  for(auto it = bubbles.begin(); it != bubbles.end(); it++){
-    const threeMomentum & mom = it->first;
-    const typename bubbleDataAllMomenta::ContainerType & raw = it->second;
-    for(int t=0;t<Lt;t++)
-      out(mom)(t) = ens == 'S' ? superDoubleJackknifeResampleS(raw(t),nS,nC) : superDoubleJackknifeResampleC(raw(t),nS,nC);
-  }
-  return out;
-}
-typedef bubbleDataBase<jackknifeDistributionD > bubbleDataJack;
-typedef bubbleDataAllMomentaBase<bubbleDataJack> bubbleDataJackAllMomenta;
-
-bubbleDataJackAllMomenta jackknifeResampleBubbleSampleAMA(const bubbleDataAllMomenta &bubbles, const char ens, const int nS, const int nC){
-  int Lt = bubbles.getLt();
-  bubbleDataJackAllMomenta out(Lt,nS+nC);
-
-  for(auto it = bubbles.begin(); it != bubbles.end(); it++){
-    const threeMomentum & mom = it->first;
-    const typename bubbleDataAllMomenta::ContainerType & raw = it->second;
-    for(int t=0;t<Lt;t++)
-      out(mom)(t) = ens == 'S' ? superJackknifeResampleS(raw(t),nS,nC) : superJackknifeResampleC(raw(t),nS,nC);
-  }
-  return out;
-}
-
-
-void generateData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
+struct rawData{
   bubbleDataAllMomenta raw_bubble_data_sloppy_S;
   rawCorrelationFunction pipi_raw_sloppy_S;
-  getRawData(pipi_raw_sloppy_S, raw_bubble_data_sloppy_S, args.toArgs('S'), cmdline.toCMDline(Sloppy,'S') );
 
   bubbleDataAllMomenta raw_bubble_data_sloppy_C;
   rawCorrelationFunction pipi_raw_sloppy_C;
-  getRawData(pipi_raw_sloppy_C, raw_bubble_data_sloppy_C, args.toArgs('C'), cmdline.toCMDline(Sloppy,'C') );
 
   bubbleDataAllMomenta raw_bubble_data_exact_C;
   rawCorrelationFunction pipi_raw_exact_C;
-  getRawData(pipi_raw_exact_C, raw_bubble_data_exact_C, args.toArgs('C'), cmdline.toCMDline(Exact,'C') );
-  
-  const int nS = pipi_raw_sloppy_S.value(0).size();
-  const int nC = pipi_raw_sloppy_C.value(0).size();
-  
-  typedef jackknifeCorrelationFunction::ElementType JackCorrElem;
-  jackknifeCorrelationFunction pipi_sloppy_S_j(args.Lt, [&](const int t){ return JackCorrElem(pipi_raw_sloppy_S.coord(t), superJackknifeResampleS(pipi_raw_sloppy_S.value(t),nS,nC)); });
-  jackknifeCorrelationFunction pipi_sloppy_C_j(args.Lt, [&](const int t){ return JackCorrElem(pipi_raw_sloppy_C.coord(t), superJackknifeResampleC(pipi_raw_sloppy_C.value(t),nS,nC)); });
-  jackknifeCorrelationFunction pipi_exact_C_j(args.Lt, [&](const int t){ return JackCorrElem(pipi_raw_exact_C.coord(t), superJackknifeResampleC(pipi_raw_exact_C.value(t),nS,nC)); });
 
+  int nS;
+  int nC;
 
-  typedef doubleJackCorrelationFunction::ElementType DJackCorrElem;
-  doubleJackCorrelationFunction pipi_sloppy_S_dj(args.Lt, [&](const int t){ return DJackCorrElem(pipi_raw_sloppy_S.coord(t), superDoubleJackknifeResampleS(pipi_raw_sloppy_S.value(t),nS,nC)); });
-  doubleJackCorrelationFunction pipi_sloppy_C_dj(args.Lt, [&](const int t){ return DJackCorrElem(pipi_raw_sloppy_C.coord(t), superDoubleJackknifeResampleC(pipi_raw_sloppy_C.value(t),nS,nC)); });
-  doubleJackCorrelationFunction pipi_exact_C_dj(args.Lt, [&](const int t){ return DJackCorrElem(pipi_raw_exact_C.coord(t), superDoubleJackknifeResampleC(pipi_raw_exact_C.value(t),nS,nC)); });
-  
-  if(args.do_vacuum_subtraction){
-    //Jackknife
-    bubbleDataJackAllMomenta j_bubble_data_sloppy_S = jackknifeResampleBubbleSampleAMA(raw_bubble_data_sloppy_S, 'S', nS, nC);
-    bubbleDataJackAllMomenta j_bubble_data_sloppy_C = jackknifeResampleBubbleSampleAMA(raw_bubble_data_sloppy_C, 'C', nS, nC);
-    bubbleDataJackAllMomenta j_bubble_data_exact_C = jackknifeResampleBubbleSampleAMA(raw_bubble_data_exact_C, 'C', nS, nC);
+  rawData(const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
+    getRawData(pipi_raw_sloppy_S, raw_bubble_data_sloppy_S, args.toArgs('S'), cmdline.toCMDline(Sloppy,'S') );
+    getRawData(pipi_raw_sloppy_C, raw_bubble_data_sloppy_C, args.toArgs('C'), cmdline.toCMDline(Sloppy,'C') );
+    getRawData(pipi_raw_exact_C, raw_bubble_data_exact_C, args.toArgs('C'), cmdline.toCMDline(Exact,'C') );
 
-    jackknifeCorrelationFunction A2_realavg_V_sloppy_S_j = computeVprojectA2sourceAvg(j_bubble_data_sloppy_S,args.tsep_pipi);
-    jackknifeCorrelationFunction A2_realavg_V_sloppy_C_j = computeVprojectA2sourceAvg(j_bubble_data_sloppy_C,args.tsep_pipi);
-    jackknifeCorrelationFunction A2_realavg_V_exact_C_j = computeVprojectA2sourceAvg(j_bubble_data_exact_C,args.tsep_pipi);
-
-    pipi_sloppy_S_j = pipi_sloppy_S_j - 3*A2_realavg_V_sloppy_S_j;
-    pipi_sloppy_C_j = pipi_sloppy_C_j - 3*A2_realavg_V_sloppy_C_j;
-    pipi_exact_C_j = pipi_exact_C_j - 3*A2_realavg_V_exact_C_j;
-
-    //Double-jackknife
-    bubbleDataDoubleJackAllMomenta dj_bubble_data_sloppy_S = doubleJackknifeResampleBubbleSampleAMA(raw_bubble_data_sloppy_S, 'S', nS, nC);
-    bubbleDataDoubleJackAllMomenta dj_bubble_data_sloppy_C = doubleJackknifeResampleBubbleSampleAMA(raw_bubble_data_sloppy_C, 'C', nS, nC);
-    bubbleDataDoubleJackAllMomenta dj_bubble_data_exact_C = doubleJackknifeResampleBubbleSampleAMA(raw_bubble_data_exact_C, 'C', nS, nC);
-
-    doubleJackCorrelationFunction A2_realavg_V_sloppy_S_dj = computeVprojectA2sourceAvg(dj_bubble_data_sloppy_S,args.tsep_pipi);
-    doubleJackCorrelationFunction A2_realavg_V_sloppy_C_dj = computeVprojectA2sourceAvg(dj_bubble_data_sloppy_C,args.tsep_pipi);
-    doubleJackCorrelationFunction A2_realavg_V_exact_C_dj = computeVprojectA2sourceAvg(dj_bubble_data_exact_C,args.tsep_pipi);
-
-    pipi_sloppy_S_dj = pipi_sloppy_S_dj - 3*A2_realavg_V_sloppy_S_dj;
-    pipi_sloppy_C_dj = pipi_sloppy_C_dj - 3*A2_realavg_V_sloppy_C_dj;
-    pipi_exact_C_dj = pipi_exact_C_dj - 3*A2_realavg_V_exact_C_dj;
+    nS = pipi_raw_sloppy_S.value(0).size();
+    nC = pipi_raw_sloppy_C.value(0).size();
   }
+};
+    
+template<typename DistributionType>
+bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > resampleCorrectBubbleSampleAMA(const rawData &raw, const int nS, const int nC){
+  const int Lt = raw.raw_bubble_data_sloppy_S.getLt();
+  bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > out(Lt,nS+nC);
 
-  pipi_dj = pipi_sloppy_S_dj + pipi_exact_C_dj - pipi_sloppy_C_dj;
-  pipi_j = pipi_sloppy_S_j + pipi_exact_C_j - pipi_sloppy_C_j;
+  std::vector<threeMomentum> momenta;
+  for(auto it = raw.raw_bubble_data_sloppy_S.begin(); it != raw.raw_bubble_data_sloppy_S.end(); it++) momenta.push_back(it->first);
+  
+  for(int i=0;i<momenta.size();i++)
+    for(int t=0;t<Lt;t++){
+      const threeMomentum &mom = momenta[i];
+      DistributionType sloppy_S = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_sloppy_S(mom)(t),'S',nS,nC);
+      DistributionType sloppy_C = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_sloppy_C(mom)(t),'C',nS,nC);
+      DistributionType exact_C = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_exact_C(mom)(t),'C',nS,nC);
+      out(mom)(t) = sloppy_S + exact_C - sloppy_C;
+    }
+  return out;
+}
+
+template<typename DistributionType>
+void resampleCombineData(correlationFunction<double,DistributionType> &pipi, const rawData &raw, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
+  typedef correlationFunction<double,DistributionType> CorrFunc;
+  typedef typename CorrFunc::ElementType Elem;
+  pipi.resize(args.Lt);
+  const int nS = raw.nS;
+  const int nC = raw.nC;
+
+  DistributionType pipi_sloppy_S_r, pipi_sloppy_C_r, pipi_exact_C_r;
+  for(int t=0;t<args.Lt;t++){
+    pipi.coord(t) = t;
+
+    pipi_sloppy_S_r = sampleAMAresample<DistributionType>::resample(raw.pipi_raw_sloppy_S.value(t),'S',nS,nC);
+    pipi_sloppy_C_r = sampleAMAresample<DistributionType>::resample(raw.pipi_raw_sloppy_C.value(t),'C',nS,nC);
+    pipi_exact_C_r = sampleAMAresample<DistributionType>::resample(raw.pipi_raw_exact_C.value(t),'C',nS,nC);
+
+    pipi.value(t) = pipi_sloppy_S_r + pipi_exact_C_r - pipi_sloppy_C_r;
+  }
+  if(args.do_vacuum_subtraction){
+    auto bubble_data_corrected_r = resampleCorrectBubbleSampleAMA<DistributionType>(raw,nS,nC);
+    CorrFunc A2_realavg_V_r = computeVprojectA2sourceAvg(bubble_data_corrected_r,args.tsep_pipi);
+    pipi = pipi - 3*A2_realavg_V_r;
+  }
+}
+
+void generateData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
+  rawData raw(args,cmdline);
+  resampleCombineData<jackknifeDistributionD>(pipi_j,raw,args,cmdline);
+  resampleCombineData<doubleJackknifeDistributionD>(pipi_dj,raw,args,cmdline);
   
   pipi_j = fold(pipi_j, args.tsep_pipi);
   pipi_dj = fold(pipi_dj, args.tsep_pipi);
