@@ -20,14 +20,10 @@ struct SampleAMAcmdLine{
   std::string save_data_checkpoint_stub_exact_C;
 
   bool load_amplitude_data;
-  std::string load_amplitude_data_file_sloppy_S;
-  std::string load_amplitude_data_file_sloppy_C;
-  std::string load_amplitude_data_file_exact_C;
+  std::string load_amplitude_data_file;
 
   bool save_amplitude_data;
-  std::string save_amplitude_data_file_sloppy_S;
-  std::string save_amplitude_data_file_sloppy_C;
-  std::string save_amplitude_data_file_exact_C;
+  std::string save_amplitude_data_file;
   
   bool load_freeze_data;
   std::string freeze_data;
@@ -38,8 +34,6 @@ struct SampleAMAcmdLine{
 
   bool checkpoint_and_exit; //don't use the date, just load and checkpoint
 
-  //bool use_symmetric_quark_momenta; //use data generated with mesonfields with symmetric quark momenta (_symm extension)
-  
   CMDline toCMDline(const char ens, const SloppyExact se) const{
     CMDline out;
     out.load_guess = load_guess;
@@ -47,7 +41,9 @@ struct SampleAMAcmdLine{
     out.load_data_checkpoint = load_data_checkpoint;
     out.save_data_checkpoint = save_data_checkpoint;
     out.load_amplitude_data = load_amplitude_data;
+    out.load_amplitude_data_file = load_amplitude_data_file;
     out.save_amplitude_data = save_amplitude_data;
+    out.save_amplitude_data_file = save_amplitude_data_file;
     out.load_freeze_data = load_freeze_data;
     out.freeze_data = freeze_data;
     out.use_scratch = use_scratch;
@@ -57,15 +53,11 @@ struct SampleAMAcmdLine{
       assert(se == Sloppy);
       out.load_data_checkpoint_stub = load_data_checkpoint_stub_sloppy_S;
       out.save_data_checkpoint_stub = save_data_checkpoint_stub_sloppy_S;
-      out.load_amplitude_data_file = load_amplitude_data_file_sloppy_S;
-      out.save_amplitude_data_file = save_amplitude_data_file_sloppy_S;
       out.use_scratch_stub = use_scratch_stub + "_sloppy_S";
       out.use_symmetric_quark_momenta = false;
     }else{
       out.load_data_checkpoint_stub = se == Sloppy ? load_data_checkpoint_stub_sloppy_C : load_data_checkpoint_stub_exact_C;
       out.save_data_checkpoint_stub = se == Sloppy ? save_data_checkpoint_stub_sloppy_C : save_data_checkpoint_stub_exact_C;
-      out.load_amplitude_data_file = se == Sloppy ? load_amplitude_data_file_sloppy_C : load_amplitude_data_file_exact_C;
-      out.save_amplitude_data_file = se == Sloppy ? save_amplitude_data_file_sloppy_C : save_amplitude_data_file_exact_C;
       out.use_scratch_stub = use_scratch_stub + (se == Sloppy ? "_sloppy_C" : "_exact_C");
       out.use_symmetric_quark_momenta = (se == Exact);
     }
@@ -117,16 +109,12 @@ struct SampleAMAcmdLine{
 	i+=4;
       }else if(sargv[i] == "-load_amplitude_data"){
 	load_amplitude_data = true;
-	load_amplitude_data_file_sloppy_S = sargv[i+1];
-	load_amplitude_data_file_sloppy_C = sargv[i+2];
-	load_amplitude_data_file_exact_C = sargv[i+3];
-	i+=4;
+	load_amplitude_data_file = sargv[i+1];
+	i+=2;
       }else if(sargv[i] == "-save_amplitude_data"){
 	save_amplitude_data = true;
-	save_amplitude_data_file_sloppy_S = sargv[i+1];
-	save_amplitude_data_file_sloppy_C = sargv[i+2];
-	save_amplitude_data_file_exact_C = sargv[i+3];
-	i+=4;
+	save_amplitude_data_file = sargv[i+1];
+	i+=2;
       }else if(sargv[i] == "-use_scratch"){
 	use_scratch = true;
 	i++;

@@ -3,26 +3,34 @@
 
 class scratch{
   std::vector<std::string> scratch_files;
-  const Args &_args;
-  const CMDline &_cmdline;
+  std::vector<int> tsep_k_pi;
+  bool use_scratch;
+  std::string use_scratch_stub;
+  bool use_existing_scratch_files;
+
 public:
 
-  scratch(const Args &args, const CMDline &cmdline): scratch_files(args.tsep_k_pi.size()), _args(args), _cmdline(cmdline){
-    if(cmdline.use_scratch){
+  scratch(const bool _use_scratch, const std::string &_use_scratch_stub, const bool _use_existing_scratch_files, const std::vector<int> &_tsep_k_pi):
+    tsep_k_pi(_tsep_k_pi), use_scratch(_use_scratch), use_scratch_stub(_use_scratch_stub), use_existing_scratch_files(_use_existing_scratch_files),
+    scratch_files(_tsep_k_pi.size()){
+
+    if(use_scratch){
 #ifndef HAVE_HDF5
       error_exit("getData: scratch usage requires HDF5\n");
 #endif
-      for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
-	std::ostringstream f; f << cmdline.use_scratch_stub << "_" << tsep_k_pi_idx;
+      for(int tsep_k_pi_idx=0;tsep_k_pi_idx<tsep_k_pi.size();tsep_k_pi_idx++){
+	std::ostringstream f; f << use_scratch_stub << "_" << tsep_k_pi_idx;
 	scratch_files[tsep_k_pi_idx] = f.str();
       }
-    }
+    } 
   }
+
+  scratch(const Args &args, const CMDline &cmdline): scratch(cmdline.use_scratch, cmdline.use_scratch_stub, cmdline.use_existing_scratch_files, args.tsep_k_pi){}
 
   void writeScratch(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 		    std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 		    const int tsep_k_pi_idx){
-    if(_cmdline.use_scratch){
+    if(use_scratch){
       printMem("Pre-scratch write");
 #ifdef HAVE_HDF5
       std::cout << "Scratch writing to " << scratch_files[tsep_k_pi_idx] << std::endl;
@@ -46,8 +54,8 @@ public:
 
   void reloadScratch(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
 		     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj){
-    if(_cmdline.use_scratch){
-      for(int tsep_k_pi_idx=0;tsep_k_pi_idx<_args.tsep_k_pi.size();tsep_k_pi_idx++){
+    if(use_scratch){
+      for(int tsep_k_pi_idx=0;tsep_k_pi_idx<tsep_k_pi.size();tsep_k_pi_idx++){
 #ifdef HAVE_HDF5
 	printMem("Pre scratch read");
 	std::cout << "Scratch reading from " << scratch_files[tsep_k_pi_idx] << std::endl;
@@ -76,7 +84,7 @@ public:
 
   //We can optionally use scratch files on disk already to avoid reads
   inline bool doSkipLoad(const int tsep_k_pi_idx){
-    return _cmdline.use_scratch && _cmdline.use_existing_scratch_files && fileExists(scratch_files[tsep_k_pi_idx]);
+    return use_scratch && use_existing_scratch_files && fileExists(scratch_files[tsep_k_pi_idx]);
   }
 
 };
