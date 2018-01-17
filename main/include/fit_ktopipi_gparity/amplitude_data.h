@@ -86,6 +86,8 @@ public:
   RawKtoPiPiData(){}
 
   RawKtoPiPiData(const int tsep_k_pi, const BubbleData &bubble_data, const Args &args, const CMDline &cmdline){
+    std::cout << "Reading data with tsep_k_pi=" << tsep_k_pi << std::endl;
+
     IndexedContainer<type1234Data, 4, 1> type_data;
     getTypeData(type_data, tsep_k_pi, args, cmdline);
     
@@ -127,10 +129,13 @@ public:
       }
     
     //Bin everything we are going to use henceforth
+    std::cout << "Binning data\n";
     for(int i=1;i<=4;i++) A0_alltK(i) = bin(A0_alltK(i), args.bin_size);
     for(int i=3;i<=4;i++) mix_alltK(i) = bin(mix_alltK(i), args.bin_size);
     A0_type4_alltK_nobub = bin(A0_type4_alltK_nobub, args.bin_size);
     mix4_alltK_nobub = bin(mix4_alltK_nobub, args.bin_size);  
+    
+    std::cout << "Finished reading raw data with tsep_k_pi=" << tsep_k_pi << std::endl;
   }
 };
 

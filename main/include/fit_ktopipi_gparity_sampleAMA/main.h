@@ -66,8 +66,8 @@ resampledDistributionType resampleCorrect(const rawDataDistributionD &sloppy_S, 
     resampledDistributionType reldiff = (out_r - sloppy_S_r)/sloppy_S_r;
     std::cout << descr << " corrected:" << out_r << " sloppy:" << sloppy_S_r << " diff:" << diff << " reldiff:" << reldiff << std::endl;
   }
-  return out_r;
 #endif
+  return out_r;
 }
 
 template<typename T, typename U>
@@ -143,9 +143,12 @@ struct allRawData{
     BubbleData bubble_sloppy_C = bubble_data.extractUnbinnedBubble('C',Sloppy);
     BubbleData bubble_exact_C = bubble_data.extractUnbinnedBubble('C',Exact);
     
+    std::cout << "allRawData loading sloppy_S" << std::endl;
     raw_sloppy_S = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_S, inputs.args_S, inputs.cmdline_sloppy_S);
-    raw_sloppy_C = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_C, inputs.args_S, inputs.cmdline_sloppy_C);
-    raw_exact_C = RawKtoPiPiData(tsep_k_pi, bubble_exact_C, inputs.args_S, inputs.cmdline_exact_C);
+    std::cout << "allRawData loading sloppy_C" << std::endl;
+    raw_sloppy_C = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_C, inputs.args_C, inputs.cmdline_sloppy_C);
+    std::cout << "allRawData loading exact_C" << std::endl;
+    raw_exact_C = RawKtoPiPiData(tsep_k_pi, bubble_exact_C, inputs.args_C, inputs.cmdline_exact_C);
   }
 };
 
@@ -356,7 +359,6 @@ void getDataSampleAMA(std::vector<correlationFunction<amplitudeDataCoord, jackkn
 }
 
 void checkpointRawOnly(const allInputs &inputs){
-  if(!inputs.cmdline.save_data_checkpoint) error_exit(std::cout << "checkpointRawOnly expect cmdline.save_data_checkpoint to be true\n");
   allBubbleData bubble_data(inputs);
   for(int tsep_k_pi_idx=0;tsep_k_pi_idx<inputs.args.tsep_k_pi.size();tsep_k_pi_idx++){
     int tsep_k_pi = inputs.args.tsep_k_pi[tsep_k_pi_idx];

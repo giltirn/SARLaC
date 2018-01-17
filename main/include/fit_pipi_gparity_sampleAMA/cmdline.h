@@ -7,14 +7,18 @@ struct CMDlineSampleAMA{
   bool load_guess;
   std::string guess_file;
 
-  bool load_hdf5_data_checkpoint;
+  bool load_hdf5_data_checkpoint_sloppy_S;
   std::string load_hdf5_data_checkpoint_file_sloppy_S;
+  bool load_hdf5_data_checkpoint_sloppy_C;
   std::string load_hdf5_data_checkpoint_file_sloppy_C;
+  bool load_hdf5_data_checkpoint_exact_C;
   std::string load_hdf5_data_checkpoint_file_exact_C;
 
-  bool save_hdf5_data_checkpoint;
+  bool save_hdf5_data_checkpoint_sloppy_S;
   std::string save_hdf5_data_checkpoint_file_sloppy_S;
+  bool save_hdf5_data_checkpoint_sloppy_C;
   std::string save_hdf5_data_checkpoint_file_sloppy_C;
+  bool save_hdf5_data_checkpoint_exact_C;
   std::string save_hdf5_data_checkpoint_file_exact_C;
 
   bool load_combined_data;
@@ -29,8 +33,12 @@ struct CMDlineSampleAMA{
   
   CMDlineSampleAMA(){
     load_guess = false;
-    load_hdf5_data_checkpoint = false;
-    save_hdf5_data_checkpoint = false;
+    load_hdf5_data_checkpoint_sloppy_S = false;
+    load_hdf5_data_checkpoint_sloppy_C = false;
+    load_hdf5_data_checkpoint_exact_C = false;
+    save_hdf5_data_checkpoint_sloppy_S = false;
+    save_hdf5_data_checkpoint_sloppy_C = false;
+    save_hdf5_data_checkpoint_exact_C = false;
     load_combined_data = false;
     save_combined_data = false;
     load_frozen_fit_params= false;
@@ -50,15 +58,17 @@ struct CMDlineSampleAMA{
     out.load_frozen_fit_params = load_frozen_fit_params;
     out.load_frozen_fit_params_file = load_frozen_fit_params_file;
 
-    out.load_hdf5_data_checkpoint = load_hdf5_data_checkpoint;
-    out.save_hdf5_data_checkpoint = save_hdf5_data_checkpoint;
     if(se == Sloppy){
       out.use_symmetric_quark_momenta = false;
+      out.load_hdf5_data_checkpoint = ens == 'S' ? load_hdf5_data_checkpoint_sloppy_S : load_hdf5_data_checkpoint_sloppy_C;
+      out.save_hdf5_data_checkpoint = ens == 'S' ? save_hdf5_data_checkpoint_sloppy_S : save_hdf5_data_checkpoint_sloppy_C;
       out.load_hdf5_data_checkpoint_file = ens == 'S' ? load_hdf5_data_checkpoint_file_sloppy_S : load_hdf5_data_checkpoint_file_sloppy_C;
       out.save_hdf5_data_checkpoint_file = ens == 'S' ? save_hdf5_data_checkpoint_file_sloppy_S : save_hdf5_data_checkpoint_file_sloppy_C;
     }else{
       assert(ens == 'C');
       out.use_symmetric_quark_momenta = true;
+      out.load_hdf5_data_checkpoint = load_hdf5_data_checkpoint_exact_C;
+      out.save_hdf5_data_checkpoint = save_hdf5_data_checkpoint_exact_C;
       out.load_hdf5_data_checkpoint_file = load_hdf5_data_checkpoint_file_exact_C;
       out.save_hdf5_data_checkpoint_file = save_hdf5_data_checkpoint_file_exact_C;
     }
@@ -79,18 +89,30 @@ struct CMDlineSampleAMA{
       }else if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));
 	i+=2;
-      }else if(sargv[i] == "-load_hdf5_data_checkpoint"){
-	load_hdf5_data_checkpoint = true;
+      }else if(sargv[i] == "-load_hdf5_data_checkpoint_sloppy_S"){
+	load_hdf5_data_checkpoint_sloppy_S = true;
 	load_hdf5_data_checkpoint_file_sloppy_S = sargv[i+1];
-	load_hdf5_data_checkpoint_file_sloppy_C = sargv[i+2];
-	load_hdf5_data_checkpoint_file_exact_C = sargv[i+3];
-	i+=4;
-      }else if(sargv[i] == "-save_hdf5_data_checkpoint"){
-	save_hdf5_data_checkpoint = true;
+	i+=2;
+      }else if(sargv[i] == "-load_hdf5_data_checkpoint_sloppy_C"){
+	load_hdf5_data_checkpoint_sloppy_C = true;
+	load_hdf5_data_checkpoint_file_sloppy_C = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_hdf5_data_checkpoint_exact_C"){
+	load_hdf5_data_checkpoint_exact_C = true;
+	load_hdf5_data_checkpoint_file_exact_C = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_hdf5_data_checkpoint_sloppy_S"){
+	save_hdf5_data_checkpoint_sloppy_S = true;
 	save_hdf5_data_checkpoint_file_sloppy_S = sargv[i+1];
-	save_hdf5_data_checkpoint_file_sloppy_C = sargv[i+2];
-	save_hdf5_data_checkpoint_file_exact_C = sargv[i+3];
-	i+=4;
+	i+=2;
+      }else if(sargv[i] == "-save_hdf5_data_checkpoint_sloppy_C"){
+	save_hdf5_data_checkpoint_sloppy_C = true;
+	save_hdf5_data_checkpoint_file_sloppy_C = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_hdf5_data_checkpoint_exact_C"){
+	save_hdf5_data_checkpoint_exact_C = true;
+	save_hdf5_data_checkpoint_file_exact_C = sargv[i+1];
+	i+=2;
       }else if(sargv[i] == "-load_combined_data"){ //load the double-jackknife data set previously generated
 	load_combined_data = true;
 	load_combined_data_file = sargv[i+1];

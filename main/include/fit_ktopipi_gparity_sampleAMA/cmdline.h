@@ -9,14 +9,18 @@ struct SampleAMAcmdLine{
   bool load_guess;
   std::string guess_file;
 
-  bool load_data_checkpoint;
+  bool load_data_checkpoint_sloppy_S;
   std::string load_data_checkpoint_stub_sloppy_S; //will append  _tsepkpi<VAL>.hdf5
+  bool load_data_checkpoint_sloppy_C;
   std::string load_data_checkpoint_stub_sloppy_C;
+  bool load_data_checkpoint_exact_C;
   std::string load_data_checkpoint_stub_exact_C;
 
-  bool save_data_checkpoint;
+  bool save_data_checkpoint_sloppy_S;
   std::string save_data_checkpoint_stub_sloppy_S;
+  bool save_data_checkpoint_sloppy_C;
   std::string save_data_checkpoint_stub_sloppy_C;
+  bool save_data_checkpoint_exact_C;
   std::string save_data_checkpoint_stub_exact_C;
 
   bool load_amplitude_data;
@@ -38,8 +42,7 @@ struct SampleAMAcmdLine{
     CMDline out;
     out.load_guess = load_guess;
     out.guess_file = guess_file;
-    out.load_data_checkpoint = load_data_checkpoint;
-    out.save_data_checkpoint = save_data_checkpoint;
+
     out.load_amplitude_data = load_amplitude_data;
     out.load_amplitude_data_file = load_amplitude_data_file;
     out.save_amplitude_data = save_amplitude_data;
@@ -51,11 +54,15 @@ struct SampleAMAcmdLine{
     
     if(ens == 'S'){
       assert(se == Sloppy);
+      out.load_data_checkpoint = load_data_checkpoint_sloppy_S;
+      out.save_data_checkpoint = save_data_checkpoint_sloppy_S;
       out.load_data_checkpoint_stub = load_data_checkpoint_stub_sloppy_S;
       out.save_data_checkpoint_stub = save_data_checkpoint_stub_sloppy_S;
       out.use_scratch_stub = use_scratch_stub + "_sloppy_S";
       out.use_symmetric_quark_momenta = false;
     }else{
+      out.load_data_checkpoint = se == Sloppy ? load_data_checkpoint_sloppy_C : load_data_checkpoint_exact_C;     
+      out.save_data_checkpoint = se == Sloppy ? save_data_checkpoint_sloppy_C : save_data_checkpoint_exact_C;     
       out.load_data_checkpoint_stub = se == Sloppy ? load_data_checkpoint_stub_sloppy_C : load_data_checkpoint_stub_exact_C;
       out.save_data_checkpoint_stub = se == Sloppy ? save_data_checkpoint_stub_sloppy_C : save_data_checkpoint_stub_exact_C;
       out.use_scratch_stub = use_scratch_stub + (se == Sloppy ? "_sloppy_C" : "_exact_C");
@@ -67,8 +74,12 @@ struct SampleAMAcmdLine{
 
   SampleAMAcmdLine(){
     load_guess = false;
-    load_data_checkpoint = false;
-    save_data_checkpoint = false;
+    load_data_checkpoint_sloppy_S = false;
+    load_data_checkpoint_sloppy_C = false;
+    load_data_checkpoint_exact_C = false;
+    save_data_checkpoint_sloppy_S = false;
+    save_data_checkpoint_sloppy_C = false;
+    save_data_checkpoint_exact_C = false;
     load_amplitude_data = false;
     save_amplitude_data = false;
     load_freeze_data = false;
@@ -95,18 +106,30 @@ struct SampleAMAcmdLine{
       }else if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));
 	i+=2;
-      }else if(sargv[i] == "-load_data_checkpoint"){
-	load_data_checkpoint = true;
+      }else if(sargv[i] == "-load_data_checkpoint_sloppy_S"){
+	load_data_checkpoint_sloppy_S = true;
 	load_data_checkpoint_stub_sloppy_S = sargv[i+1];
-	load_data_checkpoint_stub_sloppy_C = sargv[i+2];
-	load_data_checkpoint_stub_exact_C = sargv[i+3];
-	i+=4;
-      }else if(sargv[i] == "-save_data_checkpoint"){
-	save_data_checkpoint = true;
+	i+=2;
+      }else if(sargv[i] == "-load_data_checkpoint_sloppy_C"){
+	load_data_checkpoint_sloppy_C = true;
+	load_data_checkpoint_stub_sloppy_C = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_data_checkpoint_exact_C"){
+	load_data_checkpoint_exact_C = true;
+	load_data_checkpoint_stub_exact_C = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_data_checkpoint_sloppy_S"){
+	save_data_checkpoint_sloppy_S = true;
 	save_data_checkpoint_stub_sloppy_S = sargv[i+1];
-	save_data_checkpoint_stub_sloppy_C = sargv[i+2];
-	save_data_checkpoint_stub_exact_C = sargv[i+3];
-	i+=4;
+	i+=2;
+      }else if(sargv[i] == "-save_data_checkpoint_sloppy_C"){
+	save_data_checkpoint_sloppy_C = true;
+	save_data_checkpoint_stub_sloppy_C = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_data_checkpoint_exact_C"){
+	save_data_checkpoint_exact_C = true;
+	save_data_checkpoint_stub_exact_C = sargv[i+1];
+	i+=2;
       }else if(sargv[i] == "-load_amplitude_data"){
 	load_amplitude_data = true;
 	load_amplitude_data_file = sargv[i+1];
