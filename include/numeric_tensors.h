@@ -120,7 +120,7 @@ public:
   NumericSquareMatrix(const NumericSquareMatrix &r) = default;
   NumericSquareMatrix(NumericSquareMatrix &&r) = default;
 
-  template<typename Initializer> //Initializer is a lambda-type with operator()(const int)
+  template<typename Initializer> //Initializer is a lambda-type with operator()(const int, const int)
   inline NumericSquareMatrix(const int n, const Initializer &initializer): m(n, std::vector<Numeric>(n)){
     for(int i=0;i<n;i++)
       for(int j=0;j<n;j++)

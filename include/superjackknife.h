@@ -229,7 +229,7 @@ public:
 
   void setEnsembleJackknife(const int ens_idx, const jackknifeDistribution<DataType> &j){
     //assert(j.best() == cen); //this is actually not true for most jackknife
-    assert(j.size() == layout->nSamplesEns(ens_idx));
+    if(j.size() != layout->nSamplesEns(ens_idx)) error_exit(std::cout << "superJackknifeDistribution::setEnsembleJackknife(int, jack) input jackknife has size " << j.size() << ", expected " << layout->nSamplesEns(ens_idx) <<std::endl);
     ens_jacks[ens_idx] = j;    
   }
   inline void setEnsembleJackknife(const std::string & ens_tag, const jackknifeDistribution<DataType> &j){

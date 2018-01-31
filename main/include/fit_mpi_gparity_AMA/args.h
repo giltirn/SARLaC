@@ -1,17 +1,18 @@
 #ifndef _FIT_MPI_GPARITY_AMA_ARGS_H
 #define _FIT_MPI_GPARITY_AMA_ARGS_H
 
-GENERATE_ENUM_AND_PARSER(DataType, (PP_LW_data)(AA_LW_data)(AP_LW_data)(PP_WW_data)(AP_WW_data)(DataType_size) )
 GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp) );
+GENERATE_ENUM_AND_PARSER(ReIm, (Real)(Imaginary) );
 
 #define SLOPPY_EXACT_MEMBERS \
   ( std::string, sloppy_fmt )     \
   ( std::string, exact_fmt ) \
+  ( ReIm, reim)		     \
   ( bool, include_data )
 
 struct SloppyExact{
   GENERATE_MEMBERS(SLOPPY_EXACT_MEMBERS)
-  SloppyExact(): include_data(false){}
+  SloppyExact(): include_data(false), reim(Real){}
 };
 GENERATE_PARSER(SloppyExact,SLOPPY_EXACT_MEMBERS)
 

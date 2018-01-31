@@ -527,17 +527,21 @@ public:
   //double dyp(const int)
   //int size()
   template<typename Data>
-  handleType plotData(const Data &data, kwargsType &kwargs){
-    std::ostringstream os; os << "dset" << plotdata_sets.size();
-    plotdata_sets.push_back(PythonDataContainer());
-    plotdata_sets.back().import(data, os.str());
+  handleType plotData(const Data &data, kwargsType &kwargs, const std::string &tag = ""){
+    plotdata_sets.push_back(PythonDataContainer());   
+    if(tag == ""){
+      std::ostringstream os; os << "dset" << plotdata_sets.size();
+      plotdata_sets.back().import(data, os.str());
+    }else{
+      plotdata_sets.back().import(data, tag);
+    }
     plotdata_args.push_back(kwargs);
     return handleType(plotdata_sets.size()-1, DataSetType);
   }
   template<typename Data>
-  inline handleType plotData(const Data &data){
+    inline handleType plotData(const Data &data, const std::string &tag = ""){
     kwargsType kwargs;
-    return plotData(data,kwargs);
+    return plotData(data,kwargs,tag);
   }
     
   //Band is an accessor with methods:
@@ -546,17 +550,21 @@ public:
   //double lower(const int i)
   //int size()
   template<typename Band>
-  handleType errorBand(const Band &band, kwargsType &kwargs){
-    std::ostringstream os; os << "band" << ploterrorband_sets.size();
+  handleType errorBand(const Band &band, kwargsType &kwargs, const std::string &tag = ""){
     ploterrorband_sets.push_back(PythonErrorBandContainer());
-    ploterrorband_sets.back().import(band, os.str());
+    if(tag == ""){
+      std::ostringstream os; os << "band" << ploterrorband_sets.size();
+      ploterrorband_sets.back().import(band, os.str());
+    }else{
+      ploterrorband_sets.back().import(band, tag);
+    }
     ploterrorband_args.push_back(kwargs);
     return handleType(ploterrorband_sets.size()-1,ErrorBandType);
   }
   template<typename Band>
-  inline handleType errorBand(const Band &band){
+  inline handleType errorBand(const Band &band, const std::string &tag = ""){
     kwargsType kwargs;
-    return errorBand(band,kwargs);
+    return errorBand(band,kwargs,tag);
   }
 
 
@@ -564,17 +572,21 @@ public:
   //double y(const int)
   //int size()
   template<typename Data>
-  handleType histogram(const Data &data, kwargsType &kwargs){
-    std::ostringstream os; os << "histogram" << plothistogram_sets.size();
+  handleType histogram(const Data &data, kwargsType &kwargs, const std::string &tag = ""){
     plothistogram_sets.push_back(PythonHistogramContainer());
-    plothistogram_sets.back().import(data, os.str());
+    if(tag == ""){
+      std::ostringstream os; os << "histogram" << plothistogram_sets.size();
+      plothistogram_sets.back().import(data, os.str());
+    }else{
+      plothistogram_sets.back().import(data, tag);
+    }
     plothistogram_args.push_back(kwargs);
     return handleType(plothistogram_sets.size()-1,HistogramType);
   }
   template<typename Data>
-  inline handleType histogram(const Data &data){
+  inline handleType histogram(const Data &data, const std::string &tag = ""){
     kwargsType kwargs;
-    return histogram(data,kwargs);
+    return histogram(data,kwargs,tag);
   }
 
   
@@ -814,6 +826,13 @@ public:
   static inline double value(const jackknifeCdistribution<T,V> &d){ return d.best(); }
   static inline double errplus(const jackknifeCdistribution<T,V> &d){ return d.standardError(); }
   static inline double errminus(const jackknifeCdistribution<T,V> &d){ return d.standardError(); }  
+};
+template<typename T>
+class ScalarValueAccessor{
+public:
+  static inline double value(const T &d){ return d; }
+  static inline double errplus(const T &d){ return 0; } //zero error
+  static inline double errminus(const T &d){ return 0; }  
 };
 
 //Example CoordinatePolicy types

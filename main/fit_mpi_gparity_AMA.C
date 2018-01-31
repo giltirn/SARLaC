@@ -218,7 +218,7 @@ int main(const int argc, const char** argv){
 
   //Plot some nice things  
   MatPlotLibScriptGenerate plotter;
-  std::string pallete[] = {
+  std::vector<std::string> pallete = {
     "#ff0000",
     "#00ff00",
     "#0000ff",
@@ -233,11 +233,12 @@ int main(const int argc, const char** argv){
   typedef MatPlotLibScriptGenerate::handleType Handle;
   
   for(int type_idx=0;type_idx<ndata_types;type_idx++){
+    std::cout << "Computing effective mass for type " << types[type_idx] << std::endl;
     typedef DataSeriesAccessor<jackknifeTimeSeriesType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionType> > Accessor;
 
     jackknifeTimeSeriesType effmass = effectiveMass(jack[type_idx], types[type_idx], args.Lt, type_map);
     Accessor a(effmass);
-    plot_args["color"] = pallete[type_idx];
+    if(type_idx < pallete.size()) plot_args["color"] = pallete[type_idx];
     Handle ah = plotter.plotData(a,plot_args);
     plotter.setLegend(ah, types[type_idx]);
   }
@@ -270,11 +271,13 @@ int main(const int argc, const char** argv){
   
   plotter.write("mpi_plot.py");
 
+  std::cout << "Writing results" << std::endl;
 #ifdef HAVE_HDF5
   writeParamsStandard(chisq, "chisq.hdf5");
   writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
   writeParamsStandard(params, "params.hdf5");  
 #endif
   
+  std::cout << "Done" << std::endl;
   return 0;
 }
