@@ -31,10 +31,11 @@ typedef jackknifeDistribution jackknifeDistributionType;
 typedef jackknifeTimeSeriesD jackknifeTimeSeriesType;
 #endif
 
+#include <fit_mpi_gparity_AMA/parse_data.h>
 #include <fit_mpi_gparity_AMA/args.h>
 #include <fit_mpi_gparity_AMA/fitfunc.h>
-#include <fit_mpi_gparity_AMA/read_data.h>
 #include <fit_mpi_gparity_AMA/data_manipulations.h>
+#include <fit_mpi_gparity_AMA/read_data.h>
 #include <fit_mpi_gparity_AMA/cmdline.h>
 #include <fit_mpi_gparity_AMA/plot.h>
 
@@ -100,7 +101,7 @@ int main(const int argc, const char** argv){
   for(int i=0;i<args.data.size();i++){
     if(args.data[i].FF_data.include_data || args.data[i].BB_data.include_data){
       raw.push_back( readCombine(args, i) );
-      jack.push_back( resampleVector(raw.back(), args.Lt) );
+      jack.push_back( resampleVector<jackknifeTimeSeriesType>(raw.back(), args.Lt) );
       types.push_back( args.data[i].type );
       type_map.registerType( args.data[i].type, args.data[i].fitfunc );
     }

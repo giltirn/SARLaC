@@ -2,7 +2,6 @@
 #define _FIT_MPI_GPARITY_AMA_ARGS_H
 
 GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp) );
-GENERATE_ENUM_AND_PARSER(ReIm, (Real)(Imaginary) );
 
 #define SLOPPY_EXACT_MEMBERS \
   ( std::string, sloppy_fmt )     \

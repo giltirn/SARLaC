@@ -118,6 +118,8 @@ public:
   }
 
   inline int Nparams() const{ return 2; }
+
+  ParameterType guess(){ return ParameterType(1,0.5); }
 };
 class FitSinh: public StandardFitFuncBase{
   const double Lt;
@@ -141,6 +143,8 @@ public:
   }
 
   inline int Nparams() const{ return 2; }
+
+  ParameterType guess(){ return ParameterType(1,0.5); }
 };
 class FitExp: public StandardFitFuncBase{
 public:
@@ -161,6 +165,28 @@ public:
   }
 
   inline int Nparams() const{ return 2; }
+
+  ParameterType guess(){ return ParameterType(1.0,0.5); }
+};
+
+class FitConstant{
+public:
+  typedef double ValueType;
+  typedef NumericVector<double> ParameterType;
+  typedef NumericVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef double GeneralizedCoordinate; //time coord
+
+  //Params are A, m  
+  ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    return p(0);
+  }
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    return ValueDerivativeType(1,1.0);
+  }
+
+  inline int Nparams() const{ return 1; }
+
+  ParameterType guess(){ return ParameterType(1,1.0); }
 };
 
 #endif

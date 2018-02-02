@@ -26,15 +26,29 @@ int main(const int argc, const char** argv){
   
   parse(args, argv[1]);
 
-  std::vector<rawDataCorrelationFunctionD> channels(args.data.size());
-  for(int i=0;i<channels.size();i++) readData(channels[i], args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  const int nchannel = args.data.size();
+  std::vector<doubleJackknifeCorrelationFunctionD> channels_dj(nchannel);
+  std::vector<jackknifeCorrelationFunctionD> channels_j(nchannel);
+  for(int i=0;i<nchannel;i++){
+    rawDataCorrelationFunctionD channel_raw;
+    readData(channel_raw, args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    bin(channel_raw, args.bin_size);    
 
-  rawDataCorrelationFunctionD data;
-  applyCombination(data,channels,args.combination);
-  applyTimeDep(data, args.outer_time_dep, args.Lt);
+    channels_dj[i] = doubleJackknifeCorrelationFunctionD(args.Lt, [&](const int t){
+	return typename doubleJackknifeCorrelationFunctionD::ElementType(t,  doubleJackknifeDistributionD(channel_raw.value(t)));
+      });
+    channels_j[i] = jackknifeCorrelationFunctionD(args.Lt, [&](const int t){
+	return typename jackknifeCorrelationFunctionD::ElementType(t,  jackknifeDistributionD(channel_raw.value(t)));
+      });
+  }
+  doubleJackknifeCorrelationFunctionD data_dj;
+  applyCombination(data_dj,channels_dj,args.combination);
+  applyTimeDep(data_dj, args.outer_time_dep, args.Lt);
 
-  bin(data, args.bin_size);
+  jackknifeCorrelationFunctionD data_j;
+  applyCombination(data_j,channels_j,args.combination);
+  applyTimeDep(data_j, args.outer_time_dep, args.Lt);
 
-  fit(data, args, cmdline);
+  fit(data_j,data_dj, args, cmdline);
 }
 

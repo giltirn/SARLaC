@@ -72,10 +72,11 @@ void applyOperation(rawDataCorrelationFunctionD &to, const std::string &operatio
     }  
 }
 
-void applyTimeDep(rawDataCorrelationFunctionD &to, const TimeDependence tdep, const int Lt){
+template<typename CorrelationFunctionType>
+void applyTimeDep(CorrelationFunctionType &to, const TimeDependence tdep, const int Lt){
   if(tdep == TimeDepNormal) return;
 
-  rawDataCorrelationFunctionD cp(to);
+  CorrelationFunctionType cp(to);
   if(tdep == TimeDepReflect){
     for(int t=0;t<Lt;t++){
       int trefl = (Lt - t) % Lt;
@@ -116,14 +117,18 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
   applyTimeDep(into, data_info.time_dep,Lt);
 }
 
-void applyCombination(rawDataCorrelationFunctionD &to, const std::vector<rawDataCorrelationFunctionD> &from, const Combination comb){
+template<typename CorrelationFunctionType>
+void applyCombination(CorrelationFunctionType &to, const std::vector<CorrelationFunctionType> &from, const Combination comb){
   if(comb == CombinationAverage){
     to = from[0];
     for(int i=1;i<from.size();i++) to = to + from[i];
     to = to / double(from.size());
-  }else if(CombinationAminusB){
+  }else if(comb == CombinationAminusB){
     if(from.size()!=2) error_exit(std::cout << "applyCombination error: CombinationAminusB requires two channels\n");
     to = from[0] - from[1];
+  }else if(comb == CombinationAdivB){
+    if(from.size()!=2) error_exit(std::cout << "applyCombination error: CombinationAdivB requires two channels\n");
+    to = from[0]/from[1];
   }else{
     error_exit(std::cout << "applyCombination unknown combination " << comb << std::endl);
   }

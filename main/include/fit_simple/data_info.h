@@ -3,8 +3,8 @@
 
 GENERATE_ENUM_AND_PARSER(ParserType, (ParserStandard)(ParserMultiSourceAverage) );
 GENERATE_ENUM_AND_PARSER(TimeDependence, (TimeDepNormal)(TimeDepReflect)(TimeDepFold)(TimeDepAntiFold) );
-GENERATE_ENUM_AND_PARSER(Combination, (CombinationAverage)(CombinationAminusB) );
-GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp) );
+GENERATE_ENUM_AND_PARSER(Combination, (CombinationAverage)(CombinationAminusB)(CombinationAdivB) );
+GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp)(FConstant) );
 
 #define DATA_INFO_MEMBERS \
   ( ParserType, parser )	       \

@@ -1,6 +1,13 @@
 #ifndef _EFFECTIVE_MASS_H_
 #define _EFFECTIVE_MASS_H_
 
+#include<generic_ET.h>
+#include<minimizer.h>
+#include<cost_function.h>
+#include<data_series.h>
+#include<distribution.h>
+#include<common_defs.h>
+
 template<typename T>
 class MLwrapper{
   T t;

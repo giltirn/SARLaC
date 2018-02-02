@@ -64,6 +64,22 @@ std::ostream & operator<<(std::ostream &os, const Coord &c){
   return os;
 }
 
+class filterCoordTrange{
+  double t_min;
+  double t_max;
+  bool _invert;
+public:
+  filterCoordTrange(const double _t_min, const double _t_max): t_min(_t_min), t_max(_t_max), _invert(false){}
+
+  void invert(){ _invert = !_invert; } 
+  
+  template<typename T>
+  bool accept(const Coord &x, const T &y) const{
+    bool cond = x.t >= t_min && x.t <= t_max;
+    return _invert ? !cond : cond;
+  }
+};
+
 class FitMpi{
 public:
   typedef double ValueType;
