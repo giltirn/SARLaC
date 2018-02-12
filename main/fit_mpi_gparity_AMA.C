@@ -1,4 +1,6 @@
 //#define BOOST_SPIRIT_X3_DEBUG
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <fstream>
 #include <algorithm>
 #include <minimizer.h>
@@ -168,17 +170,25 @@ int main(const int argc, const char** argv){
 
   if(cmdline.load_guess){
     std::ifstream f(cmdline.guess_file.c_str());
-    f.exceptions( std::ifstream::failbit | std::ifstream::badbit );
-    while(!f.eof()){
-      std::string param;
-      std::getline(f, param, ' ');
-      double v;
-      f >> v;
+    std::string line; 
+
+    std::string param;
+    double v;
+    while(std::getline(f,line)){
+      std::cout << "Parsing guess file line '" << line << "'\n"; std::cout.flush();
+      std::vector<std::string> tok;
+      boost::split(tok, line, [&](const char c){ return c == ' '; });
+      assert(tok.size() == 2);
+
+      param = tok[0];
+      v = strToAny<double>(tok[1]);
 
       if(param == "Mass") guess[0] = v;
       else{
 	if(!type_map.containsType(param)){
 	  std::cout << "Warning: Guess provided for fit parameter " << param << " but this parameter is not in the map\n";
+	  std::cout << "Known types:\n";
+	  for(int i=0;i<type_map.nTypes();i++) std::cout << "\t" << type_map.typeName(i) << std::endl;
 	}else{
 	  int idx = type_map.typeIdx(param);
 	  guess[idx+1] = v;
