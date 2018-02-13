@@ -18,6 +18,8 @@ struct CMDline{
   
   void setup(const int argc, const char** argv, const int begin = 0){
     const int sz = argc-begin;
+    if(sz <= 0) return;
+
     std::vector<std::string> sargv(sz);
     for(int i=begin; i<argc; i++) sargv[i-begin] = std::string(argv[i]);
 
