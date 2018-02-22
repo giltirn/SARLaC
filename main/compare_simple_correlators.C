@@ -1,10 +1,9 @@
-#include<common_defs.h>
-#include<fit_wrapper.h>
+#include<common.h>
+#include<fit.h>
 #include<parser.h>
-#include<expression_parse.h>
-#include<fitfunc.h>
-#include<effective_mass.h>
 #include<plot.h>
+
+using namespace CPSfit;
 
 #include<fit_simple/read_data.h>
 #include<compare_simple_correlators/args.h>

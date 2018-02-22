@@ -2,7 +2,7 @@
 #define _FIT_PIPI_GPARITY_PLOT_H_
 
 #include<plot.h>
-#include<effective_mass.h>
+#include<containers/single_value_container.h>
 
 //two-point effective energy assuming cosh form with optional constant subtraction
 jackknifeCorrelationFunction twoPointEffectiveEnergy(const jackknifeCorrelationFunction &data_j,
@@ -27,8 +27,8 @@ public:
   typedef typename FitFunc::ParameterType BaseParameterType;
   typedef typename FitFunc::ValueDerivativeType BaseDerivativeType;
   typedef double ValueType;
-  typedef MLwrapper<double> ParameterType;
-  typedef MLwrapper<double> ValueDerivativeType;
+  typedef singleValueContainer<double> ParameterType;
+  typedef singleValueContainer<double> ValueDerivativeType;
   typedef double GeneralizedCoordinate;
 private:  
   FitFunc const* fitfunc;

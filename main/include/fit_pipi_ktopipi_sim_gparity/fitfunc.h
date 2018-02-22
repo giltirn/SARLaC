@@ -64,13 +64,13 @@ struct TwoPointThreePointSimFitParams{
   }
 };
 template<>
-struct getElem<TwoPointThreePointSimFitParams>{
+struct CPSfit::getElem<TwoPointThreePointSimFitParams>{
   static inline auto elem(const TwoPointThreePointSimFitParams &v, const int i)->decltype(v(i)){ return v(i); }
   static inline int common_properties(const TwoPointThreePointSimFitParams &v){ return 0; }
 };
 
 template<>
-struct printStats<jackknifeDistribution<TwoPointThreePointSimFitParams> >{
+struct CPSfit::printStats<jackknifeDistribution<TwoPointThreePointSimFitParams> >{
   inline static std::string centralValue(const jackknifeDistribution<TwoPointThreePointSimFitParams> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi << ", " << best.Cpipi;
@@ -224,13 +224,13 @@ struct TwoExpTwoPointThreePointSimFitParams{
   }
 };
 template<>
-struct getElem<TwoExpTwoPointThreePointSimFitParams>{
+struct CPSfit::getElem<TwoExpTwoPointThreePointSimFitParams>{
   static inline auto elem(const TwoExpTwoPointThreePointSimFitParams &v, const int i)->decltype(v(i)){ return v(i); }
   static inline int common_properties(const TwoExpTwoPointThreePointSimFitParams &v){ return 0; }
 };
 
 template<>
-struct printStats<jackknifeDistribution<TwoExpTwoPointThreePointSimFitParams> >{
+struct CPSfit::printStats<jackknifeDistribution<TwoExpTwoPointThreePointSimFitParams> >{
   inline static std::string centralValue(const jackknifeDistribution<TwoExpTwoPointThreePointSimFitParams> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi0 << ", " << best.Epipi0 << ", " << best.Apipi1 << ", " << best.Epipi1 << ", " << best.Cpipi;

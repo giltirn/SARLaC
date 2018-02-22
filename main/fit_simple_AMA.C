@@ -1,10 +1,9 @@
-#include<common_defs.h>
-#include<fit_wrapper.h>
+#include<common.h>
+#include<fit.h>
 #include<parser.h>
-#include<effective_mass.h>
-#include<fitfunc.h>
 #include<plot.h>
-#include<expression_parse.h>
+
+using namespace CPSfit;
 
 #include <fit_mpi_gparity_AMA/parse_data.h>
 #include <fit_mpi_gparity_AMA/data_manipulations.h>

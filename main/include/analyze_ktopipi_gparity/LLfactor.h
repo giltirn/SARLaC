@@ -1,7 +1,7 @@
 #ifndef LL_FACTOR_H
 #define LL_FACTOR_H
 
-#include<luscherzeta.h>
+#include<physics.h>
 
 superJackknifeDistribution<double> getPhaseShift(const LuscherZeta &lz, const superJackknifeDistribution<double> &q_pipi){
   std::cout << "Computing phase shift from lattice values\n";

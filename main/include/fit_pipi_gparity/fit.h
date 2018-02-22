@@ -1,8 +1,7 @@
 #ifndef _FIT_PIPI_GPARITY_FIT_H_
 #define _FIT_PIPI_GPARITY_FIT_H_
 
-#include<fit_wrapper_freeze.h>
-#include<pvalue.h>
+#include<fit.h>
 
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
 typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunction;

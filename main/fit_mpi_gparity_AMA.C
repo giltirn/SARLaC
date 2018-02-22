@@ -3,19 +3,17 @@
 #include <boost/algorithm/string/split.hpp>
 #include <fstream>
 #include <algorithm>
-#include <minimizer.h>
-#include <cost_function.h>
-#include <fitfunc.h>
-#include <fitfunc_mapping.h>
+#include <sstream>
+
 #include <random.h>
 #include <plot.h>
 #include <distribution.h>
 #include <data_series.h>
 #include <parser.h>
-#include <common_defs.h>
-#include <sstream>
-#include <effective_mass.h>
-#include <fit_wrapper.h>
+#include <fit.h>
+#include <common.h>
+
+using namespace CPSfit;
 
 #define FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
 
@@ -61,8 +59,10 @@ public:
   }
 };
 
+namespace CPSfit{
 inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
   return NumericVector<double>(a.size(), [&](const int i){ return a(i) * b(i); });
+}
 }
 
 typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;

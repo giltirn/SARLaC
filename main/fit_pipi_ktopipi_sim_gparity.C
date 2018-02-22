@@ -1,9 +1,11 @@
-#include<numeric_tensors.h>
-#include<common_defs.h>
-#include<parser.h>
-#include<fit_wrapper.h>
-#include<fit_wrapper_freeze.h>
 #include <boost/timer/timer.hpp>
+
+#include<tensors.h>
+#include<common.h>
+#include<parser.h>
+#include<fit.h>
+
+using namespace CPSfit;
 
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
 #include <fit_ktopipi_gparity/fitfunc.h>

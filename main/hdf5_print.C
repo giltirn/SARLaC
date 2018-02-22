@@ -5,12 +5,14 @@
 #include<cassert>
 #include<sstream>
 #include<array>
+
 #include<distribution.h>
-#include<superjackknife.h>
 #include<parser.h>
 #include<plot.h>
-//A program to print arrays of distributions stored in the conventional format (cf distribution_IO.h writeParamsStandard/readParamsStandard)
 
+using namespace CPSfit;
+
+//A program to print arrays of distributions stored in the conventional format (cf distribution_IO.h writeParamsStandard/readParamsStandard)
 
 struct CmdLine{
   bool spec_elem;

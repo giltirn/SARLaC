@@ -8,12 +8,15 @@
 
 #include<utils.h>
 #include<distribution.h>
-#include<common_defs.h>
-#include<numeric_tensors.h>
-#include<correlationfunction.h>
-#include<fit_wrapper.h>
+#include<common.h>
+#include<tensors.h>
+#include<data_series.h>
+#include<fit.h>
 #include<parser.h>
-#include<hdf5_serialize.h>
+#include<serialize.h>
+#include<containers.h>
+
+using namespace CPSfit;
 
 #include <fit_pipi_gparity/data_containers.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
@@ -36,7 +39,6 @@
 #include <compare_asymm_symm_ktopipi/cmdline.h>
 #include <compare_asymm_symm_ktopipi/args.h>
 #include <compare_simple_correlators/compare.h>
-
 
 void errorWeightedAverage(std::vector<correlationFunction<double, jackknifeDistributionD> > &out_asymm,
 			  std::vector<correlationFunction<double, jackknifeDistributionD> > &out_symm,

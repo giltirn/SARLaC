@@ -1,18 +1,16 @@
 #include <fstream>
 #include <algorithm>
-#include <minimizer.h>
-#include <cost_function.h>
-#include <fitfunc.h>
-#include <fitfunc_mapping.h>
-#include <random.h>
-#include <plot.h>
-#include <distribution.h>
-#include <data_series.h>
-#include <parser.h>
-#include <common_defs.h>
-#include <fit_wrapper.h>
 #include <sstream>
 #include <boost/timer/timer.hpp>
+
+#include<fit.h>
+#include<plot.h>
+#include<data_series.h>
+#include<common.h>
+#include<parser.h>
+#include <random.h>
+
+using namespace CPSfit;
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>

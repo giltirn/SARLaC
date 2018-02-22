@@ -1,0 +1,9 @@
+exampledir = $(prefix)/example/@PACKAGE@
+testdir = $(prefix)/test/@PACKAGE@
+example_PROGRAMS = fit_example generic_freeze_example simfit_example superjack_example
+fit_example_SOURCES = fit_example.C
+generic_freeze_example_SOURCES = generic_freeze_example.C
+simfit_example_SOURCES = simfit_example.C
+superjack_example_SOURCES = superjack_example.C
+AM_CPPFLAGS = -I$(srcdir)/../include -I$(srcdir)/include
+LDADD =../src/libcpsfit.a

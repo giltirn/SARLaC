@@ -1,7 +1,8 @@
 #ifndef _FIT_MPI_GPARITY_AMA_FITFUNC_H
 #define _FIT_MPI_GPARITY_AMA_FITFUNC_H
 
-#include<fitfunc.h>
+#include<fit.h>
+#include<containers.h>
 
 class TypeInfo{
   std::map<std::string, int> pmap;
@@ -142,8 +143,8 @@ class FitMpiEffectiveMass{
   StandardFitFuncBase* fitfunc;
 public:
   typedef double ValueType;
-  typedef MLwrapper<double> ParameterType;
-  typedef MLwrapper<double> ValueDerivativeType;
+  typedef singleValueContainer<double> ParameterType;
+  typedef singleValueContainer<double> ValueDerivativeType;
   typedef double GeneralizedCoordinate;
 
   FitMpiEffectiveMass(const double _Lt, const std::string &_type, const TypeInfo &pmap): fcosh(_Lt), fsinh(_Lt){

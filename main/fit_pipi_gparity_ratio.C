@@ -1,17 +1,19 @@
-#include<numeric_tensors.h>
-#include<common_defs.h>
+#include<tensors.h>
+#include<common.h>
 #include<parser.h>
-#include<fit_wrapper.h>
-#include<fit_wrapper_freeze.h>
+#include<fit.h>
 #include<plot.h>
-#include<effective_mass.h>
 
+using namespace CPSfit;
+
+namespace CPSfit{
 NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
   assert(a.size() == b.size());
   NumericVector<double> out(a.size());
   for(int i=0;i<a.size();i++) out(i) = a(i) * b(i);
   return out;
 }
+};
 
 
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;

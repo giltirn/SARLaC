@@ -88,7 +88,7 @@ public:
 
   
 template<>
-struct getElem<FitCoshPlusConstant::Params>{
+struct CPSfit::getElem<FitCoshPlusConstant::Params>{
   static inline auto elem(const FitCoshPlusConstant::Params &v, const int i)->decltype(v(i)){ return v(i); }
   static inline int common_properties(const FitCoshPlusConstant::Params &v){ return 0; }
 };
@@ -103,7 +103,7 @@ FitCoshPlusConstant::Params::Params(U&& expr){
 GENERATE_PARSER_GM(FitCoshPlusConstant::Params, FitCoshPlusConstant_Params_grammar, (double, A)(double, E)(double, C) )
 
 template<>
-struct printStats<jackknifeDistribution<FitCoshPlusConstant::Params> >{
+struct CPSfit::printStats<jackknifeDistribution<FitCoshPlusConstant::Params> >{
   inline static std::string centralValue(const jackknifeDistribution<FitCoshPlusConstant::Params> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.A << ", " << best.E << ", " << best.C << ")";
@@ -279,7 +279,7 @@ public:
 
   
 template<>
-struct getElem<FitCoshPlusConstantDoubleExp::Params>{
+struct CPSfit::getElem<FitCoshPlusConstantDoubleExp::Params>{
   static inline auto elem(const FitCoshPlusConstantDoubleExp::Params &v, const int i)->decltype(v(i)){ return v(i); }
   static inline int common_properties(const FitCoshPlusConstantDoubleExp::Params &v){ return 0; }
 };
@@ -296,7 +296,7 @@ FitCoshPlusConstantDoubleExp::Params::Params(U&& expr){
 GENERATE_PARSER_GM(FitCoshPlusConstantDoubleExp::Params, FitCoshPlusConstantDoubleExp_Params_grammar, (double, A0)(double, E0)(double, A1)(double, E1)(double, C) )
 
 template<>
-struct printStats<jackknifeDistribution<FitCoshPlusConstantDoubleExp::Params> >{
+struct CPSfit::printStats<jackknifeDistribution<FitCoshPlusConstantDoubleExp::Params> >{
   inline static std::string centralValue(const jackknifeDistribution<FitCoshPlusConstantDoubleExp::Params> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.A0 << ", " << best.E0 << ", " << best.A1 << ", " << best.E1 << ", " << best.C << ")";

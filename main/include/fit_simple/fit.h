@@ -122,9 +122,11 @@ inline void parse(NumericVector<double> &v, const std::string &filename){
   assert(f.good());
 }
 
+namespace CPSfit{
 inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
   return NumericVector<double>(a.size(), [&](const int i){ return a[i]*b[i]; });
 }
+};
 
 
 template<typename FitFunc, template<typename> class CostFunctionPolicy, typename ArgsType, typename CMDlineType>

@@ -64,6 +64,7 @@ typename Controls::outputType computeAmplitudeType1(const typename Controls::inp
     A(9) = C(1, 1,VpA,0,VmA) -0.5*C(1, 0,VmA,0,VmA) -1.5*C(4, 0,VmA,0,VmA);
     A(10) = -0.5*C(3, 0,VmA,0,VmA) -1.5*C(6, 0,VmA,0,VmA) + C(2, 1,VpA,0,VmA);
 #undef C
+#undef A
 
     controls.normalize(1./sqrt(6.),t);
   }
@@ -90,7 +91,7 @@ typename Controls::outputType computeAmplitudeType2(const typename Controls::inp
     A(9) = 3.*C(7, 0,VmA,1,VpA) -1.5*C(7, 0,VmA,0,VmA) -3.*C(10, 1,VpA,0,VmA) +1.5*C(10, 0,VmA,0,VmA); 
     A(10) = 3.*C(8, 0,VmA,1,VpA) -1.5*C(9, 0,VmA,0,VmA) -3.*C(11, 1,VpA,0,VmA) +1.5*C(12, 0,VmA,0,VmA);
 #undef C
-
+#undef A
     controls.normalize(1./sqrt(6.),t);
   }
   return controls.out;
@@ -116,7 +117,7 @@ typename Controls::outputType computeAmplitudeType3(const typename Controls::inp
     A(9) = 3.*C(13, 0,VmA,1,VpA) -1.5*C(13, 0,VmA,0,VmA) -3.*C(16, 1,VpA,0,VmA) +1.5*C(16, 0,VmA,0,VmA) -1.5*C(19, 0,VmA,0,VmA) +1.5*C(21, 0,VmA,0,VmA);
     A(10) = 3.*C(14, 0,VmA,1,VpA) -1.5*C(15, 0,VmA,0,VmA) -3.*C(17, 1,VpA,0,VmA) +1.5*C(18, 0,VmA,0,VmA) -1.5*C(20, 0,VmA,0,VmA) +1.5*C(22, 0,VmA,0,VmA);
 #undef C
-
+#undef A
     controls.normalize(1./sqrt(6.),t);
   }
   return controls.out;
@@ -143,7 +144,7 @@ typename Controls::outputType computeAmplitudeType4(const typename Controls::inp
     A(9) = 3.*C(23, 0,VmA,1,VpA) -1.5*C(23, 0,VmA,0,VmA) -3.*C(26, 1,VpA,0,VmA) +1.5*C(26, 0,VmA,0,VmA) -1.5*C(29, 0,VmA,0,VmA) +1.5*C(31,0,VmA,0,VmA);
     A(10) = 3.*C(24, 0,VmA,1,VpA) -1.5*C(25, 0,VmA,0,VmA) -3.*C(27, 1,VpA,0,VmA) +1.5*C(28,0,VmA,0,VmA) -1.5*C(30, 0,VmA,0,VmA) +1.5*C(32, 0,VmA,0,VmA);
 #undef C
-
+#undef A
     controls.normalize(1./sqrt(6.),t);
   }
   return controls.out;

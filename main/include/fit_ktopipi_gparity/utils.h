@@ -1,7 +1,7 @@
 #ifndef _FIT_KTOPIPI_GPARITY_UTILS_H___
 #define _FIT_KTOPIPI_GPARITY_UTILS_H___
 
-#include<distribution_iterate.h>
+#include<distribution.h>
 
 template<typename T, int Size, int Begin>
 class IndexedContainer{

@@ -1,8 +1,9 @@
 #include<distribution.h>
-#include<common_defs.h>
-#include<superjackknife.h>
-#include<alpha_s.h>
+#include<common.h>
+#include<physics.h>
 #include<parser.h>
+
+using namespace CPSfit;
 
 #include<analyze_ktopipi_gparity/params.h>
 #include<analyze_ktopipi_gparity/LLfactor.h>

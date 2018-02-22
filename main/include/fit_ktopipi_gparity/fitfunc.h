@@ -94,7 +94,7 @@ public:
 
   
 template<>
-struct getElem<FitKtoPiPi::Params>{
+struct CPSfit::getElem<FitKtoPiPi::Params>{
   static inline auto elem(const FitKtoPiPi::Params &v, const int i)->decltype(v(i)){ return v(i); }
   static inline int common_properties(const FitKtoPiPi::Params &v){ return 0; }
 };
@@ -111,7 +111,7 @@ FitKtoPiPi::Params::Params(U&& expr){
 GENERATE_PARSER_GM(FitKtoPiPi::Params, FitKtoPiPi_Params_grammar, (double, AK)(double, mK)(double, Apipi)(double, Epipi)(double, M) )
 
 template<>
-struct printStats<jackknifeDistribution<FitKtoPiPi::Params> >{
+struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPi::Params> >{
   inline static std::string centralValue(const jackknifeDistribution<FitKtoPiPi::Params> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi << ", " << best.M << ")";

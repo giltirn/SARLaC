@@ -1,8 +1,7 @@
 #ifndef _FIT_PIPI_KTOPIPI_SIM_GPARITY_FIT_H_
 #define _FIT_PIPI_KTOPIPI_SIM_GPARITY_FIT_H_
 #include<plot.h>
-#include<gsl_eigensolve.h>
-#include<pvalue.h>
+#include<tensors.h>
 
 struct UncorrelatedFit;
 struct CorrelatedFit;

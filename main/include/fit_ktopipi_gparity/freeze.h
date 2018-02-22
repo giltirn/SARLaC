@@ -1,7 +1,7 @@
 #ifndef _KTOPIPI_FREEZE_H_
 #define _KTOPIPI_FREEZE_H_
 
-#include<fit_wrapper_freeze.h>
+#include<fit.h>
 
 #define KTOPIPI_FREEZE_PARAM_MEMBERS \
   (std::vector<int>, Qlist) \

@@ -1,10 +1,11 @@
 //Perform a fit to a set of jackknife resampled data
 
 #include<parser.h>
-#include<common_defs.h>
-#include<fit_wrapper.h>
-#include<fit_wrapper_freeze.h>
+#include<common.h>
+#include<fit.h>
 #include<plot.h>
+
+using namespace CPSfit;
 
 #define DATA_INFO_MEMBERS				\
   ( std::string, filename )				\
@@ -56,9 +57,11 @@ public:
   inline ParameterType basicGuess() const{ ParameterType out(3); out(0) = out(1) = out(2) = 1; return out; }
 };
 
+namespace CPSfit{
 inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
   return NumericVector<double>(a.size(), [&](const int i){ return a(i)*b(i); });
 }
+};
 
 
 

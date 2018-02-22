@@ -7,10 +7,12 @@
 #include<cassert>
 #include<sstream>
 #include<array>
+
 #include<distribution.h>
-#include<superjackknife.h>
 #include<parser.h>
-#include<common_defs.h>
+#include<common.h>
+
+using namespace CPSfit;
 
 std::vector<int> parseElemStr(const std::string &e){
   std::istringstream buffer(e);

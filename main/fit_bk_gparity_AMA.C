@@ -1,10 +1,9 @@
-#include<common_defs.h>
-#include<fit_wrapper.h>
+#include<common.h>
+#include<fit.h>
 #include<parser.h>
-#include<effective_mass.h>
-#include<fitfunc.h>
 #include<plot.h>
-#include<expression_parse.h>
+
+using namespace CPSfit;
 
 #include <fit_mpi_gparity_AMA/parse_data.h>
 #include <fit_mpi_gparity_AMA/data_manipulations.h>
@@ -32,7 +31,9 @@ struct BKgparityAMAargs{
 } ;
 GENERATE_PARSER(BKgparityAMAargs, BK_GPARITY_AMA_ARGS_MEMBERS);
 
+namespace CPSfit{
 inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){ return NumericVector<double>(a.size(),[&](const int i){ return a[i]*b[i]; }); }
+};
 
 void process(jackknifeTimeSeriesD &out_j, doubleJackknifeTimeSeriesD &out_dj, const std::string &sloppy_fmt, const std::string &exact_fmt, const int traj_start, const int traj_inc, const int traj_lessthan, const int Lt, const std::string &descr){
   int nsample = (traj_lessthan - traj_start) / traj_inc;

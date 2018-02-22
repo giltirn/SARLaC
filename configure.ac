@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.67])
 AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
-AC_CONFIG_SRCDIR([include/distribution.h])
+AC_CONFIG_SRCDIR([include/utils.h])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE
@@ -14,7 +14,6 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_LANG(C++)
 AC_REQUIRE_CPP
-
 
 # Check for c++14
 CXXFLAGS="-std=c++14 $CXXFLAGS"
@@ -47,7 +46,6 @@ if test "x$with_python" = "xyes"; then
    CPPFLAGS="$PYTHON_CFLAGS $CPPFLAGS"
 fi
 
-
 m4_include([ax_boost_base.m4])
 AX_BOOST_BASE([1.61],[], [AC_MSG_FAILURE([Require Boost version >=1.61])] )
 
@@ -67,8 +65,8 @@ LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
 
 #Check for boost python
 if test "x$with_python" = "xyes"; then
-AC_CHECK_LIB([boost_python-py27], [main], [LIBS="-lboost_python-py27 $LIBS"],
-             [AC_MSG_FAILURE([Could not link to boost_python-py27])])
+AC_CHECK_LIB([boost_python], [main], [LIBS="-lboost_python $LIBS"],
+             [AC_MSG_FAILURE([Could not link to boost_python])])
 fi
 
 #Check for boost serialization
@@ -139,7 +137,6 @@ AC_CHECK_FUNCS([fesetround pow rint sqrt])
 AC_SUBST(CONF_LDADD, $CONF_LDADD)
 
 # Output files
-AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile)
+AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile example/Makefile test/Makefile)
 AM_INIT_AUTOMAKE([subdir-objects])
-
 

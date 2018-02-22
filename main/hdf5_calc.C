@@ -5,68 +5,13 @@
 #include<cassert>
 #include<sstream>
 #include<array>
+
 #include<distribution.h>
-#include<superjackknife.h>
 #include<parser.h>
-#include<expression_parse.h>
+
+using namespace CPSfit;
 
 //A program to perform calculations using distributions loaded from canonical format hdf5 containers
-template<typename distributionType>
-struct iterate;
-
-template<typename T>
-struct iterate<doubleJackknifeDistribution<T> >{
-  static inline int size(const doubleJackknifeDistribution<T> &from){ return from.size() * (from.size()-1); } //j + (from.size()-1)*i
-  static inline const T& at(const int i, const doubleJackknifeDistribution<T> &from){
-    const int nn = from.size()-1;
-    return from.sample(i/nn).sample(i%nn);
-  }
-  static inline T & at(const int i, doubleJackknifeDistribution<T> &from){
-    const int nn = from.size()-1;
-    return from.sample(i/nn).sample(i%nn);
-  }
-};
-template<typename T>
-struct iterate<rawDataDistribution<T> >{
-  static inline int size(const rawDataDistribution<T> &from){ return from.size(); } 
-  static inline const T& at(const int i, const rawDataDistribution<T> &from){
-    return from.sample(i);
-  }
-  static inline T & at(const int i, rawDataDistribution<T> &from){
-    return from.sample(i);
-  }
-};
-template<typename T>
-struct iterate<jackknifeDistribution<T> >{
-  static inline int size(const jackknifeDistribution<T> &from){ return from.size(); } 
-  static inline const T& at(const int i, const jackknifeDistribution<T> &from){
-    return from.sample(i);
-  }
-  static inline T & at(const int i, jackknifeDistribution<T> &from){
-    return from.sample(i);
-  }
-};
-template<typename T>
-struct iterate<jackknifeCdistribution<T> >{
-  static inline int size(const jackknifeCdistribution<T> &from){ return from.size()+1; } 
-  static inline const T& at(const int i, const jackknifeCdistribution<T> &from){
-    return i==0 ? from.best() : from.sample(i-1);
-  }
-  static inline T & at(const int i, jackknifeCdistribution<T> &from){
-    return i==0 ? from.best() : from.sample(i-1);
-  }
-};
-template<typename T>
-struct iterate<superJackknifeDistribution<T> >{
-  static inline int size(const superJackknifeDistribution<T> &from){ return from.size()+1; } 
-  static inline const T& at(const int i, const superJackknifeDistribution<T> &from){
-    return i==0 ? from.best() : from.sample(i-1);
-  }
-  static inline T & at(const int i, superJackknifeDistribution<T> &from){
-    return i==0 ? from.best() : from.sample(i-1);
-  }
-};
-
 
 struct symbolInfo{
   std::string symbol;
