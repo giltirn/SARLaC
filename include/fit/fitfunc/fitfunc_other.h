@@ -3,15 +3,15 @@
 
 #include<config.h>
 #include<utils/macros.h>
-#include<tensors/numeric_vector.h>
+#include<containers/parameter_vector.h>
 
 CPSFIT_START_NAMESPACE
 
 class FitConstant{
 public:
   typedef double ValueType;
-  typedef NumericVector<double> ParameterType;
-  typedef NumericVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef parameterVector<double> ParameterType;
+  typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
   typedef double GeneralizedCoordinate; //time coord
 
   //Params are A, m  

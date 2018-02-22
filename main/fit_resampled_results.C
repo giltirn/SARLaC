@@ -4,6 +4,7 @@
 #include<common.h>
 #include<fit.h>
 #include<plot.h>
+#include<containers.h>
 
 using namespace CPSfit;
 
@@ -35,8 +36,8 @@ GENERATE_PARSER(Args, ARGS_MEMBERS);
 class FitParabola{
 public:
   typedef double ValueType;
-  typedef NumericVector<double> ParameterType;
-  typedef NumericVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef parameterVector<double> ParameterType;
+  typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
   typedef double GeneralizedCoordinate;
 
   ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
@@ -57,11 +58,7 @@ public:
   inline ParameterType basicGuess() const{ ParameterType out(3); out(0) = out(1) = out(2) = 1; return out; }
 };
 
-namespace CPSfit{
-inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
-  return NumericVector<double>(a.size(), [&](const int i){ return a(i)*b(i); });
-}
-};
+
 
 
 

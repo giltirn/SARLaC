@@ -84,8 +84,8 @@ public:
 class FitMpi{
 public:
   typedef double ValueType;
-  typedef NumericVector<double> ParameterType;
-  typedef NumericVector<double> ValueDerivativeType;
+  typedef parameterVector<double> ParameterType;
+  typedef parameterVector<double> ValueDerivativeType;
   typedef Coord GeneralizedCoordinate;
 private:
   FitCosh fcosh;

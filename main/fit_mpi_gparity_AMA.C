@@ -59,12 +59,6 @@ public:
   }
 };
 
-namespace CPSfit{
-inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
-  return NumericVector<double>(a.size(), [&](const int i){ return a(i) * b(i); });
-}
-}
-
 typedef dataSeries<Coord, doubleJackknifeDistributionD> doubleJackknifeAllData;
 typedef dataSeries<Coord, jackknifeDistributionType> jackknifeAllData;
 

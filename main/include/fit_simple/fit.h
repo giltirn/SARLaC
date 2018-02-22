@@ -113,22 +113,6 @@ struct FitFuncPolicy<FitConstant,ArgsType>{
   }
 };
 
-inline void parse(NumericVector<double> &v, const std::string &filename){
-  std::ifstream f(filename);
-  assert(f.good());
-  
-  for(int i=0;i<v.size();i++) f >> v[i];
-
-  assert(f.good());
-}
-
-namespace CPSfit{
-inline NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
-  return NumericVector<double>(a.size(), [&](const int i){ return a[i]*b[i]; });
-}
-};
-
-
 template<typename FitFunc, template<typename> class CostFunctionPolicy, typename ArgsType, typename CMDlineType>
 void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline);
 

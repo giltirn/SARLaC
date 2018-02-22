@@ -3,18 +3,9 @@
 #include<parser.h>
 #include<fit.h>
 #include<plot.h>
+#include<containers.h>
 
 using namespace CPSfit;
-
-namespace CPSfit{
-NumericVector<double> operator*(const NumericVector<double> &a, const NumericVector<double> &b){
-  assert(a.size() == b.size());
-  NumericVector<double> out(a.size());
-  for(int i=0;i<a.size();i++) out(i) = a(i) * b(i);
-  return out;
-}
-};
-
 
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
 typedef correlationFunction<double,jackknifeDistributionD> jackCorrelationFunction;
@@ -28,8 +19,8 @@ typename CorrFuncType::ElementType computeRatio(const int t, const CorrFuncType 
 class FitRatio{
 public:
   typedef double ValueType;
-  typedef NumericVector<double> ParameterType;
-  typedef NumericVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef parameterVector<double> ParameterType;
+  typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
   typedef double GeneralizedCoordinate; //time coord
 
   FitRatio(){}
@@ -72,8 +63,8 @@ class FitExactRatio{
   }
 public:
   typedef double ValueType;
-  typedef NumericVector<double> ParameterType;
-  typedef NumericVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef parameterVector<double> ParameterType;
+  typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
   typedef double GeneralizedCoordinate; //time coord
 
   FitExactRatio(double _Lt, double _tsep_pipi): Lt(_Lt), T(_Lt - 2*_tsep_pipi){}
