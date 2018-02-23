@@ -6,8 +6,8 @@ INST_DIR=$1
 
 exec> Makefile.am
 
-echo "exampledir = \$(prefix)/example/@PACKAGE@"
-echo "testdir = \$(prefix)/test/@PACKAGE@"
+echo "exampledir = \$(prefix)/example"
+echo "testdir = \$(prefix)/test"
 
 echo -n $INST_DIR"_PROGRAMS ="
 for i in $(ls *.C); do

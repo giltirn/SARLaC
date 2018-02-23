@@ -1,5 +1,5 @@
-exampledir = $(prefix)/example/@PACKAGE@
-testdir = $(prefix)/test/@PACKAGE@
+exampledir = $(prefix)/example
+testdir = $(prefix)/test
 bin_PROGRAMS = analyze_ktopipi_gparity compare_asymm_symm_ktopipi compare_asymm_symm_pipi compare_simple_correlators dist_compare fit_bk_gparity_AMA fit_ktopipi_gparity fit_ktopipi_gparity_sampleAMA fit_mpi_gparity_AMA fit_pipi_gparity fit_pipi_gparity_ratio fit_pipi_gparity_sampleAMA fit_pipi_ktopipi_sim_gparity fit_resampled_results fit_simple_AMA fit_simple fit_simple_sampleAMA hdf5_calc hdf5_print
 analyze_ktopipi_gparity_SOURCES = analyze_ktopipi_gparity.C
 compare_asymm_symm_ktopipi_SOURCES = compare_asymm_symm_ktopipi.C

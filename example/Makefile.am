@@ -1,5 +1,5 @@
-exampledir = $(prefix)/example/@PACKAGE@
-testdir = $(prefix)/test/@PACKAGE@
+exampledir = $(prefix)/example
+testdir = $(prefix)/test
 example_PROGRAMS = fit_example generic_freeze_example simfit_example superjack_example
 fit_example_SOURCES = fit_example.C
 generic_freeze_example_SOURCES = generic_freeze_example.C

@@ -73,26 +73,6 @@ int main(const int argc, const char* argv[]){
  
   parse(args, argv[1]);
 
-
-
-  // std::string root = "/home/ckelly/projects/16nt32_gparity_2+1F/gparityX_fixedRNG/data/full_AMA_0118";
-  // std::string num_fmt_exact = "BK_srcMom100_plus_100snkMom100_plus_100_tsep32_momsrc_exact_F.%d";
-  // std::string num_fmt_sloppy = "BK_srcMom100_plus_100snkMom100_plus_100_tsep32_momsrc_sloppy_F.%d";
-  // std::string den_F_fmt_exact = "kaon_ATphys_P_LW_mom100_plus_100_momsrc_exact_F.%d";
-  // std::string den_F_fmt_sloppy = "kaon_ATphys_P_LW_mom100_plus_100_momsrc_sloppy_F.%d";
-  // std::string den_B_fmt_exact = "kaon_ATphys_P_LW_mom100_plus_100_momsrc_exact_B.%d";
-  // std::string den_B_fmt_sloppy = "kaon_ATphys_P_LW_mom100_plus_100_momsrc_sloppy_B.%d";
-
-  // int L = 16;
-  // int Lt = 32;
-  
-  // int traj_start = 500;
-  // int traj_inc = 40;
-  // int traj_lessthan = 1580;
-
-  // int tmin = 6;
-  // int tmax = 26;
-
   jackknifeTimeSeriesD num_j, den_F_j, den_B_j;
   doubleJackknifeTimeSeriesD num_dj, den_F_dj, den_B_dj;
 

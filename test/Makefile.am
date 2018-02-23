@@ -1,5 +1,5 @@
-exampledir = $(prefix)/example/@PACKAGE@
-testdir = $(prefix)/test/@PACKAGE@
+exampledir = $(prefix)/example
+testdir = $(prefix)/test
 test_PROGRAMS = benchmark test_ET test_expression_parse test_hdf5 test_tensor
 benchmark_SOURCES = benchmark.C
 test_ET_SOURCES = test_ET.C
