@@ -40,6 +40,8 @@ void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJack
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
   
 #ifdef HAVE_HDF5
+  writeParamsStandard(chisq, "chisq.hdf5");
+  writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
   writeParamsStandard(params, "params.hdf5");
 #endif
 
