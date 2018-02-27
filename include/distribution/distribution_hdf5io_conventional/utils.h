@@ -28,7 +28,7 @@ template<typename DistributionType>
 inline std::string getDistributionTypeString(){
   std::string tpstr = printType<DistributionType>();
   
-  std::regex r(R"(^(?:\w+\:\:)?(\w+)\<(\w+),)", std::regex_constants::ECMAScript);
+  std::regex r(R"(^(?:\w+\:\:)?(\w+)\<(\w+)[,\>])", std::regex_constants::ECMAScript);
   std::smatch m;
   if(std::regex_search(tpstr, m, r)){
     std::ostringstream os;

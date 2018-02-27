@@ -41,6 +41,8 @@ struct CmdLine{
   bool spec_sample_plot_type;
   std::string spec_sample_plot_type_val;
   
+  bool spec_noindex;
+
   CmdLine(){
     spec_elem = false;
     spec_format = false;
@@ -50,6 +52,7 @@ struct CmdLine{
     spec_pub_exp = false;
     spec_round_pow = false;
     spec_sample_plot_type = false;
+    spec_noindex = false;
   }
   void parse(const int argc, const char* argv[]){
     int i = 2;
@@ -71,6 +74,9 @@ struct CmdLine{
 
 	if(spec_format_val == "sample_plot")
 	  sample_plot_file_stub = argv[i++];
+      }else if(si == "-noindex"){ //For publication or basic printing, suppress printing the index
+	spec_noindex = true;
+	i++;
 
 	//-------------------- Options specific to publication format ---------------------------------
 	//Defaults: Prints 3 sig figs from the largest of the central-value/error
@@ -199,8 +205,11 @@ void specVDtype(const std::string &filename, const CmdLine &cmdline, formatter<D
 
 template<typename D>
 struct formatPrint: public formatter<D>{
+  bool print_index;
+  formatPrint(bool _print_index = true): print_index(_print_index){}
+
   void operator()(const std::vector<int> &coord, const D &v){
-    for(int i=0;i<coord.size();i++) std::cout << coord[i] << " ";
+    if(print_index) for(int i=0;i<coord.size();i++) std::cout << coord[i] << " ";
     std::cout << v << std::endl; 
   }
 };
@@ -275,9 +284,9 @@ struct setFormat{
       
       distributionPrint<D>::printer(printer);
 
-      return new formatPrint<D>;
+      return new formatPrint<D>(!cmdline.spec_noindex);
     }else if(format == "basic"){
-      return new formatPrint<D>;
+      return new formatPrint<D>(!cmdline.spec_noindex);
     }else if(format == "sample_plot"){
       return new formatSamplePlot<D>(cmdline);      
     }else{
@@ -291,7 +300,7 @@ struct setFormat<doubleJackknifeDistribution<T> >{
     if(format == "publication"){
       error_exit(std::cout << "setFormat: Double-jackknife does not support format " << format << std::endl);
     }else if(format == "basic"){
-      return new formatPrint<doubleJackknifeDistribution<T> >;      
+      return new formatPrint<doubleJackknifeDistribution<T> >(!cmdline.spec_noindex);      
     }else{
       error_exit(std::cout << "setFormat: Unknown/unsupported format " << format << std::endl);
     }
@@ -304,7 +313,7 @@ void specDtype(const std::string &filename, const int vector_depth, const CmdLin
   formatter<D> *fmt;
   if(cmdline.spec_format){
     fmt = setFormat<D>::doit(cmdline.spec_format_val,cmdline);
-  }else fmt = new formatPrint<D>;
+  }else fmt = new formatPrint<D>(!cmdline.spec_noindex);
   
   switch(vector_depth){
   case 1:
