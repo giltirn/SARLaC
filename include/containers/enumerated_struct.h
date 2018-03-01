@@ -1,5 +1,5 @@
-#ifndef _GENERAL_CONTAINER_H_
-#define _GENERAL_CONTAINER_H_
+#ifndef _ENUMERATED_STRUCT_H_
+#define _ENUMERATED_STRUCT_H_
 
 //Macros for automagically generating structs with operator()(const int) and operator[](const int) accessors, etc as well as expression template, hdf5 serialization, and parser hooks.
 //Useful for containing fit function parameters

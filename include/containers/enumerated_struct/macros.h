@@ -81,6 +81,19 @@ CPSFIT_START_NAMESPACE
 #define _ENUMERATED_STRUCT_DEF_EQUIV(DEF) \
   inline bool operator==(const _ENUMERATED_STRUCT_DEF_STRUCT(DEF) &r) const{ return BOOST_PP_SEQ_FOR_EACH_I(_ENUMERATED_STRUCT_DEF_EQUIV_ELEM, , _ENUMERATED_STRUCT_DEF_SEQ(DEF)); }
 
+//Get member name by index as string
+#define _ENUMERATED_STRUCT_DEF_MEM_STRING_VAL(R,DUMMY,IDX,ELEM) case IDX: return BOOST_PP_STRINGIZE(ELEM);
+
+#define _ENUMERATED_STRUCT_DEF_MEM_STRING(DEF)	\
+  std::string memberName(const int i) const{	\
+    switch(i){								\
+      BOOST_PP_SEQ_FOR_EACH_I(_ENUMERATED_STRUCT_DEF_MEM_STRING_VAL, , _ENUMERATED_STRUCT_DEF_SEQ(DEF)) \
+    default:							\
+      CPSfit::error_exit(std::cout << BOOST_PP_STRINGIZE(_ENUMERATED_STRUCT_DEF_STRUCT(DEF)) << "::memberName(int) invalid index " << i <<std::endl); \
+    };									\
+    }
+
+
 //Put the body together....
 #define _ENUMERATED_STRUCT_DEF_STRUCT_BODY(DEF)			\
     _ENUMERATED_STRUCT_DEF_MEMBERS(DEF)				\
@@ -89,7 +102,8 @@ CPSFIT_START_NAMESPACE
       _ENUMERATED_STRUCT_DEF_SIZEFUNC(DEF)				\
       _ENUMERATED_STRUCT_DEF_ZEROFUNC(DEF)				\
       _ENUMERATED_STRUCT_DEF_PRINTFUNC(DEF)			\
-      _ENUMERATED_STRUCT_DEF_EQUIV(DEF)
+    _ENUMERATED_STRUCT_DEF_EQUIV(DEF)				\
+    _ENUMERATED_STRUCT_DEF_MEM_STRING(DEF)
 
 //Interface with parser generator
 #define _ENUMERATED_STRUCT_DEF_PARSER_ARG_TRANSFORM_ELEM(R,TYPE,ELEM)(TYPE,ELEM)

@@ -1,7 +1,7 @@
 #ifndef _FIT_KTOPIPI_GPARITY_ARGS_H_
 #define _FIT_KTOPIPI_GPARITY_ARGS_H_
 
-GENERATE_ENUM_AND_PARSER(KtoPiPiFitFunc, (FitSeparate)(FitSimultaneous)(FitSimultaneousChiralBasis) );
+GENERATE_ENUM_AND_PARSER(KtoPiPiFitFunc, (FitSeparate)(FitSimultaneous)(FitSimultaneousChiralBasis)(FitSeparateWithConstant) );
 
 #define ARGS_MEMBERS						\
   ( std::string, data_dir )					\

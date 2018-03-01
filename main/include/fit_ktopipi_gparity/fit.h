@@ -7,6 +7,9 @@ struct fitReturnType{};
 template<>
 struct fitReturnType<FitKtoPiPi>{ typedef std::vector<jackknifeDistribution<FitKtoPiPi::Params> > type; };
 
+template<>
+struct fitReturnType<FitKtoPiPiWithConstant>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiWithConstant::Params> > type; };
+
 template<int N>
 struct fitReturnType<FitKtoPiPiSim<N> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> type; };
   
@@ -45,9 +48,12 @@ struct fit_corr_uncorr{
       jackknifeDistributionD chisq_per_dof;
       fitter.fit(params, chisq, chisq_per_dof, A0_fit_j[q]);
 
-      distributionPrint<jackknifeDistribution<Params> >::printer(new ktopipiParamsPrinter<FitFunc>);
+      int nparams = params.sample(0).size();
+      for(int p=0;p<nparams;p++){
+	jackknifeDistributionD tmp(nsample, [&](const int s){ return params.sample(s)(p); }); 
+	std::cout << params.sample(0).memberName(p) << ": " << tmp << std::endl;
+      }
 
-      std::cout << "Q" << q+1 << " Params: " << params << std::endl;
       std::cout << "Q" << q+1 << " Chisq: " << chisq << std::endl;
       std::cout << "Q" << q+1 << " Chisq/dof: " << chisq_per_dof << std::endl;
     }
@@ -306,6 +312,8 @@ inline void fitAndPlot(const std::vector<correlationFunction<amplitudeDataCoord,
     return fitAndPlotFF<FitKtoPiPiSim<10> >(A0_all_j,A0_all_dj,args,cmdline);
   case FitSimultaneousChiralBasis:
     return fitAndPlotFF<FitKtoPiPiSim<7> >(A0_all_j,A0_all_dj,args,cmdline);
+  case FitSeparateWithConstant:
+    return fitAndPlotFF<FitKtoPiPiWithConstant>(A0_all_j,A0_all_dj,args,cmdline);
   default:
     error_exit(std::cout << "fitAndPlot(..) Unknown fit function " << args.fitfunc << std::endl);
   }
