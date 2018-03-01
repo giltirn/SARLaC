@@ -6,4 +6,5 @@
 #include<containers/mem_mapped_managed_file_vector.h>
 #include<containers/single_value_container.h>
 #include<containers/parameter_vector.h>
+#include<containers/enumerated_struct.h>
 #endif
