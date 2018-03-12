@@ -232,13 +232,13 @@ struct SimFitParams{
 };
 
 template<int N>
-struct getElem<SimFitParams<N> >{
+struct CPSfit::getElem<SimFitParams<N> >{
   static inline auto elem(const SimFitParams<N> &v, const int i)->decltype(v(i)){ return v(i); }
   static inline int common_properties(const SimFitParams<N> &v){ return 0; }
 };
 
 template<int N>
-struct printStats<jackknifeDistribution<SimFitParams<N> > >{
+struct CPSfit::printStats<jackknifeDistribution<SimFitParams<N> > >{
   inline static std::string centralValue(const jackknifeDistribution<SimFitParams<N> > &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi;

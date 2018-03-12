@@ -1,6 +1,6 @@
 exampledir = $(prefix)/example
 testdir = $(prefix)/test
-bin_PROGRAMS = analyze_ktopipi_gparity compare_asymm_symm_ktopipi compare_asymm_symm_pipi compare_simple_correlators dist_compare fit_bk_gparity_AMA fit_ktopipi_gparity fit_ktopipi_gparity_sampleAMA fit_mpi_gparity_AMA fit_pipi_gparity fit_pipi_gparity_ratio fit_pipi_gparity_sampleAMA fit_pipi_ktopipi_sim_gparity fit_resampled_results fit_simple_AMA fit_simple fit_simple_sampleAMA hdf5_calc hdf5_print
+bin_PROGRAMS = analyze_ktopipi_gparity compare_asymm_symm_ktopipi compare_asymm_symm_pipi compare_simple_correlators dist_compare fit_bk_gparity_AMA fit_ktopipi_gparity fit_ktopipi_gparity_sampleAMA fit_mpi_gparity_AMA fit_pipi_gparity fit_pipi_gparity_ratio fit_pipi_gparity_sampleAMA fit_pipi_ktopipi_sim_gparity fit_resampled_results fit_simple_AMA fit_simple fit_simple_sampleAMA hdf5_calc hdf5_print plot_pipi_phaseshift
 analyze_ktopipi_gparity_SOURCES = analyze_ktopipi_gparity.C
 compare_asymm_symm_ktopipi_SOURCES = compare_asymm_symm_ktopipi.C
 compare_asymm_symm_pipi_SOURCES = compare_asymm_symm_pipi.C
@@ -20,5 +20,6 @@ fit_simple_SOURCES = fit_simple.C
 fit_simple_sampleAMA_SOURCES = fit_simple_sampleAMA.C
 hdf5_calc_SOURCES = hdf5_calc.C
 hdf5_print_SOURCES = hdf5_print.C
+plot_pipi_phaseshift_SOURCES = plot_pipi_phaseshift.C
 AM_CPPFLAGS = -I$(srcdir)/../include -I$(srcdir)/include
 LDADD =../src/libcpsfit.a

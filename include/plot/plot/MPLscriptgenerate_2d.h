@@ -110,7 +110,8 @@ public:
 
   
   void write(std::ostream &os, const std::string &script_gen_filename = "plot.pdf") const{
-    os << "import pyplot\n\n";
+    os << "import pyplot\n";
+    os << "import matplotlib\n\n";
 
     for(int i=0;i<plotdata_sets.size();i++)
       plotdata_sets[i].write(os);
@@ -202,6 +203,20 @@ public:
   void setYaxisBounds(const double min, const double max){
     invoke() << "\tax.set_ylim(" << min << "," << max << ")\n";
   }
+  void setXaxisMajorTickSpacing(const double val){
+    invoke() << "\tax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator("<<val<<"))" << std::endl;
+  }
+  void setYaxisMajorTickSpacing(const double val){
+    invoke() << "\tax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator("<<val<<"))" << std::endl;
+  }
+  void setXaxisMinorTickSpacing(const double val){
+    invoke() << "\tax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator("<<val<<"))" << std::endl;
+  }
+  void setYaxisMinorTickSpacing(const double val){
+    invoke() << "\tax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator("<<val<<"))" << std::endl;
+  }
+
+
 };
 
 CPSFIT_END_NAMESPACE

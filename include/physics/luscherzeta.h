@@ -190,6 +190,23 @@ public:
   }
 };
 
+//Compute the pipi-scattering phase shift in degrees given a pipi-energy E, a pion mass m, lattice spatial size L (assumed equal for all 3 spatial directions)
+//and a zeta function/number of antiperiodic directions
+
+inline double phaseShiftZ(const double E, const double m, const int L, const LuscherZeta &zeta){
+  double k = sqrt( pow(E/2.,2.0) - m*m );
+  double q = k * L/2./M_PI;
+  double delta = -zeta.calcPhi(q);
+  while(delta > M_PI) delta -= M_PI;
+  while(delta < -M_PI) delta += M_PI;
+  return delta/M_PI * 180;
+}
+
+inline double phaseShift(const double E, const double m, const int L, const std::vector<int> twists = {0,0,0}){
+  LuscherZeta zeta(twists[0],twists[1],twists[2]);
+  return phaseShiftZ(E,m,L,zeta);
+}
+
 CPSFIT_END_NAMESPACE
 
 #endif

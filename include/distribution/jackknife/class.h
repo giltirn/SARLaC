@@ -28,7 +28,7 @@ public:
   using VectorType = _VectorType<T>;
   
   template<typename T>
-  using rebase = jackknifeDistribution<T,VectorType>;
+  using rebase = jackknifeDistribution<T,_VectorType>;
 
   inline DataType best() const{ return this->mean(); }
   

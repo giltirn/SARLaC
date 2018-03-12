@@ -19,7 +19,7 @@ public:
   inline explicit GSLvector(const int d): v(gsl_vector_calloc(d)){  } //Initialized to zero
   inline explicit GSLvector(const int d, const double init): v(gsl_vector_alloc(d)){ gsl_vector_set_all(v,init); }
 
-  inline const int dim() const{ return v->size; }
+  inline int dim() const{ return v->size; }
 
   inline GSLvector(const GSLvector &r){ 
     v = gsl_vector_alloc(r.dim());

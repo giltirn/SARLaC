@@ -177,7 +177,7 @@ def plotDataSet(axes,dataset, **kwargs):
         del kwargs['hollowsymbol']
     if 'color' in kwargs.keys():
         color = kwargs['color']
-        del kwargs['color']
+        #del kwargs['color']
 
     if 'ecolor' not in kwargs.keys():
         kwargs['ecolor'] = color

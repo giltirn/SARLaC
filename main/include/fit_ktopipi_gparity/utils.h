@@ -37,7 +37,7 @@ inline NumericTensor<rawDataDistributionD,N> bin(const NumericTensor<rawDataDist
 }
 
 template<typename T, int N>
-struct iterate<NumericTensor<T,N> >{
+struct CPSfit::iterate<NumericTensor<T,N> >{
   static inline int size(const NumericTensor<T,N> &from){ 
     int sz = 1;
     for(int i=0;i<N;i++) sz *= from.size(i);

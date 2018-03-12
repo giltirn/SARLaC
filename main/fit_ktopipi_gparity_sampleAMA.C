@@ -40,6 +40,10 @@ using namespace CPSfit;
 #include <fit_simple_sampleAMA/sampleAMA_resample.h>
 #include <fit_ktopipi_gparity_sampleAMA/cmdline.h>
 #include <fit_ktopipi_gparity_sampleAMA/args.h>
+#include <fit_ktopipi_gparity_sampleAMA/resample_correct.h>
+#include <fit_ktopipi_gparity_sampleAMA/data_structs.h>
+#include <fit_ktopipi_gparity_sampleAMA/resample_average_typedata.h>
+#include <fit_ktopipi_gparity_sampleAMA/alpha_vac_sub.h>
 #include <fit_ktopipi_gparity_sampleAMA/main.h>
 
 int main(const int argc, const char* argv[]){

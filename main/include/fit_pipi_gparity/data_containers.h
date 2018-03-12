@@ -137,7 +137,7 @@ inline void read(HDF5reader &reader, figureDataBase<D,P> &d, const std::string &
 #endif
 
 template<typename DistributionType,typename Policies>
-struct getElem<figureDataBase<DistributionType,Policies> >{
+struct CPSfit::getElem<figureDataBase<DistributionType,Policies> >{
   static inline auto elem(figureDataBase<DistributionType,Policies> &v, const int i)->decltype(v(0,0)){ return v(i/v.getLt(), i%v.getLt()); }
   static inline auto elem(const figureDataBase<DistributionType,Policies> &v, const int i)->decltype(v(0,0)){ return v(i/v.getLt(), i%v.getLt()); }
   static inline int common_properties(const figureDataBase<DistributionType,Policies> &v){ return v.getLt(); }
