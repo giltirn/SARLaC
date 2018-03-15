@@ -54,9 +54,9 @@ struct is_scalar_value<std::complex<T> >{
 };
 
 template<typename A>
-struct ETscalarEval{ //store scalar references
+struct ETscalarEval{ //store scalars by value always
   typedef ETleafTag ET_leaf_mark;
-  const A &rf;
+  const A rf;
   
   ETscalarEval(const A &r): rf(r){}
   inline const A & value() const{ return rf; }

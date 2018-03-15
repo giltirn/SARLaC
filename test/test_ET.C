@@ -30,6 +30,43 @@ int main(void){
       assert(d.sample(i) == 7.);
     }
   }
+  {
+    rawDataDistribution<double> a(nsample, 1.0);
+    rawDataDistribution<double> b(nsample, 2.0);
+    rawDataDistribution<double> c(nsample, 3.0);
+    
+    rawDataDistribution<double> d = a/b -1.;
+    for(int i=0;i<nsample;i++){
+      printf("%f/%f - 1 = %f\n",a.sample(i),b.sample(i),d.sample(i)); fflush(stdout);
+      assert(d.sample(i) == -0.5);
+    }
+  }
+
+  {
+    NumericTensor<jackknifeDistribution<double>,1> a({3}, [&](const int *c){ return jackknifeDistribution<double>(nsample, double(*c+1)); });
+    NumericTensor<jackknifeDistribution<double>,1> b({3}, [&](const int *c){ return jackknifeDistribution<double>(nsample, double(*c+2)); });
+
+    {
+      NumericTensor<jackknifeDistribution<double>,1> c({3}, [&](const int *c){ return a(c)/b(c)-b(c); });
+      
+      for(int i=0;i<3;i++){
+	std::cout << a(&i) << "/" << b(&i) << " - " << b(&i) << " = " << c(&i) << std::endl;
+	assert(c(&i).sample(0) == a(&i).sample(0)/b(&i).sample(0)-b(&i).sample(0));
+      }
+    }
+
+    
+    {
+      NumericTensor<jackknifeDistribution<double>,1> c({3}, [&](const int *c){ return a(c)/b(c)-1.; });
+      
+      for(int i=0;i<3;i++){
+	std::cout << a(&i) << "/" << b(&i) << "-1. = " << c(&i) << std::endl;
+	assert(c(&i).sample(0) == a(&i).sample(0)/b(&i).sample(0)-1.);
+      }
+    }
+
+
+  }
 
   {
     NumericSquareMatrix<double> m1(2, 0.);
@@ -43,7 +80,7 @@ int main(void){
 
     std::cout << m1 << "\n*\n" << m2 << "\n=\n" << m3 << std::endl;
   }
-  
+
   std::cout << "Normal exit\n"; std::cout.flush();
   return 0;
 }
