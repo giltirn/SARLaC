@@ -113,6 +113,19 @@ struct FitFuncPolicy<FitConstant,ArgsType>{
   }
 };
 
+template<typename ArgsType>
+struct FitFuncPolicy<FitTwoStateCosh,ArgsType>{
+  typedef FitTwoStateCosh FitFunc;
+  static inline FitTwoStateCosh* get(const ArgsType &args){ return new FitTwoStateCosh(args.Lt); }
+  static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){
+    //Plot the one-state effective mass
+    jackknifeDistribution<StandardFitParams> p1exp(params.size(),[&](const int s){ return StandardFitParams(params.sample(s)(0), params.sample(s)(1)); });
+    FitCosh fcosh(args.Lt);
+    plotEffectiveMass(args,fcosh,data_j,p1exp,1);
+  }
+};
+
+
 template<typename FitFunc, template<typename> class CostFunctionPolicy, typename ArgsType, typename CMDlineType>
 void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline);
 
@@ -132,7 +145,9 @@ inline void fitResampled(const jackknifeCorrelationFunctionD &data_j, const doub
   case FExp:
     return fitSpecFF<FitExp,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
   case FConstant:
-    return fitSpecFF<FitConstant,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);    
+    return fitSpecFF<FitConstant,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline); 
+  case FTwoStateCosh:
+    return fitSpecFF<FitTwoStateCosh,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline); 
   default:
     error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);
   };
@@ -141,9 +156,10 @@ template<typename ArgsType, typename CMDlineType>
 inline void fit(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
   if(cmdline.save_combined_data){
 #ifdef HAVE_HDF5
-    std::cout << "Writing double-jackknife data to " << cmdline.save_combined_data_file << std::endl;
+    std::cout << "Writing resampled data to " << cmdline.save_combined_data_file << std::endl;
     HDF5writer writer(cmdline.save_combined_data_file);
-    write(writer, data_dj, "data");
+    write(writer, data_j, "data_j");
+    write(writer, data_dj, "data_dj");
 #else
     error_exit("fitSpecFFcorr: Saving amplitude data requires HDF5\n");
 #endif

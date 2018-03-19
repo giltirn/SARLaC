@@ -126,7 +126,7 @@ public:
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &c, const ParameterType &p) const{
     ValueDerivativeType yderivs(nparams);
     yderivs.zero();
-    StandardFitParamDerivs subderivs = fitfuncs[c.type]->parameterDerivatives(c.t,reduce(p,c.type));
+    StandardFitParams subderivs = fitfuncs[c.type]->parameterDerivatives(c.t,reduce(p,c.type));
     yderivs(0) = subderivs.dm;
     yderivs(c.type+1) = subderivs.dA;
     return yderivs;
@@ -171,10 +171,10 @@ public:
     StandardFitParams p(1000, *params);
     
     double value_t = fitfunc->value(t,p);
-    StandardFitParamDerivs subderivs_t = fitfunc->parameterDerivatives(t,p);
+    StandardFitParams subderivs_t = fitfunc->parameterDerivatives(t,p);
 
     double value_tp1 = fitfunc->value(t+1,p);
-    StandardFitParamDerivs subderivs_tp1 = fitfunc->parameterDerivatives(t+1,p);
+    StandardFitParams subderivs_tp1 = fitfunc->parameterDerivatives(t+1,p);
  
     *yderivs = subderivs_t.dm/value_tp1 - value_t/value_tp1/value_tp1 * subderivs_tp1.dm;
     return yderivs;
