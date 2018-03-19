@@ -9,10 +9,13 @@
 #include<utils/macros.h>
 #include<parser/parser.h>
 #include<ET/generic_ET.h>
+#include<containers/enumerated_struct.h>
 
 CPSFIT_START_NAMESPACE
 
 //Fit functions for 'standard fits'; exponential, cosh, sinh
+//DEF_ENUMERATED_STRUCT( ( StandardFitParams, double, (A)(m), (0.0)(0.0) ) ); 
+
 struct StandardFitParams{
   double A;
   double m;
@@ -31,7 +34,7 @@ struct StandardFitParams{
   inline void zero(){ A=m=0.; }
   inline std::string print() const{ std::ostringstream os; os << "A: " << A << " m: " << m; return os.str(); }
 };
-GENERATE_PARSER_INT( StandardFitParams , (double,A)(double,m) );
+GENERATE_PARSER( StandardFitParams , (double,A)(double,m) );
 
 template<>
 struct getElem<StandardFitParams>{

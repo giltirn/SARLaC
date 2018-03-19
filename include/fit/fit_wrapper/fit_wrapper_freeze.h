@@ -14,7 +14,7 @@
 
 CPSFIT_START_NAMESPACE
 
-GENERATE_ENUM_AND_PARSER_INT(FreezeDataReaderType, (UKfitXMLvectorReader)(HDF5fileReader)(ConstantValue) );
+GENERATE_ENUM_AND_PARSER(FreezeDataReaderType, (UKfitXMLvectorReader)(HDF5fileReader)(ConstantValue) );
 
 //Read a jackknife from a UKfit-style bootxml
 void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string &filename, const int idx){
@@ -64,7 +64,7 @@ struct FreezeParam{
 
   FreezeParam(): param_idx(0), reader(UKfitXMLvectorReader), filename("file.dat"), input_idx(1,0), operation(""){}
 };
-GENERATE_PARSER_INT(FreezeParam, FREEZE_PARAM_MEMBERS);
+GENERATE_PARSER(FreezeParam, FREEZE_PARAM_MEMBERS);
 
 
 struct FreezeParams{
@@ -75,7 +75,7 @@ struct FreezeParams{
   
   FreezeParams(): sources(1){}
 };
-GENERATE_PARSER_INT(FreezeParams, FREEZE_PARAMS_MEMBERS);
+GENERATE_PARSER(FreezeParams, FREEZE_PARAMS_MEMBERS);
 
 #undef FREEZE_PARAMS_MEMBERS
 

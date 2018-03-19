@@ -152,22 +152,13 @@ CPSFIT_START_NAMESPACE
     };	
 
 //Parser generated from outside CPSfit namespace
-#define _GENERATE_PARSER_EXT_GM(structname, grammar, structmembers)		\
+#define _GENERATE_PARSER_GM(structname, grammar, structmembers)		\
     _GENERATE_PARSER_GRAMMAR(structname, grammar, structmembers)	\
     _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname,grammar)		\
     _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers)
 
-#define _GENERATE_PARSER_INT_GM(structname, grammar, structmembers)		\
-  _GENERATE_PARSER_GRAMMAR(structname, grammar, structmembers)	\
-  _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname,grammar)		\
-  _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers)
-
 //Generate the parser from outside CPSfit namespace
-#define _GENERATE_PARSER_EXT(structname, structmembers) _GENERATE_PARSER_EXT_GM(structname, _PARSER_DEF_GRAMMAR_NAME(structname), structmembers)
-
-//Generate the parser from inside the CPSfit namespace
-#define _GENERATE_PARSER_INT(structname, structmembers) _GENERATE_PARSER_INT_GM(structname, _PARSER_DEF_GRAMMAR_NAME(structname), structmembers)
-
+#define _GENERATE_PARSER(structname, structmembers) _GENERATE_PARSER_GM(structname, _PARSER_DEF_GRAMMAR_NAME(structname), structmembers)
 
 
 //Convenience function for generating members using the same struct as the parser
@@ -198,7 +189,7 @@ CPSFIT_START_NAMESPACE
       enumname &val = x3::_val(ctx);	\
       for(int i=0;i<str.size();i++) \
 	if(tag == str[i]){ val = (enumname)i; return; }			\
-      error_exit(std::cout << "Unknown " BOOST_PP_STRINGIZE(enumname) " : " << tag << std::endl); \
+      CPSfit::error_exit(std::cout << "Unknown " BOOST_PP_STRINGIZE(enumname) " : " << tag << std::endl); \
     } \
   };
 
@@ -212,13 +203,11 @@ CPSFIT_START_NAMESPACE
     auto const BOOST_PP_CAT(enumname, __def) = enumparse[BOOST_PP_CAT(enumname,_match)()]; \
     BOOST_SPIRIT_DEFINE(BOOST_PP_CAT(enumname,_)); \
   }; \
-  namespace parsers{ \
     template<>		   \
-    struct parser<enumname>{						\
+      struct CPSfit::parsers::parser<enumname>{				\
       decltype( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ) &parse; \
       parser(): parse( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ){} \
-    };									\
-  };
+    };
 
 #define _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers)	      \
   std::ostream & operator<<(std::ostream &os, const enumname s){ \
@@ -229,32 +218,17 @@ CPSFIT_START_NAMESPACE
 
 
 //Generate the parser from outside CPSfit namespace
-#define _GENERATE_ENUM_PARSER_EXT(enumname, enummembers)	\
-  _GEN_ENUM_STR(enumname, enummembers)				\
-  namespace CPSfit{						\
-    _GEN_ENUM_PARSER_BODY(enumname, enummembers)		\
-  };								\
-  _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers)		\
-
-//Define an enum and a parser to go along with it
-//To use  GENERATE_ENUM_AND_PARSER_EXT( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
-#define _GENERATE_ENUM_AND_PARSER_EXT(enumname, enummembers)	\
-  _GEN_ENUM_ENUMDEF(enumname, enummembers) \
-  _GENERATE_ENUM_PARSER_EXT(enumname, enummembers)
-  
-
-//Generate the parser from inside CPSfit namespace
-#define _GENERATE_ENUM_PARSER_INT(enumname, enummembers)	\
+#define _GENERATE_ENUM_PARSER(enumname, enummembers)	\
   _GEN_ENUM_STR(enumname, enummembers)				\
   _GEN_ENUM_PARSER_BODY(enumname, enummembers)			\
   _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers)		\
 
 //Define an enum and a parser to go along with it
-//To use  GENERATE_ENUM_AND_PARSER_INT( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
-#define _GENERATE_ENUM_AND_PARSER_INT(enumname, enummembers)	\
+//To use  GENERATE_ENUM_AND_PARSER( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
+#define _GENERATE_ENUM_AND_PARSER(enumname, enummembers)	\
   _GEN_ENUM_ENUMDEF(enumname, enummembers) \
-  _GENERATE_ENUM_PARSER_INT(enumname, enummembers)
-
+  _GENERATE_ENUM_PARSER(enumname, enummembers)
+  
 
 CPSFIT_END_NAMESPACE
 
