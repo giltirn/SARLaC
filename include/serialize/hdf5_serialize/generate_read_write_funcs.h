@@ -24,25 +24,25 @@ struct _force_external_lookup{
   }
 };
 
-#define _GENERATE_HDF5_SERIALIZE_METHOD_WRITEIT(r,data,elem) _force_external_lookup<typename std::decay<decltype(this->elem)>::type>::fwrite(writer, this-> elem, BOOST_PP_STRINGIZE(elem)); 
-#define _GENERATE_HDF5_SERIALIZE_METHOD_READIT(r,data,elem) _force_external_lookup<typename std::decay<decltype(this->elem)>::type>::fread(reader, this-> elem, BOOST_PP_STRINGIZE(elem)); 
+#define _GENERATE_HDF5_SERIALIZE_METHOD_WRITEIT(r,data,elem) CPSfit::_force_external_lookup<typename std::decay<decltype(this->elem)>::type>::fwrite(writer, this-> elem, BOOST_PP_STRINGIZE(elem)); 
+#define _GENERATE_HDF5_SERIALIZE_METHOD_READIT(r,data,elem) CPSfit::_force_external_lookup<typename std::decay<decltype(this->elem)>::type>::fread(reader, this-> elem, BOOST_PP_STRINGIZE(elem)); 
 
 //Generate HDF5 serialize methods for a class. MEMBERS should be a series of member names in parentheses, eg (member1)(member2)(member3)....
 #define GENERATE_HDF5_SERIALIZE_METHOD(MEMBERS)\
-    void write(HDF5writer &writer, const std::string &tag) const{ \
-      writer.enter(tag);\
-      BOOST_PP_SEQ_FOR_EACH(_GENERATE_HDF5_SERIALIZE_METHOD_WRITEIT, , MEMBERS); \
-      writer.leave(); \
-    }\
-    void read(HDF5reader &reader, const std::string &tag){ \
-      reader.enter(tag); \
-      BOOST_PP_SEQ_FOR_EACH(_GENERATE_HDF5_SERIALIZE_METHOD_READIT, , MEMBERS); \
-      reader.leave(); \
-    }
+  void write(CPSfit::HDF5writer &writer, const std::string &tag) const{	\
+    writer.enter(tag);							\
+    BOOST_PP_SEQ_FOR_EACH(_GENERATE_HDF5_SERIALIZE_METHOD_WRITEIT, , MEMBERS); \
+    writer.leave();							\
+  }									\
+  void read(CPSfit::HDF5reader &reader, const std::string &tag){	\
+    reader.enter(tag);							\
+    BOOST_PP_SEQ_FOR_EACH(_GENERATE_HDF5_SERIALIZE_METHOD_READIT, , MEMBERS); \
+    reader.leave();							\
+  }
 
 #define GENERATE_HDF5_SERIALIZE_FUNC(CLASSNAME)\
-  inline void write(HDF5writer &writer, const CLASSNAME &d, const std::string &tag){ d.write(writer,tag); }\
-  inline void read(HDF5reader &reader, CLASSNAME &d, const std::string &tag){ d.read(reader,tag); }
+  inline void write(CPSfit::HDF5writer &writer, const CLASSNAME &d, const std::string &tag){ d.write(writer,tag); }\
+  inline void read(CPSfit::HDF5reader &reader, CLASSNAME &d, const std::string &tag){ d.read(reader,tag); }
 
 CPSFIT_END_NAMESPACE
 

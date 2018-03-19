@@ -68,7 +68,7 @@ CPSFIT_START_NAMESPACE
 
 //Define parsers for the member types
 #define _PARSER_MEMBER_TYPE_PARSER(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem), _type_parse)
-#define _PARSER_MEMBER_DEF_TYPE_PARSER(r,dummy,elem) parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
+#define _PARSER_MEMBER_DEF_TYPE_PARSER(r,dummy,elem) CPSfit::parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
 #define _PARSER_DEF_TYPE_PARSERS(structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_TYPE_PARSER, , structmembers)
 
 //Define and specify the rules for parsing the members
@@ -81,13 +81,13 @@ CPSFIT_START_NAMESPACE
   struct _PARSER_MEMBER_TAG(elem){					\
   template <typename Iterator, typename Exception, typename Context>	\
     x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
-    return parser_tools::on_error(BOOST_PP_STRINGIZE(structname) "." _PARSER_MEMBER_GETNAMESTR(elem),first,last,x,context); \
+    return CPSfit::parser_tools::on_error(BOOST_PP_STRINGIZE(structname) "." _PARSER_MEMBER_GETNAMESTR(elem),first,last,x,context); \
     }									\
   };									\
   \
   x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > _PARSER_MEMBER_RULE(elem) = _PARSER_MEMBER_RULESTR(elem); \
   \
-  auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) >> '=' >> _PARSER_MEMBER_TYPE_PARSER(elem).parse[parser_tools::set_equals]; \
+  auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) >> '=' >> _PARSER_MEMBER_TYPE_PARSER(elem).parse[CPSfit::parser_tools::set_equals]; \
   \
   template <typename Iterator, typename Context, typename Attribute> \
   inline bool parse_rule( decltype(_PARSER_MEMBER_RULE(elem)) rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
@@ -100,13 +100,13 @@ CPSFIT_START_NAMESPACE
 
 //Define the rule for the main structure
 #define _PARSER_DEF_STRUCT_RULE_MEMBER_GEN(r,structname,elem) \
-  >> _PARSER_MEMBER_RULE(elem)[parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
+  >> _PARSER_MEMBER_RULE(elem)[CPSfit::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
 
 #define _PARSER_DEF_STRUCT_RULE_DEF(NAME)\
   struct main_rule_handler{\
     template <typename Iterator, typename Exception, typename Context>	\
       x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
-      return parser_tools::on_error(BOOST_PP_STRINGIZE(NAME),first,last,x,context); \
+      return CPSfit::parser_tools::on_error(BOOST_PP_STRINGIZE(NAME),first,last,x,context); \
     }									\
   };									\
 									\
@@ -122,25 +122,22 @@ CPSFIT_START_NAMESPACE
 
 //Register the parser
 #define _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(NAME,GRAMMAR)	\
-  namespace parsers{						\
     template<>							\
-    struct parser<NAME>{					\
+      struct CPSfit::parsers::parser<NAME>{			\
       decltype( GRAMMAR::main_rule ) &parse;			\
       parser(): parse(GRAMMAR::main_rule ){}			\
-    };								\
-  };								\
-
+    };
 
 //Write operator<< and operator>>
-#define _PARSER_DEF_OSTREAM_MEMBER_WRITE(r,structname,elem)  os << parser_tools::tabbing::tabs() << BOOST_PP_STRINGIZE(_PARSER_MEMBER_GETNAME(elem)) " = " << parser_tools::parser_output_print(s._PARSER_MEMBER_GETNAME(elem)) << std::endl;
+#define _PARSER_DEF_OSTREAM_MEMBER_WRITE(r,structname,elem)  os << CPSfit::parser_tools::tabbing::tabs() << BOOST_PP_STRINGIZE(_PARSER_MEMBER_GETNAME(elem)) " = " << CPSfit::parser_tools::parser_output_print(s._PARSER_MEMBER_GETNAME(elem)) << std::endl;
 
 #define _PARSER_DEF_DEFINE_OSTREAM_WRITE(NAME, MEMSEQ) \
   std::ostream & operator<<(std::ostream &os, const NAME &s){ \
-  os << "{\n"; parser_tools::tabbing::increment(); \
-  TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_OSTREAM_MEMBER_WRITE, NAME, MEMSEQ) \
-  parser_tools::tabbing::decrement(); os << parser_tools::tabbing::tabs() << "}";  \
-  return os; \
-}
+    os << "{\n"; CPSfit::parser_tools::tabbing::increment();		\
+    TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_OSTREAM_MEMBER_WRITE, NAME, MEMSEQ) \
+      CPSfit::parser_tools::tabbing::decrement(); os << CPSfit::parser_tools::tabbing::tabs() << "}"; \
+    return os;								\
+  }
 
 #define _GENERATE_PARSER_GRAMMAR(structname, grammar, structmembers)		\
     namespace grammar{							\
@@ -156,11 +153,9 @@ CPSFIT_START_NAMESPACE
 
 //Parser generated from outside CPSfit namespace
 #define _GENERATE_PARSER_EXT_GM(structname, grammar, structmembers)		\
-  namespace CPSfit{							\
     _GENERATE_PARSER_GRAMMAR(structname, grammar, structmembers)	\
     _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname,grammar)		\
-  };									\
-  _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers)
+    _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers)
 
 #define _GENERATE_PARSER_INT_GM(structname, grammar, structmembers)		\
   _GENERATE_PARSER_GRAMMAR(structname, grammar, structmembers)	\

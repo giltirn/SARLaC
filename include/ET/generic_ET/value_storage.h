@@ -32,7 +32,8 @@ struct ETstore{
   static inline auto elem(A &v, const int i)->decltype(getElem<A>::elem(v,i)){ return getElem<A>::elem(v,i); } //used for accessing element in final loop
 };
 
-
+//For r-value references to actual data, we want to move the data into a storage container so it lives beyond the scope in which it was created
+//For leaves of the ET we pass through to the operator, which performs a move on the leaf
 template<typename T, typename Fallback = void>
 struct rvalueStoreType{
   typedef ETstore<T> type;

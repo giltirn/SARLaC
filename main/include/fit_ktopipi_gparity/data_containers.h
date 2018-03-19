@@ -85,6 +85,8 @@ struct contractions{
   const contractionData & C(const int i) const{ assert(i>=0 && i<con.size()); return con[i]; }
   const rawDataDistributionD & mix() const{ return extra[0]; } //only use the F0 g5 spin-flavor structure in practise 
   
+  int nContract() const{ return con.size(); }
+
   inline bool isZero() const{ 
     for(int i=0;i<con.size();i++) if(!con[i].isZero()) return false;
 
