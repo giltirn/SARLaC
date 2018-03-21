@@ -10,5 +10,6 @@
 #include<utils/utils/error.h>
 #include<utils/utils/memory.h>
 #include<utils/utils/filesystem.h>
+#include<utils/utils/endian.h>
 
 #endif

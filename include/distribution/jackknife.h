@@ -7,5 +7,6 @@
 #include<distribution/jackknife/ET.h>
 #include<distribution/jackknife/iterate.h>
 #include<distribution/jackknife/xml_io.h>
+#include<distribution/jackknife/qdp_binary_read.h>
 
 #endif
