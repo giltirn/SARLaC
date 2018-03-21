@@ -10,4 +10,5 @@
 #include<distribution/jackknife.h>
 #include<distribution/raw_data_distribution.h>
 #include<distribution/superjackknife.h>
+#include<distribution/bootstrap.h>
 #endif
