@@ -127,8 +127,8 @@ public:
     ValueDerivativeType yderivs(nparams);
     yderivs.zero();
     StandardFitParams subderivs = fitfuncs[c.type]->parameterDerivatives(c.t,reduce(p,c.type));
-    yderivs(0) = subderivs.dm;
-    yderivs(c.type+1) = subderivs.dA;
+    yderivs(0) = subderivs.m;
+    yderivs(c.type+1) = subderivs.A;
     return yderivs;
   }
 
@@ -176,7 +176,7 @@ public:
     double value_tp1 = fitfunc->value(t+1,p);
     StandardFitParams subderivs_tp1 = fitfunc->parameterDerivatives(t+1,p);
  
-    *yderivs = subderivs_t.dm/value_tp1 - value_t/value_tp1/value_tp1 * subderivs_tp1.dm;
+    *yderivs = subderivs_t.m/value_tp1 - value_t/value_tp1/value_tp1 * subderivs_tp1.m;
     return yderivs;
   }
 

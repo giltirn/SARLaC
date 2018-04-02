@@ -12,7 +12,7 @@ template<typename T>
 void read(QDPbinaryReader &rd, jackknifeDistribution<T> &into){
   int sample_type;
   read(rd, sample_type);
-  assert(sample_type == 2);
+  if(sample_type != 2) error_exit(std::cout << "read(QDPbinaryReader &, jackknifeDistribution<T> &) failed: Expected sample_type=2, got " << sample_type << std::endl);
   int nmeas;
   read(rd, nmeas);
   into.resize(nmeas);

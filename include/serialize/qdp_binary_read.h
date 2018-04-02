@@ -8,25 +8,28 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<utils/utils/endian.h>
+#include<utils/utils/error.h>
 
 CPSFIT_START_NAMESPACE
 
 class QDPbinaryReader{
   bool system_bigendian;
   std::ifstream strm;
-
+  std::string file;
 public:
-  QDPbinaryReader(const std::string &file): system_bigendian(isBigEndian()), strm(file.c_str(), std::ios::binary){    
-    assert(strm.good());
+  QDPbinaryReader(const std::string &file): file(file), system_bigendian(isBigEndian()), strm(file.c_str(), std::ios::binary){    
+    if(!strm.good()) error_exit(std::cout << "QDPbinaryReader could not open file " << file << std::endl);
     strm.exceptions ( std::ios::failbit | std::ios::badbit );
   }
-
+  
   template<typename T>
   typename std::enable_if<std::is_fundamental<T>::value, void>::type read(T &into){
     strm.read((char*)&into, sizeof(T));
     if(!system_bigendian)
       into = reverseEndianness(into);
   }
+
+  const std::string &fileName() const{ return file; }
 };
 
 template<typename T>
