@@ -87,6 +87,12 @@ public:
 };
 GENERATE_HDF5_SERIALIZE_FUNC(superJackknifeLayout);
 
+inline std::ostream & operator<<(std::ostream &os, const superJackknifeLayout &l){
+  os << "{ samples:"<<l.nSamplesTotal() << ", #ens:" << l.nEnsembles() << ", ensembles:";
+  for(int i=0;i<l.nEnsembles();i++) os << "(" << l.ensTag(i) << ", size:" << l.nSamplesEns(i) << ")";
+  os << "}";
+  return os;
+}
 
 superJackknifeLayout combine(const superJackknifeLayout &l, const superJackknifeLayout &r){
   superJackknifeLayout out(l);

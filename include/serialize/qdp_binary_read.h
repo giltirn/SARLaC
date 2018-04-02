@@ -29,6 +29,10 @@ public:
       into = reverseEndianness(into);
   }
 
+  void read(std::string &into){
+    std::getline(strm,into);
+  }
+
   const std::string &fileName() const{ return file; }
 };
 
@@ -36,6 +40,11 @@ template<typename T>
 inline typename std::enable_if<std::is_fundamental<T>::value, void>::type read(QDPbinaryReader &rd, T &into){
   rd.read(into);
 }
+
+inline void read(QDPbinaryReader &rd, std::string &into){
+  rd.read(into);
+}
+
 template<typename T>
 inline void read(QDPbinaryReader &rd, std::vector<T> &into){
   int size;
