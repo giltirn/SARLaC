@@ -7,4 +7,5 @@
 #include<tensors/numeric_square_matrix.h>
 #include<tensors/numeric_tensor.h>
 #include<tensors/numeric_vector.h>
+#include<tensors/dual_number.h>
 #endif
