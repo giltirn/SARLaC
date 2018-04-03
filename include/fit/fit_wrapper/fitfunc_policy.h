@@ -59,7 +59,7 @@ public:
 
   typedef _fitFunc baseFitFunc;
   typedef FrozenFitFunc<_fitFunc> fitFunc;
-  typedef jackknifeDistribution<typename baseFitFunc::ParameterType> FitParameterDistribution; //going to intercept and transform to internal representation
+  typedef typename DistributionType::template rebase<typename baseFitFunc::ParameterType> FitParameterDistribution; //going to intercept and transform to internal representation
 
   class fitFuncPolicyState{
     std::unique_ptr<fitFunc> ff_frz;
