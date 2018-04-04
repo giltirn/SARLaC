@@ -16,7 +16,7 @@ struct dual{
   double xp;
   
   dual() = default;
-  dual(double x, double xp = 0.): x(x), xp(xp){}
+  explicit dual(double x, double xp = 0.): x(x), xp(xp){}
   dual(std::initializer_list<double> xxp){ 
     auto it = xxp.begin();
     x = *it;
@@ -73,20 +73,34 @@ inline dual operator/(const dual &a, const double &b){
   return dual(a.x/b, a.xp/b);
 }
 
-
+using ::log;
 
 inline dual log(const dual &a){
   return dual(::log(a.x), a.xp/a.x );
 }
+
+using ::sin;
+
 inline dual sin(const dual &a){
-  return dual(::sin(a.x), a.xp*cos(a.x));
+  return dual(::sin(a.x), a.xp*::cos(a.x));
 }
+
+using ::cos;
+
 inline dual cos(const dual &a){
   return dual(::cos(a.x), -a.xp*::sin(a.x));
 }
 
+using ::pow;
+
 inline dual pow(const dual &a, const double &b){
   return dual( ::pow(a.x,b), b*::pow(a.x, b-1.)*a.xp );
+}
+
+using ::sqrt;
+
+inline dual sqrt(const dual &a){
+  return dual( ::sqrt(a.x), 0.5/::sqrt(a.x)*a.xp );
 }
 
 CPSFIT_END_NAMESPACE
