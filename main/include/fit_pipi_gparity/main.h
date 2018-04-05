@@ -133,11 +133,11 @@ auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int t
     int psrc = pp % 8;
 
     std::complex<double> csrc, csnk;
-    if(!proj_src(csrc, R[psrc]) || !proj_snk(csnk, -R[psnk]) ) continue;
+    if(!proj_src(csrc, R[psrc]) || !proj_snk(csnk, R[psnk]) ) continue;
 
     double coeff = std::real(csrc * csnk);
 
-    const auto &Bmp1_snk = raw_bubble_data( -R[psnk] );
+    const auto &Bmp1_snk = raw_bubble_data( -R[psnk] ); //momentum label always for pion at larger timeslice, here p2_snk = -p1snk
     const auto &Bp1_src  = raw_bubble_data(  R[psrc] );
 
     for(int tsrc=0;tsrc<Lt;tsrc++)
