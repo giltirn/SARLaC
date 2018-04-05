@@ -25,6 +25,14 @@ inline CFDpair<Coord,Dist> operator*(const int a, const CFDpair<Coord,Dist> &e){
   return CFDpair<Coord,Dist>(e.first, a*e.second);
 }
 template<typename Coord, typename Dist>
+inline CFDpair<Coord,Dist> operator*(const double a, const CFDpair<Coord,Dist> &e){
+  return CFDpair<Coord,Dist>(e.first, a*e.second);
+}
+template<typename Coord, typename Dist>
+  inline CFDpair<Coord,Dist> operator*(const CFDpair<Coord,Dist> &e,const double a){
+  return CFDpair<Coord,Dist>(e.first, a*e.second);
+}
+template<typename Coord, typename Dist>
 inline CFDpair<Coord,Dist> operator+(const CFDpair<Coord,Dist> &d, const CFDpair<Coord,Dist> &e){
   assert(e.first == d.first);
   return CFDpair<Coord,Dist>(e.first, d.second+e.second);
