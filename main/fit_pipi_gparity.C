@@ -21,6 +21,7 @@ using namespace CPSfit;
 #include <fit_pipi_gparity/cmdline.h>
 #include <fit_pipi_gparity/fit.h>
 #include <fit_pipi_gparity/plot.h>
+#include <fit_pipi_gparity/mom_project.h>
 #include <fit_pipi_gparity/main.h>
 
 int main(const int argc, const char* argv[]){
@@ -39,8 +40,14 @@ int main(const int argc, const char* argv[]){
   
   CMDline cmdline(argc,argv,2);
 
+  PiPiProject *proj_src = getProjector(args.proj_src);
+  PiPiProject *proj_snk = getProjector(args.proj_snk);
+
   //Get the double-jackknife resampled data
-  doubleJackCorrelationFunction pipi_dj = getData(args,cmdline);
+  doubleJackCorrelationFunction pipi_dj = getData(*proj_src, *proj_snk, args.isospin, args,cmdline);
+
+  delete proj_src;
+  delete proj_snk;
 
   //Convert to single-jackknife
   jackknifeCorrelationFunction pipi_j(pipi_dj.size(),

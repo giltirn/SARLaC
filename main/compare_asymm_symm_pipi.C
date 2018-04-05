@@ -20,6 +20,7 @@ using namespace CPSfit;
 #include <fit_pipi_gparity/cmdline.h>
 #include <fit_pipi_gparity/fit.h>
 #include <fit_pipi_gparity/plot.h>
+#include <fit_pipi_gparity/mom_project.h>
 #include <fit_pipi_gparity/main.h>
 #include <compare_asymm_symm_pipi/cmdline.h>
 #include <compare_asymm_symm_pipi/args.h>
@@ -41,18 +42,23 @@ int main(const int argc, const char* argv[]){
   
   ComparisonCMDline cmdline(argc,argv,2);
 
+  PiPiProject *proj_src = getProjector(args.proj_src);
+  PiPiProject *proj_snk = getProjector(args.proj_snk);
+
   //Get the double-jackknife resampled data
   doubleJackCorrelationFunction pipi_dj_asymm, pipi_dj_symm;
   {
     CMDline c = cmdline.toCMDline(Asymmetric);
     Args a = args.toArgs(Asymmetric);
-    pipi_dj_asymm = getData(a,c);
+    pipi_dj_asymm = getData(*proj_src,*proj_snk,args.isospin,a,c);
   }
   {
     CMDline c = cmdline.toCMDline(Symmetric);
     Args a = args.toArgs(Symmetric);
-    pipi_dj_symm = getData(a,c);
+    pipi_dj_symm = getData(*proj_src,*proj_snk,args.isospin,a,c);
   }
+  
+  delete proj_src; delete proj_snk;
 
   //Convert to single-jackknife
   jackknifeCorrelationFunction pipi_j_asymm(pipi_dj_asymm.size(),
