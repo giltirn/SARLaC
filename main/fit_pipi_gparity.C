@@ -42,12 +42,12 @@ int main(const int argc, const char* argv[]){
 
   PiPiProject *proj_src = getProjector(args.proj_src);
   PiPiProject *proj_snk = getProjector(args.proj_snk);
+  PiPiMomAllow* allow = getMomPairFilter(args.allowed_mom);
 
   //Get the double-jackknife resampled data
-  doubleJackCorrelationFunction pipi_dj = getData(*proj_src, *proj_snk, args.isospin, args,cmdline);
+  doubleJackCorrelationFunction pipi_dj = getData(*proj_src, *proj_snk, *allow, args.isospin, args,cmdline);
 
-  delete proj_src;
-  delete proj_snk;
+  delete proj_src; delete proj_snk; delete allow;
 
   //Convert to single-jackknife
   jackknifeCorrelationFunction pipi_j(pipi_dj.size(),

@@ -41,7 +41,7 @@ struct rawData{ //raw, unbinned data
   int nS; //unbinned
   int nC;
 
-  rawData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const int isospin, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
+  rawData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
     bubbleDataAllMomenta* raw_bubble_data[3] = { &raw_bubble_data_sloppy_S, &raw_bubble_data_sloppy_C, &raw_bubble_data_exact_C };
     rawCorrelationFunction* pipi_raw[3] = { &pipi_raw_sloppy_S, &pipi_raw_sloppy_C, &pipi_raw_exact_C };
     const char ens[3] = { 'S', 'C', 'C' };
@@ -52,7 +52,7 @@ struct rawData{ //raw, unbinned data
       CMDline cmdlinei = cmdline.toCMDline(se[i], ens[i]);
       figureDataAllMomenta raw_data;
       readRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei);
-      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], proj_src, proj_snk, isospin, argsi, cmdlinei, "", false);
+      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], proj_src, proj_snk, allow, isospin, argsi, cmdlinei, "", false);
     }
 
     nS = pipi_raw_sloppy_S.value(0).size();
@@ -85,7 +85,7 @@ bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > resampleCorrectBubbl
 
 template<typename DistributionType>
 void resampleCombineData(correlationFunction<double,DistributionType> &pipi, 
-			 const PiPiProject &proj_src, const PiPiProject &proj_snk, const int isospin,
+			 const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin,
 			 const rawData &raw, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
   typedef correlationFunction<double,DistributionType> CorrFunc;
   typedef typename CorrFunc::ElementType Elem;
@@ -108,23 +108,23 @@ void resampleCombineData(correlationFunction<double,DistributionType> &pipi,
   }
   if(isospin == 0 && args.do_vacuum_subtraction){
     auto bubble_data_corrected_r = resampleCorrectBubbleSampleAMA<DistributionType>(raw,nS,nC,args.bin_size);
-    CorrFunc A2_realavg_V_r = computeVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, proj_src, proj_snk);
+    CorrFunc A2_realavg_V_r = computeVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, proj_src, proj_snk, allow);
     pipi = pipi - 3*A2_realavg_V_r;
   }
 }
 
 void generateData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, 
-		  const PiPiProject &proj_src, const PiPiProject &proj_snk, const int isospin,
+		  const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin,
 		  const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
-  rawData raw(proj_src, proj_snk, isospin, args,cmdline);
-  resampleCombineData<jackknifeDistributionD>(pipi_j,proj_src, proj_snk, isospin, raw,args,cmdline);
-  resampleCombineData<doubleJackknifeDistributionD>(pipi_dj,proj_src, proj_snk, isospin, raw,args,cmdline);
+  rawData raw(proj_src, proj_snk, allow, isospin, args,cmdline);
+  resampleCombineData<jackknifeDistributionD>(pipi_j,proj_src, proj_snk, allow, isospin, raw,args,cmdline);
+  resampleCombineData<doubleJackknifeDistributionD>(pipi_dj,proj_src, proj_snk, allow, isospin, raw,args,cmdline);
   
   pipi_j = fold(pipi_j, args.tsep_pipi);
   pipi_dj = fold(pipi_dj, args.tsep_pipi);
 }
 
-void getData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const int isospin, 
+void getData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, 
 	     jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
   if(cmdline.load_combined_data){
 #ifdef HAVE_HDF5
@@ -135,7 +135,7 @@ void getData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const int
     error_exit("getData: Reading amplitude data requires HDF5\n");
 #endif
   }else{
-    generateData(pipi_j,pipi_dj, proj_src, proj_snk, isospin,args,cmdline);
+    generateData(pipi_j,pipi_dj, proj_src, proj_snk, allow, isospin,args,cmdline);
   }
 
   if(cmdline.save_combined_data){
@@ -167,14 +167,15 @@ int main(const int argc, const char* argv[]){
 
   PiPiProject *proj_src = getProjector(args.proj_src);
   PiPiProject *proj_snk = getProjector(args.proj_snk);
+  PiPiMomAllow* allow = getMomPairFilter(args.allowed_mom);
 
   //Read resampled
   jackknifeCorrelationFunction pipi_j;
   doubleJackCorrelationFunction pipi_dj;
 
-  getData(*proj_src, *proj_snk, args.isospin, pipi_j,pipi_dj,args,cmdline);
+  getData(*proj_src, *proj_snk, *allow, args.isospin, pipi_j,pipi_dj,args,cmdline);
   
-  delete proj_src; delete proj_snk;
+  delete proj_src; delete proj_snk; delete allow;
   
   //Filter out the data that is to be fitted
   const int nsample = pipi_j.value(0).size();

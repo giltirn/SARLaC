@@ -11,6 +11,7 @@
   ( int, tstep_pipi) \
   ( PiPiProjector, proj_src ) \
   ( PiPiProjector, proj_snk ) \
+  ( PiPiMomAllowed, allowed_mom ) \
   ( int, isospin )		  \
   ( bool, do_vacuum_subtraction ) \
   ( PiPiFitFunction, fitfunc) \
@@ -30,7 +31,7 @@
 struct ArgsSampleAMA{
   GENERATE_MEMBERS(ARGS_SAMPLEAMA_MEMBERS)
 
-  ArgsSampleAMA(): data_dir_S("data_S"), data_dir_C("data_C"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_inc(1), Ascale(1e13), Cscale(1e13), fitfunc(FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), traj_start_S(0), traj_lessthan_S(2), traj_start_C(0), traj_lessthan_C(2), proj_src(A1), proj_snk(A1), isospin(0)  {}
+  ArgsSampleAMA(): data_dir_S("data_S"), data_dir_C("data_C"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_inc(1), Ascale(1e13), Cscale(1e13), fitfunc(FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), traj_start_S(0), traj_lessthan_S(2), traj_start_C(0), traj_lessthan_C(2), proj_src(A1), proj_snk(A1), allowed_mom(All), isospin(0)  {}
 
   Args toArgs(const char ens) const{  //'S' or 'C'
     Args out;
@@ -39,6 +40,7 @@ struct ArgsSampleAMA{
     out.tstep_pipi = tstep_pipi;
     out.proj_src = proj_src;
     out.proj_snk = proj_snk;
+    out.allowed_mom = allowed_mom;
     out.isospin = isospin;
     out.do_vacuum_subtraction = do_vacuum_subtraction;
     out.fitfunc = fitfunc;

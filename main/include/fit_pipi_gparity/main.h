@@ -2,7 +2,7 @@
 #define _PIPI_MAIN_H__
 
 template<typename DataAllMomentumType>
-typename DataAllMomentumType::ContainerType project(const char fig, const DataAllMomentumType &raw_data, const PiPiProject &proj_src, const PiPiProject &proj_snk){
+typename DataAllMomentumType::ContainerType project(const char fig, const DataAllMomentumType &raw_data, const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow){
   std::cout << "Computing projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed projection of figure ") + fig + " with DataAllMomentumType = " + printType<DataAllMomentumType>() + " in %w s\n");
   threeMomentum R[8] = { {1,1,1}, {-1,-1,-1},
@@ -13,12 +13,16 @@ typename DataAllMomentumType::ContainerType project(const char fig, const DataAl
   typename DataAllMomentumType::ContainerType out(raw_data.getLt(), raw_data.getNsample()); out.zero();
 
   std::complex<double> csnk, csrc;
+  double m;
   for(int psnk=0;psnk<8;psnk++){
     if(!proj_snk(csnk, R[psnk])) continue;
 
     for(int psrc=0;psrc<8;psrc++){
       if(!proj_src(csrc, R[psrc])) continue;
-      out = out + std::real(csnk*csrc)*raw_data(fig, momComb(R[psnk], R[psrc]));
+      
+      if(!allow(m,R[psrc],R[psnk])) continue;
+
+      out = out + m*std::real(csnk*csrc)*raw_data(fig, momComb(R[psnk], R[psrc]));
     }
   }
 
@@ -103,7 +107,7 @@ auto sourceAverage(const FigureDataType & data)->correlationFunction<double,type
 
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
-auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiProject &proj_src, const PiPiProject &proj_snk)
+auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow)
 ->correlationFunction<double,typename std::decay<decltype(raw_bubble_data(*((threeMomentum*)NULL))(0))>::type>{
 
   (std::cout << "Computing projected, src-averaged V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
@@ -133,9 +137,10 @@ auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int t
     int psrc = pp % 8;
 
     std::complex<double> csrc, csnk;
-    if(!proj_src(csrc, R[psrc]) || !proj_snk(csnk, R[psnk]) ) continue;
+    double m;
+    if(!proj_src(csrc, R[psrc]) || !proj_snk(csnk, R[psnk]) || !allow(m,R[psrc],R[psnk]) ) continue;
 
-    double coeff = std::real(csrc * csnk);
+    double coeff = m*std::real(csrc * csnk);
 
     const auto &Bmp1_snk = raw_bubble_data( -R[psnk] ); //momentum label always for pion at larger timeslice, here p2_snk = -p1snk
     const auto &Bp1_src  = raw_bubble_data(  R[psrc] );
@@ -200,13 +205,13 @@ inline void bin(rawCorrelationFunction &raw, const int bin_size){
 
 //Compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data
 void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, 
-			const PiPiProject &proj_src, const PiPiProject &proj_snk, const int isospin,
+			const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin,
 			const Args &args, const CMDline &cmdline, const std::string &extra_descr = "", bool output_raw_data = true){
  
-  figureData A2_C = project('C', raw_data, proj_src, proj_snk);
-  figureData A2_D = project('D', raw_data, proj_src, proj_snk);
-  figureData A2_R = project('R', raw_data, proj_src, proj_snk);
-  figureData A2_V = project('V', raw_data, proj_src, proj_snk);
+  figureData A2_C = project('C', raw_data, proj_src, proj_snk, allow);
+  figureData A2_D = project('D', raw_data, proj_src, proj_snk, allow);
+  figureData A2_R = project('R', raw_data, proj_src, proj_snk, allow);
+  figureData A2_V = project('V', raw_data, proj_src, proj_snk, allow);
   
   rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
   rawCorrelationFunction A2_realavg_D = sourceAverage(A2_D);
@@ -281,7 +286,7 @@ void checkpointRawData(const figureDataAllMomenta &raw_data, const bubbleDataAll
 
 
 //Read and combine/double-jack resample data from original files or a checkpoint of the entire data set
-doubleJackCorrelationFunction generateData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const int isospin, const Args &args, const CMDline &cmdline){
+doubleJackCorrelationFunction generateData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, const Args &args, const CMDline &cmdline){
 
   //Read the data
   bubbleDataAllMomenta raw_bubble_data;
@@ -290,7 +295,7 @@ doubleJackCorrelationFunction generateData(const PiPiProject &proj_src, const Pi
     figureDataAllMomenta raw_data;
     readRawData(raw_data, raw_bubble_data, args, cmdline);
     checkpointRawData(raw_data, raw_bubble_data, args, cmdline);
-    getRawPiPiCorrFunc(pipi_raw, raw_data, raw_bubble_data, proj_src, proj_snk, isospin, args, cmdline);
+    getRawPiPiCorrFunc(pipi_raw, raw_data, raw_bubble_data, proj_src, proj_snk, allow, isospin, args, cmdline);
   }
 
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
@@ -306,7 +311,7 @@ doubleJackCorrelationFunction generateData(const PiPiProject &proj_src, const Pi
   
   if(isospin == 0 && args.do_vacuum_subtraction){
     bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResampleBubble(raw_bubble_data, args.bin_size);
-    doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectSourceAvg(dj_bubble_data,args.tsep_pipi,proj_src,proj_snk);
+    doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectSourceAvg(dj_bubble_data,args.tsep_pipi,proj_src,proj_snk,allow);
     pipi_dj = pipi_dj - 3*A2_realavg_V_dj;
   }
   
@@ -315,7 +320,7 @@ doubleJackCorrelationFunction generateData(const PiPiProject &proj_src, const Pi
 }
 
 //Load a checkpoint of precomputed resampled correlation function or create it from raw data
-doubleJackCorrelationFunction getData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const int isospin, const Args &args, const CMDline &cmdline){
+doubleJackCorrelationFunction getData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, const Args &args, const CMDline &cmdline){
   doubleJackCorrelationFunction data;
   if(cmdline.load_combined_data){
 #ifdef HAVE_HDF5
@@ -325,7 +330,7 @@ doubleJackCorrelationFunction getData(const PiPiProject &proj_src, const PiPiPro
     error_exit("getData: Reading amplitude data requires HDF5\n");
 #endif
   }else{
-    data = generateData(proj_src, proj_snk, isospin, args,cmdline);
+    data = generateData(proj_src, proj_snk, allow, isospin, args,cmdline);
   }
 
   if(cmdline.save_combined_data){

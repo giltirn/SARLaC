@@ -10,6 +10,7 @@
   ( int, tstep_pipi) \
   ( PiPiProjector, proj_src ) \
   ( PiPiProjector, proj_snk ) \
+  ( PiPiMomAllowed, allowed_mom ) \
   ( int, isospin )		  \
   ( bool, do_vacuum_subtraction ) \
   ( int, bin_size ) \
@@ -20,7 +21,7 @@
 struct ComparisonArgs{
   GENERATE_MEMBERS(COMPARE_ARGS_MEMBERS)
 
-  ComparisonArgs(): data_dir_asymm("data"), data_dir_symm("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), traj_start(0), traj_inc(1), traj_lessthan(2), do_vacuum_subtraction(true), bin_size(1), proj_src(A1), proj_snk(A1), isospin(0)  {}
+  ComparisonArgs(): data_dir_asymm("data"), data_dir_symm("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), traj_start(0), traj_inc(1), traj_lessthan(2), do_vacuum_subtraction(true), bin_size(1), proj_src(A1), proj_snk(A1), isospin(0), allowed_mom(All)  {}
 
   Args toArgs(const AsymmSymm type) const{
     Args out;
@@ -30,6 +31,7 @@ struct ComparisonArgs{
     out.tstep_pipi = tstep_pipi;
     out.proj_src = proj_src;
     out.proj_snk = proj_snk;
+    out.allowed_mom = allowed_mom;
     out.isospin = isospin;
     out.do_vacuum_subtraction = do_vacuum_subtraction;
     out.bin_size = bin_size;
