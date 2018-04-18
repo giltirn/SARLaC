@@ -23,7 +23,7 @@ namespace parser_tools{
   template<typename T, typename U, U T::* ptr>
   struct member_set_equals{
     template <typename Context>
-    void operator()(Context const& ctx) const{
+    inline void operator()(Context const& ctx) const{
       x3::_val(ctx).*ptr = x3::_attr(ctx); 
     }
   };
@@ -36,6 +36,17 @@ namespace parser_tools{
     }
   };
   
+  template<typename T>
+  struct set_elem{
+    int elem;
+    set_elem(int elem): elem(elem){}
+
+    template <typename Context>
+    inline void operator()(Context const& ctx) const{
+      x3::_val(ctx)[elem] = x3::_attr(ctx);
+    }
+  };
+
   //Error handler
   template <typename Iterator, typename Exception, typename Context>
   x3::error_handler_result

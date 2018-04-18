@@ -19,6 +19,7 @@ namespace parsers{
   DEF_X3_PARSER(double);
   DEF_X3_PARSER(bool);
 
+  //Vector parser
   //For generic vector parse we can hack the parser interface to allow templating the underlying type by static instantiating the rule definition inside the parse_rule itself.
   template<typename U>
   struct vector_T_rule{};
@@ -42,13 +43,58 @@ namespace parsers{
     static auto const def_ = (inst.parse = parse_def);
     return def_.parse(first, last, context, unused, attr);
   }
+
+  //Array parser
+  template<typename T, std::size_t S>
+  struct array_T_rule{};
   
+  template<typename T, std::size_t I, std::size_t S>
+  struct gen_array_rule_recurse{
+    template<typename P>
+    static inline decltype(auto) recurse(const parsers::parser<T> &elem_parser, const P &parser){ 
+      auto NP = parser >> elem_parser.parse[parser_tools::set_elem<T>(I-1)] >> ','; 
+      return gen_array_rule_recurse<T,I+1,S>::recurse(elem_parser,NP);
+    }
+  };
+  template<typename T, std::size_t S>
+  struct gen_array_rule_recurse<T,S,S>{
+    template<typename P>
+    static inline decltype(auto) recurse(const parsers::parser<T> &elem_parser, const P &parser){ 
+      return parser >> elem_parser.parse[parser_tools::set_elem<T>(S-1)]; 
+    }
+  };
+
+  template<typename T, std::size_t S>
+  struct parser< std::array<T,S> >{
+    x3::rule<class array_T_rule<T,S>, std::array<T,S> > const parse;
+    parsers::parser<T> elem_parser;
+    
+    parser(): parse( typeid(std::array<T,S>).name() ){}
+
+    inline decltype(auto) get_def() const{
+      auto NP = x3::char_('(');
+      auto NP2 = gen_array_rule_recurse<T,1,S>::recurse(elem_parser,NP);
+      return NP2 >> ')';
+    }
+  };
+  template <typename T, size_t S, typename Iterator, typename Context, typename Attribute>
+  bool parse_rule(x3::rule<class array_T_rule<T,S>, std::array<T,S> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
+    using boost::spirit::x3::unused;
+    static parser<std::array<T,S> > inst;
+    static auto const parse_def = inst.get_def();
+    static auto const def_ = (inst.parse = parse_def);
+    return def_.parse(first, last, context, unused, attr);
+  }
+
+  
+  //String parser
   auto const quoted_string = x3::lexeme['"' > *(x3::char_ - '"') > '"'];
   x3::rule<struct string_rule_, std::string> const string_rule = "string_rule";
   auto const string_rule_def = quoted_string[parser_tools::set_equals];
   BOOST_SPIRIT_DEFINE(string_rule);
   DEF_CUSTOM_PARSER(std::string, string_rule);
 
+  //Complex parser
   auto const complexD_rule_def = x3::no_skip[*x3::lit(' ') > x3::double_[parser_tools::set_reim<double,0>()] > x3::lit(' ') > x3::double_[parser_tools::set_reim<double,1>()]];
   x3::rule<struct complexD_, std::complex<double> > const complexD_rule = "complexD_rule";
   BOOST_SPIRIT_DEFINE(complexD_rule);
