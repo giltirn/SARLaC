@@ -34,6 +34,18 @@ std::ostream & operator<<(std::ostream &os, const std::vector<T> &s){
   return os;
 }
 
+template<typename T, std::size_t S>
+std::ostream & operator<<(std::ostream &os, const std::array<T,S> &s){
+  os << '(';
+  if(S > 0){
+    for(int i=0;i<s.size()-1;i++) os << s[i] << ", ";
+    os << s.back();
+  }
+  os << ')';
+  return os;
+}
+
+
 //An ostream slot-in that just throws text away without printing - useful for suppressing output in threaded environments
 struct nullstream: std::ostream {
   nullstream(): std::ios(0), std::ostream(0) {}
