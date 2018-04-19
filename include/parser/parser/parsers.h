@@ -1,8 +1,11 @@
 #ifndef _CPSFIT_PARSERS_H___
 #define _CPSFIT_PARSERS_H___
 
+#include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
+
 #include<config.h>
 #include<utils/macros.h>
+#include<utils/utils/type_info.h>
 #include<parser/parser/parser_tools.h>
 
 CPSFIT_START_NAMESPACE
@@ -11,6 +14,22 @@ CPSFIT_START_NAMESPACE
 namespace parsers{
   namespace ascii = boost::spirit::x3::ascii;
   namespace x3 = boost::spirit::x3;
+
+  struct error_handler
+  {
+    template <typename Iterator, typename Exception, typename Context>
+    x3::error_handler_result on_error(
+				      Iterator& first, Iterator const& last
+				      , Exception const& x, Context const& context)
+    {
+      auto& error_handler = x3::get<x3::error_handler_tag>(context).get();
+      std::string message = "Error! Expecting: " + x.which() + " here:";
+      error_handler(x.where(), message);
+      //return x3::error_handler_result::fail;
+      return x3::error_handler_result::rethrow;
+    }
+  };
+
 
   template<typename T>
   struct parser{};
@@ -22,7 +41,7 @@ namespace parsers{
   //Vector parser
   //For generic vector parse we can hack the parser interface to allow templating the underlying type by static instantiating the rule definition inside the parse_rule itself.
   template<typename U>
-  struct vector_T_rule{};
+  struct vector_T_rule: error_handler{};
 
   template<typename T>
   struct parser< std::vector<T> >{
@@ -46,13 +65,13 @@ namespace parsers{
 
   //Array parser
   template<typename T, std::size_t S>
-  struct array_T_rule{};
+  struct array_T_rule: error_handler{};
   
   template<typename T, std::size_t I, std::size_t S>
   struct gen_array_rule_recurse{
     template<typename P>
     static inline decltype(auto) recurse(const parsers::parser<T> &elem_parser, const P &parser){ 
-      auto NP = parser >> elem_parser.parse[parser_tools::set_elem<T>(I-1)] >> ','; 
+      auto NP = parser > elem_parser.parse[parser_tools::set_elem<T>(I-1)] > ','; 
       return gen_array_rule_recurse<T,I+1,S>::recurse(elem_parser,NP);
     }
   };
@@ -60,7 +79,7 @@ namespace parsers{
   struct gen_array_rule_recurse<T,S,S>{
     template<typename P>
     static inline decltype(auto) recurse(const parsers::parser<T> &elem_parser, const P &parser){ 
-      return parser >> elem_parser.parse[parser_tools::set_elem<T>(S-1)]; 
+      return parser > elem_parser.parse[parser_tools::set_elem<T>(S-1)]; 
     }
   };
 
@@ -74,7 +93,7 @@ namespace parsers{
     inline decltype(auto) get_def() const{
       auto NP = x3::char_('(');
       auto NP2 = gen_array_rule_recurse<T,1,S>::recurse(elem_parser,NP);
-      return NP2 >> ')';
+      return NP2 > ')';
     }
   };
   template <typename T, size_t S, typename Iterator, typename Context, typename Attribute>
@@ -88,15 +107,17 @@ namespace parsers{
 
   
   //String parser
+  struct string_rule_: error_handler{};
   auto const quoted_string = x3::lexeme['"' > *(x3::char_ - '"') > '"'];
-  x3::rule<struct string_rule_, std::string> const string_rule = "string_rule";
+  x3::rule<string_rule_, std::string> const string_rule = "string_rule";
   auto const string_rule_def = quoted_string[parser_tools::set_equals];
   BOOST_SPIRIT_DEFINE(string_rule);
   DEF_CUSTOM_PARSER(std::string, string_rule);
 
   //Complex parser
+  struct complexD_: error_handler{};
   auto const complexD_rule_def = x3::no_skip[*x3::lit(' ') > x3::double_[parser_tools::set_reim<double,0>()] > x3::lit(' ') > x3::double_[parser_tools::set_reim<double,1>()]];
-  x3::rule<struct complexD_, std::complex<double> > const complexD_rule = "complexD_rule";
+  x3::rule<complexD_, std::complex<double> > const complexD_rule = "complexD_rule";
   BOOST_SPIRIT_DEFINE(complexD_rule);
   DEF_CUSTOM_PARSER(std::complex<double>, complexD_rule);
 };
@@ -111,10 +132,22 @@ boost::spirit::istream_iterator & operator>>(boost::spirit::istream_iterator &f,
   boost::spirit::istream_iterator l;
   parsers::parser<T> vp;
 
-  bool r = x3::phrase_parse(f, l, vp.parse, ascii::space, s);
+  using boost::spirit::x3::with;
+  using boost::spirit::x3::error_handler_tag;
+  using error_handler_type = boost::spirit::x3::error_handler<boost::spirit::istream_iterator>;
+
+  error_handler_type error_handler(f, l, std::cerr);
+
+  auto const parser =
+    with<error_handler_tag>(std::ref(error_handler))
+    [
+     vp.parse
+     ];
+
+  bool r = x3::phrase_parse(f, l, parser, ascii::space, s);
 
   if(!r){
-    throw std::runtime_error("Parsing of type " BOOST_PP_STRINGIZE(NAME) " failed\n");
+    throw std::runtime_error(std::string("Parsing of type ") + printType<T>() +std::string(" failed\n"));
   }
   return f;
 }

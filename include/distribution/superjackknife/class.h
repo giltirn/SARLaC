@@ -121,7 +121,7 @@ public:
   
   //This is the naive mean of the superjackknife samples. Use best for the propagated central value
   DataType mean(){
-    DataType out(0.);
+    DataType out = best(); zeroit(out);
     int total_size = 0;    
     for(int i=0;i<ens_jacks.size();i++){
       int sz = ens_jacks[i].size();
@@ -133,7 +133,7 @@ public:
   }
   
   DataType standardError() const{
-    DataType v = 0;
+    DataType v = best(); zeroit(v);
     for(int i=0;i<ens_jacks.size();i++){
       DataType vi = ens_jacks[i].standardError();
       v = v + vi*vi;

@@ -78,16 +78,11 @@ CPSFIT_START_NAMESPACE
 #define _PARSER_MEMBER_RULE_DEF(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse_def)
 
 #define _PARSER_MEMBER_DEF_RULE(r,structname,elem) \
-  struct _PARSER_MEMBER_TAG(elem){					\
-  template <typename Iterator, typename Exception, typename Context>	\
-    x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
-    return CPSfit::parser_tools::on_error(BOOST_PP_STRINGIZE(structname) "." _PARSER_MEMBER_GETNAMESTR(elem),first,last,x,context); \
-    }									\
-  };									\
+  struct _PARSER_MEMBER_TAG(elem): CPSfit::parsers::error_handler{ };									\
   \
   x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > _PARSER_MEMBER_RULE(elem) = _PARSER_MEMBER_RULESTR(elem); \
   \
-  auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) >> '=' >> _PARSER_MEMBER_TYPE_PARSER(elem).parse[CPSfit::parser_tools::set_equals]; \
+  auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) > '=' > _PARSER_MEMBER_TYPE_PARSER(elem).parse[CPSfit::parser_tools::set_equals]; \
   \
   template <typename Iterator, typename Context, typename Attribute> \
   inline bool parse_rule( decltype(_PARSER_MEMBER_RULE(elem)) rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
@@ -100,17 +95,11 @@ CPSFIT_START_NAMESPACE
 
 //Define the rule for the main structure
 #define _PARSER_DEF_STRUCT_RULE_MEMBER_GEN(r,structname,elem) \
-  >> _PARSER_MEMBER_RULE(elem)[CPSfit::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
+  > _PARSER_MEMBER_RULE(elem)[CPSfit::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
 
 #define _PARSER_DEF_STRUCT_RULE_DEF(NAME)\
-  struct main_rule_handler{\
-    template <typename Iterator, typename Exception, typename Context>	\
-      x3::error_handler_result on_error(Iterator&first, Iterator const& last, Exception const& x, Context const& context){ \
-      return CPSfit::parser_tools::on_error(BOOST_PP_STRINGIZE(NAME),first,last,x,context); \
-    }									\
-  };									\
-									\
-									\
+  struct main_rule_handler: CPSfit::parsers::error_handler{ };		\
+  									\
   x3::rule<main_rule_handler, NAME> const main_rule = BOOST_PP_STRINGIZE(NAME);
 
 //Specify the rules for parsing the structure
@@ -197,9 +186,10 @@ CPSFIT_START_NAMESPACE
   namespace BOOST_PP_CAT(enumname,_parser){	     \
     namespace ascii = boost::spirit::x3::ascii; \
     namespace x3 = boost::spirit::x3;\
-    auto const enumparse = x3::lexeme[*(x3::char_ - ascii::space)]; \
+    auto const enumparse = x3::lexeme[+(x3::char_ - ascii::space)]; \
+    struct BOOST_PP_CAT(enumname,_tag) : CPSfit::parsers::error_handler{ }; \
     _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
-    x3::rule<class BOOST_PP_CAT(enumname,_), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
+    x3::rule<BOOST_PP_CAT(enumname,_tag), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
     auto const BOOST_PP_CAT(enumname, __def) = enumparse[BOOST_PP_CAT(enumname,_match)()]; \
     BOOST_SPIRIT_DEFINE(BOOST_PP_CAT(enumname,_)); \
   }; \

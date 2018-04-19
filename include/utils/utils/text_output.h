@@ -3,6 +3,7 @@
 
 //Functions and types for ascii output
 #include<vector>
+#include<array>
 #include<iostream>
 
 #include<config.h>
