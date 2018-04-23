@@ -5,20 +5,10 @@ struct CMDline{
   bool load_guess;
   std::string guess_file;
 
-  bool load_data_checkpoint;
-  std::string load_data_checkpoint_file;
-  bool save_data_checkpoint;
-  std::string save_data_checkpoint_file;
-
-  bool load_text_data_checkpoint;
-  std::string load_text_data_checkpoint_file;
-  bool save_text_data_checkpoint;
-  std::string save_text_data_checkpoint_file;
-
   bool load_hdf5_data_checkpoint;
-  std::string load_hdf5_data_checkpoint_file;
+  std::string load_hdf5_data_checkpoint_stub;
   bool save_hdf5_data_checkpoint;
-  std::string save_hdf5_data_checkpoint_file;
+  std::string save_hdf5_data_checkpoint_stub;
 
   bool load_combined_data;
   std::string load_combined_data_file;
@@ -33,10 +23,6 @@ struct CMDline{
   
   CMDline(){
     load_guess = false;
-    load_data_checkpoint = false;
-    save_data_checkpoint = false;
-    load_text_data_checkpoint = false;
-    save_text_data_checkpoint = false;
     load_hdf5_data_checkpoint = false;
     save_hdf5_data_checkpoint = false;
     load_combined_data = false;
@@ -62,29 +48,13 @@ struct CMDline{
       }else if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));
 	i+=2;
-      }else if(sargv[i] == "-load_data_checkpoint"){
-	load_data_checkpoint = true;
-	load_data_checkpoint_file = sargv[i+1];
-	i+=2;
-      }else if(sargv[i] == "-save_data_checkpoint"){
-	save_data_checkpoint = true;
-	save_data_checkpoint_file = sargv[i+1];
-	i+=2;
-      }else if(sargv[i] == "-load_text_data_checkpoint"){
-	load_text_data_checkpoint = true;
-	load_text_data_checkpoint_file = sargv[i+1];
-	i+=2;
-      }else if(sargv[i] == "-save_text_data_checkpoint"){
-	save_text_data_checkpoint = true;
-	save_text_data_checkpoint_file = sargv[i+1];
-	i+=2;
       }else if(sargv[i] == "-load_hdf5_data_checkpoint"){
 	load_hdf5_data_checkpoint = true;
-	load_hdf5_data_checkpoint_file = sargv[i+1];
+	load_hdf5_data_checkpoint_stub = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-save_hdf5_data_checkpoint"){
 	save_hdf5_data_checkpoint = true;
-	save_hdf5_data_checkpoint_file = sargv[i+1];
+	save_hdf5_data_checkpoint_stub = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-load_combined_data"){ //load the double-jackknife data set previously generated
 	load_combined_data = true;
@@ -105,7 +75,6 @@ struct CMDline{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
     }
-    assert(!(load_data_checkpoint && load_text_data_checkpoint));
   }
 };
 

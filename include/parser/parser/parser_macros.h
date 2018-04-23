@@ -104,7 +104,7 @@ CPSFIT_START_NAMESPACE
 
 //Specify the rules for parsing the structure
 #define _PARSER_DEF_STRUCT_RULE_IMPL(NAME,MEMSEQ) \
-  auto const main_rule_def = x3::eps > '{'		\
+  auto const main_rule_def = x3::char_('{')				\
   TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_STRUCT_RULE_MEMBER_GEN, NAME, MEMSEQ) \
     > '}'; \
   BOOST_SPIRIT_DEFINE(main_rule);

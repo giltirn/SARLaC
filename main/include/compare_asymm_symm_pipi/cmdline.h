@@ -5,12 +5,12 @@ enum AsymmSymm { Asymmetric, Symmetric };
 
 struct ComparisonCMDline{
   bool load_hdf5_data_checkpoint;
-  std::string load_hdf5_data_checkpoint_asymm_file;
-  std::string load_hdf5_data_checkpoint_symm_file;
+  std::string load_hdf5_data_checkpoint_asymm_stub;
+  std::string load_hdf5_data_checkpoint_symm_stub;
   
   bool save_hdf5_data_checkpoint;
-  std::string save_hdf5_data_checkpoint_asymm_file;
-  std::string save_hdf5_data_checkpoint_symm_file;
+  std::string save_hdf5_data_checkpoint_asymm_stub;
+  std::string save_hdf5_data_checkpoint_symm_stub;
 
   bool load_combined_data;
   std::string load_combined_data_asymm_file;
@@ -39,13 +39,13 @@ struct ComparisonCMDline{
     while(i<sz){
       if(sargv[i] == "-load_hdf5_data_checkpoint"){
 	load_hdf5_data_checkpoint = true;
-	load_hdf5_data_checkpoint_asymm_file = sargv[i+1];
-	load_hdf5_data_checkpoint_symm_file = sargv[i+2];
+	load_hdf5_data_checkpoint_asymm_stub = sargv[i+1];
+	load_hdf5_data_checkpoint_symm_stub = sargv[i+2];
 	i+=3;
       }else if(sargv[i] == "-save_hdf5_data_checkpoint"){
 	save_hdf5_data_checkpoint = true;
-	save_hdf5_data_checkpoint_asymm_file = sargv[i+1];
-	save_hdf5_data_checkpoint_symm_file = sargv[i+2];
+	save_hdf5_data_checkpoint_asymm_stub = sargv[i+1];
+	save_hdf5_data_checkpoint_symm_stub = sargv[i+2];
 	i+=3;
       }else if(sargv[i] == "-load_combined_data"){ //load the double-jackknife data set previously generated
 	load_combined_data = true;
@@ -67,11 +67,11 @@ struct ComparisonCMDline{
     CMDline out;
     if(load_hdf5_data_checkpoint){
       out.load_hdf5_data_checkpoint = true;
-      out.load_hdf5_data_checkpoint_file = type == Asymmetric ? load_hdf5_data_checkpoint_asymm_file : load_hdf5_data_checkpoint_symm_file;
+      out.load_hdf5_data_checkpoint_stub = type == Asymmetric ? load_hdf5_data_checkpoint_asymm_stub : load_hdf5_data_checkpoint_symm_stub;
     }
     if(save_hdf5_data_checkpoint){
       out.save_hdf5_data_checkpoint = true;
-      out.save_hdf5_data_checkpoint_file = type == Asymmetric ? save_hdf5_data_checkpoint_asymm_file : save_hdf5_data_checkpoint_symm_file;
+      out.save_hdf5_data_checkpoint_stub = type == Asymmetric ? save_hdf5_data_checkpoint_asymm_stub : save_hdf5_data_checkpoint_symm_stub;
     }
     if(load_combined_data){
       out.load_combined_data = true;

@@ -8,18 +8,18 @@ struct CMDlineSampleAMA{
   std::string guess_file;
 
   bool load_hdf5_data_checkpoint_sloppy_S;
-  std::string load_hdf5_data_checkpoint_file_sloppy_S;
+  std::string load_hdf5_data_checkpoint_stub_sloppy_S;
   bool load_hdf5_data_checkpoint_sloppy_C;
-  std::string load_hdf5_data_checkpoint_file_sloppy_C;
+  std::string load_hdf5_data_checkpoint_stub_sloppy_C;
   bool load_hdf5_data_checkpoint_exact_C;
-  std::string load_hdf5_data_checkpoint_file_exact_C;
+  std::string load_hdf5_data_checkpoint_stub_exact_C;
 
   bool save_hdf5_data_checkpoint_sloppy_S;
-  std::string save_hdf5_data_checkpoint_file_sloppy_S;
+  std::string save_hdf5_data_checkpoint_stub_sloppy_S;
   bool save_hdf5_data_checkpoint_sloppy_C;
-  std::string save_hdf5_data_checkpoint_file_sloppy_C;
+  std::string save_hdf5_data_checkpoint_stub_sloppy_C;
   bool save_hdf5_data_checkpoint_exact_C;
-  std::string save_hdf5_data_checkpoint_file_exact_C;
+  std::string save_hdf5_data_checkpoint_stub_exact_C;
 
   bool load_combined_data;
   std::string load_combined_data_file;
@@ -62,15 +62,15 @@ struct CMDlineSampleAMA{
       out.use_symmetric_quark_momenta = false;
       out.load_hdf5_data_checkpoint = ens == 'S' ? load_hdf5_data_checkpoint_sloppy_S : load_hdf5_data_checkpoint_sloppy_C;
       out.save_hdf5_data_checkpoint = ens == 'S' ? save_hdf5_data_checkpoint_sloppy_S : save_hdf5_data_checkpoint_sloppy_C;
-      out.load_hdf5_data_checkpoint_file = ens == 'S' ? load_hdf5_data_checkpoint_file_sloppy_S : load_hdf5_data_checkpoint_file_sloppy_C;
-      out.save_hdf5_data_checkpoint_file = ens == 'S' ? save_hdf5_data_checkpoint_file_sloppy_S : save_hdf5_data_checkpoint_file_sloppy_C;
+      out.load_hdf5_data_checkpoint_stub = ens == 'S' ? load_hdf5_data_checkpoint_stub_sloppy_S : load_hdf5_data_checkpoint_stub_sloppy_C;
+      out.save_hdf5_data_checkpoint_stub = ens == 'S' ? save_hdf5_data_checkpoint_stub_sloppy_S : save_hdf5_data_checkpoint_stub_sloppy_C;
     }else{
       assert(ens == 'C');
       out.use_symmetric_quark_momenta = true;
       out.load_hdf5_data_checkpoint = load_hdf5_data_checkpoint_exact_C;
       out.save_hdf5_data_checkpoint = save_hdf5_data_checkpoint_exact_C;
-      out.load_hdf5_data_checkpoint_file = load_hdf5_data_checkpoint_file_exact_C;
-      out.save_hdf5_data_checkpoint_file = save_hdf5_data_checkpoint_file_exact_C;
+      out.load_hdf5_data_checkpoint_stub = load_hdf5_data_checkpoint_stub_exact_C;
+      out.save_hdf5_data_checkpoint_stub = save_hdf5_data_checkpoint_stub_exact_C;
     }
     return out;
   }
@@ -91,27 +91,27 @@ struct CMDlineSampleAMA{
 	i+=2;
       }else if(sargv[i] == "-load_hdf5_data_checkpoint_sloppy_S"){
 	load_hdf5_data_checkpoint_sloppy_S = true;
-	load_hdf5_data_checkpoint_file_sloppy_S = sargv[i+1];
+	load_hdf5_data_checkpoint_stub_sloppy_S = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-load_hdf5_data_checkpoint_sloppy_C"){
 	load_hdf5_data_checkpoint_sloppy_C = true;
-	load_hdf5_data_checkpoint_file_sloppy_C = sargv[i+1];
+	load_hdf5_data_checkpoint_stub_sloppy_C = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-load_hdf5_data_checkpoint_exact_C"){
 	load_hdf5_data_checkpoint_exact_C = true;
-	load_hdf5_data_checkpoint_file_exact_C = sargv[i+1];
+	load_hdf5_data_checkpoint_stub_exact_C = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-save_hdf5_data_checkpoint_sloppy_S"){
 	save_hdf5_data_checkpoint_sloppy_S = true;
-	save_hdf5_data_checkpoint_file_sloppy_S = sargv[i+1];
+	save_hdf5_data_checkpoint_stub_sloppy_S = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-save_hdf5_data_checkpoint_sloppy_C"){
 	save_hdf5_data_checkpoint_sloppy_C = true;
-	save_hdf5_data_checkpoint_file_sloppy_C = sargv[i+1];
+	save_hdf5_data_checkpoint_stub_sloppy_C = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-save_hdf5_data_checkpoint_exact_C"){
 	save_hdf5_data_checkpoint_exact_C = true;
-	save_hdf5_data_checkpoint_file_exact_C = sargv[i+1];
+	save_hdf5_data_checkpoint_stub_exact_C = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-load_combined_data"){ //load the double-jackknife data set previously generated
 	load_combined_data = true;

@@ -3,29 +3,40 @@
 
 #define DAIQIAN_COMPATIBILITY_MODE
 
+enum SourceOrSink { Source, Sink };
+inline void write(CPSfit::HDF5writer &writer, const SourceOrSink d, const std::string &tag){ write(writer,(int)d,tag); }
+inline void read(CPSfit::HDF5reader &reader, SourceOrSink &d, const std::string &tag){
+  int dd; read(reader,dd,tag); 
+  d = (SourceOrSink)dd;
+}
+
 template<typename DistributionType, typename Policies = empty_t>
 class bubbleDataBase: public Policies{
   NumericVector<DistributionType> d; //(t).sample(cfg)
   int Lt;
+  int tsep_pipi;
+  SourceOrSink src_snk;
 
-  friend class boost::serialization::access;
-  template<class Archive>
-  void serialize(Archive & ar, const unsigned int version){
-    ar & d & Lt;
-  }
 public:
-  void setup(const int _Lt, const int _Nsample){ Lt = _Lt; d.resize(_Lt, DistributionType(_Nsample)); }
+  void setup(const SourceOrSink _src_snk, const int _Lt, const int _tsep_pipi, const int _Nsample){ 
+    src_snk = _src_snk; 
+    tsep_pipi = _tsep_pipi; 
+    Lt = _Lt; 
+    d.resize(_Lt, DistributionType(_Nsample)); 
+  }
   
   inline int getLt() const{ return Lt; }
   inline int getNsample() const{ return d[0].size(); }
-  
-  inline DistributionType & operator()(const int t){ return d[t]; }
+  inline int getTsepPiPi() const{ return tsep_pipi; }
+  inline SourceOrSink getSrcSnk() const{ return src_snk; }
+
+  inline DistributionType & operator()(const int t){ return d[t]; } //time coordinate is for pi1 (earlier pion for sink, later for src)
   inline const DistributionType & operator()(const int t) const { return d[t]; }
 
   inline DistributionType & at(const int t){ return d[t]; }
   inline const DistributionType & at(const int t) const { return d[t]; }
 
-  GENERATE_HDF5_SERIALIZE_METHOD((Lt)(d));
+  GENERATE_HDF5_SERIALIZE_METHOD((Lt)(tsep_pipi)(d));
 };
 #ifdef HAVE_HDF5
 template<typename D, typename P>
@@ -33,6 +44,8 @@ inline void write(HDF5writer &writer, const bubbleDataBase<D,P> &d, const std::s
 template<typename D, typename P>
 inline void read(HDF5reader &reader, bubbleDataBase<D,P> &d, const std::string &tag){ d.read(reader,tag); }
 #endif
+
+
 
 
 class bubbleDataPolicies{
@@ -46,6 +59,8 @@ public:
     for(int t_expect=0;t_expect<me.getLt();t_expect++){
       if(!(in >> t)) error_exit(std::cout << "bubbleData::parse failed to read t for config " << sample << "\n");
       if(t != t_expect) error_exit(std::cout << "bubbleData::parse t doesn't match expectations: " << t << ":" << t_expect << " for config " << sample << "\n");
+
+      if(me.getSrcSnk() == Sink) t = (t - me.getTsepPiPi() + me.getLt() ) % me.getLt(); //the raw data file time coordinate is that of the later pion
 
       double &re = me(t).sample(sample);
       double im; //discard because it is zero

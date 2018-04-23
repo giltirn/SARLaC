@@ -14,14 +14,19 @@ using namespace CPSfit;
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>
+#include <fit_pipi_gparity/threemomentum.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
+#include <fit_pipi_gparity/mom_project.h>
+#include <fit_pipi_gparity/mom_project_factory.h>
 #include <fit_pipi_gparity/read_data.h>
 #include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/cmdline.h>
 #include <fit_pipi_gparity/fit.h>
 #include <fit_pipi_gparity/plot.h>
-#include <fit_pipi_gparity/mom_project.h>
+#include <fit_pipi_gparity/raw_data.h>
+#include <fit_pipi_gparity/raw_correlator.h>
 #include <fit_pipi_gparity/main.h>
+
 #include <compare_asymm_symm_pipi/cmdline.h>
 #include <compare_asymm_symm_pipi/args.h>
 #include <compare_simple_correlators/compare.h>
@@ -42,24 +47,18 @@ int main(const int argc, const char* argv[]){
   
   ComparisonCMDline cmdline(argc,argv,2);
 
-  PiPiProject *proj_src = getProjector(args.proj_src);
-  PiPiProject *proj_snk = getProjector(args.proj_snk);
-  PiPiMomAllow* allow = getMomPairFilter(args.allowed_mom);
-
   //Get the double-jackknife resampled data
   doubleJackCorrelationFunction pipi_dj_asymm, pipi_dj_symm;
   {
     CMDline c = cmdline.toCMDline(Asymmetric);
     Args a = args.toArgs(Asymmetric);
-    pipi_dj_asymm = getData(*proj_src,*proj_snk,*allow,args.isospin,a,c);
+    pipi_dj_asymm = getData(a,c);
   }
   {
     CMDline c = cmdline.toCMDline(Symmetric);
     Args a = args.toArgs(Symmetric);
-    pipi_dj_symm = getData(*proj_src,*proj_snk,*allow,args.isospin,a,c);
+    pipi_dj_symm = getData(a,c);
   }
-  
-  delete proj_src; delete proj_snk; delete allow;
 
   //Convert to single-jackknife
   jackknifeCorrelationFunction pipi_j_asymm(pipi_dj_asymm.size(),

@@ -25,8 +25,8 @@ void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1
     
     for(int ii=0;ii<type4_nonzerotK.size();ii++){
       const int tK = type4_nonzerotK[ii];
-      const int tB = (tK + tsep_k_pi + args.tsep_pipi) % args.Lt;
-      
+      const int tB = (tK + tsep_k_pi) % args.Lt;      
+
       resampledDistributionType mix4_nobub_rs; resampler.resample(mix4_nobub_rs, mix4_nobub_alltK({tK,t}) );
       resampledDistributionType mix4_vacsub_rs = mix4_nobub_rs * bubble_rs(&tB);
 

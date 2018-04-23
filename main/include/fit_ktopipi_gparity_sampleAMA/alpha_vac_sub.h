@@ -41,7 +41,7 @@ void computeAlphaAndVacuumSubtractionsSampleAMASeparately(NumericTensor<resample
     
     for(int ii=0;ii<type4_nonzerotK.size();ii++){
       const int tK = type4_nonzerotK[ii];
-      const int tB = (tK + tsep_k_pi + inputs.args.tsep_pipi) % Lt;
+      const int tB = (tK + tsep_k_pi) % Lt;
       
       resampledDistributionType mix4_nobub_rs = sampleAMAresample<resampledDistributionType>::resample(raw_data.mix4_alltK_nobub({tK,t}),ens,inputs.nS,inputs.nC);
 
@@ -99,7 +99,7 @@ void computeAlphaAndVacuumSubtractionsSampleAMACorrected(NumericTensor<resampled
     
     for(int ii=0;ii<type4_nonzerotK.size();ii++){
       const int tK = type4_nonzerotK[ii];
-      const int tB = (tK + tsep_k_pi + inputs.args.tsep_pipi) % Lt;
+      const int tB = (tK + tsep_k_pi) % Lt;
       
       resampledDistributionType mix4_nobub_rs = 
 	resampleCorrect<resampledDistributionType>(raw.raw_sloppy_S.mix4_alltK_nobub({tK,t}), raw.raw_sloppy_C.mix4_alltK_nobub({tK,t}), raw.raw_exact_C.mix4_alltK_nobub({tK,t}),

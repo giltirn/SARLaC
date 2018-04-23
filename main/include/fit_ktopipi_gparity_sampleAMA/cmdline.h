@@ -167,6 +167,10 @@ struct SampleAMAcmdLine{
 	  of.close();
 	  std::cout << "Wrote freeze template argument file to freeze_template.args\n";
 	  exit(0);
+	}else{
+	  std::cout << "Testing freeze params file " << freeze_data << " for correctness" << std::endl;
+	  KtoPiPiFreezeParams fparams;
+	  parse(fparams,freeze_data);
 	}
 	i+=2;
       }else{

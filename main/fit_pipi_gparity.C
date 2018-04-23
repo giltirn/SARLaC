@@ -15,13 +15,17 @@ using namespace CPSfit;
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>
+#include <fit_pipi_gparity/threemomentum.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
+#include <fit_pipi_gparity/mom_project.h>
+#include <fit_pipi_gparity/mom_project_factory.h>
 #include <fit_pipi_gparity/read_data.h>
 #include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/cmdline.h>
 #include <fit_pipi_gparity/fit.h>
 #include <fit_pipi_gparity/plot.h>
-#include <fit_pipi_gparity/mom_project.h>
+#include <fit_pipi_gparity/raw_data.h>
+#include <fit_pipi_gparity/raw_correlator.h>
 #include <fit_pipi_gparity/main.h>
 
 int main(const int argc, const char* argv[]){
@@ -40,14 +44,8 @@ int main(const int argc, const char* argv[]){
   
   CMDline cmdline(argc,argv,2);
 
-  PiPiProject *proj_src = getProjector(args.proj_src);
-  PiPiProject *proj_snk = getProjector(args.proj_snk);
-  PiPiMomAllow* allow = getMomPairFilter(args.allowed_mom);
-
   //Get the double-jackknife resampled data
-  doubleJackCorrelationFunction pipi_dj = getData(*proj_src, *proj_snk, *allow, args.isospin, args,cmdline);
-
-  delete proj_src; delete proj_snk; delete allow;
+  doubleJackCorrelationFunction pipi_dj = getData(args,cmdline);
 
   //Convert to single-jackknife
   jackknifeCorrelationFunction pipi_j(pipi_dj.size(),

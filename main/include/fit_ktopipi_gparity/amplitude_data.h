@@ -122,7 +122,7 @@ public:
     A0_alltK(4) = NumericTensor<rawDataDistributionD,3>({10,args.Lt,args.Lt});
     mix_alltK(4) = NumericTensor<rawDataDistributionD,2>({args.Lt,args.Lt});
     for(int tK=0;tK<args.Lt;tK++) for(int t=0;t<args.Lt;t++){
-	int tB = (tK + tsep_k_pi + args.tsep_pipi) % args.Lt;
+	int tB = (tK + tsep_k_pi) % args.Lt;
 	mix_alltK(4)({tK,t}) = mix4_alltK_nobub({tK,t})*bubble_data.bubble(&tB);
 	for(int q=0;q<10;q++)
 	  A0_alltK(4)({q,tK,t}) = A0_type4_alltK_nobub({q,tK,t})*bubble_data.bubble(&tB);

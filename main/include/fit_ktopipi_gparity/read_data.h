@@ -49,13 +49,21 @@ type1234Data readType(const int type, const int traj_start, const int traj_inc, 
 
 NumericTensor<rawDataDistributionD,1> readA2projectedBubble(const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt, const std::string &data_dir, const bool use_symmetric_quark_momenta){
   bubbleDataAllMomenta raw_bubble_data;
-  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, use_symmetric_quark_momenta);
+
+  int nsample = (traj_lessthan - traj_start)/traj_inc;
+  raw_bubble_data.setup(Lt,tsep_pipi,nsample);
+  
+  std::vector<threeMomentum> pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} });
+
+  PiPiProjectA1 proj;
+  readBubbleStationaryPolicy fn(use_symmetric_quark_momenta,Sink);
+  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn, pion_momenta, proj, Sink);
 
   NumericTensor<rawDataDistributionD,1> out({Lt});
-  for(int t=0;t<Lt;t++) out({t}) = ( raw_bubble_data({1,1,1})(t)  + raw_bubble_data({-1,-1,-1})(t)
-				     + raw_bubble_data({-1,1,1})(t) + raw_bubble_data({1,-1,-1})(t)
-				     + raw_bubble_data({1,-1,1})(t) + raw_bubble_data({-1,1,-1})(t)
-				     + raw_bubble_data({1,1,-1})(t) + raw_bubble_data({-1,-1,1})(t) )/8.;
+  for(int t=0;t<Lt;t++) out({t}) = ( raw_bubble_data(Sink,{1,1,1})(t)  + raw_bubble_data(Sink,{-1,-1,-1})(t)
+				     + raw_bubble_data(Sink,{-1,1,1})(t) + raw_bubble_data(Sink,{1,-1,-1})(t)
+				     + raw_bubble_data(Sink,{1,-1,1})(t) + raw_bubble_data(Sink,{-1,1,-1})(t)
+				     + raw_bubble_data(Sink,{1,1,-1})(t) + raw_bubble_data(Sink,{-1,-1,1})(t) )/8.;
   return out;
 }
 

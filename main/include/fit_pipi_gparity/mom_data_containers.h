@@ -7,38 +7,6 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-
-typedef std::array<int,3> threeMomentum;
-typedef std::pair<threeMomentum, threeMomentum> sinkSourceMomenta;
-
-std::ostream & operator<<(std::ostream &os, const threeMomentum &mom){
-  os << "(" << mom[0] << ", " << mom[1] << ", " << mom[2] << ")";
-  return os;
-}
-std::ostream & operator<<(std::ostream &os, const sinkSourceMomenta &mom){
-  os << "Snk:" << mom.first << " Src:" << mom.second;
-  return os;
-}
-
-
-inline threeMomentum operator-(const threeMomentum &p){
-  return threeMomentum({-p[0],-p[1],-p[2]});
-}
-inline std::string momStr(const threeMomentum &p){
-  std::ostringstream os;
-  for(int i=0;i<3;i++)
-    os << (p[i] < 0 ? "_" : "") << abs(p[i]);
-  return os.str();
-}
-inline sinkSourceMomenta momComb(const int snkx, const int snky, const int snkz,
-				 const int srcx, const int srcy, const int srcz){
-  return sinkSourceMomenta( {snkx,snky,snkz}, {srcx,srcy,srcz} );
-}
-inline sinkSourceMomenta momComb(const threeMomentum &snk, const threeMomentum &src){
-  return sinkSourceMomenta(snk,src);
-}
-
-
 template<typename _ContainerType, typename Extra = empty_t>
 class figureDataAllMomentaBase: public Extra{
   friend Extra;  
@@ -84,11 +52,6 @@ private:
     return it->second;
   }
 
-  friend class boost::serialization::access;
-  template<class Archive>
-  void serialize(Archive & ar, const unsigned int version){
-    ar & C & D & R & V & Lt & Nsample;
-  }
 public:
   figureDataAllMomentaBase(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
   figureDataAllMomentaBase(){}
@@ -148,53 +111,57 @@ typedef figureDataAllMomentaBase<figureData, figureDataAllMomentaExtra> figureDa
 typedef figureDataAllMomentaBase<figureDataDoubleJack> figureDataDoubleJackAllMomenta;
 
 
-
-
 template<typename _ContainerType,typename Extra=empty_t>
 class bubbleDataAllMomentaBase: public Extra{
   friend Extra;
 public:
   typedef _ContainerType ContainerType;
-  typedef typename std::map<threeMomentum, ContainerType>::iterator iterator;  
-  typedef typename std::map<threeMomentum, ContainerType>::const_iterator const_iterator;  
+  typedef std::pair<SourceOrSink, threeMomentum> keyType;
+  typedef typename std::map<keyType, ContainerType>::iterator iterator;  
+  typedef typename std::map<keyType, ContainerType>::const_iterator const_iterator;  
 private:
-  std::map<threeMomentum, ContainerType> B;
+  std::map<keyType, ContainerType> B;
   int Lt;
   int Nsample;
+  int tsep_pipi;
   
-  ContainerType & get(const threeMomentum &mom, bool lock){
-    typename std::map<threeMomentum, ContainerType>::iterator it = B.find(mom);
+  ContainerType & get(const keyType &key, bool lock){
+    auto it = B.find(key);
     if(it == B.end()){
-      if(lock) error_exit(std::cout << "bubbleDataAllMomenta::get Could not find requested momentum\n");
+      if(lock) error_exit(std::cout << "bubbleDataAllMomenta::get Could not find requested source/sink and momentum:" << (int)key.first << " " << key.second << std::endl );
 
-      it = B.insert(std::make_pair(mom, ContainerType())).first;
-      it->second.setup(Lt,Nsample);
+      it = B.insert(std::make_pair(key, ContainerType())).first;
+      it->second.setup(key.first,Lt,tsep_pipi,Nsample);
     }
     return it->second;
   }
 
-  friend class boost::serialization::access;
-  template<class Archive>
-  void serialize(Archive & ar, const unsigned int version){
-    ar & B & Lt & Nsample;
-  }
 public:
-  bubbleDataAllMomentaBase(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
+  bubbleDataAllMomentaBase(const int _Lt, const int tsep_pipi, const int _Nsample): Lt(_Lt), tsep_pipi(tsep_pipi), Nsample(_Nsample){}
   bubbleDataAllMomentaBase(){}
 
-  void setup(const int _Lt, const int _Nsample){
-    Lt = _Lt; Nsample = _Nsample;
+  void setup(const int _Lt, const int _tsep_pipi, const int _Nsample){
+    Lt = _Lt; tsep_pipi = _tsep_pipi; Nsample = _Nsample;
   }
   
-  const ContainerType &operator()(const threeMomentum &mom) const{
+  const ContainerType &operator()(const SourceOrSink src_snk, const threeMomentum &mom) const{
     bubbleDataAllMomentaBase<ContainerType,Extra> *t = const_cast<bubbleDataAllMomentaBase<ContainerType,Extra> *>(this);
-    return const_cast<const ContainerType &>( t->get(mom,true) );
+    return const_cast<const ContainerType &>( t->get(keyType(src_snk,mom),true) );
   }
-  ContainerType &operator()(const threeMomentum &mom){
-    return this->get(mom,false);
+  ContainerType &operator()(const SourceOrSink src_snk, const threeMomentum &mom){
+    return this->get(keyType(src_snk,mom),false);
   }
+  const ContainerType &operator()(const keyType &key) const{
+    bubbleDataAllMomentaBase<ContainerType,Extra> *t = const_cast<bubbleDataAllMomentaBase<ContainerType,Extra> *>(this);
+    return const_cast<const ContainerType &>( t->get(key,true) );
+  }
+  ContainerType &operator()(const keyType &key){
+    return this->get(key,false);
+  }
+
   inline int getLt() const{ return Lt; }
   inline int getNsample() const{ return Nsample; }
+  inline int getTsepPiPi() const{ return tsep_pipi; }
 
   inline const_iterator begin() const{ return B.begin(); }
   inline const_iterator end() const{ return B.end(); }
@@ -202,7 +169,7 @@ public:
   inline iterator begin(){ return B.begin(); }
   inline iterator end(){ return B.end(); }
 
-  GENERATE_HDF5_SERIALIZE_METHOD((B)(Lt)(Nsample));
+  GENERATE_HDF5_SERIALIZE_METHOD((B)(Lt)(Nsample)(tsep_pipi));
 };
 #ifdef HAVE_HDF5
 template<typename C,typename E>
@@ -226,52 +193,6 @@ struct bubbleDataAllMomentaExtra{
 
 typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra> bubbleDataAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
-
-
-
-
-template<typename archiver>
-struct archiveStream{};
-
-template<>
-struct archiveStream<boost::archive::binary_oarchive>{
-  std::ofstream ofs;
-  archiveStream(const std::string &file): ofs(file.c_str(),std::ios::binary){}
-};
-template<>
-struct archiveStream<boost::archive::text_oarchive>{
-  std::ofstream ofs;
-  archiveStream(const std::string &file): ofs(file.c_str()){}
-};
-template<>
-struct archiveStream<boost::archive::binary_iarchive>{
-  std::ifstream ifs;
-  archiveStream(const std::string &file): ifs(file.c_str(),std::ios::binary){}
-};
-template<>
-struct archiveStream<boost::archive::text_iarchive>{
-  std::ifstream ifs;
-  archiveStream(const std::string &file): ifs(file.c_str()){}
-};
-
-template<typename archiver>
-void saveCheckpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
-  (std::cout << "Saving data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Saved data checkpoint in %w s\n");
-  archiveStream<archiver> st(file);
-  archiver oa(st.ofs);    
-  oa << raw_data;
-  oa << raw_bubble_data;
-}
-template<typename archiver>
-void loadCheckpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
-  (std::cout << "Loading data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Loaded data checkpoint in %w s\n");
-  archiveStream<archiver> st(file);
-  archiver ia(st.ifs);
-  ia >> raw_data;
-  ia >> raw_bubble_data;
-}
-
-
 
 void saveHDF5checkpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
   (std::cout << "Saving HDF5 data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Saved HDF5 data checkpoint in %w s\n");

@@ -15,13 +15,17 @@ using namespace CPSfit;
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/data_containers.h>
+#include <fit_pipi_gparity/threemomentum.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
+#include <fit_pipi_gparity/mom_project.h>
+#include <fit_pipi_gparity/mom_project_factory.h>
 #include <fit_pipi_gparity/read_data.h>
 #include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/cmdline.h>
 #include <fit_pipi_gparity/fit.h>
 #include <fit_pipi_gparity/plot.h>
-#include <fit_pipi_gparity/mom_project.h>
+#include <fit_pipi_gparity/raw_data.h>
+#include <fit_pipi_gparity/raw_correlator.h>
 #include <fit_pipi_gparity/main.h>
 
 #include <fit_simple_sampleAMA/sampleAMA_resample.h>
@@ -47,12 +51,17 @@ struct rawData{ //raw, unbinned data
     const char ens[3] = { 'S', 'C', 'C' };
     const SloppyExact se[3] = { Sloppy, Sloppy, Exact };
 
+    std::vector<threeMomentum> pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} });
+    
     for(int i=0;i<3;i++){
       Args argsi = args.toArgs(ens[i]);
       CMDline cmdlinei = cmdline.toCMDline(se[i], ens[i]);
       figureDataAllMomenta raw_data;
-      readRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei);
-      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], proj_src, proj_snk, allow, isospin, argsi, cmdlinei, "", false);
+      readFigureStationaryPolicy ffn(cmdlinei.use_symmetric_quark_momenta);
+      readBubbleStationaryPolicy bfn_src(cmdlinei.use_symmetric_quark_momenta,Source);
+      readBubbleStationaryPolicy bfn_snk(cmdlinei.use_symmetric_quark_momenta,Sink);
+      readRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, ffn, bfn_src, bfn_snk, proj_src, proj_snk, allow);
+      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], proj_src, proj_snk, allow, isospin, pion_momenta, argsi.bin_size, "", false);
     }
 
     nS = pipi_raw_sloppy_S.value(0).size();
@@ -60,26 +69,27 @@ struct rawData{ //raw, unbinned data
   }
 };
     
+
+
+
 template<typename DistributionType>
 bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > resampleCorrectBubbleSampleAMA(const rawData &raw, const int nS, const int nC, const int bin_size){
   const int Lt = raw.raw_bubble_data_sloppy_S.getLt();
+  const int tsep_pipi = raw.raw_bubble_data_sloppy_S.getTsepPiPi();
 
   const int nSb = nS/bin_size;
   const int nCb = nC/bin_size;
 
-  bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > out(Lt,nSb+nCb);
+  bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > out(Lt,tsep_pipi,nSb+nCb);
 
-  std::vector<threeMomentum> momenta;
-  for(auto it = raw.raw_bubble_data_sloppy_S.begin(); it != raw.raw_bubble_data_sloppy_S.end(); it++) momenta.push_back(it->first);
-  
-  for(int i=0;i<momenta.size();i++)
-    for(int t=0;t<Lt;t++){
-      const threeMomentum &mom = momenta[i];
-      DistributionType sloppy_S = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_sloppy_S(mom)(t).bin(bin_size),'S',nSb,nCb);
-      DistributionType sloppy_C = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_sloppy_C(mom)(t).bin(bin_size),'C',nSb,nCb);
-      DistributionType exact_C = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_exact_C(mom)(t).bin(bin_size),'C',nSb,nCb);
-      out(mom)(t) = sloppy_S + exact_C - sloppy_C;
+  for(auto it = raw.raw_bubble_data_sloppy_S.begin(); it != raw.raw_bubble_data_sloppy_S.end(); ++it){
+    for(int t=0;t<Lt;t++){      
+      DistributionType sloppy_S = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_sloppy_S(it->first)(t).bin(bin_size),'S',nSb,nCb);
+      DistributionType sloppy_C = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_sloppy_C(it->first)(t).bin(bin_size),'C',nSb,nCb);
+      DistributionType exact_C = sampleAMAresample<DistributionType>::resample(raw.raw_bubble_data_exact_C(it->first)(t).bin(bin_size),'C',nSb,nCb);
+      out(it->first)(t) = sloppy_S + exact_C - sloppy_C;
     }
+  }
   return out;
 }
 
@@ -108,7 +118,8 @@ void resampleCombineData(correlationFunction<double,DistributionType> &pipi,
   }
   if(isospin == 0 && args.do_vacuum_subtraction){
     auto bubble_data_corrected_r = resampleCorrectBubbleSampleAMA<DistributionType>(raw,nS,nC,args.bin_size);
-    CorrFunc A2_realavg_V_r = computeVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, proj_src, proj_snk, allow);
+    std::vector<threeMomentum> pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} });
+    CorrFunc A2_realavg_V_r = computeVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, proj_src, proj_snk, allow, pion_momenta);
     pipi = pipi - 3*A2_realavg_V_r;
   }
 }
