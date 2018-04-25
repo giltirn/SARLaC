@@ -176,9 +176,11 @@ int main(const int argc, const char* argv[]){
   
   CMDlineSampleAMA cmdline(argc,argv,2);
 
-  PiPiProject *proj_src = getProjector(args.proj_src);
-  PiPiProject *proj_snk = getProjector(args.proj_snk);
-  PiPiMomAllow* allow = getMomPairFilter(args.allowed_mom);
+  const threeMomentum ptot = {0,0,0};
+
+  PiPiProject *proj_src = getProjector(args.proj_src,ptot);
+  PiPiProject *proj_snk = getProjector(args.proj_snk,ptot);
+  PiPiMomAllow* allow = getMomPairFilter(args.allowed_mom,ptot);
 
   //Read resampled
   jackknifeCorrelationFunction pipi_j;

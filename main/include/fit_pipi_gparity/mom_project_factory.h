@@ -1,7 +1,7 @@
 #ifndef PIPI_MOM_PROJECT_FACTORY_H_
 #define PIPI_MOM_PROJECT_FACTORY_H_
 
-PiPiProject* getProjector(const PiPiProjector p){
+PiPiProject* getProjector(const PiPiProjector p, const threeMomentum &ptot){
   switch(p){
   case A1:
     return (PiPiProject*)(new PiPiProjectA1);
@@ -16,7 +16,7 @@ PiPiProject* getProjector(const PiPiProjector p){
   }
 }
 
-PiPiMomAllow* getMomPairFilter(const PiPiMomAllowed p){
+PiPiMomAllow* getMomPairFilter(const PiPiMomAllowed p, const threeMomentum &ptot){
   switch(p){
   case All:
     return (PiPiMomAllow*)(new PiPiMomAllowAll);
@@ -27,7 +27,7 @@ PiPiMomAllow* getMomPairFilter(const PiPiMomAllowed p){
   case AuxDiagSymmReduced:
     return (PiPiMomAllow*)(new PiPiMomAllowAuxDiagSymmReduced);
   case AuxDiagParityAxisPermSymmReduced:
-    return (PiPiMomAllow*)(new PiPiMomAllowAuxDiagParityAxisPermSymmReduced);
+    return (PiPiMomAllow*)(new PiPiMomAllowAuxDiagParityAxisPermSymmReduced(ptot));
   default:
     error_exit(std::cout << "getMomPairFilter unknown filter " << p << std::endl);
   }

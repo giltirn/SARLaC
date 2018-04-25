@@ -166,17 +166,66 @@ struct PiPiMomAllowAuxDiagParityAxisPermSymmReduced: public PiPiMomAllow{
   typedef std::pair<threeMomentum, threeMomentum> momPair;
   std::map<momPair, int> allow;
 
-  PiPiMomAllowAuxDiagParityAxisPermSymmReduced(){
+  PiPiMomAllowAuxDiagParityAxisPermSymmReduced(const threeMomentum &ptot){
     //Reduced combination set obtained by utilizing aux diag, parity and axis interchange symmetries
-    allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
-    allow[ momPair(threeMomentum({1,1,1}), threeMomentum({1,1,1}) ) ] = 2;
-    allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,1}) ) ] = 12;
-    allow[ momPair(threeMomentum({1,1,1}), threeMomentum({1,1,-1}) ) ] = 12;
-    allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,-1,1}) ) ] = 6;
-    allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({1,1,-1}) ) ] = 6;
-    allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,1,-1}) ) ] = 12;
-    allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({1,-1,1}) ) ] = 12;
-  }    
+    if(ptot == threeMomentum({0,0,0})){
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({1,1,1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,1}) ) ] = 12;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({1,1,-1}) ) ] = 12;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,-1,1}) ) ] = 6;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({1,1,-1}) ) ] = 6;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,1,-1}) ) ] = 12;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({1,-1,1}) ) ] = 12;
+    }else if(ptot == threeMomentum({2,0,0})){
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,1}) ) ] = 4;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,1,1}) ) ] = 1;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,-1,-1}) ) ] = 4;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,-1,1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,-1,-1}), threeMomentum({-1,-1,-1}) ) ] = 1;
+    }else if(ptot == threeMomentum({0,2,0})){
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,1}) ) ] = 4;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({1,-1,1}) ) ] = 1;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,-1,-1}) ) ] = 4;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,-1,1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({-1,1,-1}), threeMomentum({-1,-1,-1}) ) ] = 1;
+    }else if(ptot == threeMomentum({0,0,2})){
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({1,1,-1}) ) ] = 1;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,1,-1}) ) ] = 4;
+      allow[ momPair(threeMomentum({-1,-1,1}), threeMomentum({-1,-1,-1}) ) ] = 1;
+      allow[ momPair(threeMomentum({-1,-1,1}), threeMomentum({-1,1,-1}) ) ] = 4;
+      allow[ momPair(threeMomentum({1,-1,1}), threeMomentum({-1,1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,-1,1}), threeMomentum({1,-1,-1}) ) ] = 2;
+    }else if(ptot == threeMomentum({2,2,0})){
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,1}) ) ] = 1;
+      allow[ momPair(threeMomentum({1,1,-1}), threeMomentum({-1,-1,-1}) ) ] = 1;
+    }else if(ptot == threeMomentum({2,0,2})){
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,1,-1}) ) ] = 1;
+      allow[ momPair(threeMomentum({1,-1,1}), threeMomentum({-1,-1,-1}) ) ] = 1;
+    }else if(ptot == threeMomentum({0,2,2})){
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({1,1,1}), threeMomentum({1,-1,-1}) ) ] = 1;
+      allow[ momPair(threeMomentum({-1,1,1}), threeMomentum({-1,-1,-1}) ) ] = 1;
+    }else if(ptot == threeMomentum({-2, 2, 0})){
+      allow[ momPair(threeMomentum({-1,1,-1}), threeMomentum({1,-1,1}) ) ] = 2;
+      allow[ momPair(threeMomentum({-1,1,-1}), threeMomentum({1,-1,-1}) ) ] = 2;
+    }else if(ptot == threeMomentum({-2, 0, 2})){
+      allow[ momPair(threeMomentum({-1,-1,1}), threeMomentum({1,1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({-1,-1,1}), threeMomentum({1,-1,-1}) ) ] = 2;      
+    }else if(ptot == threeMomentum({0, -2, 2})){
+      allow[ momPair(threeMomentum({-1,-1,1}), threeMomentum({1,1,-1}) ) ] = 2;
+      allow[ momPair(threeMomentum({-1,-1,1}), threeMomentum({-1,1,-1}) ) ] = 2;      
+    }else{
+      error_exit(std::cout << "PiPiMomAllowAuxDiagParityAxisPermSymmReduced unsupported total momentum " << ptot << std::endl);
+    }
+  }
 
   bool operator()(double &coeff, const threeMomentum &p1src, const threeMomentum &p1snk) const{
     std::map<momPair, int>::const_iterator it = allow.find(momPair(p1src,p1snk));
