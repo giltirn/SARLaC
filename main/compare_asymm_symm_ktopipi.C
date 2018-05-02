@@ -98,10 +98,10 @@ void getRawData(type1234Data &type1, type1234Data &type2, type1234Data &type3, t
     read(rd,type4,"type4");
   }else{
     const std::string &data_dir = symmetric ? args.data_dir_symm : args.data_dir_asymm;
-    type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric);
-    type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric);
-    type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric);
-    type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric);
+    type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
+    type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
+    type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
+    type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
   }
 
   if(cmdline.save_data_checkpoint){

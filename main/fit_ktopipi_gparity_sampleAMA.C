@@ -39,6 +39,8 @@ using namespace CPSfit;
 #include <fit_ktopipi_gparity/scratch.h>
 #include <fit_ktopipi_gparity/main.h>
 
+//#define PRINT_CORRECTION
+
 #include <fit_simple_sampleAMA/sampleAMA_resample.h>
 #include <fit_ktopipi_gparity_sampleAMA/cmdline.h>
 #include <fit_ktopipi_gparity_sampleAMA/args.h>
@@ -47,6 +49,7 @@ using namespace CPSfit;
 #include <fit_ktopipi_gparity_sampleAMA/resample_average_typedata.h>
 #include <fit_ktopipi_gparity_sampleAMA/alpha_vac_sub.h>
 #include <fit_ktopipi_gparity_sampleAMA/main.h>
+#include <fit_ktopipi_gparity_sampleAMA/fit_sama_expand.h>
 
 int main(const int argc, const char* argv[]){
   printMem("Beginning of execution");
@@ -78,7 +81,8 @@ int main(const int argc, const char* argv[]){
   getDataSampleAMA(A0_all_j, A0_all_dj, inputs);
 
   printMem("Prior to fitting");
-  fitAndPlot(A0_all_j,A0_all_dj,inputs.args_S,inputs.cmdline_sloppy_S);
+  if(cmdline.SAMAexpand) fitAndPlotSAMAexpand(A0_all_j,A0_all_dj,args,cmdline);
+  else fitAndPlot(A0_all_j,A0_all_dj,inputs.args_S,inputs.cmdline_sloppy_S);
   
   std::cout << "Done" << std::endl;
   

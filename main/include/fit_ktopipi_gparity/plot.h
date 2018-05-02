@@ -109,8 +109,23 @@ struct extractMdata<FitKtoPiPiWithConstant>{
 };
 
 
+template<>
+struct extractMdata<FitKtoPiPiTwoExp>{
+  const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &fit_params;
+
+  extractMdata(const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &_fit_params): fit_params(_fit_params){}
+  
+  //Extract the matrix element from the data for a given coordinate assuming we know the remaining fit parameters
+  double getMdata(const amplitudeDataCoord &x, const double y, const int q, const int sample) const{
+    return FitKtoPiPiTwoExp::getM0data(y, x, fit_params[q].sample(sample));
+  }
+
+  inline double getMfit(const int q, const int s) const{ return fit_params[q].sample(s).M0; }
+};
+
+
 template<typename MdataExtractor>
-void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, const MdataExtractor &extractor, const Args &args){
+void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, const MdataExtractor &extractor, const int tmin_k_op, const int tmin_op_pi){
   //Extract the matrix element from the data
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > Mdata(10);
   assert(data[0].size() > 0);
@@ -125,7 +140,7 @@ void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCo
   
   //Compute the weighted average
   std::vector<correlationFunction<double, jackknifeDistributionD> > wavg(10);
-  errorWeightedAverage(wavg, Mdata, args.tmin_k_op);
+  errorWeightedAverage(wavg, Mdata, tmin_k_op);
   
   typedef DataSeriesAccessor<correlationFunction<double, jackknifeDistributionD>, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
   
@@ -138,7 +153,7 @@ void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCo
     jackknifeDistributionD Mfit(nsample, [&](const int s){ return extractor.getMfit(q,s); });
     correlationFunction<double, jackknifeDistributionD> curve(2);
     curve.value(0) = Mfit;
-    curve.coord(0) = args.tmin_op_pi;
+    curve.coord(0) = tmin_op_pi;
     curve.value(1) = Mfit;
     curve.coord(1) = largest_tsep_op_pi;
         
@@ -157,6 +172,9 @@ void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCo
     plotter.write( filename_stub.str()+".py", filename_stub.str()+".pdf");
   }
 }
-
+template<typename MdataExtractor>
+inline void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, const MdataExtractor &extractor, const Args &args){
+  return plotErrorWeightedData(data,extractor,args.tmin_k_op,args.tmin_op_pi);
+}
 
 #endif

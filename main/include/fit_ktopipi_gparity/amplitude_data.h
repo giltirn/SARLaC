@@ -66,7 +66,8 @@ private:
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
     }else{
-      for(int i=1;i<=4;i++) type_data(i) = readType(i, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, args.data_dir, cmdline.use_symmetric_quark_momenta);
+      for(int i=1;i<=4;i++) type_data(i) = readType(i, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, 
+						    args.data_dir, cmdline.use_symmetric_quark_momenta, cmdline.symmetric_quark_momenta_figure_file_extension);
     }
 
     //Write checkpoint if necessary

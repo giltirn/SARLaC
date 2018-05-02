@@ -10,6 +10,9 @@ struct fitReturnType<FitKtoPiPi>{ typedef std::vector<jackknifeDistribution<FitK
 template<>
 struct fitReturnType<FitKtoPiPiWithConstant>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiWithConstant::Params> > type; };
 
+template<>
+struct fitReturnType<FitKtoPiPiTwoExp>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > type; };
+
 template<int N>
 struct fitReturnType<FitKtoPiPiSim<N> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> type; };
   
@@ -260,21 +263,27 @@ void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDis
 		std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,		
 		const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_j,
 		const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_dj,
-		const Args &args){
+		const int tmin_k_op, const int tmin_op_pi){
   //Separate out the data in the desired fit range
   for(int q=0;q<10;q++){
     for(int d=0;d<A0_j[q].size();d++){
       const int t = int(A0_j[q].coord(d).t);
       const int tsep_k_pi = A0_j[q].coord(d).tsep_k_pi;
       const int tsep_op_pi = tsep_k_pi - t;
-      if(t <= tsep_k_pi && t >= args.tmin_k_op && tsep_op_pi >= args.tmin_op_pi){
+      if(t <= tsep_k_pi && t >= tmin_k_op && tsep_op_pi >= tmin_op_pi){
 	A0_fit_j[q].push_back(A0_j[q].coord(d), A0_j[q].value(d));
 	A0_fit_dj[q].push_back(A0_dj[q].coord(d), A0_dj[q].value(d));
       }
     }
   }
 }
-
+inline void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
+		std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,		
+		const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_j,
+		const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_dj,
+		const Args &args){
+  return getFitData(A0_fit_j, A0_fit_dj, A0_j, A0_dj, args.tmin_k_op, args.tmin_op_pi);
+}
 
 template<typename FitFunc>
 inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
@@ -314,6 +323,8 @@ inline void fitAndPlot(const std::vector<correlationFunction<amplitudeDataCoord,
     return fitAndPlotFF<FitKtoPiPiSim<7> >(A0_all_j,A0_all_dj,args,cmdline);
   case FitSeparateWithConstant:
     return fitAndPlotFF<FitKtoPiPiWithConstant>(A0_all_j,A0_all_dj,args,cmdline);
+  case FitSeparateTwoExp:
+    return fitAndPlotFF<FitKtoPiPiTwoExp>(A0_all_j,A0_all_dj,args,cmdline);
   default:
     error_exit(std::cout << "fitAndPlot(..) Unknown fit function " << args.fitfunc << std::endl);
   }

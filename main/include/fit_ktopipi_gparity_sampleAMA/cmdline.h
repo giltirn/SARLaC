@@ -38,6 +38,11 @@ struct SampleAMAcmdLine{
 
   bool checkpoint_and_exit; //don't use the date, just load and checkpoint
 
+  std::string symmetric_quark_momenta_figure_file_extension;
+
+  bool SAMAexpand; //append N extra superjackknife samples to data
+  int SAMAexpandN;
+
   CMDline toCMDline(const char ens, const SloppyExact se) const{
     CMDline out;
     out.load_guess = load_guess;
@@ -51,7 +56,8 @@ struct SampleAMAcmdLine{
     out.freeze_data = freeze_data;
     out.use_scratch = use_scratch;
     out.use_existing_scratch_files = use_existing_scratch_files;
-    
+    out.symmetric_quark_momenta_figure_file_extension = symmetric_quark_momenta_figure_file_extension;
+
     if(ens == 'S'){
       assert(se == Sloppy);
       out.load_data_checkpoint = load_data_checkpoint_sloppy_S;
@@ -87,6 +93,8 @@ struct SampleAMAcmdLine{
     use_existing_scratch_files = false;
     use_scratch_stub = "scratch";
     checkpoint_and_exit = false;
+    symmetric_quark_momenta_figure_file_extension = "_symm";
+    SAMAexpand = false;
   }
   SampleAMAcmdLine(const int argc, const char** argv, const int begin = 0): SampleAMAcmdLine(){
     setup(argc,argv,begin);
@@ -157,6 +165,13 @@ struct SampleAMAcmdLine{
       }else if(sargv[i] == "-checkpoint_and_exit"){
 	checkpoint_and_exit = true;
 	i++;
+      }else if(sargv[i] == "-symmetric_quark_momenta_figure_file_extension"){
+	symmetric_quark_momenta_figure_file_extension = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-SAMAexpand"){
+	SAMAexpand = true;
+	SAMAexpandN = strToAny<int>(sargv[i+1]);
+	i+=2;
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];

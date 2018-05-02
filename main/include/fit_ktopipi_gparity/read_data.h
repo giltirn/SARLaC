@@ -4,16 +4,16 @@
 #include<algorithm>
 #include<parser.h>
 
-inline std::string typeFile(const int traj, const int type, const int tsep_k_pi, const int tsep_pipi, const std::string &data_dir, const bool use_symmetric_quark_momenta, const threeMomentum &mom = {0,0,0}){
+inline std::string typeFile(const int traj, const int type, const int tsep_k_pi, const int tsep_pipi, const std::string &data_dir, const bool use_symmetric_quark_momenta, const std::string &symmetric_quark_momenta_figure_file_extension, const threeMomentum &mom = {0,0,0}){
   std::ostringstream os;
   os << data_dir << "/traj_" << traj << "_type" << type;
   if(type != 4) os << "_deltat_" << tsep_k_pi << "_sep_" << tsep_pipi;
   if(type == 1) os << "_mom" << momStr(mom);
-  if(use_symmetric_quark_momenta) os << "_symm";
+  if(use_symmetric_quark_momenta) os << symmetric_quark_momenta_figure_file_extension;
   return os.str();
 }
 
-type1234Data readType(const int type, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_k_pi, const int tsep_pipi, const int Lt, const std::string &data_dir, const bool use_symmetric_quark_momenta){
+type1234Data readType(const int type, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_k_pi, const int tsep_pipi, const int Lt, const std::string &data_dir, const bool use_symmetric_quark_momenta, const std::string &symmetric_quark_momenta_figure_file_extension){
   int nsample = (traj_lessthan - traj_start)/traj_inc;
   if(type == 1){
     type1234Data type1_mom111(1,Lt,nsample);    
@@ -24,10 +24,10 @@ type1234Data readType(const int type, const int traj_start, const int traj_inc, 
 #pragma omp parallel for
     for(int i=0;i<nsample;i++){
       const int traj = traj_start + i*traj_inc;
-      type1_mom111.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,{1,1,1}) ,i);
-      type1_mom_1_1_1.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,{-1,-1,-1}) ,i);
-      type1_mom_111.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,{-1,1,1}) ,i);
-      type1_mom1_1_1.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,{1,-1,-1}) ,i);
+      type1_mom111.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,symmetric_quark_momenta_figure_file_extension,{1,1,1}) ,i);
+      type1_mom_1_1_1.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,symmetric_quark_momenta_figure_file_extension,{-1,-1,-1}) ,i);
+      type1_mom_111.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,symmetric_quark_momenta_figure_file_extension,{-1,1,1}) ,i);
+      type1_mom1_1_1.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,symmetric_quark_momenta_figure_file_extension,{1,-1,-1}) ,i);
     }
     return type1_mom111 * (1.0/8.0) + type1_mom_1_1_1 * (1.0/8.0) + type1_mom_111 * (3.0/8.0) + type1_mom1_1_1 * (3.0/8.0); //Project onto A2
   }else if(type == 2 || type == 3 || type == 4){
@@ -35,7 +35,7 @@ type1234Data readType(const int type, const int traj_start, const int traj_inc, 
 #pragma omp parallel for
     for(int i=0;i<nsample;i++){
       const int traj = traj_start + i*traj_inc;
-      typedata.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta),i);
+      typedata.parse(typeFile(traj,type,tsep_k_pi,tsep_pipi,data_dir,use_symmetric_quark_momenta,symmetric_quark_momenta_figure_file_extension),i);
     }
 #ifdef DAIQIAN_COMPATIBILITY_MODE
     if(type == 2 || type == 3) typedata = typedata * 0.5; //correct for missing coefficient

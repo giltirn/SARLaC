@@ -140,6 +140,72 @@ struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPiWithConstant::Params> 
 
 
 
+//Same as above but with extra constant
+class FitKtoPiPiTwoExp{
+public:
+#define FIT_KTOPIPI_TWO_EXP_PARAMS (Params, double, (AK)(mK)(A0)(E0)(A1)(E1)(M0)(M1), (1.0)(0.5)(1.0)(0.5)(1.0)(0.5)(1.0)(1.0) )
+  DEF_ENUMERATED_STRUCT_MEMBER(FitKtoPiPiTwoExp, FIT_KTOPIPI_TWO_EXP_PARAMS);
+
+public:
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType; //derivative wrt parameters
+  typedef amplitudeDataCoord GeneralizedCoordinate; 
+
+  static ValueType value(const GeneralizedCoordinate &c, const ParameterType &p){
+    return 
+      p.AK*p.A0*p.M0*exp(-p.E0 * c.tsep_k_pi)*exp( -(p.mK - p.E0)*c.t )/sqrt(2.) + 
+      p.AK*p.A1*p.M1*exp(-p.E1 * c.tsep_k_pi)*exp( -(p.mK - p.E1)*c.t )/sqrt(2.);
+  }
+  static ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &c, const ParameterType &p){
+    double v0 = p.AK*p.A0*p.M0*exp(-p.E0 * c.tsep_k_pi)*exp( -(p.mK - p.E0)*c.t )/sqrt(2.);
+    double v1 = p.AK*p.A1*p.M1*exp(-p.E1 * c.tsep_k_pi)*exp( -(p.mK - p.E1)*c.t )/sqrt(2.);
+    double v = v0 + v1;
+
+    ValueDerivativeType yderivs;
+    yderivs.AK = v/p.AK;
+    yderivs.mK = -c.t*v;
+    yderivs.A0 = v0/p.A0;
+    yderivs.E0 = -c.tsep_k_pi*v0 +c.t*v0;
+    yderivs.A1 = v1/p.A1;
+    yderivs.E1 = -c.tsep_k_pi*v1 +c.t*v1;
+    yderivs.M0 = v0/p.M0;
+    yderivs.M1 = v1/p.M1;
+    return yderivs;
+  }
+
+  static inline int Nparams(){ return 8; }
+
+  static double getM0data(const double y, const GeneralizedCoordinate &c, const ParameterType &p){
+    double v2 = p.AK*p.A1*p.M1*exp(-p.E1 * c.tsep_k_pi)*exp( -(p.mK - p.E1)*c.t )/sqrt(2.);
+    double v1woM = p.AK*p.A0*exp(-p.E0 * c.tsep_k_pi)*exp( -(p.mK - p.E0)*c.t )/sqrt(2.);
+    return (y - v2)/v1woM;
+  }
+};
+DEF_ENUMERATED_STRUCT_MEMBER_EXTERNAL(FitKtoPiPiTwoExp, FIT_KTOPIPI_TWO_EXP_PARAMS);
+
+template<>
+struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPiTwoExp::Params> >{
+  inline static std::string centralValue(const jackknifeDistribution<FitKtoPiPiTwoExp::Params> &d){
+    auto best = d.best();
+    std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " 
+			      << best.A0 << ", " << best.E0 << ", " 
+			      << best.A1 << ", " << best.E1 << ", "
+			      << best.M0 << ", " << best.M1 << ")";
+    return os.str();
+  }
+  inline static std::string error(const jackknifeDistribution<FitKtoPiPiTwoExp::Params> &d){
+    auto err = d.standardError();
+    std::ostringstream os; os << "(" << err.AK << ", " << err.mK << ", " 
+			      << err.A0 << ", " << err.E0 << ", " 
+			      << err.A1 << ", " << err.E1 << ", "
+			      << err.M0 << ", " << err.M1 << ")";
+    return os.str();
+  }
+};
+
+
+
 
 
 //Simultaneous fit
