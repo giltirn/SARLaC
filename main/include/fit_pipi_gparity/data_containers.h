@@ -18,6 +18,11 @@ class bubbleDataBase: public Policies{
   SourceOrSink src_snk;
 
 public:
+  bubbleDataBase() = default;
+  bubbleDataBase(const bubbleDataBase &r) = default;
+  bubbleDataBase(bubbleDataBase &&r) = default;
+  bubbleDataBase(const SourceOrSink _src_snk, const int _Lt, const int _tsep_pipi, const int _Nsample): src_snk(_src_snk), Lt(_Lt), tsep_pipi(_tsep_pipi), d(_Lt, DistributionType(_Nsample)){}
+
   void setup(const SourceOrSink _src_snk, const int _Lt, const int _tsep_pipi, const int _Nsample){ 
     src_snk = _src_snk; 
     tsep_pipi = _tsep_pipi; 
@@ -35,6 +40,11 @@ public:
 
   inline DistributionType & at(const int t){ return d[t]; }
   inline const DistributionType & at(const int t) const { return d[t]; }
+
+  void zero(){
+    for(int i=0;i<Lt;i++)
+      zeroit(d[i]);
+  }
 
   GENERATE_HDF5_SERIALIZE_METHOD((Lt)(tsep_pipi)(d));
 };
