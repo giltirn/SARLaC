@@ -73,6 +73,12 @@ inline dual operator/(const dual &a, const double &b){
   return dual(a.x/b, a.xp/b);
 }
 
+using ::exp;
+
+inline dual exp(const dual &a){
+  return dual(::exp(a.x), ::exp(a.x)*a.xp );
+}
+
 using ::log;
 
 inline dual log(const dual &a){
@@ -101,6 +107,10 @@ using ::sqrt;
 
 inline dual sqrt(const dual &a){
   return dual( ::sqrt(a.x), 0.5/::sqrt(a.x)*a.xp );
+}
+
+inline dual operator-(const dual &a){
+  return dual( -a.x, -a.xp );
 }
 
 CPSFIT_END_NAMESPACE

@@ -23,4 +23,14 @@ doubleJackCorrelationFunction computeSigmaVacSub(const sigmaSelfContraction &raw
   return out;
 }
 
+template<typename DistributionType>
+correlationFunction<double, DistributionType> foldSigma(const correlationFunction<double, DistributionType> &data, const int Lt){
+  correlationFunction<double, DistributionType> out(data);
+  for(int t=0;t<Lt;t++){
+    int tp = (Lt - t    + Lt) % Lt;
+    out.value(t) = 0.5*( data.value(t) + data.value(tp) );
+  }
+  return out;
+}
+
 #endif

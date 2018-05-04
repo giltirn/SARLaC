@@ -47,6 +47,18 @@ void readPiPiToSigma(figureData &raw_data, const std::string &data_dir, const in
   raw_data = raw_data/64.;
 }
 
+bubbleData A1projectPiPiBubble(const bubbleDataAllMomenta &pipi_self_data, const std::vector<threeMomentum> &pion_mom, const int Lt, const int tsep_pipi){
+  int nsample_raw = pipi_self_data.getNsample();
+  bubbleData out(Source,Lt,tsep_pipi,nsample_raw);
+  out.zero();
+
+  for(int t=0;t<Lt;t++)
+    for(int p=0;p<pion_mom.size();p++)
+      out(t) = out(t) + pipi_self_data(Source,pion_mom[p])(t)/double(pion_mom.size()); //A1 project
+  
+  return out;
+}
+
 bubbleData getPiPiBubble(const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt){
   int nsample_raw = (traj_lessthan - traj_start)/traj_inc;
 
@@ -60,14 +72,7 @@ bubbleData getPiPiBubble(const std::string &data_dir, const int traj_start, cons
 
   readBubble<readBubbleStationaryPolicy>(pipi_self_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, pipi_policy, pion_mom, pion_proj, Source);
   
-  bubbleData out(Source,Lt,tsep_pipi,nsample_raw);
-  out.zero();
-
-  for(int t=0;t<Lt;t++)
-    for(int p=0;p<pion_mom.size();p++)
-      out(t) = out(t) + pipi_self_data(Source,pion_mom[p])(t)/double(pion_mom.size()); //A1 project
-  
-  return out;
+  return A1projectPiPiBubble(pipi_self_data, pion_mom, Lt, tsep_pipi);
 }
 
 #endif

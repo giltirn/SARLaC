@@ -26,6 +26,7 @@ using namespace CPSfit;
 #include <fit_pipi_gparity/plot.h>
 #include <fit_pipi_gparity/raw_data.h>
 #include <fit_pipi_gparity/raw_correlator.h>
+#include <fit_pipi_gparity/resampled_data.h>
 #include <fit_pipi_gparity/main.h>
 
 #include <fit_simple_sampleAMA/sampleAMA_resample.h>
