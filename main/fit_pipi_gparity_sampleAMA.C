@@ -62,6 +62,7 @@ struct rawData{ //raw, unbinned data
       readBubbleStationaryPolicy bfn_src(cmdlinei.use_symmetric_quark_momenta,Source);
       readBubbleStationaryPolicy bfn_snk(cmdlinei.use_symmetric_quark_momenta,Sink);
       readRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, ffn, bfn_src, bfn_snk, proj_src, proj_snk, allow);
+      checkpointRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, "");
       getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], proj_src, proj_snk, allow, isospin, pion_momenta, argsi.bin_size, "", false);
     }
 
