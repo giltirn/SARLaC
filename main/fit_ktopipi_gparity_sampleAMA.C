@@ -65,8 +65,16 @@ int main(const int argc, const char* argv[]){
   parse(args, arg_file);
   
   SampleAMAcmdLine cmdline(argc,argv,2);
-  
+   
   allInputs inputs(args,cmdline);
+
+  if(cmdline.plot_only){
+    std::cout << "Plotting results and exiting\n";
+    PlotOnlyInputs pi(inputs.args_S,inputs.cmdline_sloppy_S);
+    fitfuncCall<PlotOnlyInputs,PlotOnlyCall>(args.fitfunc,pi);
+    std::cout << "Done" << std::endl;
+    return 0;
+  }
 
   //Prepare the data
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);

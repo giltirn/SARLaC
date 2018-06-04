@@ -177,4 +177,189 @@ inline void plotErrorWeightedData(const std::vector<correlationFunction<amplitud
   return plotErrorWeightedData(data,extractor,args.tmin_k_op,args.tmin_op_pi);
 }
 
+
+
+
+
+
+
+
+
+void plotErrorWeightedData2exp(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, 
+			       const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &fit_params,
+			       const int Lt, const int tmin_k_op, const int tmin_op_pi){
+  auto mK = distributionStructPeek(fit_params[0], &FitKtoPiPiTwoExp::Params::mK);
+  FitKtoPiPiTwoExp fitfunc;
+  auto zero = mK; zeroit(zero);
+
+  for(int q=0;q<10;q++){
+#define GETP(NM) auto NM = distributionStructPeek(fit_params[q], &FitKtoPiPiTwoExp::Params:: NM)
+    GETP(AK);
+    GETP(A0);
+    GETP(M0);
+    GETP(E0);
+    GETP(A1);
+    GETP(M1);
+    GETP(E1);
+#undef GETP
+
+    //Time dep is currently
+    //p.AK*p.A0*p.M0*exp(-p.E0 * c.tsep_k_pi)*exp( -(p.mK - p.E0)*c.t )/sqrt(2.) + 
+    //  p.AK*p.A1*p.M1*exp(-p.E1 * c.tsep_k_pi)*exp( -(p.mK - p.E1)*c.t )/sqrt(2.);
+    
+    //Remove kaon time dependence from data
+
+    typedef correlationFunction<amplitudeDataCoord, jackknifeDistributionD>::ElementType Etype;
+
+    correlationFunction<amplitudeDataCoord, jackknifeDistributionD> data_tkrem = 
+      correlationFunction<amplitudeDataCoord, jackknifeDistributionD>(data[q].size(),
+								      [&](const int i){
+									return Etype(data[q].coord(i),
+										     data[q].value(i) * exp(mK * data[q].coord(i).t) );
+								      }
+								      );
+    //Time dep now:
+    //p.AK*p.A0*p.M0*exp(-p.E0 * (c.tsep_k_pi - c.t)/sqrt(2.) + 
+    //  p.AK*p.A1*p.M1*exp(-p.E1 * (c.tsep_k_pi - c.t)/sqrt(2.);
+    
+    //tsep_k_pi - t = t_op_pi
+    
+    //Error weighted average over data with same t_op_pi
+    std::vector< std::vector<int> > dmap(Lt);
+    std::vector< std::vector<double> > wmap(Lt);
+    std::vector<double> wsum(Lt,0.);
+
+    int tsep_k_pi_max = -1;
+    for(int i=0;i<data_tkrem.size();i++){
+      if(data_tkrem.coord(i).t < tmin_k_op) continue;
+
+      if((int)data_tkrem.coord(i).t > data_tkrem.coord(i).tsep_k_pi) continue; 
+
+      if(data_tkrem.coord(i).tsep_k_pi > tsep_k_pi_max) tsep_k_pi_max = data_tkrem.coord(i).tsep_k_pi;
+
+      int t_op_pi = data_tkrem.coord(i).tsep_k_pi - (int)data_tkrem.coord(i).t;
+      double w = data_tkrem.value(i).standardError();
+      w = 1./w/w;
+
+      std::cout << "Q" << q+1 << " including data point " << i << " with t_op_pi " << t_op_pi << " and value " << data_tkrem.value(i) << " and weight " << w << ": running sum of weights for this t " << wsum[t_op_pi] << std::endl;
+
+      dmap[t_op_pi].push_back(i);
+      wmap[t_op_pi].push_back(w);
+      wsum[t_op_pi] += w;
+    }
+    
+    correlationFunction<double, jackknifeDistributionD> data_wavg;
+    for(int t=0;t<tsep_k_pi_max;t++){
+      if(dmap[t].size() > 0){
+	jackknifeDistributionD v = wmap[t][0] * data_tkrem.value( dmap[t][0] );
+
+	for(int i=1;i<dmap[t].size();i++)
+	  v = v + wmap[t][i] * data_tkrem.value( dmap[t][i] );
+
+	v = v / wsum[t];
+
+	std::cout << "t_op_pi " << t << " " << " weighted avg of " << dmap[t].size() << " data (";
+	for(int i=0;i<dmap[t].size();i++) std::cout << "[" << data_tkrem.coord( dmap[t][i] ) << "]";
+	std::cout << ") to give result " << v << std::endl;
+
+	data_wavg.push_back(t, v);
+      }
+    }
+    
+    //Construct fit curves
+    correlationFunction<double, jackknifeDistributionD> curve_ground;
+    correlationFunction<double, jackknifeDistributionD> curve_excited;
+    correlationFunction<double, jackknifeDistributionD> curve_sum;
+
+    int npoint = 60;
+    double delta = double(tsep_k_pi_max-tmin_op_pi)/(npoint - 1);
+    for(int i=0;i<npoint;i++){
+      double t_op_pi = tmin_op_pi + i*delta;
+      jackknifeDistributionD gnd = AK*A0*M0*exp(-E0*t_op_pi)/sqrt(2.);
+      jackknifeDistributionD exc = AK*A1*M1*exp(-E1*t_op_pi)/sqrt(2.);
+      jackknifeDistributionD sum = gnd+exc;
+      curve_ground.push_back(t_op_pi, gnd);
+      curve_excited.push_back(t_op_pi, exc);
+      curve_sum.push_back(t_op_pi, sum);
+    }    
+  
+    //Plot
+    MatPlotLibScriptGenerate plotter;
+    typedef DataSeriesAccessor<correlationFunction<double, jackknifeDistributionD>, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
+    accessor dset_accessor(data_wavg);
+    accessor fitcurve_gnd_accessor(curve_ground);
+    accessor fitcurve_exc_accessor(curve_excited);
+    accessor fitcurve_sum_accessor(curve_sum);
+
+    MatPlotLibScriptGenerate::handleType dset_handle = plotter.plotData(dset_accessor);
+    MatPlotLibScriptGenerate::kwargsType kwargs;
+    kwargs["alpha"] = 0.5;
+    kwargs["color"] = 'r';
+    MatPlotLibScriptGenerate::handleType fitcurve_gnd_handle = plotter.errorBand(fitcurve_gnd_accessor,kwargs);
+    kwargs["color"] = 'g';
+    MatPlotLibScriptGenerate::handleType fitcurve_exc_handle = plotter.errorBand(fitcurve_exc_accessor,kwargs);
+    kwargs["color"] = 'b';
+    MatPlotLibScriptGenerate::handleType fitcurve_sum_handle = plotter.errorBand(fitcurve_sum_accessor,kwargs);
+    
+    plotter.setXlabel("$t$");
+    std::ostringstream ylabel; ylabel << "$M^{1/2,\\ \\rm{lat}}_" << q+1 << "$";
+    plotter.setYlabel(ylabel.str());
+
+    std::ostringstream filename_stub; filename_stub << "plot_2exp_errw_Q" << q+1;
+    plotter.write( filename_stub.str()+".py", filename_stub.str()+".pdf");
+  }
+}
+
+template<typename FitFunc>
+struct plotFF{
+  inline static void plot(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
+			  const typename fitReturnType<FitFunc>::type &fit_params,
+			  const Args &args, const CMDline &cmdline){
+    extractMdata<FitFunc> extractor(fit_params);
+    plotErrorWeightedData(A0_all_j,extractor,args);
+  }
+};
+template<>
+struct plotFF<FitKtoPiPiTwoExp>{
+  inline static void plot(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
+			  const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &fit_params,
+			  const Args &args, const CMDline &cmdline){
+    int nsample = A0_all_j[0].value(0).size();
+    plotErrorWeightedData2exp(A0_all_j, fit_params, args.Lt, args.tmin_k_op, args.tmin_op_pi);
+  }
+};
+
+struct PlotOnlyInputs{
+  const Args &args;
+  const CMDline &cmdline;
+
+  PlotOnlyInputs(const Args &args,
+		 const CMDline &cmdline): args(args), cmdline(cmdline){}
+};
+template<typename FitFunc>
+struct PlotOnlyCall{
+  static void call(const PlotOnlyInputs &inputs){
+    if(!inputs.cmdline.load_amplitude_data) error_exit(std::cout << "plot_only option requires checkpointed jackknife data\n");
+    std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
+#ifdef HAVE_HDF5
+    {
+      HDF5reader reader(inputs.cmdline.load_amplitude_data_file);
+      read(reader, A0_all_j, "A0_all_j");
+    }
+#else
+    assert(0);
+#endif
+
+    typename fitReturnType<FitFunc>::type fit_params;
+#ifdef HAVE_HDF5
+    readParamsStandard(fit_params, "params.hdf5");
+#else
+    assert(0);
+#endif
+    plotFF<FitFunc>::plot(A0_all_j, fit_params, inputs.args, inputs.cmdline);
+  }
+    
+};
+
+
 #endif

@@ -43,6 +43,8 @@ struct SampleAMAcmdLine{
   bool SAMAexpand; //append N extra superjackknife samples to data
   int SAMAexpandN;
 
+  bool plot_only;
+
   CMDline toCMDline(const char ens, const SloppyExact se) const{
     CMDline out;
     out.load_guess = load_guess;
@@ -95,6 +97,7 @@ struct SampleAMAcmdLine{
     checkpoint_and_exit = false;
     symmetric_quark_momenta_figure_file_extension = "_symm";
     SAMAexpand = false;
+    plot_only = false;
   }
   SampleAMAcmdLine(const int argc, const char** argv, const int begin = 0): SampleAMAcmdLine(){
     setup(argc,argv,begin);
@@ -172,6 +175,9 @@ struct SampleAMAcmdLine{
 	SAMAexpand = true;
 	SAMAexpandN = strToAny<int>(sargv[i+1]);
 	i+=2;
+      }else if(sargv[i] == "-plot_only"){
+	plot_only = true;
+	i++;
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];

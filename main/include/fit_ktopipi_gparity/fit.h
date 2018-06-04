@@ -1,25 +1,6 @@
 #ifndef _KTOPIPI_FIT_H_
 #define _KTOPIPI_FIT_H_
 
-template<typename FitFunc>
-struct fitReturnType{};
-
-template<>
-struct fitReturnType<FitKtoPiPi>{ typedef std::vector<jackknifeDistribution<FitKtoPiPi::Params> > type; };
-
-template<>
-struct fitReturnType<FitKtoPiPiWithConstant>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiWithConstant::Params> > type; };
-
-template<>
-struct fitReturnType<FitKtoPiPiTwoExp>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > type; };
-
-template<int N>
-struct fitReturnType<FitKtoPiPiSim<N> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> type; };
-  
-template<>
-struct fitReturnType<FitKtoPiPiSim<7> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<10>::Params> type; }; //return parameters converted to 10-basis
-
-
 //Fit to each Q independently
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr{
@@ -285,6 +266,7 @@ inline void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackk
   return getFitData(A0_fit_j, A0_fit_dj, A0_j, A0_dj, args.tmin_k_op, args.tmin_op_pi);
 }
 
+
 template<typename FitFunc>
 inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
 			 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
@@ -303,8 +285,7 @@ inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoor
   
   typename fitReturnType<FitFunc>::type fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,args,cmdline);
 
-  extractMdata<FitFunc> extractor(fit_params);
-  plotErrorWeightedData(A0_all_j,extractor,args);
+  plotFF<FitFunc>::plot(A0_all_j, fit_params, args, cmdline);
 
 #ifdef HAVE_HDF5
   writeParamsStandard(fit_params, "params.hdf5");

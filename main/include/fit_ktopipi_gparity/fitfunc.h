@@ -367,7 +367,42 @@ struct ktopipiParamsPrinter<FitKtoPiPiSim<N> >: public distributionPrinter<jackk
 
 
 
+template<typename FitFunc>
+struct fitReturnType{};
 
+template<>
+struct fitReturnType<FitKtoPiPi>{ typedef std::vector<jackknifeDistribution<FitKtoPiPi::Params> > type; };
+
+template<>
+struct fitReturnType<FitKtoPiPiWithConstant>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiWithConstant::Params> > type; };
+
+template<>
+struct fitReturnType<FitKtoPiPiTwoExp>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > type; };
+
+template<int N>
+struct fitReturnType<FitKtoPiPiSim<N> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> type; };
+  
+template<>
+struct fitReturnType<FitKtoPiPiSim<7> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<10>::Params> type; }; //return parameters converted to 10-basis
+
+//Call static method 'call' on object with shared inputs type Inputs 
+template<typename Inputs, template<typename> class F>
+inline void fitfuncCall(const KtoPiPiFitFunc fitfunc, const Inputs &inputs){
+  switch(fitfunc){
+  case FitSeparate:
+    return F<FitKtoPiPi>::call(inputs);
+  case FitSimultaneous:
+    return F<FitKtoPiPiSim<10> >::call(inputs);
+  case FitSimultaneousChiralBasis:
+    return F<FitKtoPiPiSim<7> >::call(inputs);
+  case FitSeparateWithConstant:
+    return F<FitKtoPiPiWithConstant>::call(inputs);
+  case FitSeparateTwoExp:
+    return F<FitKtoPiPiTwoExp>::call(inputs);
+  default:
+    error_exit(std::cout << "fitfuncCall(..) Unknown fit function " << fitfunc << std::endl);
+  }
+}
 
 
 #endif

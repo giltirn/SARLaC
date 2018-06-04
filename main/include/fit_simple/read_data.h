@@ -49,12 +49,40 @@ struct ParseMultiSourceAverage: public Parser{ //expect Lt lines with format <ts
   } 
 };
 
+struct ParseMultiSourceAverageImag: public Parser{ //expect Lt lines with format <tsrc> <tsep> <re> <im>.  Discards the real part
+  void setup(rawDataCorrelationFunctionD &into, const int nsample, const int Lt) const{
+    into.resize(Lt);
+    for(int t=0;t<Lt;t++){
+      into.coord(t) = t;
+      into.value(t).resize(nsample);
+    }
+  }    
+  
+  void parse(rawDataCorrelationFunctionD &into, std::istream &is, const int sample, const int Lt) const{
+    for(int t=0;t<Lt;t++)
+      into.value(t).sample(sample) = 0.;
+    
+    for(int tsrc=0;tsrc<Lt;tsrc++)
+      for(int t=0;t<Lt;t++){
+	int tsrct, tt; double re, im;
+	is >> tsrct >> tt >> re >> im;
+	assert(tsrct == tsrc);
+	assert(tt == t);
+	assert(!is.fail());
+
+	into.value(t).sample(sample) += im / double(Lt);	
+      }
+  } 
+};
+
 Parser* parserFactory(const ParserType p){
   switch(p){
   case ParserStandard:
     return new ParseStandard;
   case ParserMultiSourceAverage:
     return new ParseMultiSourceAverage;
+  case ParserMultiSourceAverageImag:
+    return new ParseMultiSourceAverageImag;
   default:
     error_exit(std::cout << "readData: Unknown parser " << p << std::endl);
   };
