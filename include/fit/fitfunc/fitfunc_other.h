@@ -14,7 +14,6 @@ public:
   typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
   typedef double GeneralizedCoordinate; //time coord
 
-  //Params are A, m  
   ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
     return p(0);
   }

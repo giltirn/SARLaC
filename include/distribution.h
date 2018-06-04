@@ -11,4 +11,5 @@
 #include<distribution/raw_data_distribution.h>
 #include<distribution/superjackknife.h>
 #include<distribution/bootstrap.h>
+#include<distribution/distribution_struct_peekpoke.h>
 #endif
