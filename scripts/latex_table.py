@@ -2,6 +2,7 @@ import math
 import numpy
 import os
 import sys
+import re
 
 def hdf5_print(filename, **kwargs):
     arg_str = ""
@@ -43,9 +44,25 @@ def tabulate(cols,args,**kwargs):
     np = len(args)
     ii = 0
     for i in range(np):
+        if(args[i] == "\\hline"):
+            if(ii > 0):
+                sys.stdout.write("\\\\\n")
+            ii=0
+            sys.stdout.write("\\hline\n")
+            continue
+
         if(ii > 0):
             sys.stdout.write(' & ')
+
+        n = 1
+        mcol = None
         if(isinstance(args[i],basestring)):
+            mcol = re.search(r'multicolumn\{(\d+)\}',args[i])
+
+        if(mcol):
+             n = int(mcol.group(1))
+             sys.stdout.write(args[i])
+        elif(isinstance(args[i],basestring)):
             sys.stdout.write(args[i])
         elif(isinstance(args[i],int)):
             sys.stdout.write("%d" % args[i])
@@ -54,7 +71,7 @@ def tabulate(cols,args,**kwargs):
         else:
             sys.exit("latex_table::tabulate Unknown format %s" % type(args[i]))
 
-        ii = ii+1
+        ii = ii+n
 
         if(ii == cols):
             sys.stdout.write("\\\\\n")

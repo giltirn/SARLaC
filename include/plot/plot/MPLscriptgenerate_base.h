@@ -27,7 +27,11 @@ protected:
   };
 
   std::ostringstream user; //extra python code added by user
+  std::ostringstream preamble; //extra preamble python code added by user
 public:
+
+  //User code placed outside of __name__ = '__main__' scope, eg functions or global vars
+  inline std::ostringstream & preinvoke(){ return preamble; }
 
   //Access an internal stream that can be used to provide arbitrary python commands that are included in the output file
   //IMPORTANT: User must apply a tab \t in front of each line of python code as it should be executed in the if __name__ == '__main__' scope

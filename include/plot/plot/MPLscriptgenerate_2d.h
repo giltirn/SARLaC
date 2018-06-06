@@ -121,6 +121,8 @@ public:
 
     for(int i=0;i<plothistogram_sets.size();i++)
       plothistogram_sets[i].write(os);
+
+    os << preamble.str(); //user code
     
     os << "\nif __name__ == '__main__':\n";
 

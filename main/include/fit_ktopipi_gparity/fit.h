@@ -11,6 +11,8 @@ struct fit_corr_uncorr{
     typedef typename FitFunc::Params Params;
     std::vector<Params> guess(10);
     std::vector<jackknifeDistribution<Params> > fit_params(10);
+    std::vector<jackknifeDistributionD> fit_chisq(10);
+    std::vector<jackknifeDistributionD> fit_chisq_per_dof(10);
 
     //Perform the fit
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
@@ -28,8 +30,8 @@ struct fit_corr_uncorr{
   
       jackknifeDistribution<Params> &params = fit_params[q];
       params = jackknifeDistribution<Params>(nsample, guess[q]);
-      jackknifeDistributionD chisq;
-      jackknifeDistributionD chisq_per_dof;
+      jackknifeDistributionD &chisq = fit_chisq[q];
+      jackknifeDistributionD &chisq_per_dof = fit_chisq_per_dof[q];
       fitter.fit(params, chisq, chisq_per_dof, A0_fit_j[q]);
 
       int nparams = params.sample(0).size();
@@ -42,6 +44,10 @@ struct fit_corr_uncorr{
       std::cout << "Q" << q+1 << " Chisq/dof: " << chisq_per_dof << std::endl;
     }
 
+#ifdef HAVE_HDF5
+    writeParamsStandard(fit_chisq, "chisq.hdf5");
+    writeParamsStandard(fit_chisq_per_dof, "chisq_per_dof.hdf5");
+#endif
     return fit_params;
   }
 };

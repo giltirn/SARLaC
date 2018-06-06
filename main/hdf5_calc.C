@@ -119,7 +119,7 @@ void run(const std::vector<symbolInfo> &symbols, const DistributionTypeEnum type
   
 
 int main(const int argc, const char* argv[]){
-  assert(argc >= 3);
+  if(argc < 3) error_exit(std::cout << "Usage: <out file> <expression> <symbol 1 name> <symbol 1 filename> <symbol 1 index expr> <symbol 2 name> ...." << std::endl);
 
   //First argument should be the output file name
   std::string outfile = argv[1];

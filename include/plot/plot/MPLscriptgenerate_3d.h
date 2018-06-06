@@ -62,7 +62,9 @@ public:
 
     for(int i=0;i<scatter_sets.size();i++)
       scatter_sets[i].write(os);
-    
+
+    os << preamble.str(); //user code    
+
     os << "\nif __name__ == '__main__':\n";
     os << "\tfig = pyplot.plt.figure()\n";
     os << "\tax = fig.add_subplot(1,1,1, projection='3d')\n";
