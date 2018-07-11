@@ -12,6 +12,7 @@ void zeroUnmeasuredSourceTimeslices(figureDataAllMomenta &data, const char fig, 
   }    
 }
 
+//The V diagrams is computed offline frome the bubble data. We only compute for pion momenta that are going to be used in the rotational-state projection
 template<typename DataAllMomentumType, typename BubbleDataType>
 void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_data, const int tsep_pipi, const std::vector<threeMomentum> &pion_momenta, 
 	      const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow){
@@ -65,7 +66,7 @@ void checkpointRawData(const figureDataAllMomenta &raw_data, const bubbleDataAll
     saveHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(cmdline.save_hdf5_data_checkpoint_stub, extra_descr) );
 }
 
-//Read the contraction data
+//Read the raw contraction data. No rotational-state projection is done, but we do avoid reading data that won't be needed, hence the discriminators input
 template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>
 void readRawData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data, const Args &args, const CMDline &cmdline, 
 		 const FigureFilenamePolicy &ffn, const BubbleFilenamePolicy &bfn_src, const BubbleFilenamePolicy &bfn_snk,

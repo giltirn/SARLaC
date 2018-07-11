@@ -1,6 +1,10 @@
 #ifndef _PIPI_RAW_CORRELATOR_H_
 #define _PIPI_RAW_CORRELATOR_H_
 
+//Givem the raw data, perform the rotational-state projection. User can decide on how the projection is performed (for example, choosing a representation) via 3 controls:
+//1) A discriminator for which source pi1 momenta to include and a coefficient for that data point
+//2) A discriminator for which sink pi1 momenta to include and a coefficient for that data point
+//3) A discriminator for pairs of p_pi1_snk and p_pi1_src
 template<typename DataAllMomentumType>
 typename DataAllMomentumType::ContainerType project(const char fig, const DataAllMomentumType &raw_data, 
 						    const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, 
@@ -74,7 +78,8 @@ inline void bin(rawCorrelationFunction &raw, const int bin_size){
   for(int i=0;i<raw.size();i++) raw.value(i) = raw.value(i).bin(bin_size);
 }
 
-//Compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data
+//Given the parsed, raw data, compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data. This includes projecting the pipi states onto
+//a user-selected linear combination (for example projecting onto the A1 cubic representation)
 void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, 
 			const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, const std::vector<threeMomentum> &pion_momenta,
 			const int bin_size, const std::string &extra_descr = "", bool output_raw_data = true){

@@ -38,6 +38,7 @@ doubleJackCorrelationFunction generateData(const PiPiProject &proj_src, const Pi
   return pipi_dj;
 }
 
+//User provides a set of total source pipi momenta. The data are read, rotational-state projected, resampled then averaged over the provided set of total momenta. The resulting correlation function is returned
 doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdline){
   if(args.total_mom.size() == 1 && args.total_mom[0] == threeMomentum({0,0,0})){
     PiPiProject *proj_src = getProjector(args.proj_src, args.total_mom[0]);

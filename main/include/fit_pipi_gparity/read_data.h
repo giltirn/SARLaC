@@ -49,7 +49,7 @@ struct readFigureTianleComovingPolicy{
   }
 };
 
-
+//For a given figure (C,D,R) read the raw data. No projection is performed here, but we do avoid reading data that are not going to be needed in the subsequent projection
 template<typename FilenamePolicy>
 void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::string &data_dir, const int tsep_pipi, const int Lt,
 		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, const std::vector<threeMomentum> &pion_momenta,
