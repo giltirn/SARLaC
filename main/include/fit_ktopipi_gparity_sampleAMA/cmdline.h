@@ -80,7 +80,7 @@ struct SampleAMAcmdLine{
   }
 
 
-  SampleAMAcmdLine(){
+SampleAMAcmdLine(){
     load_guess = false;
     load_data_checkpoint_sloppy_S = false;
     load_data_checkpoint_sloppy_C = false;
@@ -181,18 +181,6 @@ struct SampleAMAcmdLine{
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;
 	freeze_data = sargv[i+1];
-	if(freeze_data == "TEMPLATE"){
-	  KtoPiPiFreezeParams p;
-	  std::ofstream of("freeze_template.args");
-	  of << p;
-	  of.close();
-	  std::cout << "Wrote freeze template argument file to freeze_template.args\n";
-	  exit(0);
-	}else{
-	  std::cout << "Testing freeze params file " << freeze_data << " for correctness" << std::endl;
-	  KtoPiPiFreezeParams fparams;
-	  parse(fparams,freeze_data);
-	}
 	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
@@ -200,6 +188,24 @@ struct SampleAMAcmdLine{
     }
   }
 };
+
+template<typename FreezeType = KtoPiPiFreezeParams>
+void freezeCheck(const SampleAMAcmdLine &cmdline){
+  if(cmdline.load_freeze_data){
+    if(cmdline.freeze_data == "TEMPLATE"){
+      FreezeType p;
+      std::ofstream of("freeze_template.args");
+      of << p;
+      of.close();
+      std::cout << "Wrote freeze template argument file to freeze_template.args\n";
+      exit(0);
+    }else{
+      std::cout << "Testing freeze params file " << cmdline.freeze_data << " for correctness" << std::endl;
+      FreezeType fparams;
+      parse(fparams,cmdline.freeze_data);
+    }
+  }
+}
 
 
 #endif

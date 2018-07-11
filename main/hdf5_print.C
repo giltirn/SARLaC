@@ -43,6 +43,9 @@ struct CmdLine{
   
   bool spec_noindex;
 
+  bool factor_out;
+  double factor_out_factor;
+
   CmdLine(){
     spec_elem = false;
     spec_format = false;
@@ -53,6 +56,7 @@ struct CmdLine{
     spec_round_pow = false;
     spec_sample_plot_type = false;
     spec_noindex = false;
+    factor_out = false;
   }
   void parse(const int argc, const char* argv[]){
     int i = 2;
@@ -111,7 +115,11 @@ struct CmdLine{
 	i+=2;
 
 
-	//--------------------------------------------------------------------------------------------
+	//---------------------Transformations of data-----------------------------------------------------------------------
+      }else if(si == "-factor_out"){ //factor out a constant for all printed values
+	factor_out = true;
+	factor_out_factor = strToAny<double>(argv[i+1]);
+	i+=2;
       }else{
 	error_exit(std::cout << "Unknown argument: " << si << std::endl);
       }
@@ -126,11 +134,11 @@ struct visitor;
 
 template<typename T, typename Action, int Depth>
 struct visitor<std::vector<T>, Action, Depth>{
-  inline static void go(const Action &action, const std::vector<T> &v){
+  inline static void go(const Action &action, std::vector<T> &v){
     std::vector<int> coord(Depth);
     go_recurse(coord, action, v);
   }
-  inline static void go_recurse(std::vector<int> coord, const Action &action, const std::vector<T> &v){
+  inline static void go_recurse(std::vector<int> coord, const Action &action, std::vector<T> &v){
     for(int i=0;i<v.size();i++){
       coord[coord.size()-Depth] = i;
       visitor<T,Action,Depth-1>::go_recurse(coord,action,v[i]);
@@ -139,7 +147,7 @@ struct visitor<std::vector<T>, Action, Depth>{
 };
 template<typename D, typename Action>
 struct visitor<D,Action,0>{
-  inline static void go_recurse(std::vector<int> coord, const Action &action, const D &v){
+  inline static void go_recurse(std::vector<int> coord, const Action &action, D &v){
     action(coord, v);
   }
 };
@@ -188,11 +196,31 @@ public:
   }
 };
 
+//Divide out a factor
+template<typename D>
+class actionFactorOut{
+  double inv_fac;
+public:
+  actionFactorOut(const double fac): inv_fac(1./fac){}
+   
+  void operator()(const std::vector<int> &coord, D &v) const{
+    v = v * inv_fac;
+  }
+};
+
+
 template<typename VD,typename D, int depth>
 void specVDtype(const std::string &filename, const CmdLine &cmdline, formatter<D> &fmt){
   VD data;
   readParamsStandard(data,filename);
 
+  //Transformations
+  if(cmdline.factor_out){
+    actionFactorOut<D> action(cmdline.factor_out_factor);
+    visitor<VD,actionFactorOut<D>,depth>::go(action, data); 
+  }
+
+  //Printing
   if(cmdline.spec_elem){
     actionFilter<D> action(cmdline.spec_elem_vals,fmt);
     visitor<VD,actionFilter<D>,depth>::go(action, data);  

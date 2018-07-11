@@ -67,6 +67,14 @@ struct CMDline{
       }else if(sargv[i] == "-load_frozen_fit_params"){
 	load_frozen_fit_params = true;
 	load_frozen_fit_params_file = sargv[i+1];
+	if(load_frozen_fit_params_file == "TEMPLATE"){
+	  FreezeParams templ;
+	  std::ofstream of("freeze_template.dat");
+	  of << templ;
+	  of.close();
+	  std::cout << "Wrote freeze template to freeze_template.dat\n";
+	  exit(0);	 
+	}
 	i+=2;
       }else if(sargv[i] == "-use_symmetric_quark_momenta"){
 	use_symmetric_quark_momenta = true;

@@ -65,7 +65,8 @@ int main(const int argc, const char* argv[]){
   parse(args, arg_file);
   
   SampleAMAcmdLine cmdline(argc,argv,2);
-   
+  freezeCheck<>(cmdline);
+
   allInputs inputs(args,cmdline);
 
   if(cmdline.plot_only){

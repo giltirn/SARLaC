@@ -40,18 +40,18 @@ template<> struct getResampledBubble<doubleJackknifeDistributionD>{ static inlin
 //Compute and store the raw amplitude data and data necessary for mix and vacuum subtractions
 class RawKtoPiPiData{
 public:
-  //Type data  [Qidx][tK][t]
-  IndexedContainer<NumericTensor<rawDataDistributionD,3>, 4, 1> A0_alltK;
+  //Type data
+  IndexedContainer<NumericTensor<rawDataDistributionD,3>, 4, 1> A0_alltK; //(type idx){q,tK,t}
 
-  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub;
+  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub; //{q,tK,t}
   
-  //Mix data [tK][t]
-  IndexedContainer<NumericTensor<rawDataDistributionD,2>, 2, 3> mix_alltK;
+  //Mix data
+  IndexedContainer<NumericTensor<rawDataDistributionD,2>, 2, 3> mix_alltK; //(mix idx){tK,t}
 
   NumericTensor<rawDataDistributionD,2> mix4_alltK_nobub;  
 
   //Info on non-zero timeslices
-  IndexedContainer<std::vector<int>, 4, 1> nonzerotK;
+  IndexedContainer<std::vector<int>, 4, 1> nonzerotK; //(type idx)
 
 private:
   void getTypeData(IndexedContainer<type1234Data, 4, 1> &type_data, const int tsep_k_pi, const Args &args, const CMDline &cmdline){

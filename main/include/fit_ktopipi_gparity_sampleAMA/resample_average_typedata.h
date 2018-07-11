@@ -83,4 +83,28 @@ NumericTensor<DistributionType,1> resampleAverageMixDiagramSampleAMA(const int t
 }
 
 
+//Accessor should be a struct with   
+//const rawDataDistributionD & operator()(const int tK, const int t, const RawKtoPiPiData &raw) const
+//std::string descr(const int t) const
+//const std::vector<int> & nonzerotK(const RawKtoPiPiData &raw) const
+template<typename DistributionType, typename Accessor>
+NumericTensor<DistributionType,1> resampleAverageSampleAMA(const allRawData &raw,
+							   const allInputs &inputs,
+							   const Accessor &accessor
+							   ){
+  typedef printOnlyIfType<DistributionType,jackknifeDistributionD> printer;
+  const std::vector<int> &typedata_nonzerotK = accessor.nonzerotK(raw.raw_sloppy_S);
+  NumericTensor<DistributionType,1> out({inputs.args.Lt}); //[t]
+  DistributionType sloppy_C, exact_C;
+  for(int t=0;t<inputs.args.Lt;t++){
+    rawDataDistributionD raw_sloppy_S_avg, raw_sloppy_C_avg, raw_exact_C_avg;
+    average(raw_sloppy_S_avg, [&](const int i){ return accessor(typedata_nonzerotK[i], t, raw.raw_sloppy_S); }, typedata_nonzerotK.size());
+    average(raw_sloppy_C_avg, [&](const int i){ return accessor(typedata_nonzerotK[i], t, raw.raw_sloppy_C); }, typedata_nonzerotK.size());
+    average(raw_exact_C_avg,  [&](const int i){ return accessor(typedata_nonzerotK[i], t, raw.raw_exact_C); }, typedata_nonzerotK.size());
+    out(&t) = resampleCorrect<DistributionType>(raw_sloppy_S_avg,raw_sloppy_C_avg,raw_exact_C_avg,
+						inputs.resampler_S,inputs.resampler_C, printer::str(accessor.descr(t)) );
+  }
+  return out;
+}
+
 #endif

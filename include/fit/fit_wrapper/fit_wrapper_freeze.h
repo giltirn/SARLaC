@@ -108,6 +108,14 @@ void applyOperation(jackknifeDistribution<double> &fval, const std::string &oper
 //The main function - read and import the  frozen parameters. A struct "FreezeParams" is read in from "freeze_file" and used for perform the required actions
 template<typename FitFuncPolicies>
 void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze_file, const int nsample){
+  if(!fileExists(freeze_file)){
+    FreezeParams templ;
+    std::ofstream of("freeze_template.dat");
+    of << templ;
+    of.close();
+    error_exit(std::cout << "Failed to read freeze file " << freeze_file << "; wrote template to freeze_template.dat\n");
+  } 
+
   typedef typename FitFuncPolicies::FitParameterDistribution FitParameterDistribution;
   FitParameterDistribution values(nsample);
   

@@ -291,15 +291,17 @@ void plotErrorWeightedData2exp(const std::vector<correlationFunction<amplitudeDa
     accessor fitcurve_exc_accessor(curve_excited);
     accessor fitcurve_sum_accessor(curve_sum);
 
-    MatPlotLibScriptGenerate::handleType dset_handle = plotter.plotData(dset_accessor);
+    MatPlotLibScriptGenerate::handleType handle;
     MatPlotLibScriptGenerate::kwargsType kwargs;
+
+    handle = plotter.plotData(dset_accessor);
     kwargs["alpha"] = 0.5;
     kwargs["color"] = 'r';
-    MatPlotLibScriptGenerate::handleType fitcurve_gnd_handle = plotter.errorBand(fitcurve_gnd_accessor,kwargs);
+    handle = plotter.errorBand(fitcurve_gnd_accessor,kwargs);
     kwargs["color"] = 'g';
-    MatPlotLibScriptGenerate::handleType fitcurve_exc_handle = plotter.errorBand(fitcurve_exc_accessor,kwargs);
+    handle = plotter.errorBand(fitcurve_exc_accessor,kwargs);
     kwargs["color"] = 'b';
-    MatPlotLibScriptGenerate::handleType fitcurve_sum_handle = plotter.errorBand(fitcurve_sum_accessor,kwargs);
+    handle = plotter.errorBand(fitcurve_sum_accessor,kwargs);
     
     plotter.setXlabel("$t$");
     std::ostringstream ylabel; ylabel << "$M^{1/2,\\ \\rm{lat}}_" << q+1 << "$";
@@ -358,6 +360,8 @@ void plotErrorWeightedData2expFlat(const std::vector<correlationFunction<amplitu
     std::vector< std::vector<double> > wmap(Lt);
     std::vector<double> wsum(Lt,0.);
 
+    std::set<int> tsep_k_pi_set;
+
     int tsep_k_pi_max = -1;
     for(int i=0;i<data_tkrem.size();i++){
       if(data_tkrem.coord(i).t < tmin_k_op) continue;
@@ -365,6 +369,8 @@ void plotErrorWeightedData2expFlat(const std::vector<correlationFunction<amplitu
       if((int)data_tkrem.coord(i).t > data_tkrem.coord(i).tsep_k_pi) continue; 
 
       if(data_tkrem.coord(i).tsep_k_pi > tsep_k_pi_max) tsep_k_pi_max = data_tkrem.coord(i).tsep_k_pi;
+
+      tsep_k_pi_set.insert(data_tkrem.coord(i).tsep_k_pi);
 
       int t_op_pi = data_tkrem.coord(i).tsep_k_pi - (int)data_tkrem.coord(i).t;
       double w = data_tkrem.value(i).standardError();
@@ -376,10 +382,29 @@ void plotErrorWeightedData2expFlat(const std::vector<correlationFunction<amplitu
       wmap[t_op_pi].push_back(w);
       wsum[t_op_pi] += w;
     }
+
+    
+    std::map<int, int> tsep_k_pi_idx_map;
+    std::map<int, int> idx_tsep_k_pi_idx_map;
+    int idx = 0;
+    for(auto it = tsep_k_pi_set.begin(); it != tsep_k_pi_set.end(); ++it){
+      idx_tsep_k_pi_idx_map[idx] = *it;
+      tsep_k_pi_idx_map[*it] = idx++;
+    }
     
     correlationFunction<double, jackknifeDistributionD> data_wavg;
+    std::vector<correlationFunction<double, jackknifeDistributionD> > data_tsepkpi(tsep_k_pi_set.size());
+
     for(int t=0;t<tsep_k_pi_max;t++){
       if(dmap[t].size() > 0){
+
+	//Add to separate tsep_k_pi sets
+	for(int i=0;i<dmap[t].size();i++){
+	  int tsep_k_pi = data_tkrem.coord( dmap[t][i] ).tsep_k_pi;
+	  data_tsepkpi[ tsep_k_pi_idx_map[tsep_k_pi] ].push_back( t, data_tkrem.value( dmap[t][i] ) );
+	}
+	
+	//Construct weighted avg
 	jackknifeDistributionD v = wmap[t][0] * data_tkrem.value( dmap[t][0] );
 
 	for(int i=1;i<dmap[t].size();i++)
@@ -416,25 +441,34 @@ void plotErrorWeightedData2expFlat(const std::vector<correlationFunction<amplitu
       //Plot
       MatPlotLibScriptGenerate plotter;
       typedef DataSeriesAccessor<correlationFunction<double, jackknifeDistributionD>, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
-      accessor dset_accessor(data_wavg);
-      accessor fitcurve_gnd_accessor(curve_ground);
-      accessor fitcurve_exc_accessor(curve_excited);
-      accessor fitcurve_sum_accessor(curve_sum);
-      
-      MatPlotLibScriptGenerate::handleType dset_handle = plotter.plotData(dset_accessor);
+     
+      MatPlotLibScriptGenerate::handleType handle;
       MatPlotLibScriptGenerate::kwargsType kwargs;
+
+      handle = plotter.plotData(accessor(data_wavg),"wavg");
+      plotter.setLegend(handle,"Weighted avg");
+      
+      for(int i=0;i<data_tsepkpi.size();i++){
+	handle = plotter.plotData(accessor(data_tsepkpi[i]), stringize("tsep_k_pi%d",idx_tsep_k_pi_idx_map[i]));
+	plotter.setLegend(handle,stringize("$t_{\\rm sep}^{K\\to\\pi}=%d$",idx_tsep_k_pi_idx_map[i]));
+      }      
+
       kwargs["alpha"] = 0.5;
       kwargs["color"] = 'r';
-      MatPlotLibScriptGenerate::handleType fitcurve_gnd_handle = plotter.errorBand(fitcurve_gnd_accessor,kwargs);
+      handle = plotter.errorBand(accessor(curve_ground),kwargs,"fit_gnd");
+      plotter.setLegend(handle,"Gnd");
       kwargs["color"] = 'g';
-      MatPlotLibScriptGenerate::handleType fitcurve_exc_handle = plotter.errorBand(fitcurve_exc_accessor,kwargs);
+      handle = plotter.errorBand(accessor(curve_excited),kwargs,"fit_exc");
+      plotter.setLegend(handle,"Exc");
       kwargs["color"] = 'b';
-      MatPlotLibScriptGenerate::handleType fitcurve_sum_handle = plotter.errorBand(fitcurve_sum_accessor,kwargs);
+      handle = plotter.errorBand(accessor(curve_sum),kwargs,"fit_sum");
+      plotter.setLegend(handle,"Tot");
       
       plotter.setXlabel("$t$");
       std::ostringstream ylabel; ylabel << "$M^{1/2,\\ \\rm{lat}}_" << q+1 << "$";
       plotter.setYlabel(ylabel.str());
       
+      plotter.createLegend();
       std::ostringstream filename_stub; filename_stub << "plot_2exp_errw_Q" << q+1 << "_flat";
       plotter.write( filename_stub.str()+".py", filename_stub.str()+".pdf");
     }

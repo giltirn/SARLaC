@@ -140,7 +140,7 @@ struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPiWithConstant::Params> 
 
 
 
-//Same as above but with extra constant
+//Same as above but with excited pipi state
 class FitKtoPiPiTwoExp{
 public:
 #define FIT_KTOPIPI_TWO_EXP_PARAMS (Params, double, (AK)(mK)(A0)(E0)(A1)(E1)(M0)(M1), (1.0)(0.5)(1.0)(0.5)(1.0)(0.5)(1.0)(1.0) )
@@ -203,6 +203,88 @@ struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPiTwoExp::Params> >{
     return os.str();
   }
 };
+
+
+//Two exponential form with excited kaon and ground state pipi
+class FitKtoPiPiTwoExpKaon{
+public:
+#define FIT_KTOPIPI_TWO_EXP_KAON_PARAMS (Params, double, (AK0)(EK0)(AK1)(EK1)(Apipi)(Epipi)(M0)(M1), (1.0)(0.5)(1.0)(0.5)(1.0)(0.5)(1.0)(1.0) )
+  DEF_ENUMERATED_STRUCT_MEMBER(FitKtoPiPiTwoExpKaon, FIT_KTOPIPI_TWO_EXP_KAON_PARAMS);
+
+public:
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef amplitudeDataCoord GeneralizedCoordinate; 
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &c, const ParameterType &p, const Boost &boost) const{
+#define BOOST(NM,I) T NM = boost(p.NM,I)
+    BOOST(AK0,0); BOOST(EK0,1); BOOST(AK1,2); BOOST(EK1,3); BOOST(Apipi,4); BOOST(Epipi,5); BOOST(M0,6); BOOST(M1,7);
+#undef BOOST
+
+    return AK0*Apipi*M0*exp(-Epipi * c.tsep_k_pi)*exp( -(EK0 - Epipi)*c.t )/sqrt(2.)
+      + AK1*Apipi*M1*exp(-Epipi * c.tsep_k_pi)*exp( -(EK1 - Epipi)*c.t )/sqrt(2.);
+  }
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double v, const int i){ return v; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d(8);
+    for(int i=0;i<8;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  static inline int Nparams(){ return 8; }
+
+  static double getM0data(const double y, const GeneralizedCoordinate &c, const ParameterType &p){
+    assert(0);
+  }
+};
+DEF_ENUMERATED_STRUCT_MEMBER_EXTERNAL(FitKtoPiPiTwoExpKaon, FIT_KTOPIPI_TWO_EXP_KAON_PARAMS);
+
+
+
+//Three-exponential form with excited pion and kaon
+class FitKtoPiPiExcPiK{ //index is K,pi
+public:
+#define FIT_KTOPIPI_EXC_PI_K_PARAMS (Params, double, (AK0)(EK0)(AK1)(EK1)(API0)(EPI0)(API1)(EPI1)(M00)(M10)(M01)(M11), (1.0)(0.5)(1.0)(0.5)(1.0)(0.5)(1.0)(0.5)(1.0)(1.0)(1.0)(1.0) )
+  DEF_ENUMERATED_STRUCT_MEMBER(FitKtoPiPiExcPiK, FIT_KTOPIPI_EXC_PI_K_PARAMS);
+
+public:
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef amplitudeDataCoord GeneralizedCoordinate; 
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &c, const ParameterType &p, const Boost &boost) const{
+#define BOOST(NM,I) T NM = boost(p.NM,I)
+    BOOST(AK0,0); BOOST(EK0,1); BOOST(AK1,2); BOOST(EK1,3); BOOST(API0,4); BOOST(EPI0,5); BOOST(API1,6); BOOST(EPI1,7); BOOST(M00,8); BOOST(M10,9); BOOST(M01,10); BOOST(M11,11);
+#undef BOOST
+
+    return 
+        AK0*API0*M00*exp(-EPI0 * c.tsep_k_pi)*exp( -(EK0 - EPI0)*c.t )/sqrt(2.)
+      + AK1*API0*M10*exp(-EPI0 * c.tsep_k_pi)*exp( -(EK1 - EPI0)*c.t )/sqrt(2.)
+      + AK0*API1*M01*exp(-EPI1 * c.tsep_k_pi)*exp( -(EK0 - EPI1)*c.t )/sqrt(2.)
+      + AK1*API1*M11*exp(-EPI1 * c.tsep_k_pi)*exp( -(EK1 - EPI1)*c.t )/sqrt(2.);
+  }
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double v, const int i){ return v; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d(12);
+    for(int i=0;i<12;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  static inline int Nparams(){ return 12; }
+
+  static double getM0data(const double y, const GeneralizedCoordinate &c, const ParameterType &p){
+    assert(0);
+  }
+};
+DEF_ENUMERATED_STRUCT_MEMBER_EXTERNAL(FitKtoPiPiExcPiK, FIT_KTOPIPI_EXC_PI_K_PARAMS);
 
 
 
