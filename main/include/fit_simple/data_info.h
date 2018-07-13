@@ -17,7 +17,7 @@ GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp)(FConstant)(FTwoStateC
 
 struct DataInfo{
   GENERATE_MEMBERS(DATA_INFO_MEMBERS);
-  DataInfo(): parser(ParserStandard), operation(""), time_dep(TimeDepNormal), file_fmt("data.%d"){}
+  DataInfo(): parser(ParserType::ParserStandard), operation(""), time_dep(TimeDependence::TimeDepNormal), file_fmt("data.%d"){}
 };
 GENERATE_PARSER(DataInfo, DATA_INFO_MEMBERS);
 

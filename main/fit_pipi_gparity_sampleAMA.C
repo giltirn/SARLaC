@@ -18,7 +18,6 @@ using namespace CPSfit;
 #include <fit_pipi_gparity/threemomentum.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/mom_project.h>
-#include <fit_pipi_gparity/mom_project_factory.h>
 #include <fit_pipi_gparity/read_data.h>
 #include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/cmdline.h>
@@ -46,7 +45,7 @@ struct rawData{ //raw, unbinned data
   int nS; //unbinned
   int nC;
 
-  rawData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
+  rawData(const PiPiCorrelatorSelector &corr_select, const int isospin, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
     bubbleDataAllMomenta* raw_bubble_data[3] = { &raw_bubble_data_sloppy_S, &raw_bubble_data_sloppy_C, &raw_bubble_data_exact_C };
     rawCorrelationFunction* pipi_raw[3] = { &pipi_raw_sloppy_S, &pipi_raw_sloppy_C, &pipi_raw_exact_C };
     const char ens[3] = { 'S', 'C', 'C' };
@@ -61,9 +60,9 @@ struct rawData{ //raw, unbinned data
       readFigureStationaryPolicy ffn(cmdlinei.use_symmetric_quark_momenta);
       readBubbleStationaryPolicy bfn_src(cmdlinei.use_symmetric_quark_momenta,Source);
       readBubbleStationaryPolicy bfn_snk(cmdlinei.use_symmetric_quark_momenta,Sink);
-      readRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, ffn, bfn_src, bfn_snk, proj_src, proj_snk, allow);
+      readRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, ffn, bfn_src, bfn_snk, corr_select);
       checkpointRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, "");
-      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], proj_src, proj_snk, allow, isospin, pion_momenta, argsi.bin_size, "", false);
+      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], corr_select, isospin, pion_momenta, argsi.bin_size, "", false);
     }
 
     nS = pipi_raw_sloppy_S.value(0).size();
@@ -97,7 +96,7 @@ bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > resampleCorrectBubbl
 
 template<typename DistributionType>
 void resampleCombineData(correlationFunction<double,DistributionType> &pipi, 
-			 const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin,
+			 const PiPiCorrelatorSelector &corr_select, const int isospin,
 			 const rawData &raw, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
   typedef correlationFunction<double,DistributionType> CorrFunc;
   typedef typename CorrFunc::ElementType Elem;
@@ -121,23 +120,23 @@ void resampleCombineData(correlationFunction<double,DistributionType> &pipi,
   if(isospin == 0 && args.do_vacuum_subtraction){
     auto bubble_data_corrected_r = resampleCorrectBubbleSampleAMA<DistributionType>(raw,nS,nC,args.bin_size);
     std::vector<threeMomentum> pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} });
-    CorrFunc A2_realavg_V_r = computeVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, proj_src, proj_snk, allow, pion_momenta);
+    CorrFunc A2_realavg_V_r = computeVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, corr_select, pion_momenta);
     pipi = pipi - 3*A2_realavg_V_r;
   }
 }
 
 void generateData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, 
-		  const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin,
+		  const PiPiCorrelatorSelector &corr_select, const int isospin,
 		  const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
-  rawData raw(proj_src, proj_snk, allow, isospin, args,cmdline);
-  resampleCombineData<jackknifeDistributionD>(pipi_j,proj_src, proj_snk, allow, isospin, raw,args,cmdline);
-  resampleCombineData<doubleJackknifeDistributionD>(pipi_dj,proj_src, proj_snk, allow, isospin, raw,args,cmdline);
+  rawData raw(corr_select, isospin, args,cmdline);
+  resampleCombineData<jackknifeDistributionD>(pipi_j,corr_select, isospin, raw,args,cmdline);
+  resampleCombineData<doubleJackknifeDistributionD>(pipi_dj,corr_select, isospin, raw,args,cmdline);
   
   pipi_j = fold(pipi_j, args.tsep_pipi);
   pipi_dj = fold(pipi_dj, args.tsep_pipi);
 }
 
-void getData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, 
+void getData(const PiPiCorrelatorSelector &corr_select, const int isospin, 
 	     jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
   if(cmdline.load_combined_data){
 #ifdef HAVE_HDF5
@@ -148,7 +147,7 @@ void getData(const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiP
     error_exit("getData: Reading amplitude data requires HDF5\n");
 #endif
   }else{
-    generateData(pipi_j,pipi_dj, proj_src, proj_snk, allow, isospin,args,cmdline);
+    generateData(pipi_j,pipi_dj, corr_select, isospin,args,cmdline);
   }
 
   if(cmdline.save_combined_data){
@@ -180,18 +179,14 @@ int main(const int argc, const char* argv[]){
 
   const threeMomentum ptot = {0,0,0};
 
-  PiPiProject *proj_src = getProjector(args.proj_src,ptot);
-  PiPiProject *proj_snk = getProjector(args.proj_snk,ptot);
-  PiPiMomAllow* allow = getMomPairFilter(args.allowed_mom,ptot);
+  PiPiCorrelatorBasicSelector corr_selector(args.proj_src, args.proj_snk, args.allowed_mom, ptot);
 
   //Read resampled
   jackknifeCorrelationFunction pipi_j;
   doubleJackCorrelationFunction pipi_dj;
 
-  getData(*proj_src, *proj_snk, *allow, args.isospin, pipi_j,pipi_dj,args,cmdline);
-  
-  delete proj_src; delete proj_snk; delete allow;
-  
+  getData(corr_selector, args.isospin, pipi_j,pipi_dj,args,cmdline);
+   
   //Filter out the data that is to be fitted
   const int nsample = pipi_j.value(0).size();
   

@@ -448,11 +448,11 @@ void fitFspec(const FitFunc &fitfunc,
 	 const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj,
 	 const Args &args){
   switch(args.correlation_status){
-  case Uncorrelated:
+  case CorrelationStatus::Uncorrelated:
     return fitSpec<UncorrelatedFit,FitFunc>::fit(fitfunc,data_combined_j,data_combined_dj,args);
-  case Correlated:
+  case CorrelationStatus::Correlated:
     return fitSpec<CorrelatedFit,FitFunc>::fit(fitfunc,data_combined_j,data_combined_dj,args);    
-  case PartiallyCorrelated:
+  case CorrelationStatus::PartiallyCorrelated:
     return fitSpec<PartiallyCorrelatedFit,FitFunc>::fit(fitfunc,data_combined_j,data_combined_dj,args);
   default:
     error_exit(std::cout << "Unknown correlationStatus " << args.correlation_status << std::endl);    
@@ -462,10 +462,10 @@ void fitFspec(const FitFunc &fitfunc,
 void fit(const jackAmplitudeSimCorrelationFunction &data_combined_j,
 	 const doubleJackAmplitudeSimCorrelationFunction &data_combined_dj,
 	 const Args &args){
-  if(args.fitfunc == OneExp){
+  if(args.fitfunc == SimFitFunc::OneExp){
     FitTwoPointThreePointSim fitfunc(args.Lt,args.tsep_pipi,args.Ascale,args.Cscale);
     fitFspec(fitfunc,data_combined_j,data_combined_dj,args);
-  }else if(args.fitfunc == TwoExpPiPi){
+  }else if(args.fitfunc == SimFitFunc::TwoExpPiPi){
     FitTwoExpTwoPointThreePointSim fitfunc(args.Lt,args.tsep_pipi,args.Ascale,args.Cscale);
     fitFspec(fitfunc,data_combined_j,data_combined_dj,args);
   }else{

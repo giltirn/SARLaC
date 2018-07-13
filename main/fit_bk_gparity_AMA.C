@@ -39,8 +39,8 @@ void process(jackknifeTimeSeriesD &out_j, doubleJackknifeTimeSeriesD &out_dj, co
   for(int s=0;s<nsample;s++){
     int traj = traj_start + traj_inc * s;
 
-    read(sloppy_raw, s, sloppy_fmt, traj, Real);
-    read(exact_raw, s, exact_fmt, traj, Real);
+    read(sloppy_raw, s, sloppy_fmt, traj, ReIm::Real);
+    read(exact_raw, s, exact_fmt, traj, ReIm::Real);
   }
   rawDataDistributionVector sloppy_avg = sourceTimeSliceAverage(sloppy_raw);
   rawDataDistributionVector correction = computeAMAcorrection(sloppy_raw,exact_raw);

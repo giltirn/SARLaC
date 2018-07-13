@@ -38,9 +38,9 @@ int main(const int argc, const char** argv){
 
   for(int c=0;c<ncorr;c++){
     switch(args.correlators[c].fitfunc){
-    case FCosh:
+    case FitFuncType::FCosh:
       fitfunc.setCorrelatorFitFunc(c,&fcosh); break;
-    case FSinh:
+    case FitFuncType::FSinh:
       fitfunc.setCorrelatorFitFunc(c,&fsinh); break;
     default:
       assert(0);

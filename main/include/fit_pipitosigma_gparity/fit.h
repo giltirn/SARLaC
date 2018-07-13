@@ -21,7 +21,7 @@ struct PiPiToSigmaFitArgs{
   
   PiPiToSigmaFitFunction fitfunc;
 
-  PiPiToSigmaFitArgs(): load_guess(false), load_frozen_fit_params(false), Ascale(1e13), Cscale(1e13), Lt(64), correlated(true), fitfunc(FCoshPlusConstant), tsep_pipi(4){}
+  PiPiToSigmaFitArgs(): load_guess(false), load_frozen_fit_params(false), Ascale(1e13), Cscale(1e13), Lt(64), correlated(true), fitfunc(PiPiToSigmaFitFunction::FCoshPlusConstant), tsep_pipi(4){}
 };
 
 
@@ -96,7 +96,7 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_pipi_to_sigm
 										  const doubleJackCorrelationFunction &data_dj_vacsubbed_inrange,
 										  const PiPiToSigmaFitArgs &args){
   switch(args.fitfunc){
-  case FCoshPlusConstant:
+  case PiPiToSigmaFitFunction::FCoshPlusConstant:
     return fit_ff_pipi_to_sigma<FitCoshPlusConstant>(data_j_vacsubbed_inrange,data_dj_vacsubbed_inrange,args);
   default:
     error_exit(std::cout << "Unknown fitfunc " << args.fitfunc << std::endl);

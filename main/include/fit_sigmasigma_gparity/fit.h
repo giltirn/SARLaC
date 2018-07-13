@@ -19,7 +19,7 @@ struct SigmaFitArgs{
   
   SigmaFitFunction fitfunc;
 
-  SigmaFitArgs(): load_guess(false), load_frozen_fit_params(false), Ascale(1e13), Cscale(1e13), Lt(64), correlated(true), fitfunc(FCoshPlusConstant){}
+  SigmaFitArgs(): load_guess(false), load_frozen_fit_params(false), Ascale(1e13), Cscale(1e13), Lt(64), correlated(true), fitfunc(SigmaFitFunction::FCoshPlusConstant){}
 };
 
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
@@ -91,11 +91,11 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff_sigma(con
 //returns a pair containing the pipi energy and the constant term
 inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_sigma(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
 									  const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
-									  const  SigmaFitArgs &args){
+									  const SigmaFitArgs &args){
   switch(args.fitfunc){
-  case FCoshPlusConstant:
+  case SigmaFitFunction::FCoshPlusConstant:
     return fit_ff_sigma<FitCoshPlusConstant>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange,args);
-  case FCoshPlusConstantDoubleExp:
+  case SigmaFitFunction::FCoshPlusConstantDoubleExp:
     return fit_ff_sigma<FitCoshPlusConstantDoubleExp>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange,args);
   default:
     error_exit(std::cout << "Unknown fitfunc " << args.fitfunc << std::endl);

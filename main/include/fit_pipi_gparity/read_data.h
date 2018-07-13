@@ -1,6 +1,8 @@
 #ifndef _PIPI_READ_DATA_H_
 #define _PIPI_READ_DATA_H_
 
+#include<algorithm>
+
 std::string figureFile(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi, const bool use_symmetric_quark_momenta){
   std::ostringstream os;
   os << data_dir << "/traj_" << traj << "_Figure" << fig << "_sep" << tsep_pipi << "_mom" << momStr(psrc) << "_mom" << momStr(psnk);
@@ -49,11 +51,11 @@ struct readFigureTianleComovingPolicy{
   }
 };
 
-//For a given figure (C,D,R) read the raw data. No projection is performed here, but we do avoid reading data that are not going to be needed in the subsequent projection
+//For a given figure (C,D,R) read the raw data. Selector is used to only load data that is required
 template<typename FilenamePolicy>
 void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::string &data_dir, const int tsep_pipi, const int Lt,
 		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, const std::vector<threeMomentum> &pion_momenta,
-		const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow){
+		const PiPiCorrelatorSelector &corr_select){
   std::cout << "Reading figure " << fig << "\n"; boost::timer::auto_cpu_timer t(std::string("Report: Read figure ") + fig + " in %w s\n");
   int nsample = (traj_lessthan - traj_start)/traj_inc;
 
@@ -61,14 +63,11 @@ void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::strin
 
   const int nmom = pion_momenta.size();
   
-  std::complex<double> dummy; double ddummy;
+  double dummy;
 
   for(int psnk=0;psnk<nmom;psnk++){
-    if(!proj_snk(dummy,pion_momenta[psnk])) continue;
-
     for(int psrc=0;psrc<nmom;psrc++){
-      if(!proj_src(dummy,pion_momenta[psrc])) continue;
-      if(!allow(ddummy,pion_momenta[psrc],pion_momenta[psnk])) continue;
+      if(!corr_select(dummy,pion_momenta[psrc],pion_momenta[psnk])) continue;
 
       figureData &into = raw_data(fig, momComb(pion_momenta[psnk], pion_momenta[psrc]));      
       
@@ -123,15 +122,11 @@ struct readBubbleTianleComovingPolicy{
 
 template<typename FilenamePolicy>
 void readBubble(bubbleDataAllMomenta &raw_data, const std::string &data_dir, const int tsep_pipi, const int Lt,
-		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, const std::vector<threeMomentum> &pion_momenta,
-		const PiPiProject &proj, const SourceOrSink src_snk){    
+		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, const std::vector<threeMomentum> &pion_momenta, const SourceOrSink src_snk){    
   const int nmom = pion_momenta.size();
   const int nsample = (traj_lessthan - traj_start)/traj_inc;
 
-  std::complex<double> dummy;
   for(int p=0;p<nmom;p++){
-    if(!proj(dummy,pion_momenta[p])) continue;
-
     bubbleData &into = raw_data(src_snk,pion_momenta[p]);
     
 #pragma omp parallel for
@@ -150,13 +145,25 @@ void readBubble(bubbleDataAllMomenta &raw_data, const std::string &data_dir, con
 		const int traj_start, const int traj_inc, const int traj_lessthan, 
 		const FilenamePolicy &fn_src, const FilenamePolicy &fn_snk,
 		const std::vector<threeMomentum> &pion_momenta,
-		const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow){
+		const PiPiCorrelatorSelector &corr_select){
   std::cout << "Reading bubble\n"; boost::timer::auto_cpu_timer t("Report: Read bubble in %w s\n");
   int nsample = (traj_lessthan - traj_start)/traj_inc;
   raw_data.setup(Lt,tsep_pipi,nsample);
   
-  readBubble(raw_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn_src, pion_momenta, proj_src, Source);
-  readBubble(raw_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn_snk, pion_momenta, proj_snk, Sink);
+  std::vector<threeMomentum> src_mom_need;
+  std::vector<threeMomentum> snk_mom_need;
+  double m;
+  for(int i=0;i<pion_momenta.size();i++){
+    for(int j=0;j<pion_momenta.size();j++){
+      if(corr_select(m, pion_momenta[i],pion_momenta[j])){
+	if(std::find(src_mom_need.begin(), src_mom_need.end(), pion_momenta[i]) == src_mom_need.end()) src_mom_need.push_back(pion_momenta[i]);
+	if(std::find(snk_mom_need.begin(), snk_mom_need.end(), pion_momenta[j]) == snk_mom_need.end()) snk_mom_need.push_back(pion_momenta[j]);
+      }
+    }
+  }
+
+  readBubble(raw_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn_src, src_mom_need, Source);
+  readBubble(raw_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn_snk, snk_mom_need, Sink);
 }
 
 

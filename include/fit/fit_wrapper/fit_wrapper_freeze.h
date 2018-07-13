@@ -32,7 +32,7 @@ void readHDF5file(jackknifeDistribution<double> &into, const std::string &filena
   DistributionTypeEnum type;
   int depth;
   getTypeInfo(type,depth,filename);
-  if(type != Jackknife) error_exit(std::cout << "readHDF5file expected a jackknife distribution\n");
+  if(type != DistributionTypeEnum::Jackknife) error_exit(std::cout << "readHDF5file expected a jackknife distribution\n");
 
   if(depth == 1){
     assert(idx.size() == 1);
@@ -62,7 +62,7 @@ struct FreezeParam{
 
   GENERATE_MEMBERS(FREEZE_PARAM_MEMBERS);
 
-  FreezeParam(): param_idx(0), reader(UKfitXMLvectorReader), filename("file.dat"), input_idx(1,0), operation(""){}
+  FreezeParam(): param_idx(0), reader(FreezeDataReaderType::UKfitXMLvectorReader), filename("file.dat"), input_idx(1,0), operation(""){}
 };
 GENERATE_PARSER(FreezeParam, FREEZE_PARAM_MEMBERS);
 
@@ -83,14 +83,14 @@ GENERATE_PARSER(FreezeParams, FREEZE_PARAMS_MEMBERS);
 //Apply a math expression to a jackknife of input data
 void applyOperation(jackknifeDistribution<double> &fval, const std::string &operation, const FreezeDataReaderType reader){
   if(operation == ""){
-    if(reader == ConstantValue) error_exit(std::cout << "readFrozenParams with ConstantValue, require math expression, got \"" << operation << "\"\n");
+    if(reader == FreezeDataReaderType::ConstantValue) error_exit(std::cout << "readFrozenParams with ConstantValue, require math expression, got \"" << operation << "\"\n");
     return;
   }
     
   const int nsample = fval.size();
   expressionAST AST = mathExpressionParse(operation);
 
-  if(reader == ConstantValue){
+  if(reader == FreezeDataReaderType::ConstantValue){
     if(AST.nSymbols() != 0) error_exit(std::cout << "readFrozenParams with ConstantValue expects math expression with no symbols, got \"" << operation << "\"\n");
     for(int s=0;s<nsample;s++)
       fval.sample(s) = AST.value();
@@ -132,11 +132,11 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze
     //Different sources of data
     FreezeDataReaderType reader = fparams.sources[i].reader;
     
-    if(reader == UKfitXMLvectorReader){
+    if(reader == FreezeDataReaderType::UKfitXMLvectorReader){
       readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx[0]);
-    }else if(reader == HDF5fileReader){
+    }else if(reader == FreezeDataReaderType::HDF5fileReader){
       readHDF5file(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
-    }else if(reader == ConstantValue){
+    }else if(reader == FreezeDataReaderType::ConstantValue){
       fval.resize(nsample);
     }else{
       error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);

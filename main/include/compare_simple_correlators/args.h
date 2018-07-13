@@ -21,8 +21,8 @@ struct Args{
 
   Args(): Lt(64),
     data_A(1), data_B(1),
-    combination_A(CombinationAverage), combination_B(CombinationAverage),
-    outer_time_dep_A(TimeDepNormal), outer_time_dep_B(TimeDepNormal),
+    combination_A(Combination::CombinationAverage), combination_B(Combination::CombinationAverage),
+    outer_time_dep_A(TimeDependence::TimeDepNormal), outer_time_dep_B(TimeDependence::TimeDepNormal),
     traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);

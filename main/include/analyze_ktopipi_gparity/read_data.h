@@ -31,7 +31,7 @@ struct superJackknifeData{
       DistributionTypeEnum type;
       int depth;
       getTypeInfo(type,depth,args.fit_results.M_lat.file);
-      assert(type == Jackknife);
+      assert(type == DistributionTypeEnum::Jackknife);
       if(depth == 2){
 	for(int i=0;i<10;i++) assert(args.fit_results.M_lat.idx[i].size() == 2); //pair of indices for the vectors
 	std::vector<std::vector<jackknifeDistributionD> > fit_params;

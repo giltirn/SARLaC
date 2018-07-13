@@ -148,11 +148,11 @@ void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0_sj
 
   superJackD d_delta_by_dq_sj;
   switch(args.deriv_source){
-  case DerivSchenk:
+  case PhaseShiftDerivativeSource::DerivSchenk:
     d_delta_by_dq_sj = d_delta_by_dq_schenk_sj; break;
-  case DerivLinearEpipi:
+  case PhaseShiftDerivativeSource::DerivLinearEpipi:
     d_delta_by_dq_sj = d_delta_by_dq_lin_Epipi_sj; break;
-  case DerivLinearQpipi:
+  case PhaseShiftDerivativeSource::DerivLinearQpipi:
     d_delta_by_dq_sj = d_delta_by_dq_lin_qpipi_sj; break;
   default:
     error_exit(std::cout << "Unknown phase shift derivative source " << args.deriv_source << std::endl);

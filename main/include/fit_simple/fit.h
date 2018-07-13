@@ -138,15 +138,15 @@ inline void fitSpecFF(const jackknifeCorrelationFunctionD &data_j, const doubleJ
 template<typename ArgsType, typename CMDlineType>
 inline void fitResampled(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
   switch(args.fitfunc){
-  case FCosh:
+  case FitFuncType::FCosh:
     return fitSpecFF<FitCosh,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
-  case FSinh:
+  case FitFuncType::FSinh:
     return fitSpecFF<FitSinh,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
-  case FExp:
+  case FitFuncType::FExp:
     return fitSpecFF<FitExp,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
-  case FConstant:
+  case FitFuncType::FConstant:
     return fitSpecFF<FitConstant,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline); 
-  case FTwoStateCosh:
+  case FitFuncType::FTwoStateCosh:
     return fitSpecFF<FitTwoStateCosh,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline); 
   default:
     error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);

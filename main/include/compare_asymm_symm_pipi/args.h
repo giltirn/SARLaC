@@ -21,7 +21,7 @@
 struct ComparisonArgs{
   GENERATE_MEMBERS(COMPARE_ARGS_MEMBERS)
 
-  ComparisonArgs(): data_dir_asymm("data"), data_dir_symm("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), traj_start(0), traj_inc(1), traj_lessthan(2), do_vacuum_subtraction(true), bin_size(1), proj_src(A1), proj_snk(A1), isospin(0), allowed_mom(All)  {}
+  ComparisonArgs(): data_dir_asymm("data"), data_dir_symm("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), traj_start(0), traj_inc(1), traj_lessthan(2), do_vacuum_subtraction(true), bin_size(1), proj_src(PiPiProjector::A1), proj_snk(PiPiProjector::A1), isospin(0), allowed_mom(PiPiMomAllowed::All)  {}
 
   Args toArgs(const AsymmSymm type) const{
     Args out;

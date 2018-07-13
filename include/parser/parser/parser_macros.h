@@ -156,17 +156,17 @@ CPSFIT_START_NAMESPACE
 
 
 //Similar macros for generating parser for enums
-#define _GEN_ENUM_ENUMDEF(enumname, enummembers) enum enumname { BOOST_PP_SEQ_ENUM(enummembers) };
+#define _GEN_ENUM_ENUMDEF(enumname, enummembers) enum class enumname { BOOST_PP_SEQ_ENUM(enummembers) };
 
 #define _GEN_ENUM_STR_E(r,data,i,elem) BOOST_PP_COMMA_IF(i) BOOST_PP_STRINGIZE(elem)
 #define _GEN_ENUM_STR(enumname, enummembers) \
   std::string toString(const enumname d){				\
     const static std::vector<std::string> str = { BOOST_PP_SEQ_FOR_EACH_I(_GEN_ENUM_STR_E,  ,  enummembers) }; \
-    int dd(d); \
+    int dd = static_cast<int>(d);					\
     if(dd < 0 || dd >= str.size()){ \
       std::ostringstream os; os << "Unknown " BOOST_PP_STRINGIZE(enumname) " idx " << dd; \
       return os.str(); \
-    }else return str[int(d)]; \
+    }else return str[static_cast<int>(d)]; \
   }
 
 #define _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
@@ -177,7 +177,7 @@ CPSFIT_START_NAMESPACE
       std::string tag = x3::_attr(ctx); \
       enumname &val = x3::_val(ctx);	\
       for(int i=0;i<str.size();i++) \
-	if(tag == str[i]){ val = (enumname)i; return; }			\
+	if(tag == str[i]){ val = static_cast<enumname>(i); return; }	\
       CPSfit::error_exit(std::cout << "Unknown " BOOST_PP_STRINGIZE(enumname) " : " << tag << std::endl); \
     } \
   };

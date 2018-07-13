@@ -54,7 +54,7 @@ GENERATE_PARSER(OtherInputs,OTHER_INPUTS_MEMBERS);
 #define RENORMALIZATION_MEMBERS (RIscheme, scheme)(double, mu)(std::string, file)
 struct Renormalization{
   GENERATE_MEMBERS(RENORMALIZATION_MEMBERS);
-  Renormalization(): scheme(QslashQslash), mu(1.531), file("32c_216cfgs_results/qslash_1.53GeV_noG1.xml"){}
+  Renormalization(): scheme(RIscheme::QslashQslash), mu(1.531), file("32c_216cfgs_results/qslash_1.53GeV_noG1.xml"){}
 };
 GENERATE_PARSER(Renormalization, RENORMALIZATION_MEMBERS);
 
@@ -83,7 +83,7 @@ struct Args{
   Args(): wilson_coeffs_file("32c_216cfgs_results/WilsonCoeffs.dat"), //cf WilsonCoeffs.h for format
 	  twists({1,1,1}),
 	  L(32),
-	  deriv_source(DerivLinearQpipi),
+	  deriv_source(PhaseShiftDerivativeSource::DerivLinearQpipi),
 	  lattice_dispersion_reln(false){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);

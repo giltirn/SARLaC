@@ -77,11 +77,11 @@ struct ParseMultiSourceAverageImag: public Parser{ //expect Lt lines with format
 
 Parser* parserFactory(const ParserType p){
   switch(p){
-  case ParserStandard:
+  case ParserType::ParserStandard:
     return new ParseStandard;
-  case ParserMultiSourceAverage:
+  case ParserType::ParserMultiSourceAverage:
     return new ParseMultiSourceAverage;
-  case ParserMultiSourceAverageImag:
+  case ParserType::ParserMultiSourceAverageImag:
     return new ParseMultiSourceAverageImag;
   default:
     error_exit(std::cout << "readData: Unknown parser " << p << std::endl);
@@ -102,18 +102,18 @@ void applyOperation(rawDataCorrelationFunctionD &to, const std::string &operatio
 
 template<typename CorrelationFunctionType>
 void applyTimeDep(CorrelationFunctionType &to, const TimeDependence tdep, const int Lt){
-  if(tdep == TimeDepNormal) return;
+  if(tdep == TimeDependence::TimeDepNormal) return;
 
   CorrelationFunctionType cp(to);
-  if(tdep == TimeDepReflect){
+  if(tdep == TimeDependence::TimeDepReflect){
     for(int t=0;t<Lt;t++){
       int trefl = (Lt - t) % Lt;
       to.value(trefl) = cp.value(t);
     }
-  }else if(tdep == TimeDepFold){
+  }else if(tdep == TimeDependence::TimeDepFold){
     for(int t=1;t<Lt;t++)
       to.value(t) = ( cp.value(t) + cp.value(Lt-t) )/2.;
-  }else if(tdep == TimeDepAntiFold){
+  }else if(tdep == TimeDependence::TimeDepAntiFold){
     for(int t=1;t<Lt;t++)
       to.value(t) = ( cp.value(t) - cp.value(Lt-t) )/2.;
   }else{
@@ -147,14 +147,14 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
 
 template<typename CorrelationFunctionType>
 void applyCombination(CorrelationFunctionType &to, const std::vector<CorrelationFunctionType> &from, const Combination comb){
-  if(comb == CombinationAverage){
+  if(comb == Combination::CombinationAverage){
     to = from[0];
     for(int i=1;i<from.size();i++) to = to + from[i];
     to = to / double(from.size());
-  }else if(comb == CombinationAminusB){
+  }else if(comb == Combination::CombinationAminusB){
     if(from.size()!=2) error_exit(std::cout << "applyCombination error: CombinationAminusB requires two channels\n");
     to = from[0] - from[1];
-  }else if(comb == CombinationAdivB){
+  }else if(comb == Combination::CombinationAdivB){
     if(from.size()!=2) error_exit(std::cout << "applyCombination error: CombinationAdivB requires two channels\n");
     to = from[0]/from[1];
   }else{

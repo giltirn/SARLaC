@@ -68,9 +68,7 @@ bubbleData getPiPiBubble(const std::string &data_dir, const int traj_start, cons
 					  {-1,1,1}, {1,-1,-1},
 					  {1,-1,1}, {-1,1,-1},
 					  {1,1,-1}, {-1,-1,1} };
-  PiPiProjectA1 pion_proj;
-
-  readBubble<readBubbleStationaryPolicy>(pipi_self_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, pipi_policy, pion_mom, pion_proj, Source);
+  readBubble<readBubbleStationaryPolicy>(pipi_self_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, pipi_policy, pion_mom, Source);
   
   return A1projectPiPiBubble(pipi_self_data, pion_mom, Lt, tsep_pipi);
 }

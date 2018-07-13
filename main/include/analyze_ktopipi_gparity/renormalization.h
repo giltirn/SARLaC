@@ -191,7 +191,7 @@ public:
 
     if(vrb) std::cout << "Computing RI->MSbar matrix with RI scheme " << scheme << " and \\alpha_s(mu) = " << alpha_s << '\n';
 
-    const MatrixType &dr_norm = scheme == GammaGamma ? dr_norm_gamma_gamma : dr_norm_qslash_qslash;
+    const MatrixType &dr_norm = scheme == RIscheme::GammaGamma ? dr_norm_gamma_gamma : dr_norm_qslash_qslash;
     MatrixType R = unit_chiral + dr_norm * alpha_s_over_4pi;
     conv = (T + dT)*R;
 

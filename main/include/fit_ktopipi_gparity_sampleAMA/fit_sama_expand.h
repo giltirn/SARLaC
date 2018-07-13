@@ -183,9 +183,9 @@ inline void fitAndPlotSAMAexpand(const std::vector<correlationFunction<amplitude
 				 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 				 const SampleAMAargs &args, const SampleAMAcmdLine &cmdline){
   switch(args.fitfunc){
-  case FitSeparate:
+  case KtoPiPiFitFunc::FitSeparate:
     return fitAndPlotFFSAMAexpand<FitKtoPiPi>(A0_all_j,A0_all_dj,args,cmdline);
-  case FitSeparateTwoExp:
+  case KtoPiPiFitFunc::FitSeparateTwoExp:
     return fitAndPlotFFSAMAexpand<FitKtoPiPiTwoExp>(A0_all_j,A0_all_dj,args,cmdline);
   default:
     error_exit(std::cout << "fitAndPlotSAMAexpand(..) Unknown fit function " << args.fitfunc << std::endl);

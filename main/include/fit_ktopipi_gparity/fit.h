@@ -302,15 +302,15 @@ inline void fitAndPlot(const std::vector<correlationFunction<amplitudeDataCoord,
 		       const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 		       const Args &args, const CMDline &cmdline){
   switch(args.fitfunc){
-  case FitSeparate:
+  case KtoPiPiFitFunc::FitSeparate:
     return fitAndPlotFF<FitKtoPiPi>(A0_all_j,A0_all_dj,args,cmdline);
-  case FitSimultaneous:
+  case KtoPiPiFitFunc::FitSimultaneous:
     return fitAndPlotFF<FitKtoPiPiSim<10> >(A0_all_j,A0_all_dj,args,cmdline);
-  case FitSimultaneousChiralBasis:
+  case KtoPiPiFitFunc::FitSimultaneousChiralBasis:
     return fitAndPlotFF<FitKtoPiPiSim<7> >(A0_all_j,A0_all_dj,args,cmdline);
-  case FitSeparateWithConstant:
+  case KtoPiPiFitFunc::FitSeparateWithConstant:
     return fitAndPlotFF<FitKtoPiPiWithConstant>(A0_all_j,A0_all_dj,args,cmdline);
-  case FitSeparateTwoExp:
+  case KtoPiPiFitFunc::FitSeparateTwoExp:
     return fitAndPlotFF<FitKtoPiPiTwoExp>(A0_all_j,A0_all_dj,args,cmdline);
   default:
     error_exit(std::cout << "fitAndPlot(..) Unknown fit function " << args.fitfunc << std::endl);

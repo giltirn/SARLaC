@@ -102,15 +102,15 @@ void specDtype(const std::vector<symbolInfo> &symbols, const DistributionTypeEnu
 
 void run(const std::vector<symbolInfo> &symbols, const DistributionTypeEnum type, expressionAST &expr, const std::string &outfile){
   switch(type){
-  case Raw:
+  case DistributionTypeEnum::Raw:
     specDtype<rawDataDistribution<double> >(symbols,type,expr,outfile);  break;
-  case Jackknife:
+  case DistributionTypeEnum::Jackknife:
     specDtype<jackknifeDistribution<double> >(symbols,type,expr,outfile);  break;
-  case JackknifeC:
+  case DistributionTypeEnum::JackknifeC:
     specDtype<jackknifeCdistribution<double> >(symbols,type,expr,outfile);  break;
-  case DoubleJackknife:
+  case DistributionTypeEnum::DoubleJackknife:
     specDtype<doubleJackknifeDistribution<double> >(symbols,type,expr,outfile);  break;
-  case SuperJackknife:
+  case DistributionTypeEnum::SuperJackknife:
     specDtype<superJackknifeDistribution<double> >(symbols,type,expr,outfile);  break;    
   default:
     error_exit(std::cout << "run(...) unknown type " << type << std::endl);

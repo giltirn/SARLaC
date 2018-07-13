@@ -107,11 +107,11 @@ public:
     fitfuncs.resize(ntypes);
     for(int i=0;i<ntypes;i++){
       switch(pmap.fitFunc(i)){
-      case FCosh:
+      case FitFuncType::FCosh:
 	fitfuncs[i] = &fcosh; break;
-      case FSinh:
+      case FitFuncType::FSinh:
 	fitfuncs[i] = &fsinh; break;
-      case FExp:
+      case FitFuncType::FExp:
 	fitfuncs[i] = &fexp; break;
       default:
 	assert(0);
@@ -150,11 +150,11 @@ public:
   FitMpiEffectiveMass(const double _Lt, const std::string &_type, const TypeInfo &pmap): fcosh(_Lt), fsinh(_Lt){
     int idx = pmap.typeIdx(_type);
     switch(pmap.fitFunc(idx)){
-    case FCosh:
+    case FitFuncType::FCosh:
       fitfunc = new FitCosh(_Lt); break;
-    case FSinh:
+    case FitFuncType::FSinh:
       fitfunc = new FitSinh(_Lt); break;
-    case FExp:
+    case FitFuncType::FExp:
       fitfunc = new FitExp; break;
     default:
       assert(0);

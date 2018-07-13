@@ -105,7 +105,7 @@ int main(const int argc, const char* argv[]){
   //Build the combined data set
   simFitCorrFuncDJ corr_comb_dj;
   doubleJackCorrelationFunction* dsets[3] = { &pipi_dj, &pipi_to_sigma_dj, &sigma2pt_dj };
-  SimFitType dtype[3] = { PiPi2pt, PiPiToSigma, Sigma2pt };
+  SimFitType dtype[3] = { SimFitType::PiPi2pt, SimFitType::PiPiToSigma, SimFitType::Sigma2pt };
   bool dincl[3] = { cmdline.include_pipi_2pt, cmdline.include_pipi_to_sigma, cmdline.include_sigma_2pt };
 
   for(int d=0;d<3;d++)

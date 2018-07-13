@@ -325,11 +325,11 @@ void fit(const allInputs &inputs,
 	 const correlationFunction<amplitudeDataCoord, jackknifeDistributionD> &data_j,
 	 const correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> &data_dj){
   switch(inputs.args.fitfunc){
-  case FitSeparateTwoExp:
+  case KtoPiPiFitFunc::FitSeparateTwoExp:
     return Fit<FitKtoPiPiTwoExp>::fit(inputs, data_j, data_dj);
-  case FitSeparateTwoExpKaon:
+  case KtoPiPiFitFunc::FitSeparateTwoExpKaon:
     return Fit<FitKtoPiPiTwoExpKaon>::fit(inputs, data_j, data_dj);
-  case FitSeparateExcPiK:
+  case KtoPiPiFitFunc::FitSeparateExcPiK:
     return Fit<FitKtoPiPiExcPiK>::fit(inputs, data_j, data_dj);
   default:
     error_exit(std::cout << "Unsupported fit func " << inputs.args.fitfunc << std::endl);

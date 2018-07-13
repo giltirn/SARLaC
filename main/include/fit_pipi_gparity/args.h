@@ -1,10 +1,7 @@
 #ifndef _FIT_PIPI_GPARITY_ARGS_H_
 #define _FIT_PIPI_GPARITY_ARGS_H_
 
-GENERATE_ENUM_AND_PARSER(PiPiProjector, (A1)(Avg4)(Avg2)(Solo) );
-GENERATE_ENUM_AND_PARSER(PiPiMomAllowed, (All)(Orig64)(ParityAxisPermSymmReduced)(AuxDiagSymmReduced)(AuxDiagParityAxisPermSymmReduced) );
-GENERATE_ENUM_AND_PARSER(PiPiFitFunction, (FCoshPlusConstant)(FCoshPlusConstantDoubleExp) );
-GENERATE_ENUM_AND_PARSER(PiPiEffectiveEnergy, (TwoPoint)(TwoPointSubConstant)(ThreePoint) );
+#include "enums.h"
 
 typedef std::array<int,3> int_array_3;
 
@@ -36,7 +33,7 @@ typedef std::array<int,3> int_array_3;
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS)
 
-  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), proj_src(A1), proj_snk(A1), isospin(0), allowed_mom(All), total_mom({ {0,0,0} }), 
+  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(PiPiFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), proj_src(PiPiProjector::A1), proj_snk(PiPiProjector::A1), isospin(0), allowed_mom(PiPiMomAllowed::All), total_mom({ {0,0,0} }), 
     pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} }){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)

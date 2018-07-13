@@ -75,9 +75,9 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit(const jackkn
 		const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
 		const Args &args, const CMDline &cmdline){
   switch(args.fitfunc){
-  case FCoshPlusConstant:
+  case PiPiFitFunction::FCoshPlusConstant:
     return fit_ff<FitCoshPlusConstant>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange,args,cmdline);
-  case FCoshPlusConstantDoubleExp:
+  case PiPiFitFunction::FCoshPlusConstantDoubleExp:
     return fit_ff<FitCoshPlusConstantDoubleExp>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange,args,cmdline);
   default:
     error_exit(std::cout << "Unknown fitfunc " << args.fitfunc << std::endl);

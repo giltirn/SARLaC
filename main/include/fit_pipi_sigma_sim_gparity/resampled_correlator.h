@@ -2,10 +2,10 @@
 #define _PIPI_SIGMA_SIM_FIT_RESAMPLED_CORRELATOR_H_
 
 doubleJackCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom){
-  PiPiProjectA1 proj;
-  PiPiMomAllowAll allow;
+  PiPiCorrelatorBasicSelector corr_select(PiPiProjector::A1,PiPiProjector::A1,PiPiMomAllowed::All,{0,0,0});
+
   bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResampleBubble(raw, bin_size);
-  doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectSourceAvg(dj_bubble_data,tsep_pipi,proj,proj,allow,pion_mom);
+  doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectSourceAvg(dj_bubble_data,tsep_pipi,corr_select,pion_mom);
   return doubleJackCorrelationFunction(3. * A2_realavg_V_dj);
 }
 

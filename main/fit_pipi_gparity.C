@@ -18,7 +18,6 @@ using namespace CPSfit;
 #include <fit_pipi_gparity/threemomentum.h>
 #include <fit_pipi_gparity/mom_data_containers.h>
 #include <fit_pipi_gparity/mom_project.h>
-#include <fit_pipi_gparity/mom_project_factory.h>
 #include <fit_pipi_gparity/read_data.h>
 #include <fit_pipi_gparity/fitfunc.h>
 #include <fit_pipi_gparity/cmdline.h>

@@ -4,6 +4,8 @@
 #include<parser.h>
 #include<containers/enumerated_struct.h>
 
+#include "enums.h"
+
 struct amplitudeDataCoord{
   double t; //K->op separation
   int tsep_k_pi;
@@ -471,15 +473,15 @@ struct fitReturnType<FitKtoPiPiSim<7> >{ typedef jackknifeDistribution<typename 
 template<typename Inputs, template<typename> class F>
 inline void fitfuncCall(const KtoPiPiFitFunc fitfunc, const Inputs &inputs){
   switch(fitfunc){
-  case FitSeparate:
+  case KtoPiPiFitFunc::FitSeparate:
     return F<FitKtoPiPi>::call(inputs);
-  case FitSimultaneous:
+  case KtoPiPiFitFunc::FitSimultaneous:
     return F<FitKtoPiPiSim<10> >::call(inputs);
-  case FitSimultaneousChiralBasis:
+  case KtoPiPiFitFunc::FitSimultaneousChiralBasis:
     return F<FitKtoPiPiSim<7> >::call(inputs);
-  case FitSeparateWithConstant:
+  case KtoPiPiFitFunc::FitSeparateWithConstant:
     return F<FitKtoPiPiWithConstant>::call(inputs);
-  case FitSeparateTwoExp:
+  case KtoPiPiFitFunc::FitSeparateTwoExp:
     return F<FitKtoPiPiTwoExp>::call(inputs);
   default:
     error_exit(std::cout << "fitfuncCall(..) Unknown fit function " << fitfunc << std::endl);

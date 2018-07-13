@@ -135,7 +135,7 @@ int main(const int argc, const char* argv[]){
     EnumTest v;
     f >> v;
     std::cout << v << std::endl;
-    assert(v == A);
+    assert(v == EnumTest::A);
   }
   
   //Test enum error handling

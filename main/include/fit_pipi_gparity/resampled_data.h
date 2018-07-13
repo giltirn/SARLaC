@@ -1,9 +1,11 @@
 #ifndef _PIPI_RESAMPLED_DATA_H_
 #define _PIPI_RESAMPLED_DATA_H_
 
+#include<tuple>
+
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
-auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const std::vector<threeMomentum> &pion_momenta)
+auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiCorrelatorSelector &corr_select, const std::vector<threeMomentum> &pion_momenta)
   ->correlationFunction<double,typename std::decay<decltype(raw_bubble_data(Source,*((threeMomentum*)NULL))(0))>::type>{
 
   (std::cout << "Computing projected, src-averaged V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
@@ -24,27 +26,20 @@ auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int t
   int nthr = omp_get_max_threads();
   std::vector<correlationFunction<double,DistributionType> > thr_sum(nthr, out);
   
-  std::vector<std::pair<int,int> > todo;
-  double dummy; std::complex<double> zdummy;
+  std::vector<std::tuple<int,int,double> > todo;
+  double coeff;
   for(int psnk=0;psnk<nmom;psnk++)
     for(int psrc=0;psrc<nmom;psrc++)
-      if(proj_src(zdummy,pion_momenta[psrc]) && proj_snk(zdummy,pion_momenta[psnk]) && allow(dummy,pion_momenta[psrc],pion_momenta[psnk])){
-	todo.push_back(std::make_pair(psrc,psnk));
+      if(corr_select(coeff,pion_momenta[psrc],pion_momenta[psnk])){
+	todo.push_back(std::make_tuple(psrc,psnk,coeff));
       }
 
 #pragma omp parallel for
   for(int pp=0;pp<todo.size();pp++){
     int me = omp_get_thread_num();
-    int psrc = todo[pp].first;
-    int psnk = todo[pp].second;
-
-    std::complex<double> csrc, csnk;
-    double m;
-    proj_src(csrc, pion_momenta[psrc]);
-    proj_snk(csnk, pion_momenta[psnk]);
-    allow(m,pion_momenta[psrc],pion_momenta[psnk]);
-
-    double coeff = m*std::real(csrc * csnk);
+    int psrc = std::get<0>(todo[pp]);
+    int psnk = std::get<1>(todo[pp]);
+    double coeff = std::get<2>(todo[pp]);
 
     const auto &Bp1_snk = raw_bubble_data(Sink, pion_momenta[psnk] ); 
     const auto &Bp1_src  = raw_bubble_data(Source,  pion_momenta[psrc] );

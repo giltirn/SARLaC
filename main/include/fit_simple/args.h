@@ -21,7 +21,7 @@
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
 
-Args(): Lt(64), combination(CombinationAverage), outer_time_dep(TimeDepNormal), correlated(false), traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1), bin_size(1){}
+Args(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), correlated(false), traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1), bin_size(1){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 

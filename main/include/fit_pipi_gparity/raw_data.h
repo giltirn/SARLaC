@@ -15,7 +15,7 @@ void zeroUnmeasuredSourceTimeslices(figureDataAllMomenta &data, const char fig, 
 //The V diagrams is computed offline frome the bubble data. We only compute for pion momenta that are going to be used in the rotational-state projection
 template<typename DataAllMomentumType, typename BubbleDataType>
 void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_data, const int tsep_pipi, const std::vector<threeMomentum> &pion_momenta, 
-	      const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow){
+	      const PiPiCorrelatorSelector &corr_select){
   (std::cout << "Computing V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
 				 
@@ -26,13 +26,13 @@ void computeV(DataAllMomentumType &raw_data, const BubbleDataType &raw_bubble_da
   const int nmom = pion_momenta.size();
   
   //Populate output
-  double dummy; std::complex<double> zdummy;
+  double dummy;
 
   std::vector<std::pair<int,int> > todo;
 
   for(int psnk=0;psnk<nmom;psnk++)
     for(int psrc=0;psrc<nmom;psrc++)
-      if(proj_src(zdummy,pion_momenta[psrc]) && proj_snk(zdummy,pion_momenta[psnk]) && allow(dummy,pion_momenta[psrc],pion_momenta[psnk])){
+      if(corr_select(dummy,pion_momenta[psrc],pion_momenta[psnk])){
 	auto &into = raw_data('V',momComb(pion_momenta[psnk],pion_momenta[psrc]));
 	todo.push_back(std::make_pair(psrc,psnk));
       }
@@ -70,22 +70,22 @@ void checkpointRawData(const figureDataAllMomenta &raw_data, const bubbleDataAll
 template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>
 void readRawData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data, const Args &args, const CMDline &cmdline, 
 		 const FigureFilenamePolicy &ffn, const BubbleFilenamePolicy &bfn_src, const BubbleFilenamePolicy &bfn_snk,
-		 const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow,
+		 const PiPiCorrelatorSelector &corr_select,
 		 const std::string &extra_descr = ""){
   std::cout << "Reading raw data " << extra_descr << std::endl;
 
   if(cmdline.load_hdf5_data_checkpoint){
     loadHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(cmdline.load_hdf5_data_checkpoint_stub, extra_descr));
   }else{
-    readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, proj_src, proj_snk, allow);
-    readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, proj_src, proj_snk, allow);
-    readFigure(raw_data, 'R', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, proj_src, proj_snk, allow);
-    readBubble(raw_bubble_data, args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, bfn_src, bfn_snk, args.pion_momenta, proj_src, proj_snk, allow);
+    readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, corr_select);
+    readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, corr_select);
+    readFigure(raw_data, 'R', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, corr_select);
+    readBubble(raw_bubble_data, args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, bfn_src, bfn_snk, args.pion_momenta, corr_select);
   }
   //Do the stuff below even if reading from checkpoint because some older checkpoints were saved prior to these operations being performed
 
   //Populate the V diagrams from the bubble data
-  computeV(raw_data, raw_bubble_data, args.tsep_pipi, args.pion_momenta, proj_src, proj_snk, allow);
+  computeV(raw_data, raw_bubble_data, args.tsep_pipi, args.pion_momenta, corr_select);
 
   //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
   zeroUnmeasuredSourceTimeslices(raw_data, 'C', args.tstep_pipi);

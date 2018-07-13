@@ -21,7 +21,7 @@ enum SloppyExact {Sloppy, Exact};
 
 struct DataInfoSampleAMA{
   GENERATE_MEMBERS(DATA_INFO_SAMPLE_AMA_MEMBERS);
-  DataInfoSampleAMA(): parser(ParserStandard), operation(""), time_dep(TimeDepNormal), sloppy_file_fmt_S("sloppy_data_S.%d"), sloppy_file_fmt_C("sloppy_data_C.%d"), exact_file_fmt_C("exact_data_C.%d"){}
+  DataInfoSampleAMA(): parser(ParserType::ParserStandard), operation(""), time_dep(TimeDependence::TimeDepNormal), sloppy_file_fmt_S("sloppy_data_S.%d"), sloppy_file_fmt_C("sloppy_data_C.%d"), exact_file_fmt_C("exact_data_C.%d"){}
 
   DataInfo toDataInfo(const SloppyExact &se, const char ens) const{
     DataInfo out;
@@ -61,7 +61,7 @@ GENERATE_PARSER(DataInfoSampleAMA, DATA_INFO_SAMPLE_AMA_MEMBERS);
 struct ArgsSampleAMA{
   GENERATE_MEMBERS(ARGS_SAMPLE_AMA_MEMBERS);
 
-  ArgsSampleAMA(): Lt(64), combination(CombinationAverage), outer_time_dep(TimeDepNormal), correlated(false), t_min(0), t_max(32), data(1), bin_size(1), traj_inc(1),
+  ArgsSampleAMA(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), correlated(false), t_min(0), t_max(32), data(1), bin_size(1), traj_inc(1),
 		   sloppy_traj_start(0), sloppy_traj_lessthan(10), correction_traj_start(11), correction_traj_lessthan(15){}
 
   Args toArgs() const{

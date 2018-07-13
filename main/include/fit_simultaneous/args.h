@@ -10,7 +10,7 @@
 struct CorrInfo{
   GENERATE_MEMBERS(CORRINFO_MEMBERS);
 
-  CorrInfo(): combination(CombinationAverage), outer_time_dep(TimeDepFold), data(1), fitfunc(FCosh){}
+  CorrInfo(): combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepFold), data(1), fitfunc(FitFuncType::FCosh){}
 };
 GENERATE_PARSER(CorrInfo, CORRINFO_MEMBERS);
 

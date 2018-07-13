@@ -29,7 +29,7 @@ GENERATE_ENUM_AND_PARSER(FitFuncType, (FParabola) );
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
 
-  Args(): data(1), fitfunc(FParabola){}
+  Args(): data(1), fitfunc(FitFuncType::FParabola){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 
@@ -191,7 +191,7 @@ void fitSpecFF(const jackknifeCorrelationFunctionD &data, const FitFunc &fitfunc
 }
 
 void fit(const jackknifeCorrelationFunctionD &data, const Args &args){
-  if(args.fitfunc == FParabola){
+  if(args.fitfunc == FitFuncType::FParabola){
     FitParabola fitfunc;
     fitCentralSpecFF<FitParabola>(data,fitfunc,args);       
     fitSpecFF<FitParabola>(data,fitfunc,args);

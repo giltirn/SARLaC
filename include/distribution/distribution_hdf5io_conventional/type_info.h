@@ -24,15 +24,15 @@ void getTypeInfo(DistributionTypeEnum &type, int & vector_depth, const std::stri
   else vector_depth =1;
 
   if(typestr == "rawDataDistribution<double>"){
-    type = Raw;
+    type = DistributionTypeEnum::Raw;
   }else if(typestr == "jackknifeDistribution<double>"){
-    type = Jackknife;
+    type = DistributionTypeEnum::Jackknife;
   }else if(typestr == "jackknifeCdistribution<double>"){
-    type = JackknifeC;
+    type = DistributionTypeEnum::JackknifeC;
   }else if(typestr == "doubleJackknifeDistribution<double>"){
-    type = DoubleJackknife;
+    type = DistributionTypeEnum::DoubleJackknife;
   }else if(typestr == "superJackknifeDistribution<double>"){
-    type = SuperJackknife;    
+    type = DistributionTypeEnum::SuperJackknife;    
   }else error_exit(std::cout << "getTypeInfo type " << typestr << " unimplemented\n");
 }
 

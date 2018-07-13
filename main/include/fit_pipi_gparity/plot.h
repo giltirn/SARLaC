@@ -106,11 +106,11 @@ jackknifeCorrelationFunction effectiveEnergy(const jackknifeCorrelationFunction 
 					     const jackknifeDistributionD &fitted_constant,
 					     const Args &args, const CMDline &cmdline){
   switch(args.effective_energy){
-  case TwoPoint:
+  case PiPiEffectiveEnergy::TwoPoint:
     return twoPointEffectiveEnergy(data_j,fitted_Epipi,fitted_constant,false,args,cmdline);
-  case TwoPointSubConstant:
+  case PiPiEffectiveEnergy::TwoPointSubConstant:
     return twoPointEffectiveEnergy(data_j,fitted_Epipi,fitted_constant,true,args,cmdline);
-  case ThreePoint:
+  case PiPiEffectiveEnergy::ThreePoint:
     return threePointEffectiveEnergy(data_j,fitted_Epipi,args,cmdline);
   default:
     error_exit(std::cout << "Unknown effective energy type "<< args.effective_energy <<std::endl);

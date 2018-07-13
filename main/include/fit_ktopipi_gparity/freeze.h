@@ -16,7 +16,7 @@ struct KtoPiPiFreezeParam{
   //operation can be any math expression. Use the variable 'x' to represent the data.  eg operation = sqrt(1e13 * x).  Use an empty string for no operation to be performed
   GENERATE_MEMBERS(KTOPIPI_FREEZE_PARAM_MEMBERS);
 
-  KtoPiPiFreezeParam(): param_idx(0), reader(UKfitXMLvectorReader), filename("file.dat"), input_idx(0), operation(""), Qlist(0){}
+  KtoPiPiFreezeParam(): param_idx(0), reader(FreezeDataReaderType::UKfitXMLvectorReader), filename("file.dat"), input_idx(0), operation(""), Qlist(0){}
 };
 GENERATE_PARSER(KtoPiPiFreezeParam, KTOPIPI_FREEZE_PARAM_MEMBERS);
 
@@ -48,16 +48,16 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const std::s
     freeze.push_back(fparams.sources[i].param_idx);
 
     jackknifeDistribution<double> fval;
-    if(fparams.sources[i].reader == UKfitXMLvectorReader) readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
-    else if(fparams.sources[i].reader == HDF5fileReader) readHDF5file(fval, fparams.sources[i].filename, std::vector<int>(1,fparams.sources[i].input_idx));
-    else if(fparams.sources[i].reader == ConstantValue) fval.resize(nsample);
+    if(fparams.sources[i].reader == FreezeDataReaderType::UKfitXMLvectorReader) readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
+    else if(fparams.sources[i].reader == FreezeDataReaderType::HDF5fileReader) readHDF5file(fval, fparams.sources[i].filename, std::vector<int>(1,fparams.sources[i].input_idx));
+    else if(fparams.sources[i].reader == FreezeDataReaderType::ConstantValue) fval.resize(nsample);
     else error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
 
     if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read jackknife of size " << fval.size() << ", expected " << nsample << std::endl);
 
     if(fparams.sources[i].operation != ""){
       expressionAST AST = mathExpressionParse(fparams.sources[i].operation);
-      if(fparams.sources[i].reader == ConstantValue){
+      if(fparams.sources[i].reader == FreezeDataReaderType::ConstantValue){
 	if(AST.nSymbols() != 0) error_exit(std::cout << "readFrozenParams with ConstantValue expects math expression with no symbols, got \"" << fparams.sources[i].operation << "\"\n");
 	for(int s=0;s<nsample;s++)
 	  fval.sample(s) = AST.value();

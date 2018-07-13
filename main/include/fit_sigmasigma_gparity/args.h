@@ -19,7 +19,7 @@
 struct SigmaArgs{
   GENERATE_MEMBERS(SIGMA_ARGS_MEMBERS)
 
-  SigmaArgs(): data_dir("data"), Lt(64), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1){}
+  SigmaArgs(): data_dir("data"), Lt(64), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(SigmaFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1){}
 
   void transfer(SigmaFitArgs &fargs) const{
     fargs.fitfunc = fitfunc;  //FCoshPlusConstant;

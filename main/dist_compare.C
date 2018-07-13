@@ -113,13 +113,13 @@ int main(const int argc, const char* argv[]){
   Args args(argc,argv,1);
 
   switch(args.type){
-  case Jackknife:
+  case DistributionTypeEnum::Jackknife:
     run<jackknifeDistributionD>(args); break;
-  case JackknifeC:
+  case DistributionTypeEnum::JackknifeC:
     run<jackknifeCdistributionD>(args); break;
-  case Raw:
+  case DistributionTypeEnum::Raw:
     run<rawDataDistributionD>(args); break;
-  case SuperJackknife:
+  case DistributionTypeEnum::SuperJackknife:
     run<superJackknifeDistribution<double> >(args); break;
   default:
     error_exit(std::cout << "Unsupported distribution type " << args.type << std::endl);

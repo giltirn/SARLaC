@@ -357,15 +357,15 @@ void specDtype(const std::string &filename, const int vector_depth, const CmdLin
 
 void run(const std::string &filename, const DistributionTypeEnum type, const int vector_depth, const CmdLine &cmdline){
   switch(type){
-  case Raw:
+  case DistributionTypeEnum::Raw:
     specDtype<rawDataDistribution<double> >(filename,vector_depth,cmdline);  break;
-  case Jackknife:
+  case DistributionTypeEnum::Jackknife:
     specDtype<jackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;
-  case JackknifeC:
+  case DistributionTypeEnum::JackknifeC:
     specDtype<jackknifeCdistribution<double> >(filename,vector_depth,cmdline);  break;
-  case DoubleJackknife:
+  case DistributionTypeEnum::DoubleJackknife:
     specDtype<doubleJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;
-  case SuperJackknife:
+  case DistributionTypeEnum::SuperJackknife:
     specDtype<superJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;    
   default:
     error_exit(std::cout << "run(const DistributionTypeEnum type, const int vector_depth) unknown type " << type << std::endl);

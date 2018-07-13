@@ -43,17 +43,17 @@ public:
     ENUMERATED_STRUCT_BOOST_MEMBERS(SIM_FIT_PARAMS_MEMBERS);
 
     switch(x.type){
-    case PiPi2pt:
+    case SimFitType::PiPi2pt:
       return 
 	cpipi0 * cpipi0 * Ascale * ( exp(-E0*x.t) + exp(-E0*(Lt-2.*tsep_pipi-x.t)) ) +
 	cpipi1 * cpipi1 * Ascale * ( exp(-E1*x.t) + exp(-E1*(Lt-2.*tsep_pipi-x.t)) ) +
 	Cpipipipi * Cscale;
-    case PiPiToSigma:
+    case SimFitType::PiPiToSigma:
       return 
 	cpipi0 * csigma0 * Ascale * ( exp(-E0*x.t) + exp(-E0*(Lt-tsep_pipi-x.t)) ) +
 	cpipi1 * csigma1 * Ascale * ( exp(-E1*x.t) + exp(-E1*(Lt-tsep_pipi-x.t)) ) +
 	Cpipisigma * Cscale;
-    case Sigma2pt:
+    case SimFitType::Sigma2pt:
       return 
 	csigma0 * csigma0 * Ascale * ( exp(-E0*x.t) + exp(-E0*(Lt-x.t)) ) +
 	csigma1 * csigma1 * Ascale * ( exp(-E1*x.t) + exp(-E1*(Lt-x.t)) ) +

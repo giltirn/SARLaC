@@ -11,7 +11,7 @@ GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp) );
 
 struct SloppyExact{
   GENERATE_MEMBERS(SLOPPY_EXACT_MEMBERS)
-  SloppyExact(): include_data(false), reim(Real){}
+  SloppyExact(): include_data(false), reim(ReIm::Real){}
 };
 GENERATE_PARSER(SloppyExact,SLOPPY_EXACT_MEMBERS)
 

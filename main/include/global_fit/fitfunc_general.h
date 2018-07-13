@@ -34,11 +34,11 @@ public:
   //Params are A, m  
   ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
     switch(t.type){
-    case mpi2:
+    case DataType::mpi2:
       return value_int<typename GlobalFitPolicies::Bindings_mpi2, decltype(this->fit_mpi2)>(this->fit_mpi2, t,p);
-    case mK2:
+    case DataType::mK2:
       return value_int<typename GlobalFitPolicies::Bindings_mK2, decltype(this->fit_mK2)>(this->fit_mK2, t,p);
-    case mOmega:
+    case DataType::mOmega:
       return value_int<typename GlobalFitPolicies::Bindings_mOmega, decltype(this->fit_mOmega)>(this->fit_mOmega, t,p);
     default:
       error_exit(std::cout << "GlobalFit::value unknown type " << t.type << std::endl);
@@ -46,11 +46,11 @@ public:
   }
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
     switch(t.type){
-    case mpi2:
+    case DataType::mpi2:
       return parameterDerivatives_int<typename GlobalFitPolicies::Bindings_mpi2, decltype(this->fit_mpi2)>(this->fit_mpi2, t,p);
-    case mK2:
+    case DataType::mK2:
       return parameterDerivatives_int<typename GlobalFitPolicies::Bindings_mK2, decltype(this->fit_mK2)>(this->fit_mK2, t,p);
-    case mOmega:
+    case DataType::mOmega:
       return parameterDerivatives_int<typename GlobalFitPolicies::Bindings_mOmega, decltype(this->fit_mOmega)>(this->fit_mOmega, t,p);
     default:
       error_exit(std::cout << "AnalyticGlobalFit::value unknown type " << t.type << std::endl);

@@ -4,26 +4,25 @@
 void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
 		 const std::string &data_dir, const int tsep_pipi, const int tstep_pipi, const int Lt,
 		 const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom){
-  PiPiProjectA1 proj;
-  PiPiMomAllowAll allow;
+  PiPiCorrelatorBasicSelector corr_select(PiPiProjector::A1,PiPiProjector::A1,PiPiMomAllowed::All,{0,0,0});
   readFigureStationaryPolicy ffn(false);
   
   figureDataAllMomenta raw_data;
   char figs[3] = {'C','D','R'};
 
   for(int f=0;f<3;f++){
-    readFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_mom, proj, proj, allow);
+    readFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_mom, corr_select);
     zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
   }
 
   readBubbleStationaryPolicy bpsrc(false,Source);
   readBubbleStationaryPolicy bpsnk(false,Sink);
 
-  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, pion_mom, proj, proj, allow);
+  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, pion_mom, corr_select);
 
-  computeV(raw_data, raw_bubble_data, tsep_pipi, pion_mom, proj, proj, allow);
+  computeV(raw_data, raw_bubble_data, tsep_pipi, pion_mom, corr_select);
 
-  getRawPiPiCorrFunc(pipi_raw, raw_data, raw_bubble_data, proj, proj, allow, 0, pion_mom, 1);
+  getRawPiPiCorrFunc(pipi_raw, raw_data, raw_bubble_data, corr_select, 0, pion_mom, 1);
 }
 
 void writeCheckpoint(const std::string &file, 

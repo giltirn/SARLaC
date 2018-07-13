@@ -19,7 +19,7 @@ void read(rawDataDistributionMatrix &into, const int sample, const std::string &
   for(int e=0;e<nelems;e++){
     if(!(is >> i >> j)) error_exit(std::cout << "configData failed to read indices for file " << file << "\n");
     if(!(is >> re >> im)) error_exit(std::cout << "configData failed to read data for file " << file << "\n");
-    into(i,j).sample(sample) = reim == Real ? re : im;
+    into(i,j).sample(sample) = reim == ReIm::Real ? re : im;
   }
   if(is.fail() || is.bad()){ std::cout << "Error reading file \"" << file << "\"\n"; std::cout.flush(); exit(-1); }
   is.close();

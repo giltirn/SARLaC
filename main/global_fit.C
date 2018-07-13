@@ -65,7 +65,7 @@ void read32I(DataSeriesType &data, const superJackknifeLayout &layout){
 	if(my < mx) continue;
 	  
 	std::string file = stringize("/home/ckelly/projects/32nt64_fullanalysis/m%s/fpi/jackknife/reweighted/boot/fit_%s_%s_12_52.boot",dstr(ml).c_str(),dstr(my).c_str(),dstr(mx).c_str());
-	DataParams base(lat,mpi2,mx,my,ml,NA);
+	DataParams base(lat,DataType::mpi2,mx,my,ml,NA);
 	readAddReweighedDataQDP(data,file,0,base,ens,rwinfo,rwidx_keep,mres_rw, [&](jackknifeDistribution<double> &v){ v = v*v; });
       }
     }
@@ -79,7 +79,7 @@ void read32I(DataSeriesType &data, const superJackknifeLayout &layout){
 	double my = my_values[myi];
 	  
 	std::string file = stringize("/home/ckelly/projects/32nt64_fullanalysis/m%s/fpi/jackknife/reweighted/boot/fit_%s_%s_12_52.boot",dstr(ml).c_str(),dstr(my).c_str(),dstr(mx).c_str());
-	DataParams base(lat,mK2,mx,my,ml,NA);
+	DataParams base(lat,DataType::mK2,mx,my,ml,NA);
 	readAddReweighedDataQDP(data,file,0,base,ens,rwinfo,rwidx_keep,mres_rw, [&](jackknifeDistribution<double> &v){ v = v*v; });
       }
     }
@@ -87,7 +87,7 @@ void read32I(DataSeriesType &data, const superJackknifeLayout &layout){
     //mOmega
     {
       std::string file = stringize("/home/ckelly/projects/32nt64_fullanalysis/m%s/momega/jackknife/reweighted/boot/fit_0.03_7_13.boot",dstr(ml).c_str());
-      DataParams base(lat,mOmega,0.0,0.03,ml,NA);
+      DataParams base(lat,DataType::mOmega,0.0,0.03,ml,NA);
       readAddReweighedDataQDP(data,file,1,base,ens,rwinfo,rwidx_keep,mres_rw);
     }
 
@@ -137,7 +137,7 @@ void read24I(DataSeriesType &data, const superJackknifeLayout &layout){
 	if(my < mx) continue;
 
 	std::string file = stringize("/home/ckelly/projects/24nt64_fullanalysis/%s/fpi/jackknife/reweighted/boot/fit_%s_%s_10_50.boot",dstr(ml).c_str(),dstr(my).c_str(),dstr(mx).c_str());
-	DataParams base(lat,mpi2,mx,my,ml,NA);
+	DataParams base(lat,DataType::mpi2,mx,my,ml,NA);
 	readAddReweighedDataQDP(data,file,0,base,ens,rwinfo,rwidx_keep,mres_rw, [&](jackknifeDistribution<double> &v){ v = v*v; });
       }
     }
@@ -151,7 +151,7 @@ void read24I(DataSeriesType &data, const superJackknifeLayout &layout){
 	double my = my_values[myi];
 	  
 	std::string file = stringize("/home/ckelly/projects/24nt64_fullanalysis/%s/fpi/jackknife/reweighted/boot/fit_%s_%s_10_50.boot",dstr(ml).c_str(),dstr(my).c_str(),dstr(mx).c_str());
-	DataParams base(lat,mK2,mx,my,ml,NA);
+	DataParams base(lat,DataType::mK2,mx,my,ml,NA);
 	readAddReweighedDataQDP(data,file,0,base,ens,rwinfo,rwidx_keep,mres_rw, [&](jackknifeDistribution<double> &v){ v = v*v; });
       }
     }
@@ -159,7 +159,7 @@ void read24I(DataSeriesType &data, const superJackknifeLayout &layout){
     //mOmega
     {
       std::string file = stringize("/home/ckelly/projects/24nt64_fullanalysis/%s/momega/jackknife/reweighted/boot/fit_0.04_5_11.boot",dstr(ml).c_str());
-      DataParams base(lat,mOmega,0.0,0.04,ml,NA);
+      DataParams base(lat,DataType::mOmega,0.0,0.04,ml,NA);
       readAddReweighedDataQDP(data,file,1,base,ens,rwinfo,rwidx_keep,mres_rw);
     }
 

@@ -1,13 +1,11 @@
 #ifndef _PIPI_RAW_CORRELATOR_H_
 #define _PIPI_RAW_CORRELATOR_H_
 
-//Givem the raw data, perform the rotational-state projection. User can decide on how the projection is performed (for example, choosing a representation) via 3 controls:
-//1) A discriminator for which source pi1 momenta to include and a coefficient for that data point
-//2) A discriminator for which sink pi1 momenta to include and a coefficient for that data point
-//3) A discriminator for pairs of p_pi1_snk and p_pi1_src
+//Givem the raw data, perform the rotational-state projection. User can decide on how the projection is performed (for example, choosing a representation) via the "selector" which filters
+//data and provides the coefficient under the projection/sum
 template<typename DataAllMomentumType>
 typename DataAllMomentumType::ContainerType project(const char fig, const DataAllMomentumType &raw_data, 
-						    const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, 
+						    const PiPiCorrelatorSelector &corr_select, 
 						    const std::vector<threeMomentum> &pion_momenta){
   std::cout << "Computing projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed projection of figure ") + fig + " with DataAllMomentumType = " + printType<DataAllMomentumType>() + " in %w s\n");
@@ -16,17 +14,13 @@ typename DataAllMomentumType::ContainerType project(const char fig, const DataAl
   
   typename DataAllMomentumType::ContainerType out(raw_data.getLt(), raw_data.getNsample()); out.zero();
 
-  std::complex<double> csnk, csrc;
   double m;
   for(int psnk=0;psnk<nmom;psnk++){
-    if(!proj_snk(csnk, pion_momenta[psnk])) continue;
-
     for(int psrc=0;psrc<nmom;psrc++){
-      if(!proj_src(csrc, pion_momenta[psrc])) continue;
       
-      if(!allow(m,pion_momenta[psrc],pion_momenta[psnk])) continue;
+      if(!corr_select(m,pion_momenta[psrc],pion_momenta[psnk])) continue;
 
-      out = out + m*std::real(csnk*csrc)*raw_data(fig, momComb(pion_momenta[psnk], pion_momenta[psrc]));
+      out = out + m*raw_data(fig, momComb(pion_momenta[psnk], pion_momenta[psrc]));
     }
   }
 
@@ -81,13 +75,13 @@ inline void bin(rawCorrelationFunction &raw, const int bin_size){
 //Given the parsed, raw data, compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data. This includes projecting the pipi states onto
 //a user-selected linear combination (for example projecting onto the A1 cubic representation)
 void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, 
-			const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow, const int isospin, const std::vector<threeMomentum> &pion_momenta,
+			const PiPiCorrelatorSelector &corr_select, const int isospin, const std::vector<threeMomentum> &pion_momenta,
 			const int bin_size, const std::string &extra_descr = "", bool output_raw_data = true){
  
-  figureData A2_C = project('C', raw_data, proj_src, proj_snk, allow, pion_momenta);
-  figureData A2_D = project('D', raw_data, proj_src, proj_snk, allow, pion_momenta);
-  figureData A2_R = project('R', raw_data, proj_src, proj_snk, allow, pion_momenta);
-  figureData A2_V = project('V', raw_data, proj_src, proj_snk, allow, pion_momenta);
+  figureData A2_C = project('C', raw_data, corr_select, pion_momenta);
+  figureData A2_D = project('D', raw_data, corr_select, pion_momenta);
+  figureData A2_R = project('R', raw_data, corr_select, pion_momenta);
+  figureData A2_V = project('V', raw_data, corr_select, pion_momenta);
   
   rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
   rawCorrelationFunction A2_realavg_D = sourceAverage(A2_D);

@@ -55,9 +55,8 @@ NumericTensor<rawDataDistributionD,1> readA2projectedBubble(const int traj_start
   
   std::vector<threeMomentum> pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} });
 
-  PiPiProjectA1 proj;
   readBubbleStationaryPolicy fn(use_symmetric_quark_momenta,Sink);
-  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn, pion_momenta, proj, Sink);
+  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn, pion_momenta, Sink);
 
   NumericTensor<rawDataDistributionD,1> out({Lt});
   for(int t=0;t<Lt;t++) out({t}) = ( raw_bubble_data(Sink,{1,1,1})(t)  + raw_bubble_data(Sink,{-1,-1,-1})(t)
