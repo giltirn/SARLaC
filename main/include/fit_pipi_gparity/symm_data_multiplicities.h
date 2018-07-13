@@ -174,7 +174,7 @@ struct PiPiSymmetrySubset{
   typedef std::map<threeMomentum, hashMapType> PtotMapType;
   PtotMapType corrs_avail;
 
-  //Default regex is for new file forma
+  //Default regex is for new file format
   void findAvailableCorrs(const std::string &dir){
     std::vector<std::string> files = listFiles(dir, R"(traj_\d+_FigureC)");
     std::cout << "PiPiSymmetrySubset::findAvailableCorrs found " << files.size() << " files with provided format\n";
@@ -211,7 +211,7 @@ struct PiPiSymmetrySubset{
   }
 
   //set    0 : (+-1,+-1,+-1)   1: (+-3,+-1,+-1) + perms   2: all 32 momenta
-  PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProject &proj_src, const PiPiProject &proj_snk) const{
+  PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow) const{
     int np = pimom.size();
 
     struct threeMomentumHasher{
@@ -220,21 +220,24 @@ struct PiPiSymmetrySubset{
     std::unordered_set<threeMomentum, threeMomentumHasher> pimoms; 
     for(int i=0; i<np; i++) pimoms.insert(pimom[i]);
     
-    PiPiMomAllowSymmetrySubset out(p_tot);
+    PiPiMomSelectSymmetrySubset out(p_tot);
     
     std::complex<double> csrc, csnk;
+    double m;
 
     for(int i=0;i<np;i++){
       if(!proj_src(csrc, pimom[i])) continue;
       for(int j=0;j<np;j++){
 	if(!proj_snk(csnk, pimom[j])) continue;
 
+	if(!allow(m,pimom[i],pimom[j])) continue;
+
 	ConMomentum want(pimom[i],  pimom[j], p_tot);
 	if(pimoms.count(want.pi2_src) == 0 || pimoms.count(want.pi2_snk) == 0) continue; //all momenta must be in the set 
 	AvailCorr avail = findPartnerInAvailableCorrs(want);
 	
 	std::cout << "Found match to " << want << " : " << *avail.it << " by symms p=" << avail.p << " a=" << avail.a << " r=" << avail.r << std::endl;
-	out.incrementMultiplicity(*avail.it, std::real(csrc * csnk) );
+	out.incrementMultiplicity(*avail.it, std::real(csrc * csnk)*m );
       }
     }
     
@@ -242,11 +245,18 @@ struct PiPiSymmetrySubset{
   }
   
   //Factory version
-  inline PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProjector proj_src, const PiPiProjector proj_snk){
+  inline PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProjector proj_src, const PiPiProjector proj_snk, const PiPiMomAllowed allow){
     std::unique_ptr<PiPiProject> prjsrc( getProjector(proj_src, p_tot) );
     std::unique_ptr<PiPiProject> prjsnk( getProjector(proj_snk, -p_tot) );
-    return createSelector(pimom, p_tot, *prjsrc, *prjsnk);
+    std::unique_ptr<PiPiMomAllow> allw( getMomPairFilter(allow, p_tot) );
+    return createSelector(pimom, p_tot, *prjsrc, *prjsnk, *allw);
   }
+
+  PiPiSymmetrySubset(){}
+  PiPiSymmetrySubset(const std::string &dir){
+    findAvailableCorrs(dir);
+  }
+       
 
   //Test the code for all the momenta used in the extended measurement proposal
   void test() const{
@@ -259,7 +269,8 @@ struct PiPiSymmetrySubset{
       {-2,2,2}, {2,-2,2}, {2,2,-2}
     };
 
-    PiPiProjectSolo allow_all;
+    PiPiProjectSolo proj_all;
+    PiPiMomAllowAll allow_all;
 
     for(int set=0;set<2;set++){
       std::vector<threeMomentum> pimom;
@@ -277,7 +288,7 @@ struct PiPiSymmetrySubset{
 
       for(int p=0;p<ptot.size();p++){
 	std::cout << "Doing set " << set << " ptot " << ptot[p] << std::endl;
-	auto f = createSelector(pimom, ptot[p], allow_all, allow_all);
+	auto f = createSelector(pimom, ptot[p], proj_all, proj_all, allow_all);
 	std::cout << f << std::endl;
       }
     }

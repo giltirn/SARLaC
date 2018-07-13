@@ -14,6 +14,7 @@ typedef std::array<int,3> int_array_3;
   ( PiPiProjector, proj_src ) \
   ( PiPiProjector, proj_snk ) \
   ( PiPiMomAllowed, allowed_mom ) \
+  ( PiPiCorrSelector, corr_selector ) \
   ( std::vector<int_array_3>, pion_momenta) \
   ( std::vector<int_array_3>, total_mom )	    \
   ( int, isospin )		  \
@@ -33,7 +34,7 @@ typedef std::array<int,3> int_array_3;
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS)
 
-  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(PiPiFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), proj_src(PiPiProjector::A1), proj_snk(PiPiProjector::A1), isospin(0), allowed_mom(PiPiMomAllowed::All), total_mom({ {0,0,0} }), 
+  Args(): data_dir("data"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(PiPiFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), proj_src(PiPiProjector::A1), proj_snk(PiPiProjector::A1), isospin(0), allowed_mom(PiPiMomAllowed::All), corr_selector(PiPiCorrSelector::Basic), total_mom({ {0,0,0} }), 
     pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} }){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)

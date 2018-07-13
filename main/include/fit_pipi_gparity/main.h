@@ -1,6 +1,8 @@
 #ifndef _PIPI_MAIN_H__
 #define _PIPI_MAIN_H__
 
+#include "corr_selector_factory.h"
+
 //Read and combine/double-jack resample data from original files or a checkpoint of the entire data set
 template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>
 doubleJackCorrelationFunction generateData(const PiPiCorrelatorSelector &corr_select, 
@@ -38,15 +40,16 @@ doubleJackCorrelationFunction generateData(const PiPiCorrelatorSelector &corr_se
   return pipi_dj;
 }
 
+
 //User provides a set of total source pipi momenta. The data are read, rotational-state projected, resampled then averaged over the provided set of total momenta. The resulting correlation function is returned
 doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdline){
   if(args.total_mom.size() == 1 && args.total_mom[0] == threeMomentum({0,0,0})){
-    PiPiCorrelatorBasicSelector corr_selector(args.proj_src, args.proj_snk, args.allowed_mom, args.total_mom[0]);
-
+    std::unique_ptr<PiPiCorrelatorSelector> corr_selector( getSelector(args.corr_selector, args.pion_momenta, args.total_mom[0], args.data_dir,
+								       args.proj_src, args.proj_snk, args.allowed_mom) );
     readFigureStationaryPolicy ffn(cmdline.use_symmetric_quark_momenta);
     readBubbleStationaryPolicy bfn_src(cmdline.use_symmetric_quark_momenta,Source);
     readBubbleStationaryPolicy bfn_snk(cmdline.use_symmetric_quark_momenta,Sink);
-    doubleJackCorrelationFunction out = generateData(corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk,"");
+    doubleJackCorrelationFunction out = generateData(*corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk,"");
 
     return std::move(out);
   }else{ //average over the different total momenta provided
@@ -61,14 +64,16 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
       PiPiProjectAllowOnlyExistingPionMom proj_src_f(*proj_src, args.total_mom[p], args.pion_momenta); //make sure the pion momenta are in the computed set
       PiPiProjectAllowOnlyExistingPionMom proj_snk_f(*proj_snk, -args.total_mom[p], args.pion_momenta);
       std::unique_ptr<PiPiMomAllow> allow( getMomPairFilter(args.allowed_mom, args.total_mom[p]) );
-      PiPiCorrelatorBasicSelector corr_selector(&proj_src_f, &proj_snk_f, allow.get());
-      
+
+      std::unique_ptr<PiPiCorrelatorSelector> corr_selector( getSelector(args.corr_selector, args.pion_momenta, args.total_mom[0], args.data_dir,
+									 &proj_src_f, &proj_snk_f, allow.get()) );
+
       readFigureTianleComovingPolicy ffn(args.total_mom[p]);
       readBubbleTianleComovingPolicy bfn_src(args.total_mom[p],Source);
       readBubbleTianleComovingPolicy bfn_snk(-args.total_mom[p],Sink);
 
-      if(p==0) out = generateData(corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk, std::string("ptot") + momStr(args.total_mom[p]) );
-      else out = out + generateData(corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk, std::string("ptot") + momStr(args.total_mom[p]));
+      if(p==0) out = generateData(*corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk, std::string("ptot") + momStr(args.total_mom[p]) );
+      else out = out + generateData(*corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk, std::string("ptot") + momStr(args.total_mom[p]));
     }
     out = out * (1./args.total_mom.size());
     return std::move(out);
