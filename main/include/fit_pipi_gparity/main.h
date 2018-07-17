@@ -46,12 +46,18 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
   if(args.total_mom.size() == 1 && args.total_mom[0] == threeMomentum({0,0,0})){
     std::unique_ptr<PiPiCorrelatorSelector> corr_selector( getSelector(args.corr_selector, args.pion_momenta, args.total_mom[0], args.data_dir,
 								       args.proj_src, args.proj_snk, args.allowed_mom) );
+#if 1    
+    assert(!cmdline.use_symmetric_quark_momenta); //the _symm appelation can be specified in the format string
+    figureFilenamePolicyGeneric ffn(args.figure_file_format, args.total_mom[0]);
+    bubbleFilenamePolicyGeneric bfn_src(args.bubble_file_format, args.total_mom[0], Source);
+    bubbleFilenamePolicyGeneric bfn_snk(args.bubble_file_format, args.total_mom[0], Sink);
+#else
     readFigureStationaryPolicy ffn(cmdline.use_symmetric_quark_momenta);
     readBubbleStationaryPolicy bfn_src(cmdline.use_symmetric_quark_momenta,Source);
     readBubbleStationaryPolicy bfn_snk(cmdline.use_symmetric_quark_momenta,Sink);
-    doubleJackCorrelationFunction out = generateData(*corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk,"");
+#endif
+    return generateData(*corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk,"");
 
-    return std::move(out);
   }else{ //average over the different total momenta provided
     if(cmdline.use_symmetric_quark_momenta) error_exit(std::cout << "getData use_symmetric_quark_momenta not supported for p_tot != (0,0,0)\n");
 
@@ -76,7 +82,7 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
       else out = out + generateData(*corr_selector, args.isospin, args, cmdline, ffn, bfn_src, bfn_snk, std::string("ptot") + momStr(args.total_mom[p]));
     }
     out = out * (1./args.total_mom.size());
-    return std::move(out);
+    return out;
   }
 }
 

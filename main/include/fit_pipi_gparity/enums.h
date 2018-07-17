@@ -7,5 +7,4 @@ GENERATE_ENUM_AND_PARSER(PiPiCorrSelector, (Basic)(SymmetrySubset) );
 GENERATE_ENUM_AND_PARSER(PiPiFitFunction, (FCoshPlusConstant)(FCoshPlusConstantDoubleExp) );
 GENERATE_ENUM_AND_PARSER(PiPiEffectiveEnergy, (TwoPoint)(TwoPointSubConstant)(ThreePoint) );
 
-
 #endif

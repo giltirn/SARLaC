@@ -41,6 +41,7 @@ struct ArgsSampleAMA{
     out.proj_src = proj_src;
     out.proj_snk = proj_snk;
     out.allowed_mom = allowed_mom;
+    out.corr_selector = PiPiCorrSelector::Basic;
     out.isospin = isospin;
     out.do_vacuum_subtraction = do_vacuum_subtraction;
     out.fitfunc = fitfunc;

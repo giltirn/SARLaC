@@ -3,6 +3,82 @@
 
 #include<algorithm>
 
+class figureFilenamePolicyGeneric{
+  subStringReplace repl; //expect substrings  <TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
+  const threeMomentum p_tot;
+public:  
+
+  figureFilenamePolicyGeneric(const std::string &fmt, const threeMomentum &p_tot): p_tot(p_tot){
+#define F(STR) subStringSpecify(STR)
+#define FO(STR) subStringSpecify(STR,true)
+
+    static std::vector<subStringSpecify> find = { F("<TRAJ>"), F("<FIG>"), F("<TSEP_PIPI>"), F("<P1SRC>"), F("<P1SNK>"),
+						  FO("<P2SRC>"),FO("<P2SNK>") };
+    repl.chunkString(fmt, find);
+
+#undef F
+#undef FO
+  }
+
+
+  inline std::string operator()(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi) const{ 
+    std::vector<std::string> with = { anyToStr(traj), std::string(1,fig), anyToStr(tsep_pipi), momStr(psrc), momStr(psnk), momStr(p_tot - psrc), momStr(-p_tot-psnk) };
+    std::ostringstream os;
+    os << data_dir << '/';
+    repl.replace(os,with);
+    return os.str();
+  }
+}; 
+
+
+class bubbleFilenamePolicyGeneric{
+  subStringReplace repl; //expect <TRAJ> <TSEP_PIPI> <PB> and optional <PA>.  Here the pions A and B are the earlier and later pions, respectively
+  SourceOrSink src_snk; //whether a source or sink pipi  
+  const threeMomentum p_tot;
+
+public:
+  bubbleFilenamePolicyGeneric(const std::string &fmt, const threeMomentum &p_tot, const SourceOrSink src_snk): p_tot(p_tot), src_snk(src_snk){
+#define F(STR) subStringSpecify(STR)
+#define FO(STR) subStringSpecify(STR,true)
+
+    static std::vector<subStringSpecify> find = { F("<TRAJ>"), F("<TSEP_PIPI>"), F("<PB>"), FO("<PA>") };
+    repl.chunkString(fmt, find);
+
+#undef F
+#undef FO
+  }
+  
+  inline std::string operator()(const std::string &data_dir, const int traj, const threeMomentum &p1, const int tsep_pipi) const{ 
+    //Note p1 here is in the standard format, where is is the later pion at source and earlier pion at sink. 
+    threeMomentum pA, pB;
+    if(src_snk == Source){
+      //pB = p1   pA = p2
+      pA = p_tot - p1;
+      pB = p1;
+    }else{ //Sink
+      //pB = p2   pA = p1
+      pA = p1;
+      pB = -p_tot - p1;
+    }
+    std::vector<std::string> with =   { anyToStr(traj), anyToStr(tsep_pipi), momStr(pB), momStr(pA) };
+
+    std::ostringstream os;
+    os << data_dir << '/';
+    repl.replace(os, with);
+    
+    return os.str();
+  }
+};
+
+
+
+
+
+
+
+
+
+
 std::string figureFile(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi, const bool use_symmetric_quark_momenta){
   std::ostringstream os;
   os << data_dir << "/traj_" << traj << "_Figure" << fig << "_sep" << tsep_pipi << "_mom" << momStr(psrc) << "_mom" << momStr(psnk);
