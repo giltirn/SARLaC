@@ -6,27 +6,48 @@
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
 typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunction;
 
+struct pipiFitOptions{
+  bool load_frozen_fit_params;
+  std::string load_frozen_fit_params_file;
+
+  bool load_guess;
+  std::string guess_file;
+
+  pipiFitOptions(): load_frozen_fit_params(false), load_guess(false){}
+
+  template<typename T>
+  inline void import(const T &from){ 
+#define I(A) A = from.A
+    I(load_frozen_fit_params);
+    I(load_frozen_fit_params_file);
+    I(load_guess);
+    I(guess_file);
+#undef I
+  }    
+};
+
+
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
 jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
 								const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
-								const Args &args, const CMDline &cmdline){
-
+								const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
+								const pipiFitOptions &opt = pipiFitOptions()){
   typedef typename FitFunc::Params Params;
   Params guess;
-  if(cmdline.load_guess){
-    parse(guess, cmdline.guess_file);
+  if(opt.load_guess){
+    parse(guess, opt.guess_file);
     std::cout << "Loaded guess: " << guess << std::endl;
   }
   const int nsample = pipi_dj_vacsubbed_inrange.value(0).size();
   
-  FitFunc fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
+  FitFunc fitfunc(Lt, tsep_pipi, Ascale, Cscale);
 
   typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
   fitter<FitPolicies> fitter;
   fitter.importFitFunc(fitfunc);
 
-  if(cmdline.load_frozen_fit_params)
-    readFrozenParams(fitter, cmdline.load_frozen_fit_params_file, nsample);
+  if(opt.load_frozen_fit_params)
+    readFrozenParams(fitter, opt.load_frozen_fit_params_file, nsample);
   
   importCostFunctionParameters<corrUncorrFitPolicy,FitPolicies> prepare(fitter, pipi_dj_vacsubbed_inrange);
     
@@ -60,10 +81,12 @@ jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeC
 template<typename FitFunc>
 inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
 								       const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
-								       const Args &args, const CMDline &cmdline){
-  jackknifeDistribution<typename FitFunc::Params> params = args.correlated ? 
-    fit_corr_uncorr<FitFunc,correlatedFitPolicy>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, args, cmdline) :
-    fit_corr_uncorr<FitFunc,uncorrelatedFitPolicy>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, args, cmdline);
+								       const bool correlated, 
+								       const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
+								       const pipiFitOptions &opt = pipiFitOptions()){
+  jackknifeDistribution<typename FitFunc::Params> params = correlated ? 
+    fit_corr_uncorr<FitFunc,correlatedFitPolicy>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, Lt, tsep_pipi, Ascale, Cscale, opt) :
+    fit_corr_uncorr<FitFunc,uncorrelatedFitPolicy>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, Lt, tsep_pipi, Ascale, Cscale, opt);
 
   jackknifeDistributionD Epipi(params.size(), [&](const int s){ return params.sample(s).pipiEnergy(); });
   jackknifeDistributionD constant(params.size(), [&](const int s){ return params.sample(s).constant(); });
@@ -72,15 +95,17 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff(const jac
 
 //returns a pair containing the pipi energy and the constant term
 inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-		const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
-		const Args &args, const CMDline &cmdline){
-  switch(args.fitfunc){
+								    const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+								    const PiPiFitFunction fitfunc, const bool correlated,
+								    const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
+								    const pipiFitOptions &opt = pipiFitOptions()){
+  switch(fitfunc){
   case PiPiFitFunction::FCoshPlusConstant:
-    return fit_ff<FitCoshPlusConstant>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange,args,cmdline);
+    return fit_ff<FitCoshPlusConstant>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, correlated, Lt, tsep_pipi, Ascale, Cscale, opt);
   case PiPiFitFunction::FCoshPlusConstantDoubleExp:
-    return fit_ff<FitCoshPlusConstantDoubleExp>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange,args,cmdline);
+    return fit_ff<FitCoshPlusConstantDoubleExp>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, correlated, Lt, tsep_pipi, Ascale, Cscale, opt);
   default:
-    error_exit(std::cout << "Unknown fitfunc " << args.fitfunc << std::endl);
+    error_exit(std::cout << "Unknown fitfunc " << fitfunc << std::endl);
   }
 };
 

@@ -48,21 +48,37 @@ struct rawData{ //raw, unbinned data
   rawData(const PiPiCorrelatorSelector &corr_select, const int isospin, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
     bubbleDataAllMomenta* raw_bubble_data[3] = { &raw_bubble_data_sloppy_S, &raw_bubble_data_sloppy_C, &raw_bubble_data_exact_C };
     rawCorrelationFunction* pipi_raw[3] = { &pipi_raw_sloppy_S, &pipi_raw_sloppy_C, &pipi_raw_exact_C };
+
     const char ens[3] = { 'S', 'C', 'C' };
     const SloppyExact se[3] = { Sloppy, Sloppy, Exact };
-
+    const std::string descr[3] = { "Sloppy_S", "Sloppy_C", "Exact_C" };
+    
     std::vector<threeMomentum> pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} });
     
     for(int i=0;i<3;i++){
-      Args argsi = args.toArgs(ens[i]);
-      CMDline cmdlinei = cmdline.toCMDline(se[i], ens[i]);
       figureDataAllMomenta raw_data;
-      readFigureStationaryPolicy ffn(cmdlinei.use_symmetric_quark_momenta);
-      readBubbleStationaryPolicy bfn_src(cmdlinei.use_symmetric_quark_momenta,Source);
-      readBubbleStationaryPolicy bfn_snk(cmdlinei.use_symmetric_quark_momenta,Sink);
-      readRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, ffn, bfn_src, bfn_snk, corr_select);
-      checkpointRawData(raw_data, *raw_bubble_data[i], argsi, cmdlinei, "");
-      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], corr_select, isospin, pion_momenta, argsi.bin_size, "", false);
+      readFigureStationaryPolicy ffn(se[i] == Exact);
+      readBubbleStationaryPolicy bfn_src(se[i] == Exact,Source);
+      readBubbleStationaryPolicy bfn_snk(se[i] == Exact,Sink);
+
+      int traj_start, traj_inc, traj_lessthan;
+      args.traj_info(traj_start, traj_inc, traj_lessthan, ens[i]);
+      
+      std::string checkpoint_filename;
+      bool load_checkpoint = cmdline.load_checkpoint(checkpoint_filename,se[i],ens[i]);
+
+      readRawData(raw_data, *raw_bubble_data[i], 
+		  ffn, bfn_src, bfn_snk, 
+		  args.data_dir(ens[i]), traj_start, traj_inc, traj_lessthan, 
+		  args.Lt, args.tstep_pipi, 
+		  args.tsep_pipi, pion_momenta, corr_select, 
+		  descr[i], load_checkpoint, checkpoint_filename);
+
+      bool save_checkpoint = cmdline.save_checkpoint(checkpoint_filename,se[i],ens[i]);
+
+      if(save_checkpoint) checkpointRawData(raw_data, *raw_bubble_data[i], checkpoint_filename, descr[i]);
+
+      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, *raw_bubble_data[i], corr_select, isospin, pion_momenta, args.bin_size, "", false);
     }
 
     nS = pipi_raw_sloppy_S.value(0).size();
@@ -201,13 +217,13 @@ int main(const int argc, const char* argv[]){
     }
   
   //Perform the fit
-  Args args_gen = args.toArgs('S'); //traj info and data dirs no longer used
-  CMDline cmdline_gen = cmdline.toCMDline(Sloppy,'S');
+  pipiFitOptions opt; opt.import(cmdline);
+  std::pair<jackknifeDistributionD,jackknifeDistributionD> Epipi_and_const = fit(pipi_j_inrange,pipi_dj_inrange,
+										 args.fitfunc, args.correlated, args.Lt, args.tsep_pipi, args.Ascale, args.Cscale, opt);
 
-  std::pair<jackknifeDistributionD,jackknifeDistributionD> Epipi_and_const = fit(pipi_j_inrange,pipi_dj_inrange,args_gen,cmdline_gen);
+  plot(pipi_j,Epipi_and_const.first,Epipi_and_const.second,
+       args.t_min, args.t_max, args.effective_energy, args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
 
-  plot(pipi_j,Epipi_and_const.first,Epipi_and_const.second,args_gen,cmdline_gen);
-  
   std::cout << "Done\n";
   return 0;
 }

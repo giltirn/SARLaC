@@ -33,37 +33,14 @@ struct ArgsSampleAMA{
 
   ArgsSampleAMA(): data_dir_S("data_S"), data_dir_C("data_C"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_inc(1), Ascale(1e13), Cscale(1e13), fitfunc(PiPiFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), traj_start_S(0), traj_lessthan_S(2), traj_start_C(0), traj_lessthan_C(2), proj_src(PiPiProjector::A1), proj_snk(PiPiProjector::A1), allowed_mom(PiPiMomAllowed::All), isospin(0)  {}
 
-  Args toArgs(const char ens) const{  //'S' or 'C'
-    Args out;
-    out.Lt = Lt;
-    out.tsep_pipi = tsep_pipi;
-    out.tstep_pipi = tstep_pipi;
-    out.proj_src = proj_src;
-    out.proj_snk = proj_snk;
-    out.allowed_mom = allowed_mom;
-    out.corr_selector = PiPiCorrSelector::Basic;
-    out.isospin = isospin;
-    out.do_vacuum_subtraction = do_vacuum_subtraction;
-    out.fitfunc = fitfunc;
-    out.effective_energy = effective_energy;
-    out.correlated = correlated;
-    out.t_min = t_min;
-    out.t_max = t_max;
-    out.bin_size = bin_size;
-    out.traj_inc = traj_inc;
-    out.Ascale = Ascale;
-    out.Cscale = Cscale;
-    if(ens == 'S'){
-      out.data_dir = data_dir_S;
-      out.traj_start = traj_start_S;
-      out.traj_lessthan = traj_lessthan_S;
-    }else{
-      out.data_dir = data_dir_C;
-      out.traj_start = traj_start_C;
-      out.traj_lessthan = traj_lessthan_C;
-    }
-    return out;
+  inline const std::string & data_dir(const char ens) const{ return ens == 'S' ? data_dir_S :  data_dir_C; };
+
+  inline void traj_info(int &traj_start_, int &traj_inc_, int &traj_lessthan_, const char ens) const{
+    traj_start_ = ens == 'S' ? traj_start_S : traj_start_C;
+    traj_lessthan_ = ens == 'S' ? traj_lessthan_S : traj_lessthan_C;
+    traj_inc_ = traj_inc;
   }
+
 };
 GENERATE_PARSER(ArgsSampleAMA, ARGS_SAMPLEAMA_MEMBERS)
 

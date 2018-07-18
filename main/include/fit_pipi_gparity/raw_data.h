@@ -61,38 +61,37 @@ inline std::string checkpointFilename(const std::string &stub, const std::string
   return filename.str();
 }
 
-void checkpointRawData(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const Args &args, const CMDline &cmdline, const std::string &extra_descr){
-  if(cmdline.save_hdf5_data_checkpoint)
-    saveHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(cmdline.save_hdf5_data_checkpoint_stub, extra_descr) );
+void checkpointRawData(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &filename_stub, const std::string &extra_descr){
+  saveHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(filename_stub, extra_descr) );
 }
 
 //Read the raw contraction data. No rotational-state projection is done, but we do avoid reading data that won't be needed, hence the discriminators input
 template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>
-void readRawData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data, const Args &args, const CMDline &cmdline, 
+void readRawData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data,
 		 const FigureFilenamePolicy &ffn, const BubbleFilenamePolicy &bfn_src, const BubbleFilenamePolicy &bfn_snk,
-		 const PiPiCorrelatorSelector &corr_select,
-		 const std::string &extra_descr = ""){
-  std::cout << "Reading raw data " << extra_descr << std::endl;
+		 const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, 
+		 const int Lt, const int tstep_pipi,
+		 const int tsep_pipi, const std::vector<threeMomentum> &pion_momenta, const PiPiCorrelatorSelector &corr_select,
+		 const std::string &descr, bool load_hdf5_data_checkpoint = false, const std::string &load_hdf5_data_checkpoint_stub = ""){
+  std::cout << "Reading raw data " << descr << std::endl;
 
-  if(cmdline.load_hdf5_data_checkpoint){
-    loadHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(cmdline.load_hdf5_data_checkpoint_stub, extra_descr));
+  if(load_hdf5_data_checkpoint){
+    loadHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(load_hdf5_data_checkpoint_stub, descr));
   }else{
-    readFigure(raw_data, 'C', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, corr_select);
-    readFigure(raw_data, 'D', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, corr_select);
-    readFigure(raw_data, 'R', args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, ffn, args.pion_momenta, corr_select);
-    readBubble(raw_bubble_data, args.data_dir, args.tsep_pipi, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, bfn_src, bfn_snk, args.pion_momenta, corr_select);
+    readFigure(raw_data, 'C', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
+    readFigure(raw_data, 'D', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
+    readFigure(raw_data, 'R', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
+    readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bfn_src, bfn_snk, pion_momenta, corr_select);
   }
   //Do the stuff below even if reading from checkpoint because some older checkpoints were saved prior to these operations being performed
 
   //Populate the V diagrams from the bubble data
-  computeV(raw_data, raw_bubble_data, args.tsep_pipi, args.pion_momenta, corr_select);
+  computeV(raw_data, raw_bubble_data, tsep_pipi, pion_momenta, corr_select);
 
   //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
-  zeroUnmeasuredSourceTimeslices(raw_data, 'C', args.tstep_pipi);
-  zeroUnmeasuredSourceTimeslices(raw_data, 'D', args.tstep_pipi);
-  zeroUnmeasuredSourceTimeslices(raw_data, 'R', args.tstep_pipi);
+  zeroUnmeasuredSourceTimeslices(raw_data, 'C', tstep_pipi);
+  zeroUnmeasuredSourceTimeslices(raw_data, 'D', tstep_pipi);
+  zeroUnmeasuredSourceTimeslices(raw_data, 'R', tstep_pipi);
 }
-
-
 
 #endif

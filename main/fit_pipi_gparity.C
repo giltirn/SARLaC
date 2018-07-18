@@ -68,9 +68,11 @@ int main(const int argc, const char* argv[]){
     }
   
   //Perform the fit
-  std::pair<jackknifeDistributionD,jackknifeDistributionD> Epipi_and_const = fit(pipi_j_inrange,pipi_dj_inrange,args,cmdline);
+  pipiFitOptions opt; opt.import(cmdline);
+  std::pair<jackknifeDistributionD,jackknifeDistributionD> Epipi_and_const = fit(pipi_j_inrange, pipi_dj_inrange, args.fitfunc, args.correlated, args.Lt, args.tsep_pipi, args.Ascale, args.Cscale, opt);
 
-  plot(pipi_j,Epipi_and_const.first,Epipi_and_const.second,args,cmdline);
+  plot(pipi_j, Epipi_and_const.first, Epipi_and_const.second, 
+       args.t_min, args.t_max, args.effective_energy, args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
   
   std::cout << "Done\n";
   return 0;

@@ -14,12 +14,27 @@ struct CMDlineSampleAMA{
   bool load_hdf5_data_checkpoint_exact_C;
   std::string load_hdf5_data_checkpoint_stub_exact_C;
 
+  bool load_checkpoint(std::string &filename, const SloppyExact se, const char ens) const{
+    if(se == Sloppy && ens == 'S'){ filename = load_hdf5_data_checkpoint_stub_sloppy_S; return load_hdf5_data_checkpoint_sloppy_S; }
+    if(se == Sloppy && ens == 'C'){ filename = load_hdf5_data_checkpoint_stub_sloppy_C; return load_hdf5_data_checkpoint_sloppy_C; }
+    if(se == Exact && ens == 'C'){ filename = load_hdf5_data_checkpoint_stub_exact_C; return load_hdf5_data_checkpoint_exact_C; }
+    assert(0);
+  }
+
   bool save_hdf5_data_checkpoint_sloppy_S;
   std::string save_hdf5_data_checkpoint_stub_sloppy_S;
   bool save_hdf5_data_checkpoint_sloppy_C;
   std::string save_hdf5_data_checkpoint_stub_sloppy_C;
   bool save_hdf5_data_checkpoint_exact_C;
   std::string save_hdf5_data_checkpoint_stub_exact_C;
+
+  bool save_checkpoint(std::string &filename, const SloppyExact se, const char ens) const{
+    if(se == Sloppy && ens == 'S'){ filename = save_hdf5_data_checkpoint_stub_sloppy_S; return save_hdf5_data_checkpoint_sloppy_S; }
+    if(se == Sloppy && ens == 'C'){ filename = save_hdf5_data_checkpoint_stub_sloppy_C; return save_hdf5_data_checkpoint_sloppy_C; }
+    if(se == Exact && ens == 'C'){ filename = save_hdf5_data_checkpoint_stub_exact_C; return save_hdf5_data_checkpoint_exact_C; }
+    assert(0);
+  }
+
 
   bool load_combined_data;
   std::string load_combined_data_file;
@@ -47,34 +62,6 @@ struct CMDlineSampleAMA{
     setup(argc,argv,begin);
   }
   
-  CMDline toCMDline(const SloppyExact &se, const char ens) const{
-    CMDline out;
-    out.load_guess = load_guess;
-    out.guess_file = guess_file;
-    out.load_combined_data = load_combined_data;
-    out.load_combined_data_file = load_combined_data_file;
-    out.save_combined_data = save_combined_data;
-    out.save_combined_data_file = save_combined_data_file;
-    out.load_frozen_fit_params = load_frozen_fit_params;
-    out.load_frozen_fit_params_file = load_frozen_fit_params_file;
-
-    if(se == Sloppy){
-      out.use_symmetric_quark_momenta = false;
-      out.load_hdf5_data_checkpoint = ens == 'S' ? load_hdf5_data_checkpoint_sloppy_S : load_hdf5_data_checkpoint_sloppy_C;
-      out.save_hdf5_data_checkpoint = ens == 'S' ? save_hdf5_data_checkpoint_sloppy_S : save_hdf5_data_checkpoint_sloppy_C;
-      out.load_hdf5_data_checkpoint_stub = ens == 'S' ? load_hdf5_data_checkpoint_stub_sloppy_S : load_hdf5_data_checkpoint_stub_sloppy_C;
-      out.save_hdf5_data_checkpoint_stub = ens == 'S' ? save_hdf5_data_checkpoint_stub_sloppy_S : save_hdf5_data_checkpoint_stub_sloppy_C;
-    }else{
-      assert(ens == 'C');
-      out.use_symmetric_quark_momenta = true;
-      out.load_hdf5_data_checkpoint = load_hdf5_data_checkpoint_exact_C;
-      out.save_hdf5_data_checkpoint = save_hdf5_data_checkpoint_exact_C;
-      out.load_hdf5_data_checkpoint_stub = load_hdf5_data_checkpoint_stub_exact_C;
-      out.save_hdf5_data_checkpoint_stub = save_hdf5_data_checkpoint_stub_exact_C;
-    }
-    return out;
-  }
-
   void setup(const int argc, const char** argv, const int begin = 0){
     const int sz = argc-begin;
     std::vector<std::string> sargv(sz);

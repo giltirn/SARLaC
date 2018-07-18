@@ -19,6 +19,11 @@ struct hasEqualsMethod<T, EqualsType, typename Void<decltype( ((T*)(NULL))->oper
   enum{ value = 1 };
 };
 
+//Added to a class "INTO_TYPE"'s body, for a data member "MEM" this will define a function copy_MEM that copies a member of the same name and type from a different class if it has such a member,
+//otherwise nothing is copied 
+#define DEF_GENERIC_COPY(INTO_TYPE,MEM)			      \
+    template<typename B> static inline void copy_##MEM(...){} \
+    template<typename B, decltype(INTO_TYPE::MEM) B::* bB = &B::MEM> static inline void copy_##MEM(INTO_TYPE &into, const B& from){ into.MEM= from.MEM; }
 
 CPSFIT_END_NAMESPACE
 #endif

@@ -8,16 +8,16 @@
 jackknifeCorrelationFunction twoPointEffectiveEnergy(const jackknifeCorrelationFunction &data_j,
 						     const jackknifeDistributionD &fitted_Epipi,
 						     const jackknifeDistributionD &fitted_constant,
-						     const bool subtract_constant,
-						     const Args &args, const CMDline &cmdline){
+						     const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
+						     const bool subtract_constant){
   jackknifeCorrelationFunction data_j_mod(data_j);
   if(subtract_constant){
-    for(int i=0;i<data_j_mod.size();i++) data_j_mod.value(i) = data_j_mod.value(i) - args.Cscale*fitted_constant;
+    for(int i=0;i<data_j_mod.size();i++) data_j_mod.value(i) = data_j_mod.value(i) - Cscale*fitted_constant;
   }
-  FitCoshPlusConstant fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
+  FitCoshPlusConstant fitfunc(Lt, tsep_pipi, Ascale, Cscale);
   FitCoshPlusConstant::Params base(1,1,0); //amplitude irrelevant, E will be varied, set constant to 0
   std::cout << "Computing two-point effective energy" << std::endl;
-  return effectiveMass2pt<jackknifeCorrelationFunction,FitCoshPlusConstant>(data_j,fitfunc,base,1,args.Lt);
+  return effectiveMass2pt<jackknifeCorrelationFunction,FitCoshPlusConstant>(data_j,fitfunc,base,1,Lt);
 }
 
 
@@ -77,8 +77,7 @@ public:
 
 jackknifeCorrelationFunction threePointEffectiveEnergy(const jackknifeCorrelationFunction &data_j,
 						       const jackknifeDistributionD &fitted_Epipi,
-						       const Args &args, const CMDline &cmdline){
-  const int Lt = args.Lt;
+						       const int Lt, const int tsep_pipi, const double Ascale, const double Cscale){
   const int nsample = data_j.value(0).size();
   assert(data_j.size() == Lt);
   jackknifeCorrelationFunction ratios(Lt-2);
@@ -93,7 +92,7 @@ jackknifeCorrelationFunction threePointEffectiveEnergy(const jackknifeCorrelatio
   }
   typedef Fit3ptPiPiEffectiveMass<FitCoshPlusConstant> FitEffMass;
 
-  FitCoshPlusConstant fitfunc(args.Lt, args.tsep_pipi, args.Ascale, args.Cscale);
+  FitCoshPlusConstant fitfunc(Lt, tsep_pipi, Ascale, Cscale);
   FitCoshPlusConstant::Params base(1,1,0); //amplitude and constant irrelevant, E will be varied
   std::cout << "Computing three-point effective energy" << std::endl;
   FitEffMass fiteffmass(fitfunc, base, 1);
@@ -104,24 +103,27 @@ jackknifeCorrelationFunction threePointEffectiveEnergy(const jackknifeCorrelatio
 jackknifeCorrelationFunction effectiveEnergy(const jackknifeCorrelationFunction &data_j,
 					     const jackknifeDistributionD &fitted_Epipi,
 					     const jackknifeDistributionD &fitted_constant,
-					     const Args &args, const CMDline &cmdline){
-  switch(args.effective_energy){
+					     const PiPiEffectiveEnergy effective_energy,
+					     const int Lt, const int tsep_pipi, const double Ascale, const double Cscale){
+  switch(effective_energy){
   case PiPiEffectiveEnergy::TwoPoint:
-    return twoPointEffectiveEnergy(data_j,fitted_Epipi,fitted_constant,false,args,cmdline);
+    return twoPointEffectiveEnergy(data_j,fitted_Epipi,fitted_constant, Lt, tsep_pipi, Ascale, Cscale, false);
   case PiPiEffectiveEnergy::TwoPointSubConstant:
-    return twoPointEffectiveEnergy(data_j,fitted_Epipi,fitted_constant,true,args,cmdline);
+    return twoPointEffectiveEnergy(data_j,fitted_Epipi,fitted_constant, Lt, tsep_pipi, Ascale, Cscale, true);
   case PiPiEffectiveEnergy::ThreePoint:
-    return threePointEffectiveEnergy(data_j,fitted_Epipi,args,cmdline);
+    return threePointEffectiveEnergy(data_j,fitted_Epipi, Lt, tsep_pipi, Ascale, Cscale);
   default:
-    error_exit(std::cout << "Unknown effective energy type "<< args.effective_energy <<std::endl);
+    error_exit(std::cout << "Unknown effective energy type "<< effective_energy <<std::endl);
   }
 }
 
 void plot(const jackknifeCorrelationFunction &data_j,
 	  const jackknifeDistributionD &fitted_Epipi,
 	  const jackknifeDistributionD &fitted_constant,
-	  const Args &args, const CMDline &cmdline){
-  jackknifeCorrelationFunction E_eff = effectiveEnergy(data_j,fitted_Epipi,fitted_constant,args,cmdline);
+	  const int fit_t_min, const int fit_t_max,
+	  const PiPiEffectiveEnergy effective_energy,
+	  const int Lt, const int tsep_pipi, const double Ascale, const double Cscale){
+  jackknifeCorrelationFunction E_eff = effectiveEnergy(data_j,fitted_Epipi,fitted_constant, effective_energy, Lt, tsep_pipi, Ascale, Cscale);
 
   std::cout << "Effective energy:\n" << E_eff << std::endl;
 
@@ -150,7 +152,7 @@ void plot(const jackknifeCorrelationFunction &data_j,
   };
 
   double se = fitted_Epipi.standardError();
-  fitBand band(fitted_Epipi.best() + se, fitted_Epipi.best() - se, args.t_min, args.t_max);
+  fitBand band(fitted_Epipi.best() + se, fitted_Epipi.best() - se, fit_t_min, fit_t_max);
   plot_args["alpha"] = 0.2;
   handleType fband = plotter.errorBand(band,plot_args);
 
