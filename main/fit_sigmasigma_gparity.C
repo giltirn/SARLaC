@@ -11,14 +11,9 @@
 #include <parser.h>
 #include <common.h>
 
-using namespace CPSfit;
+#include<pipi_common/pipi_common.h>
 
-#include <fit_pipi_gparity/data_containers.h>
-#include <fit_pipi_gparity/threemomentum.h>
-#include <fit_pipi_gparity/mom_data_containers.h>
-#include <fit_pipi_gparity/mom_project.h>
-#include <fit_pipi_gparity/fitfunc.h>
-#include <fit_pipi_gparity/raw_correlator.h>
+using namespace CPSfit;
 
 #include <fit_sigmasigma_gparity/read_data.h>
 #include <fit_sigmasigma_gparity/resampled_correlator.h>

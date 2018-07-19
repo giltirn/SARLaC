@@ -3,6 +3,18 @@
 
 #include<fit.h>
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include <containers.h>
+#include <distribution.h>
+#include <common.h>
+
+#include "fitfunc.h"
+#include "enums.h"
+
+CPSFIT_START_NAMESPACE
+
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
 typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunction;
 
@@ -108,5 +120,7 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit(const jackkn
     error_exit(std::cout << "Unknown fitfunc " << fitfunc << std::endl);
   }
 };
+
+CPSFIT_END_NAMESPACE
 
 #endif

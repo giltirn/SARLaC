@@ -80,7 +80,7 @@ public:
 #define ENUMERATED_STRUCT_JACKPRINT_MEMBERS(DEF) BOOST_PP_SEQ_FOR_EACH_I(_ENUMERATED_STRUCT_JACKPRINT_MEMBER, , DEF)
 
 template<>
-struct pipiParamsPrinter<FitSim>: public distributionPrinter<jackknifeDistribution< FitSim::Params> >{
+struct CPSfit::pipiParamsPrinter<FitSim>: public distributionPrinter<jackknifeDistribution< FitSim::Params> >{
   void print(std::ostream &os, const jackknifeDistribution< FitSim::Params> &dist) const{
     FitSim::Params cen = dist.best();
     FitSim::Params err = dist.standardError();

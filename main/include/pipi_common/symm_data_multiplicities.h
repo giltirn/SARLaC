@@ -6,13 +6,21 @@
 //manageable we utilize the parity, auxiliary diagram and axis permutation symmetries to compute only a subset.
 
 //In order to incorporate this in the analysis we create a filter with the appropriate multiplicities for use in the projection
-
+#include<iostream>
 #include<set>
 #include<regex>
 #include <unordered_set>
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include "threemomentum.h"
+#include "enums.h"
+#include "mom_project.h"
+
+CPSFIT_START_NAMESPACE
 
 struct ConMomentum{
   threeMomentum pi1_src;
@@ -108,8 +116,10 @@ struct ConMomentum{
 
 std::ostream & operator<<(std::ostream &os, const ConMomentum &p){ os << p.pi1_src << " " << p.pi2_src << " " << p.pi1_snk << " " << p.pi2_snk; return os; }
 
+CPSFIT_END_NAMESPACE
+
 namespace boost{
-std::size_t hash_value(const ConMomentum &r){
+  std::size_t hash_value(const CPSfit::ConMomentum &r){
   std::size_t seed = 0;
   boost::hash_combine(seed, r.pi1_src);
   boost::hash_combine(seed, r.pi2_src);
@@ -118,6 +128,8 @@ std::size_t hash_value(const ConMomentum &r){
   return seed;
 }
 };
+
+CPSFIT_START_NAMESPACE
 
 struct ConMomentumHasher{
   inline size_t operator()(const ConMomentum &p) const{ return boost::hash_value(p); }
@@ -297,6 +309,6 @@ struct PiPiSymmetrySubset{
 
 };
 
-
+CPSFIT_END_NAMESPACE
 
 #endif

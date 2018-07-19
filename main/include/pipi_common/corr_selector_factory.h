@@ -1,10 +1,14 @@
 #ifndef CORR_SELECTOR_FACTORY_H
 #define CORR_SELECTOR_FACTORY_H
 
+#include<config.h>
+#include<utils/macros.h>
+
 #include "enums.h"
 #include "mom_project.h"
 #include "symm_data_multiplicities.h"
 
+CPSFIT_START_NAMESPACE
 
 PiPiCorrelatorSelector* getSelector(const PiPiCorrSelector selector, const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const std::string &data_dir,
 				    const PiPiProjector proj_src, const PiPiProjector proj_snk, const PiPiMomAllowed allow){
@@ -32,5 +36,6 @@ PiPiCorrelatorSelector* getSelector(const PiPiCorrSelector selector, const std::
   }
 }
 
+CPSFIT_END_NAMESPACE
 
 #endif

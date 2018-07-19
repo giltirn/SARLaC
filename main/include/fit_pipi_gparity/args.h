@@ -1,7 +1,7 @@
 #ifndef _FIT_PIPI_GPARITY_ARGS_H_
 #define _FIT_PIPI_GPARITY_ARGS_H_
 
-#include "enums.h"
+#include <pipi_common/enums.h>
 
 typedef std::array<int,3> int_array_3;
 

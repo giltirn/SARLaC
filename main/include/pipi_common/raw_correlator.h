@@ -1,6 +1,14 @@
 #ifndef _PIPI_RAW_CORRELATOR_H_
 #define _PIPI_RAW_CORRELATOR_H_
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include "mom_data_containers.h"
+#include "mom_project.h"
+
+CPSFIT_START_NAMESPACE
+
 //Givem the raw data, perform the rotational-state projection. User can decide on how the projection is performed (for example, choosing a representation) via the "selector" which filters
 //data and provides the coefficient under the projection/sum
 template<typename DataAllMomentumType>
@@ -115,6 +123,6 @@ void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMom
   std::cout << "Raw data " << extra_descr << ":\n" << pipi_raw << std::endl;
 }
 
-
+CPSFIT_END_NAMESPACE
 
 #endif

@@ -3,6 +3,14 @@
 
 #include<algorithm>
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include "mom_data_containers.h"
+#include "mom_project.h"
+
+CPSFIT_START_NAMESPACE
+
 class figureFilenamePolicyGeneric{
   subStringReplace repl; //expect substrings  <TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
   const threeMomentum p_tot;
@@ -234,6 +242,6 @@ void readBubble(bubbleDataAllMomenta &raw_data, const std::string &data_dir, con
   readBubble(raw_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn_snk, snk_mom_need, Sink);
 }
 
-
+CPSFIT_END_NAMESPACE
 
 #endif

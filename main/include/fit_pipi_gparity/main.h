@@ -1,7 +1,12 @@
 #ifndef _PIPI_MAIN_H__
 #define _PIPI_MAIN_H__
 
-#include "corr_selector_factory.h"
+#include <pipi_common/pipi_common.h>
+
+using namespace CPSfit;
+
+#include "args.h"
+#include "cmdline.h"
 
 //Read and combine/double-jack resample data from original files or a checkpoint of the entire data set
 template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>

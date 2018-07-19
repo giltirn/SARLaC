@@ -10,22 +10,13 @@
 #include<parser.h>
 #include <random.h>
 
+#include <pipi_common/pipi_common.h>
+
 using namespace CPSfit;
 
-#include <fit_pipi_gparity/args.h>
-#include <fit_pipi_gparity/data_containers.h>
-#include <fit_pipi_gparity/threemomentum.h>
-#include <fit_pipi_gparity/mom_data_containers.h>
-#include <fit_pipi_gparity/mom_project.h>
-#include <fit_pipi_gparity/read_data.h>
-#include <fit_pipi_gparity/fitfunc.h>
-#include <fit_pipi_gparity/cmdline.h>
-#include <fit_pipi_gparity/fit.h>
-#include <fit_pipi_gparity/plot.h>
-#include <fit_pipi_gparity/raw_data.h>
-#include <fit_pipi_gparity/raw_correlator.h>
-#include <fit_pipi_gparity/resampled_data.h>
-#include <fit_pipi_gparity/main.h>
+#include<fit_pipi_gparity/cmdline.h>
+#include<fit_pipi_gparity/args.h>
+#include<fit_pipi_gparity/main.h>
 
 #include <compare_asymm_symm_pipi/cmdline.h>
 #include <compare_asymm_symm_pipi/args.h>

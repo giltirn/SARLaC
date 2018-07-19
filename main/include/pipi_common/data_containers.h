@@ -3,6 +3,15 @@
 
 #define DAIQIAN_COMPATIBILITY_MODE
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include<distribution.h>
+#include<tensors.h>
+#include<common.h>
+
+CPSFIT_START_NAMESPACE
+
 enum SourceOrSink { Source, Sink };
 inline void write(CPSfit::HDF5writer &writer, const SourceOrSink d, const std::string &tag){ write(writer,(int)d,tag); }
 inline void read(CPSfit::HDF5reader &reader, SourceOrSink &d, const std::string &tag){
@@ -162,7 +171,7 @@ inline void read(HDF5reader &reader, figureDataBase<D,P> &d, const std::string &
 #endif
 
 template<typename DistributionType,typename Policies>
-struct CPSfit::getElem<figureDataBase<DistributionType,Policies> >{
+struct getElem<figureDataBase<DistributionType,Policies> >{
   static inline auto elem(figureDataBase<DistributionType,Policies> &v, const int i)->decltype(v(0,0)){ return v(i/v.getLt(), i%v.getLt()); }
   static inline auto elem(const figureDataBase<DistributionType,Policies> &v, const int i)->decltype(v(0,0)){ return v(i/v.getLt(), i%v.getLt()); }
   static inline int common_properties(const figureDataBase<DistributionType,Policies> &v){ return v.getLt(); }
@@ -255,9 +264,6 @@ typedef figureDataBase<rawDataDistributionD , figureDataPolicies> figureData;
 typedef figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies > figureDataDoubleJack;
 
 
-
-
-
-
+CPSFIT_END_NAMESPACE
 
 #endif

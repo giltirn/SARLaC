@@ -1,32 +1,6 @@
-#include <fstream>
-#include <algorithm>
-#include <sstream>
-#include <boost/timer/timer.hpp>
-
-#include <fit.h>
-#include <random.h>
-#include <plot.h>
-#include <distribution.h>
-#include <data_series.h>
-#include <parser.h>
-#include <common.h>
+#include <pipi_common/pipi_common.h>
 
 using namespace CPSfit;
-
-#include <fit_pipi_gparity/args.h>
-#include <fit_pipi_gparity/data_containers.h>
-#include <fit_pipi_gparity/threemomentum.h>
-#include <fit_pipi_gparity/mom_data_containers.h>
-#include <fit_pipi_gparity/mom_project.h>
-#include <fit_pipi_gparity/read_data.h>
-#include <fit_pipi_gparity/fitfunc.h>
-#include <fit_pipi_gparity/cmdline.h>
-#include <fit_pipi_gparity/fit.h>
-#include <fit_pipi_gparity/plot.h>
-#include <fit_pipi_gparity/raw_data.h>
-#include <fit_pipi_gparity/raw_correlator.h>
-#include <fit_pipi_gparity/resampled_data.h>
-#include <fit_pipi_gparity/main.h>
 
 #include <fit_simple_sampleAMA/sampleAMA_resample.h>
 #include <fit_pipi_gparity_sampleAMA/args.h>
@@ -227,3 +201,4 @@ int main(const int argc, const char* argv[]){
   std::cout << "Done\n";
   return 0;
 }
+

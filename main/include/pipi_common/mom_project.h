@@ -6,7 +6,13 @@
 #include <unordered_set>
 #include <boost/functional/hash.hpp>
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include "threemomentum.h"
 #include "enums.h"
+
+CPSFIT_START_NAMESPACE
 
 //When reading and projecting the data onto a desired rotation state, we loop over all choices of p1_src and p1_snk, and use a "Selector" to pick out which combinations should be included
 //and their coefficient in the projection
@@ -341,6 +347,6 @@ PiPiMomAllow* getMomPairFilter(const PiPiMomAllowed p, const threeMomentum &ptot
   }
 }
 
-
+CPSFIT_END_NAMESPACE
 
 #endif

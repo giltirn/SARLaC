@@ -3,6 +3,14 @@
 
 #include<tuple>
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include "mom_data_containers.h"
+#include "mom_project.h"
+
+CPSFIT_START_NAMESPACE
+
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
 auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiCorrelatorSelector &corr_select, const std::vector<threeMomentum> &pion_momenta)
@@ -81,5 +89,6 @@ inline correlationFunction<double,T> fold(const correlationFunction<double,T> &f
   return out;
 }
 
+CPSFIT_END_NAMESPACE
 
 #endif

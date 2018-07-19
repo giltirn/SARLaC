@@ -1,6 +1,14 @@
 #ifndef _PIPI_RAW_DATA_H_
 #define _PIPI_RAW_DATA_H_
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include "mom_data_containers.h"
+#include "mom_project.h"
+
+CPSFIT_START_NAMESPACE
+
 void zeroUnmeasuredSourceTimeslices(figureDataAllMomenta &data, const char fig, const int tstep_pipi){
   for(figureDataAllMomenta::iterator it = data.begin(fig); it != data.end(fig); it++){
     figureData &f = it->second;
@@ -93,5 +101,7 @@ void readRawData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubbl
   zeroUnmeasuredSourceTimeslices(raw_data, 'D', tstep_pipi);
   zeroUnmeasuredSourceTimeslices(raw_data, 'R', tstep_pipi);
 }
+
+CPSFIT_END_NAMESPACE
 
 #endif

@@ -1,8 +1,16 @@
 #ifndef _FIT_PIPI_GPARITY_PLOT_H_
 #define _FIT_PIPI_GPARITY_PLOT_H_
 
+#include<config.h>
+#include<utils/macros.h>
+
 #include<plot.h>
 #include<containers/single_value_container.h>
+#include<common.h>
+
+#include "fit.h"
+
+CPSFIT_START_NAMESPACE
 
 //two-point effective energy assuming cosh form with optional constant subtraction
 jackknifeCorrelationFunction twoPointEffectiveEnergy(const jackknifeCorrelationFunction &data_j,
@@ -164,5 +172,6 @@ void plot(const jackknifeCorrelationFunction &data_j,
   plotter.write("effective_energy.py","effective_energy.pdf");
 }
 
+CPSFIT_END_NAMESPACE
 
 #endif

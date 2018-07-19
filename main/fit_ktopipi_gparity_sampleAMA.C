@@ -17,13 +17,9 @@
 #include<plot.h>
 #include<containers.h>
 
-using namespace CPSfit;
+#include <pipi_common/read_data.h>
 
-#include <fit_pipi_gparity/threemomentum.h>
-#include <fit_pipi_gparity/data_containers.h>
-#include <fit_pipi_gparity/mom_project.h>
-#include <fit_pipi_gparity/mom_data_containers.h>
-#include <fit_pipi_gparity/read_data.h>
+using namespace CPSfit;
 
 #include <fit_ktopipi_gparity/utils.h>
 #include <fit_ktopipi_gparity/freeze.h>

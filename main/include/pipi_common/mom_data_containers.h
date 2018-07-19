@@ -6,6 +6,15 @@
 #include <boost/serialization/array.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/timer/timer.hpp>
+
+#include<config.h>
+#include<utils/macros.h>
+
+#include "data_containers.h"
+#include "threemomentum.h"
+
+CPSFIT_START_NAMESPACE
 
 template<typename _ContainerType, typename Extra = empty_t>
 class figureDataAllMomentaBase: public Extra{
@@ -206,5 +215,7 @@ void loadHDF5checkpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &ra
   read(rd,raw_data,"raw_data");
   read(rd,raw_bubble_data,"raw_bubble_data");
 }
+
+CPSFIT_END_NAMESPACE
 
 #endif
