@@ -1,28 +1,37 @@
 #ifndef _SAMPLEAMA_RESAMPLE_H
 #define _SAMPLEAMA_RESAMPLE_H
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include<distribution/raw_data_distribution.h>
+#include<distribution/jackknife.h>
+#include<distribution/double_jackknife.h>
+
+CPSFIT_START_NAMESPACE
+
 //We consider a quantity Y that resides on nS samples, and a quantity Z that resides on a disjoint set of nC samples
 //We define a super-ensemble of size nS+nC for which Y resides only on the first nS and Z only on the last nC
 //The algorithm for jackknife and double-jackknife then proceeds as normal by defining reduced and doubly-reduced ensembles and averaging over the remaining data
 
-jackknifeDistributionD superJackknifeResampleS(const rawDataDistributionD &data, const int nS, const int nC){
+jackknifeDistribution<double> superJackknifeResampleS(const rawDataDistribution<double> &data, const int nS, const int nC){
   assert(data.size() == nS);
   double Smean = data.mean();
   double Ssum = nS*Smean;
   
-  return jackknifeDistributionD(nS+nC,
+  return jackknifeDistribution<double>(nS+nC,
 				[&](const int s){
 				  if(s<nS) return 1./(nS-1)*(Ssum - data.sample(s));
 				  else return Smean;
 				}
 				);
 }
-jackknifeDistributionD superJackknifeResampleC(const rawDataDistributionD &data, const int nS, const int nC){
+jackknifeDistribution<double> superJackknifeResampleC(const rawDataDistribution<double> &data, const int nS, const int nC){
   assert(data.size() == nC);
   double Cmean = data.mean();
   double Csum = nC*Cmean;
   
-  return jackknifeDistributionD(nS+nC,
+  return jackknifeDistribution<double>(nS+nC,
 				[&](const int s){
 				  if(s<nS) return Cmean;
 				  else return 1./(nC-1)*(Csum - data.sample(s-nS));
@@ -30,12 +39,12 @@ jackknifeDistributionD superJackknifeResampleC(const rawDataDistributionD &data,
 				);
 }
 
-doubleJackknifeDistributionD superDoubleJackknifeResampleS_orig(const rawDataDistributionD &data, const int nS, const int nC){
+doubleJackknifeDistribution<double> superDoubleJackknifeResampleS_orig(const rawDataDistribution<double> &data, const int nS, const int nC){
   assert(data.size() == nS);
   double Smean = data.mean();
   double Ssum = nS*Smean;
   
-  doubleJackknifeDistributionD out(nS+nC);
+  doubleJackknifeDistribution<double> out(nS+nC);
   for(int i=0;i<nS+nC;i++){
     int jj=0;
     for(int j=0;j<nS+nC;j++){
@@ -51,14 +60,15 @@ doubleJackknifeDistributionD superDoubleJackknifeResampleS_orig(const rawDataDis
   return out;
 }
 
-doubleJackknifeDistributionD superDoubleJackknifeResampleS(const rawDataDistributionD &data, const int nS, const int nC){
+//A faster implementation of the above
+doubleJackknifeDistribution<double> superDoubleJackknifeResampleS(const rawDataDistribution<double> &data, const int nS, const int nC){
   assert(data.size() == nS);
   const double Smean = data.mean();
   const double Ssum = nS*Smean;
   const double invnSm2 = 1./(nS-2);
   const double invnSm1 = 1./(nS-1);
 
-  doubleJackknifeDistributionD out(nS+nC);
+  doubleJackknifeDistribution<double> out(nS+nC);
   for(int i=0;i<nS;i++){
     int jj = 0;
     for(int j=0;j<nS;j++){ //i<nS j<nS
@@ -84,12 +94,12 @@ doubleJackknifeDistributionD superDoubleJackknifeResampleS(const rawDataDistribu
 
 
 
-doubleJackknifeDistributionD superDoubleJackknifeResampleC_orig(const rawDataDistributionD &data, const int nS, const int nC){
+doubleJackknifeDistribution<double> superDoubleJackknifeResampleC_orig(const rawDataDistribution<double> &data, const int nS, const int nC){
   assert(data.size() == nC);
   double Cmean = data.mean();
   double Csum = nC*Cmean;
   
-  doubleJackknifeDistributionD out(nS+nC);
+  doubleJackknifeDistribution<double> out(nS+nC);
   for(int i=0;i<nS+nC;i++){
     int jj=0;
     for(int j=0;j<nS+nC;j++){
@@ -105,15 +115,15 @@ doubleJackknifeDistributionD superDoubleJackknifeResampleC_orig(const rawDataDis
   return out;
 }
 
-
-doubleJackknifeDistributionD superDoubleJackknifeResampleC(const rawDataDistributionD &data, const int nS, const int nC){
+//A faster implementation of the above
+doubleJackknifeDistribution<double> superDoubleJackknifeResampleC(const rawDataDistribution<double> &data, const int nS, const int nC){
   assert(data.size() == nC);
   const double Cmean = data.mean();
   const double Csum = nC*Cmean;
   const double invnCm2 = 1./(nC-2);
   const double invnCm1 = 1./(nC-1);
 
-  doubleJackknifeDistributionD out(nS+nC);
+  doubleJackknifeDistribution<double> out(nS+nC);
   for(int i=0;i<nS;i++){
     for(int jj=0;jj<nS-1;jj++){ //i<nS j<nS   (nS-1 samples where j!=i)
       out.sample(i).sample(jj) = Cmean;
@@ -144,17 +154,54 @@ template<typename DistributionType>
 struct sampleAMAresample{};
 
 template<>
-struct sampleAMAresample<jackknifeDistributionD>{
-  static inline jackknifeDistributionD resample(const rawDataDistributionD &in, const char ens, const int nS, const int nC){
+struct sampleAMAresample<jackknifeDistribution<double> >{
+  static inline jackknifeDistribution<double> resample(const rawDataDistribution<double> &in, const char ens, const int nS, const int nC){
     return ens == 'S' ? superJackknifeResampleS(in,nS,nC) : superJackknifeResampleC(in,nS,nC);
   }
 };
 template<>
-struct sampleAMAresample<doubleJackknifeDistributionD>{
-  static inline doubleJackknifeDistributionD resample(const rawDataDistributionD &in, const char ens, const int nS, const int nC){
+struct sampleAMAresample<doubleJackknifeDistribution<double> >{
+  static inline doubleJackknifeDistribution<double> resample(const rawDataDistribution<double> &in, const char ens, const int nS, const int nC){
     return ens == 'S' ? superDoubleJackknifeResampleS(in,nS,nC) : superDoubleJackknifeResampleC(in,nS,nC);
   }
 };
 
+//Class version of the above that can be used to resample many data
+class sampleAMA_resampler{
+  char ens;
+  int nS;
+  int nC;
+public:
+  sampleAMA_resampler(){}
+  sampleAMA_resampler(char _ens, int _nS, int _nC): ens(_ens), nS(_nS), nC(_nC){}
+
+  template<typename DistributionType>
+  inline void resample(DistributionType &out, const rawDataDistribution<double> &in) const{ 
+    out = sampleAMAresample<DistributionType>::resample(in,ens,nS,nC);
+  }
+};
+
+//Function to resample raw data and perform the sampleAMA correction together
+template<typename resampledDistributionType>
+resampledDistributionType sampleAMAresampleCorrect(const rawDataDistribution<double> &sloppy_S, const rawDataDistribution<double> &sloppy_C, const rawDataDistribution<double> &exact_C, 
+						   const sampleAMA_resampler &resampler_S, const sampleAMA_resampler &resampler_C, const std::string &descr = ""){
+  resampledDistributionType out_r, sloppy_S_r, sloppy_C_r, exact_C_r;
+  resampler_S.resample(sloppy_S_r, sloppy_S);
+  resampler_C.resample(sloppy_C_r, sloppy_C);
+  resampler_C.resample(exact_C_r, exact_C);
+  
+  out_r = sloppy_S_r + exact_C_r - sloppy_C_r;
+
+  if(descr != ""){
+    resampledDistributionType diff = out_r - sloppy_S_r;
+    resampledDistributionType reldiff = (out_r - sloppy_S_r)/sloppy_S_r;
+    std::cout << descr << " corrected:" << out_r << " sloppy:" << sloppy_S_r << " diff:" << diff << " reldiff:" << reldiff << std::endl;
+  }
+
+  return out_r;
+}
+
+
+CPSFIT_END_NAMESPACE
 
 #endif

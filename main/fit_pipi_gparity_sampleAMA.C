@@ -2,7 +2,6 @@
 
 using namespace CPSfit;
 
-#include <fit_simple_sampleAMA/sampleAMA_resample.h>
 #include <fit_pipi_gparity_sampleAMA/args.h>
 #include <fit_pipi_gparity_sampleAMA/cmdline.h>
 

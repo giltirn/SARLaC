@@ -102,13 +102,13 @@ void computeAlphaAndVacuumSubtractionsSampleAMACorrected(NumericTensor<resampled
       const int tB = (tK + tsep_k_pi) % Lt;
       
       resampledDistributionType mix4_nobub_rs = 
-	resampleCorrect<resampledDistributionType>(raw.raw_sloppy_S.mix4_alltK_nobub({tK,t}), raw.raw_sloppy_C.mix4_alltK_nobub({tK,t}), raw.raw_exact_C.mix4_alltK_nobub({tK,t}),
+	sampleAMAresampleCorrect<resampledDistributionType>(raw.raw_sloppy_S.mix4_alltK_nobub({tK,t}), raw.raw_sloppy_C.mix4_alltK_nobub({tK,t}), raw.raw_exact_C.mix4_alltK_nobub({tK,t}),
 						   inputs.resampler_S, inputs.resampler_C, printer::str(stringize("mix4(nobub)(tK=%d,t=%d)",tK,t)) );
       
       resampledDistributionType mix4_vacsub_rs = mix4_nobub_rs * bubble_rs(&tB);
       
       resampledDistributionType A0_type4_nobub_rs =
-	resampleCorrect<resampledDistributionType>(raw.raw_sloppy_S.A0_type4_alltK_nobub({q,tK,t}), raw.raw_sloppy_C.A0_type4_alltK_nobub({q,tK,t}), raw.raw_exact_C.A0_type4_alltK_nobub({q,tK,t}),
+	sampleAMAresampleCorrect<resampledDistributionType>(raw.raw_sloppy_S.A0_type4_alltK_nobub({q,tK,t}), raw.raw_sloppy_C.A0_type4_alltK_nobub({q,tK,t}), raw.raw_exact_C.A0_type4_alltK_nobub({q,tK,t}),
 						   inputs.resampler_S, inputs.resampler_C, printer::str(stringize("Q=%d type4(nobub)(tK=%d,t=%d)",q+1,tK,t)) );
       
       resampledDistributionType A0_type4_vacsub_rs = A0_type4_nobub_rs * bubble_rs(&tB);

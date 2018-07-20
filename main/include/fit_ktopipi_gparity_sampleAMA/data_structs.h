@@ -58,9 +58,9 @@ struct allBubbleData{
     bubble_exact_C_binned = bin(bubble_exact_C,inputs.args.bin_size);
 
     for(int t=0;t<inputs.args.Lt;t++){
-      bubble_j(&t) = resampleCorrect<jackknifeDistributionD>(bubble_sloppy_S_binned(&t), bubble_sloppy_C_binned(&t), bubble_exact_C_binned(&t), 
+      bubble_j(&t) = sampleAMAresampleCorrect<jackknifeDistributionD>(bubble_sloppy_S_binned(&t), bubble_sloppy_C_binned(&t), bubble_exact_C_binned(&t), 
 							     inputs.resampler_S, inputs.resampler_C, stringize("Bubble(%d)",t));
-      bubble_dj(&t) = resampleCorrect<doubleJackknifeDistributionD>(bubble_sloppy_S_binned(&t), bubble_sloppy_C_binned(&t), bubble_exact_C_binned(&t), 
+      bubble_dj(&t) = sampleAMAresampleCorrect<doubleJackknifeDistributionD>(bubble_sloppy_S_binned(&t), bubble_sloppy_C_binned(&t), bubble_exact_C_binned(&t), 
 							     inputs.resampler_S, inputs.resampler_C);
     }
   }

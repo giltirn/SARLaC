@@ -18,7 +18,7 @@ NumericTensor<DistributionType,1> resampleAverageTypeDataSampleAMA(const int typ
     average(raw_sloppy_S_avg, [&](const int i){ return raw.raw_sloppy_S.A0_alltK(type)({q,typedata_nonzerotK[i],t}); }, typedata_nonzerotK.size());
     average(raw_sloppy_C_avg, [&](const int i){ return raw.raw_sloppy_C.A0_alltK(type)({q,typedata_nonzerotK[i],t}); }, typedata_nonzerotK.size());
     average(raw_exact_C_avg,  [&](const int i){ return raw.raw_exact_C.A0_alltK(type)({q,typedata_nonzerotK[i],t}); }, typedata_nonzerotK.size());
-    out(&t) = resampleCorrect<DistributionType>(raw_sloppy_S_avg,raw_sloppy_C_avg,raw_exact_C_avg,
+    out(&t) = sampleAMAresampleCorrect<DistributionType>(raw_sloppy_S_avg,raw_sloppy_C_avg,raw_exact_C_avg,
 						inputs.resampler_S,inputs.resampler_C, printer::str(stringize("Q=%d type%d (tK avg)(t=%d)",q+1,type,t)) );
   }
   return out;
@@ -37,7 +37,7 @@ NumericTensor<DistributionType,1> resampleAverageMixDiagramSampleAMA(const int t
     average(raw_sloppy_S_avg, [&](const int i){ return raw.raw_sloppy_S.mix_alltK(type)({typedata_nonzerotK[i],t}); }, typedata_nonzerotK.size());
     average(raw_sloppy_C_avg, [&](const int i){ return raw.raw_sloppy_C.mix_alltK(type)({typedata_nonzerotK[i],t}); }, typedata_nonzerotK.size());
     average(raw_exact_C_avg,  [&](const int i){ return raw.raw_exact_C.mix_alltK(type)({typedata_nonzerotK[i],t}); }, typedata_nonzerotK.size());
-    out(&t) = resampleCorrect<DistributionType>(raw_sloppy_S_avg,raw_sloppy_C_avg,raw_exact_C_avg,
+    out(&t) = sampleAMAresampleCorrect<DistributionType>(raw_sloppy_S_avg,raw_sloppy_C_avg,raw_exact_C_avg,
 						inputs.resampler_S,inputs.resampler_C, printer::str(stringize("mix%d (tK avg)(t=%d)",type,t)) );
   }
   return out;
@@ -101,7 +101,7 @@ NumericTensor<DistributionType,1> resampleAverageSampleAMA(const allRawData &raw
     average(raw_sloppy_S_avg, [&](const int i){ return accessor(typedata_nonzerotK[i], t, raw.raw_sloppy_S); }, typedata_nonzerotK.size());
     average(raw_sloppy_C_avg, [&](const int i){ return accessor(typedata_nonzerotK[i], t, raw.raw_sloppy_C); }, typedata_nonzerotK.size());
     average(raw_exact_C_avg,  [&](const int i){ return accessor(typedata_nonzerotK[i], t, raw.raw_exact_C); }, typedata_nonzerotK.size());
-    out(&t) = resampleCorrect<DistributionType>(raw_sloppy_S_avg,raw_sloppy_C_avg,raw_exact_C_avg,
+    out(&t) = sampleAMAresampleCorrect<DistributionType>(raw_sloppy_S_avg,raw_sloppy_C_avg,raw_exact_C_avg,
 						inputs.resampler_S,inputs.resampler_C, printer::str(accessor.descr(t)) );
   }
   return out;

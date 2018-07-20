@@ -12,4 +12,5 @@
 #include<distribution/superjackknife.h>
 #include<distribution/bootstrap.h>
 #include<distribution/distribution_struct_peekpoke.h>
+#include<distribution/sampleAMA_resample.h>
 #endif

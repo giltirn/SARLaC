@@ -178,6 +178,16 @@ public:
 };
 
 
+//Return input string if types match, otherwise return an empty string
+template<typename T, typename U>
+struct printOnlyIfType{
+  inline static std::string str(const std::string &str){ return ""; }
+};
+template<typename T>
+struct printOnlyIfType<T,T>{
+  inline static std::string str(const std::string &str){ return str; }
+};
+
 
 CPSFIT_END_NAMESPACE
 #endif

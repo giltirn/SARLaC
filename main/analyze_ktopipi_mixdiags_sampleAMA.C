@@ -4,10 +4,8 @@ using namespace CPSfit;
 
 //#define PRINT_CORRECTION
 
-#include <fit_simple_sampleAMA/sampleAMA_resample.h>
 #include <fit_ktopipi_gparity_sampleAMA/cmdline.h>
 #include <fit_ktopipi_gparity_sampleAMA/args.h>
-#include <fit_ktopipi_gparity_sampleAMA/resample_correct.h>
 #include <fit_ktopipi_gparity_sampleAMA/data_structs.h>
 #include <fit_ktopipi_gparity_sampleAMA/resample_average_typedata.h>
 #include <fit_ktopipi_gparity_sampleAMA/alpha_vac_sub.h>
@@ -327,11 +325,11 @@ class getDataFixedTsepKpi{
 	int tK = type4_nonzerotK[i];
 	int tB = (tK + tsep_k_pi) % args.Lt;
 		  	
-#define RC(DIST,ARG) resampleCorrect<DIST>(raw.raw_sloppy_S. ARG,	\
-					   raw.raw_sloppy_C. ARG,	\
-					   raw.raw_exact_C. ARG,	\
-					   inputs.resampler_S,inputs.resampler_C);
-
+#define RC(DIST,ARG) sampleAMAresampleCorrect<DIST>(raw.raw_sloppy_S. ARG, \
+						    raw.raw_sloppy_C. ARG, \
+						    raw.raw_exact_C. ARG, \
+						    inputs.resampler_S,inputs.resampler_C);
+	
   
 	jackknifeDistributionD val_j = RC(jackknifeDistributionD, mix4_alltK_nobub({tK,t}));
 	doubleJackknifeDistributionD val_dj = RC(doubleJackknifeDistributionD, mix4_alltK_nobub({tK,t}));
