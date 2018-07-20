@@ -1,7 +1,12 @@
 #ifndef _KTOPIPI_FREEZE_H_
 #define _KTOPIPI_FREEZE_H_
 
+#include<config.h>
+#include<utils/macros.h>
+
 #include<fit.h>
+
+CPSFIT_START_NAMESPACE
 
 #define KTOPIPI_FREEZE_PARAM_MEMBERS \
   (std::vector<int>, Qlist) \
@@ -78,5 +83,7 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const std::s
 
   fitter.freeze(freeze, values);
 }
+
+CPSFIT_END_NAMESPACE
 
 #endif

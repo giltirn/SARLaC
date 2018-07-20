@@ -1,8 +1,17 @@
 #ifndef _FIT_KTOPIPI_READ_DATA_H
 #define _FIT_KTOPIPI_READ_DATA_H
 
+#include<config.h>
+#include<utils/macros.h>
+
 #include<algorithm>
 #include<parser.h>
+
+#include<pipi_common/read_data.h>
+
+#include "data_containers.h"
+
+CPSFIT_START_NAMESPACE
 
 inline std::string typeFile(const int traj, const int type, const int tsep_k_pi, const int tsep_pipi, const std::string &data_dir, const bool use_symmetric_quark_momenta, const std::string &symmetric_quark_momenta_figure_file_extension, const threeMomentum &mom = {0,0,0}){
   std::ostringstream os;
@@ -106,38 +115,7 @@ void readBubble(HDF5reader &reader, NumericTensor<rawDataDistributionD,1> &value
 }
 #endif
 
-NumericTensor<rawDataDistributionD,1> getA2projectedBubble(const Args &args, const CMDline &cmdline){
-  NumericTensor<rawDataDistributionD,1> bubble;
-  if(cmdline.load_data_checkpoint){
-#ifdef HAVE_HDF5
-    std::ostringstream file; file << cmdline.load_data_checkpoint_stub << "_bubble.hdf5";
-    std::cout << "Loading checkpoint data for bubble from " << file.str() << std::endl;
-    HDF5reader rd(file.str());
-    readBubble(rd,bubble,"bubble");
-#else
-    error_exit(std::cout << "Checkpointing of data requires HDF5\n");
-#endif
-  }else{
-    bubble = readA2projectedBubble(args.traj_start,args.traj_inc,args.traj_lessthan,args.tsep_pipi,args.Lt,args.data_dir,cmdline.use_symmetric_quark_momenta);
-  }
-  if(cmdline.save_data_checkpoint){
-#ifdef HAVE_HDF5
-    std::ostringstream file; file << cmdline.save_data_checkpoint_stub << "_bubble.hdf5";
-    std::cout << "Saving checkpoint data for bubble to " << file.str() << std::endl;
-    HDF5writer wr(file.str());
-    writeBubble(wr,bubble,"bubble");
-#else
-    error_exit(std::cout << "Checkpointing of data requires HDF5\n");
-#endif
-  }
-  return bubble;
-}
 
-template<typename FitFuncPolicies>
-inline void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const CMDline &cmdline, const int nsample){
-  if(!cmdline.load_freeze_data) return;  
-  readFrozenParams<FitFuncPolicies>(fitter,Q,cmdline.freeze_data,nsample);
-}
-
+CPSFIT_END_NAMESPACE
 
 #endif

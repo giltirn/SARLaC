@@ -1,40 +1,6 @@
-#include<array>
-#include<vector>
-#include<complex>
-#include<iostream>
-#include<fstream>
-
-#include <boost/timer/timer.hpp>
-
-#include<utils.h>
-#include<distribution.h>
-#include<common.h>
-#include<tensors.h>
-#include<data_series.h>
-#include<fit.h>
-#include<parser.h>
-#include<serialize.h>
-#include<plot.h>
-#include<containers.h>
-#include<random.h>
-
-#include <pipi_common/read_data.h>
+#include <ktopipi_common/ktopipi_common.h>
 
 using namespace CPSfit;
-
-#include <fit_ktopipi_gparity/utils.h>
-#include <fit_ktopipi_gparity/freeze.h>
-#include <fit_ktopipi_gparity/cmdline.h>
-#include <fit_ktopipi_gparity/args.h>
-#include <fit_ktopipi_gparity/data_containers.h>
-#include <fit_ktopipi_gparity/read_data.h>
-#include <fit_ktopipi_gparity/compute_amplitude.h>
-#include <fit_ktopipi_gparity/amplitude_data.h>
-#include <fit_ktopipi_gparity/fitfunc.h>
-#include <fit_ktopipi_gparity/plot.h>
-#include <fit_ktopipi_gparity/fit.h>
-#include <fit_ktopipi_gparity/scratch.h>
-#include <fit_ktopipi_gparity/main.h>
 
 //#define PRINT_CORRECTION
 
@@ -227,7 +193,8 @@ int main(const int argc, const char* argv[]){
 
   if(cmdline.plot_only){
     std::cout << "Plotting results and exiting\n";
-    PlotOnlyInputs pi(inputs.args_S,inputs.cmdline_sloppy_S);
+    assert(cmdline.load_amplitude_data);
+    PlotOnlyInputs pi(args.Lt, args.tmin_k_op, args.tmin_op_pi, cmdline.load_amplitude_data_file);
     fitfuncCall<PlotOnlyInputs,PlotOnlyCall>(args.fitfunc,pi);
     std::cout << "Done" << std::endl;
     return 0;

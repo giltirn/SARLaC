@@ -1,6 +1,8 @@
 #ifndef _FIT_KTOPIPI_GPARITY_SAMPLEAMA_CMDLINE_H
 #define _FIT_KTOPIPI_GPARITY_SAMPLEAMA_CMDLINE_H
 
+#include<containers/constrained_memory_vector.h>
+
 #include<fit_ktopipi_gparity/args.h>
 
 enum SloppyExact {Sloppy, Exact};
@@ -45,42 +47,7 @@ struct SampleAMAcmdLine{
 
   bool plot_only;
 
-  CMDline toCMDline(const char ens, const SloppyExact se) const{
-    CMDline out;
-    out.load_guess = load_guess;
-    out.guess_file = guess_file;
-
-    out.load_amplitude_data = load_amplitude_data;
-    out.load_amplitude_data_file = load_amplitude_data_file;
-    out.save_amplitude_data = save_amplitude_data;
-    out.save_amplitude_data_file = save_amplitude_data_file;
-    out.load_freeze_data = load_freeze_data;
-    out.freeze_data = freeze_data;
-    out.use_scratch = use_scratch;
-    out.use_existing_scratch_files = use_existing_scratch_files;
-    out.symmetric_quark_momenta_figure_file_extension = symmetric_quark_momenta_figure_file_extension;
-
-    if(ens == 'S'){
-      assert(se == Sloppy);
-      out.load_data_checkpoint = load_data_checkpoint_sloppy_S;
-      out.save_data_checkpoint = save_data_checkpoint_sloppy_S;
-      out.load_data_checkpoint_stub = load_data_checkpoint_stub_sloppy_S;
-      out.save_data_checkpoint_stub = save_data_checkpoint_stub_sloppy_S;
-      out.use_scratch_stub = use_scratch_stub + "_sloppy_S";
-      out.use_symmetric_quark_momenta = false;
-    }else{
-      out.load_data_checkpoint = se == Sloppy ? load_data_checkpoint_sloppy_C : load_data_checkpoint_exact_C;     
-      out.save_data_checkpoint = se == Sloppy ? save_data_checkpoint_sloppy_C : save_data_checkpoint_exact_C;     
-      out.load_data_checkpoint_stub = se == Sloppy ? load_data_checkpoint_stub_sloppy_C : load_data_checkpoint_stub_exact_C;
-      out.save_data_checkpoint_stub = se == Sloppy ? save_data_checkpoint_stub_sloppy_C : save_data_checkpoint_stub_exact_C;
-      out.use_scratch_stub = use_scratch_stub + (se == Sloppy ? "_sloppy_C" : "_exact_C");
-      out.use_symmetric_quark_momenta = (se == Exact);
-    }
-    return out;
-  }
-
-
-SampleAMAcmdLine(){
+  SampleAMAcmdLine(){
     load_guess = false;
     load_data_checkpoint_sloppy_S = false;
     load_data_checkpoint_sloppy_C = false;
@@ -187,6 +154,40 @@ SampleAMAcmdLine(){
       }
     }
   }
+
+
+  readKtoPiPiDataOptions getReadOptions(const char ens, const SloppyExact se){
+    readKtoPiPiDataOptions out;
+    out.symmetric_quark_momenta_figure_file_extension = symmetric_quark_momenta_figure_file_extension;
+
+    if(ens == 'S'){
+      assert(se == Sloppy);
+
+      out.load_data_checkpoint = load_data_checkpoint_sloppy_S;
+      out.load_data_checkpoint_stub = load_data_checkpoint_stub_sloppy_S;
+      out.save_data_checkpoint = save_data_checkpoint_sloppy_S;
+      out.save_data_checkpoint_stub = save_data_checkpoint_stub_sloppy_S;
+      out.use_symmetric_quark_momenta = false;
+    }else{
+      assert(ens == 'C');
+      
+      if(se == Sloppy){
+	out.load_data_checkpoint = load_data_checkpoint_sloppy_C;
+	out.load_data_checkpoint_stub = load_data_checkpoint_stub_sloppy_C;
+	out.save_data_checkpoint = save_data_checkpoint_sloppy_C;
+	out.save_data_checkpoint_stub = save_data_checkpoint_stub_sloppy_C;
+	out.use_symmetric_quark_momenta = false;
+      }else{
+	out.load_data_checkpoint = load_data_checkpoint_exact_C;
+	out.load_data_checkpoint_stub = load_data_checkpoint_stub_exact_C;
+	out.save_data_checkpoint = save_data_checkpoint_exact_C;
+	out.save_data_checkpoint_stub = save_data_checkpoint_stub_exact_C;
+	out.use_symmetric_quark_momenta = false;
+      }
+    }
+    return out;
+  }
+
 };
 
 template<typename FreezeType = KtoPiPiFreezeParams>

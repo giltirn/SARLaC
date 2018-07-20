@@ -1,10 +1,17 @@
 #ifndef _FIT_KTOPIPI_GPARITY_FITFUNC_H
 #define _FIT_KTOPIPI_GPARITY_FITFUNC_H
 
-#include<parser.h>
+#include<config.h>
+#include<utils/macros.h>
+
+#include<distribution.h>
 #include<containers/enumerated_struct.h>
+#include<tensors/dual_number.h>
 
 #include "enums.h"
+
+CPSFIT_START_NAMESPACE
+
 
 struct amplitudeDataCoord{
   double t; //K->op separation
@@ -67,7 +74,7 @@ public:
 DEF_ENUMERATED_STRUCT_MEMBER_EXTERNAL(FitKtoPiPi, FIT_KTOPIPI_PARAMS);
 
 template<>
-struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPi::Params> >{
+struct printStats<jackknifeDistribution<FitKtoPiPi::Params> >{
   inline static std::string centralValue(const jackknifeDistribution<FitKtoPiPi::Params> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi << ", " << best.M << ")";
@@ -127,7 +134,7 @@ public:
 DEF_ENUMERATED_STRUCT_MEMBER_EXTERNAL(FitKtoPiPiWithConstant, FIT_KTOPIPI_WITH_CONSTANT_PARAMS);
 
 template<>
-struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPiWithConstant::Params> >{
+struct printStats<jackknifeDistribution<FitKtoPiPiWithConstant::Params> >{
   inline static std::string centralValue(const jackknifeDistribution<FitKtoPiPiWithConstant::Params> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi << ", " << best.M << ", " << best.C << ")";
@@ -187,7 +194,7 @@ public:
 DEF_ENUMERATED_STRUCT_MEMBER_EXTERNAL(FitKtoPiPiTwoExp, FIT_KTOPIPI_TWO_EXP_PARAMS);
 
 template<>
-struct CPSfit::printStats<jackknifeDistribution<FitKtoPiPiTwoExp::Params> >{
+struct printStats<jackknifeDistribution<FitKtoPiPiTwoExp::Params> >{
   inline static std::string centralValue(const jackknifeDistribution<FitKtoPiPiTwoExp::Params> &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " 
@@ -382,13 +389,13 @@ struct SimFitParams{
 };
 
 template<int N>
-struct CPSfit::getElem<SimFitParams<N> >{
+struct getElem<SimFitParams<N> >{
   static inline auto elem(const SimFitParams<N> &v, const int i)->decltype(v(i)){ return v(i); }
   static inline int common_properties(const SimFitParams<N> &v){ return 0; }
 };
 
 template<int N>
-struct CPSfit::printStats<jackknifeDistribution<SimFitParams<N> > >{
+struct printStats<jackknifeDistribution<SimFitParams<N> > >{
   inline static std::string centralValue(const jackknifeDistribution<SimFitParams<N> > &d){
     auto best = d.best();
     std::ostringstream os; os << "(" << best.AK << ", " << best.mK << ", " << best.Apipi << ", " << best.Epipi;
@@ -488,5 +495,7 @@ inline void fitfuncCall(const KtoPiPiFitFunc fitfunc, const Inputs &inputs){
   }
 }
 
+
+CPSFIT_END_NAMESPACE
 
 #endif

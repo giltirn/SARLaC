@@ -1,7 +1,18 @@
 #ifndef _KTOPIPI_PLOT_H_
 #define _KTOPIPI_PLOT_H_
 
-#include <plot.h>
+#include<set>
+
+#include<config.h>
+#include<utils/macros.h>
+#include<utils/utils/error.h>
+
+#include<common.h>
+#include<plot.h>
+
+#include "fitfunc.h"
+
+CPSFIT_START_NAMESPACE
 
 //Perform the error-weighted average of all data with fixed  tsep_op_pi  subject to a cut on the minimum tsep_k_op separation. Output coord is tsep_op_pi
 void errorWeightedAverage(std::vector<correlationFunction<double, jackknifeDistributionD> > &out,
@@ -172,18 +183,6 @@ void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCo
     plotter.write( filename_stub.str()+".py", filename_stub.str()+".pdf");
   }
 }
-template<typename MdataExtractor>
-inline void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, const MdataExtractor &extractor, const Args &args){
-  return plotErrorWeightedData(data,extractor,args.tmin_k_op,args.tmin_op_pi);
-}
-
-
-
-
-
-
-
-
 
 void plotErrorWeightedData2exp(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, 
 			       const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &fit_params,
@@ -515,37 +514,39 @@ template<typename FitFunc>
 struct plotFF{
   inline static void plot(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
 			  const typename fitReturnType<FitFunc>::type &fit_params,
-			  const Args &args, const CMDline &cmdline){
+			  const int Lt, const int tmin_k_op, const int tmin_op_pi){
     extractMdata<FitFunc> extractor(fit_params);
-    plotErrorWeightedData(A0_all_j,extractor,args);
+    plotErrorWeightedData(A0_all_j,extractor,tmin_k_op,tmin_op_pi);
   }
 };
 template<>
 struct plotFF<FitKtoPiPiTwoExp>{
   inline static void plot(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
 			  const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &fit_params,
-			  const Args &args, const CMDline &cmdline){
+			  const int Lt, const int tmin_k_op, const int tmin_op_pi){
     int nsample = A0_all_j[0].value(0).size();
-    plotErrorWeightedData2exp(A0_all_j, fit_params, args.Lt, args.tmin_k_op, args.tmin_op_pi);
-    plotErrorWeightedData2expFlat(A0_all_j, fit_params, args.Lt, args.tmin_k_op, args.tmin_op_pi);
+    plotErrorWeightedData2exp(A0_all_j, fit_params, Lt, tmin_k_op, tmin_op_pi);
+    plotErrorWeightedData2expFlat(A0_all_j, fit_params, Lt, tmin_k_op, tmin_op_pi);
   }
 };
 
 struct PlotOnlyInputs{
-  const Args &args;
-  const CMDline &cmdline;
+  const int Lt;
+  const int tmin_k_op;
+  const int tmin_op_pi;
 
-  PlotOnlyInputs(const Args &args,
-		 const CMDline &cmdline): args(args), cmdline(cmdline){}
+  std::string load_amplitude_data_file;
+
+  PlotOnlyInputs(const int Lt, const int tmin_k_op, const int tmin_op_pi, const std::string &load_amplitude_data_file): Lt(Lt), tmin_k_op(tmin_k_op), tmin_op_pi(tmin_op_pi), load_amplitude_data_file(load_amplitude_data_file){}
 };
 template<typename FitFunc>
 struct PlotOnlyCall{
   static void call(const PlotOnlyInputs &inputs){
-    if(!inputs.cmdline.load_amplitude_data) error_exit(std::cout << "plot_only option requires checkpointed jackknife data\n");
+    if(!fileExists(inputs.load_amplitude_data_file)) error_exit(std::cout << "PlotOnlyCall::call Must provide a valid checkpoint file, got \"" << inputs.load_amplitude_data_file << "\"\n");
     std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
 #ifdef HAVE_HDF5
     {
-      HDF5reader reader(inputs.cmdline.load_amplitude_data_file);
+      HDF5reader reader(inputs.load_amplitude_data_file);
       read(reader, A0_all_j, "A0_all_j");
     }
 #else
@@ -558,10 +559,11 @@ struct PlotOnlyCall{
 #else
     assert(0);
 #endif
-    plotFF<FitFunc>::plot(A0_all_j, fit_params, inputs.args, inputs.cmdline);
+    plotFF<FitFunc>::plot(A0_all_j, fit_params, inputs.Lt, inputs.tmin_k_op, inputs.tmin_op_pi);
   }
     
 };
 
+CPSFIT_END_NAMESPACE
 
 #endif

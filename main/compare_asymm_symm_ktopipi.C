@@ -1,38 +1,6 @@
-#include<array>
-#include<vector>
-#include<complex>
-#include<iostream>
-#include<fstream>
-
-#include <boost/timer/timer.hpp>
-
-#include<utils.h>
-#include<distribution.h>
-#include<common.h>
-#include<tensors.h>
-#include<data_series.h>
-#include<fit.h>
-#include<parser.h>
-#include<serialize.h>
-#include<containers.h>
-
-#include <pipi_common/read_data.h>
+#include <ktopipi_common/ktopipi_common.h>
 
 using namespace CPSfit;
-
-#include <fit_ktopipi_gparity/freeze.h>
-#include <fit_ktopipi_gparity/cmdline.h>
-#include <fit_ktopipi_gparity/args.h>
-#include <fit_ktopipi_gparity/data_containers.h>
-#include <fit_ktopipi_gparity/read_data.h>
-#include <fit_ktopipi_gparity/compute_amplitude.h>
-#include <fit_ktopipi_gparity/fitfunc.h>
-#include <fit_ktopipi_gparity/plot.h>
-#include <fit_ktopipi_gparity/fit.h>
-#include <fit_ktopipi_gparity/utils.h>
-#include <fit_ktopipi_gparity/scratch.h>
-#include <fit_ktopipi_gparity/amplitude_data.h>
-#include <fit_ktopipi_gparity/main.h>
 
 #include <compare_asymm_symm_ktopipi/cmdline.h>
 #include <compare_asymm_symm_ktopipi/args.h>
@@ -129,8 +97,6 @@ void analyze(const BubbleData &bubble_data_asymm,
 	     const BubbleData &bubble_data_symm,
 	     const int tsep_k_pi_idx, const ComparisonArgs &args, const ComparisonCMDline &cmdline){
   basic_resampler resampler;
-  Args args_asymm = args.toArgs(Asymmetric);
-  Args args_symm = args.toArgs(Symmetric);
 
   std::cout << "Comparing data for tsep_k_pi = " <<  args.tsep_k_pi[tsep_k_pi_idx] << std::endl;
   int tsep_k_pi = args.tsep_k_pi[tsep_k_pi_idx];
@@ -225,27 +191,27 @@ void analyze(const BubbleData &bubble_data_asymm,
     NumericTensor<jackknifeDistributionD,1> mix4_srcavg_vacsub_j_asymm({args.Lt}), mix4_srcavg_vacsub_j_symm({args.Lt}); //[t]
 
     computeAlphaAndVacuumSubtractions(alpha_j_asymm,A0_type4_srcavg_vacsub_j_asymm,mix4_srcavg_vacsub_j_asymm,
-				      A0_type4_alltK_nobub_asymm,mix4_alltK_nobub_asymm,bubble_data_asymm.bubble_j,q,type4_nonzerotK,tsep_k_pi,args_asymm, resampler);
+				      A0_type4_alltK_nobub_asymm,mix4_alltK_nobub_asymm,bubble_data_asymm.bubble_j,q,type4_nonzerotK,tsep_k_pi,args.Lt, resampler);
 
     computeAlphaAndVacuumSubtractions(alpha_j_symm,A0_type4_srcavg_vacsub_j_symm,mix4_srcavg_vacsub_j_symm,
-				      A0_type4_alltK_nobub_symm,mix4_alltK_nobub_symm,bubble_data_symm.bubble_j,q,type4_nonzerotK,tsep_k_pi,args_symm, resampler);
+				      A0_type4_alltK_nobub_symm,mix4_alltK_nobub_symm,bubble_data_symm.bubble_j,q,type4_nonzerotK,tsep_k_pi,args.Lt, resampler);
 
     compare(alpha_j_asymm, alpha_j_symm, tsep_k_pi, "Alpha");
 
     std::cout << "Computing single-jackknife tK averages and mix diagrams\n";
-    NumericTensor<jackknifeDistributionD,1> A0_type1_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type1_alltK_asymm, q, type1_nonzerotK, args_asymm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> A0_type2_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type2_alltK_asymm, q, type2_nonzerotK, args_asymm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> A0_type3_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type3_alltK_asymm, q, type3_nonzerotK, args_asymm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> A0_type4_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type4_alltK_asymm, q, type4_nonzerotK, args_asymm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> mix3_srcavg_j_asymm = resampleAverageMixDiagram<jackknifeDistributionD>(mix3_alltK_asymm, type3_nonzerotK, args_asymm, resampler);
-    NumericTensor<jackknifeDistributionD,1> mix4_srcavg_j_asymm = resampleAverageMixDiagram<jackknifeDistributionD>(mix4_alltK_asymm, type4_nonzerotK, args_asymm, resampler);
+    NumericTensor<jackknifeDistributionD,1> A0_type1_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type1_alltK_asymm, q, type1_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type2_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type2_alltK_asymm, q, type2_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type3_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type3_alltK_asymm, q, type3_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type4_srcavg_j_asymm = resampleAverageTypeData<jackknifeDistributionD>(A0_type4_alltK_asymm, q, type4_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> mix3_srcavg_j_asymm = resampleAverageMixDiagram<jackknifeDistributionD>(mix3_alltK_asymm, type3_nonzerotK, args.Lt, resampler);
+    NumericTensor<jackknifeDistributionD,1> mix4_srcavg_j_asymm = resampleAverageMixDiagram<jackknifeDistributionD>(mix4_alltK_asymm, type4_nonzerotK, args.Lt, resampler);
 
-    NumericTensor<jackknifeDistributionD,1> A0_type1_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type1_alltK_symm, q, type1_nonzerotK, args_symm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> A0_type2_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type2_alltK_symm, q, type2_nonzerotK, args_symm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> A0_type3_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type3_alltK_symm, q, type3_nonzerotK, args_symm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> A0_type4_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type4_alltK_symm, q, type4_nonzerotK, args_symm, resampler); //[t]
-    NumericTensor<jackknifeDistributionD,1> mix3_srcavg_j_symm = resampleAverageMixDiagram<jackknifeDistributionD>(mix3_alltK_symm, type3_nonzerotK, args_symm, resampler);
-    NumericTensor<jackknifeDistributionD,1> mix4_srcavg_j_symm = resampleAverageMixDiagram<jackknifeDistributionD>(mix4_alltK_symm, type4_nonzerotK, args_symm, resampler);
+    NumericTensor<jackknifeDistributionD,1> A0_type1_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type1_alltK_symm, q, type1_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type2_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type2_alltK_symm, q, type2_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type3_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type3_alltK_symm, q, type3_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> A0_type4_srcavg_j_symm = resampleAverageTypeData<jackknifeDistributionD>(A0_type4_alltK_symm, q, type4_nonzerotK, args.Lt, resampler); //[t]
+    NumericTensor<jackknifeDistributionD,1> mix3_srcavg_j_symm = resampleAverageMixDiagram<jackknifeDistributionD>(mix3_alltK_symm, type3_nonzerotK, args.Lt, resampler);
+    NumericTensor<jackknifeDistributionD,1> mix4_srcavg_j_symm = resampleAverageMixDiagram<jackknifeDistributionD>(mix4_alltK_symm, type4_nonzerotK, args.Lt, resampler);
 
     compare(A0_type1_srcavg_j_asymm, A0_type1_srcavg_j_symm, tsep_k_pi, "Type 1");
     compare(A0_type2_srcavg_j_asymm, A0_type2_srcavg_j_symm, tsep_k_pi, "Type 2");
@@ -289,23 +255,18 @@ void analyze(const BubbleData &bubble_data_asymm,
 
 void analyze(const ComparisonArgs &args, const ComparisonCMDline &cmdline){
   //Read the bubble data
-  Args args_asymm = args.toArgs(Asymmetric);
-  Args args_symm = args.toArgs(Symmetric);
-  CMDline cmdline_asymm = cmdline.toCMDline(Asymmetric);
-  CMDline cmdline_symm = cmdline.toCMDline(Symmetric);
   basic_resampler resampler;
-  BubbleData bubble_data_asymm(args_asymm,cmdline_asymm,resampler);
-  BubbleData bubble_data_symm(args_symm,cmdline_symm,resampler);
-  
+
+  readKtoPiPiDataOptions opt_asymm = cmdline.getReadOptions(Asymmetric);
+  BubbleData bubble_data_asymm(args.data_dir_asymm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, resampler, opt_asymm);
+
+  readKtoPiPiDataOptions opt_symm = cmdline.getReadOptions(Symmetric);
+  BubbleData bubble_data_symm(args.data_dir_symm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, resampler, opt_symm);
+ 
   for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
     analyze(bubble_data_asymm,bubble_data_symm,tsep_k_pi_idx,args,cmdline);  
   }	
 }
-
-
-
-
-
 
 int main(const int argc, const char* argv[]){
   ComparisonArgs args;

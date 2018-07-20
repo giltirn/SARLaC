@@ -1,6 +1,17 @@
 #ifndef _FIT_KTOPIPI_DATA_CONTAINERS_H_
 #define _FIT_KTOPIPI_DATA_CONTAINERS_H_
 
+#include <boost/timer/timer.hpp>
+
+#include<config.h>
+#include<utils/macros.h>
+
+#include<distribution.h>
+#include<common.h>
+
+CPSFIT_START_NAMESPACE
+
+
 struct contractionData{
   std::vector<rawDataDistributionD> d;
 
@@ -332,5 +343,8 @@ typedef doubleJackknifeDistribution<double, constrainedMemoryVector> doubleJackk
 #else
 typedef doubleJackknifeDistribution<double, basic_vector> doubleJackknifeA0StorageType;
 #endif
+
+
+CPSFIT_END_NAMESPACE
 
 #endif

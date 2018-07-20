@@ -1,38 +1,10 @@
-#include<array>
-#include<vector>
-#include<complex>
-#include<iostream>
-#include<fstream>
-
-#include <boost/timer/timer.hpp>
-
-#include<utils.h>
-#include<distribution.h>
-#include<common.h>
-#include<tensors.h>
-#include<data_series.h>
-#include<fit.h>
-#include<parser.h>
-#include<serialize.h>
-#include<containers.h>
-
-#include <pipi_common/read_data.h>
+#include<ktopipi_common/ktopipi_common.h>
 
 using namespace CPSfit;
 
-#include <fit_ktopipi_gparity/utils.h>
-#include <fit_ktopipi_gparity/freeze.h>
 #include <fit_ktopipi_gparity/cmdline.h>
 #include <fit_ktopipi_gparity/args.h>
-#include <fit_ktopipi_gparity/data_containers.h>
-#include <fit_ktopipi_gparity/read_data.h>
-#include <fit_ktopipi_gparity/compute_amplitude.h>
-#include <fit_ktopipi_gparity/amplitude_data.h>
-#include <fit_ktopipi_gparity/fitfunc.h>
-#include <fit_ktopipi_gparity/plot.h>
-#include <fit_ktopipi_gparity/fit.h>
-#include <fit_ktopipi_gparity/scratch.h>
-#include <fit_ktopipi_gparity/main.h>
+
 
 int main(const int argc, const char* argv[]){
   printMem("Beginning of execution");
@@ -50,13 +22,17 @@ int main(const int argc, const char* argv[]){
   CMDline cmdline(argc,argv,2);
   
   //Prepare the data
+  readKtoPiPiAllDataOptions read_opt;
+  read_opt.import(cmdline);
+
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > A0_all_dj(10);
   printMem("Prior to getData");
-  getData(A0_all_j, A0_all_dj,args,cmdline);
+
+  getData(A0_all_j, A0_all_dj, args.tsep_k_pi, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, read_opt);
   
   printMem("Prior to fitting");
-  fitAndPlot(A0_all_j,A0_all_dj,args,cmdline);
+  fitAndPlot(A0_all_j,A0_all_dj, args.Lt, args.tmin_k_op, args.tmin_op_pi, args.fitfunc, args.correlated, cmdline.load_freeze_data, cmdline.freeze_data);
   
   std::cout << "Done" << std::endl;
   

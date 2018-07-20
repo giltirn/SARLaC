@@ -1,6 +1,16 @@
 #ifndef _FIT_KTOPIPI_GPARITY_COMPUTE_AMPLITUDE_H
 #define _FIT_KTOPIPI_GPARITY_COMPUTE_AMPLITUDE_H
 
+#include<config.h>
+#include<utils/macros.h>
+
+#include<distribution.h>
+#include<common.h>
+
+#include "data_containers.h"
+
+CPSFIT_START_NAMESPACE
+
 enum LR{ VpA, VmA }; 
 rawDataDistributionD computeLRcontraction(const int cidx, const int i, const LR g1, const int j, const LR g2, const contractions &from){
   //(V+aA)(V+bA) = V bA + aA V
@@ -166,5 +176,6 @@ typename Controls::outputType computeAmplitudeType(const int i, const typename C
   }
 };
 
+CPSFIT_END_NAMESPACE
 
 #endif

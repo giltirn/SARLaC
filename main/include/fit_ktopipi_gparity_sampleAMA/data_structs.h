@@ -5,17 +5,15 @@ struct allInputs{
   SampleAMAargs args;
   SampleAMAcmdLine cmdline;
 
-  Args args_S;
-  Args args_C;
-  CMDline cmdline_sloppy_S;
-  CMDline cmdline_sloppy_C;
-  CMDline cmdline_exact_C;
-
   int nS;
   int nC;
 
   sampleAMA_resampler resampler_S;
   sampleAMA_resampler resampler_C;
+
+  readKtoPiPiDataOptions read_opts_sloppy_S;
+  readKtoPiPiDataOptions read_opts_sloppy_C;
+  readKtoPiPiDataOptions read_opts_exact_C;
 
   allInputs(const SampleAMAargs &_args, const SampleAMAcmdLine &_cmdline): args(_args), cmdline(_cmdline){
     nS = (args.traj_lessthan_S - args.traj_start_S)/args.traj_inc/args.bin_size;
@@ -24,12 +22,9 @@ struct allInputs{
     resampler_S = sampleAMA_resampler('S',nS,nC);
     resampler_C = sampleAMA_resampler('C',nS,nC);
 
-    args_S = args.toArgs('S');
-    args_C = args.toArgs('C');
-    
-    cmdline_sloppy_S = cmdline.toCMDline('S',Sloppy);
-    cmdline_sloppy_C = cmdline.toCMDline('C',Sloppy);
-    cmdline_exact_C = cmdline.toCMDline('C',Exact);
+    read_opts_sloppy_S = cmdline.getReadOptions('S',Sloppy);    
+    read_opts_sloppy_C = cmdline.getReadOptions('C',Sloppy);    
+    read_opts_exact_C = cmdline.getReadOptions('C',Exact);    
   }
 };
 
@@ -48,11 +43,15 @@ struct allBubbleData{
   NumericTensor<jackknifeDistributionD,1> bubble_j;
   NumericTensor<doubleJackknifeDistributionD,1> bubble_dj;
 
-
   allBubbleData(const allInputs &inputs): bubble_j({inputs.args.Lt}), bubble_dj({inputs.args.Lt}){
-    bubble_sloppy_S = getA2projectedBubble(inputs.args_S,inputs.cmdline_sloppy_S);
-    bubble_sloppy_C = getA2projectedBubble(inputs.args_C,inputs.cmdline_sloppy_C);
-    bubble_exact_C = getA2projectedBubble(inputs.args_C,inputs.cmdline_exact_C);
+    bubble_sloppy_S = getA2projectedBubble(inputs.args.data_dir_S, inputs.args.traj_start_S, inputs.args.traj_inc, inputs.args.traj_lessthan_S,
+					   inputs.args.Lt, inputs.args.tsep_pipi, inputs.read_opts_sloppy_S);
+
+    bubble_sloppy_C = getA2projectedBubble(inputs.args.data_dir_C, inputs.args.traj_start_C, inputs.args.traj_inc, inputs.args.traj_lessthan_C,
+					   inputs.args.Lt, inputs.args.tsep_pipi, inputs.read_opts_sloppy_C);
+
+    bubble_exact_C = getA2projectedBubble(inputs.args.data_dir_C, inputs.args.traj_start_C, inputs.args.traj_inc, inputs.args.traj_lessthan_C,
+					   inputs.args.Lt, inputs.args.tsep_pipi, inputs.read_opts_exact_C);
 
     bubble_sloppy_S_binned = bin(bubble_sloppy_S,inputs.args.bin_size);
     bubble_sloppy_C_binned = bin(bubble_sloppy_C,inputs.args.bin_size);
@@ -105,13 +104,18 @@ struct allRawData{
     BubbleData bubble_sloppy_S = bubble_data.extractUnbinnedBubble('S',Sloppy);
     BubbleData bubble_sloppy_C = bubble_data.extractUnbinnedBubble('C',Sloppy);
     BubbleData bubble_exact_C = bubble_data.extractUnbinnedBubble('C',Exact);
-    
+
     std::cout << "allRawData loading sloppy_S" << std::endl;
-    raw_sloppy_S = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_S, inputs.args_S, inputs.cmdline_sloppy_S);
+    raw_sloppy_S = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_S, inputs.args.data_dir_S, inputs.args.traj_start_S, inputs.args.traj_inc, inputs.args.traj_lessthan_S, inputs.args.bin_size,
+				  inputs.args.Lt, inputs.args.tsep_pipi, inputs.read_opts_sloppy_S);
+
     std::cout << "allRawData loading sloppy_C" << std::endl;
-    raw_sloppy_C = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_C, inputs.args_C, inputs.cmdline_sloppy_C);
+    raw_sloppy_C = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_C, inputs.args.data_dir_C, inputs.args.traj_start_C, inputs.args.traj_inc, inputs.args.traj_lessthan_C, inputs.args.bin_size,
+				  inputs.args.Lt, inputs.args.tsep_pipi, inputs.read_opts_sloppy_C);
+
     std::cout << "allRawData loading exact_C" << std::endl;
-    raw_exact_C = RawKtoPiPiData(tsep_k_pi, bubble_exact_C, inputs.args_C, inputs.cmdline_exact_C);
+    raw_exact_C = RawKtoPiPiData(tsep_k_pi, bubble_exact_C, inputs.args.data_dir_C, inputs.args.traj_start_C, inputs.args.traj_inc, inputs.args.traj_lessthan_C, inputs.args.bin_size,
+				  inputs.args.Lt, inputs.args.tsep_pipi, inputs.read_opts_exact_C);
   }
 
   const RawKtoPiPiData &getRaw(const char ens, const SloppyExact se) const{

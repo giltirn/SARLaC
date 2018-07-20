@@ -66,28 +66,22 @@ struct ComparisonCMDline{
     }
   }
 
-  CMDline toCMDline(const AsymmSymm type) const{
-    CMDline out;
-    if(load_data_checkpoint){
-      out.load_data_checkpoint = true;
-      out.load_data_checkpoint_stub = type == Asymmetric ? load_data_checkpoint_asymm_stub : load_data_checkpoint_symm_stub;
+  readKtoPiPiDataOptions getReadOptions(const AsymmSymm type) const{
+    readKtoPiPiDataOptions opt;
+    opt.symmetric_quark_momenta_figure_file_extension = "_symm";
+    opt.load_data_checkpoint = load_data_checkpoint;
+    opt.save_data_checkpoint = save_data_checkpoint;
+
+    if(type == Asymmetric){
+      opt.load_data_checkpoint_stub = load_data_checkpoint_asymm_stub;
+      opt.save_data_checkpoint_stub = save_data_checkpoint_asymm_stub;
+    }else{
+      opt.load_data_checkpoint_stub = load_data_checkpoint_symm_stub;
+      opt.save_data_checkpoint_stub = save_data_checkpoint_symm_stub;
+      opt.use_symmetric_quark_momenta = true;
     }
-    if(save_data_checkpoint){
-      out.save_data_checkpoint = true;
-      out.save_data_checkpoint_stub = type == Asymmetric ? save_data_checkpoint_asymm_stub : save_data_checkpoint_symm_stub;
-    }
-    if(load_amplitude_data){
-      out.load_amplitude_data = true;
-      out.load_amplitude_data_file = type == Asymmetric ? load_amplitude_data_asymm_file : load_amplitude_data_symm_file;
-    }
-    if(save_amplitude_data){
-      out.save_amplitude_data = true;
-      out.save_amplitude_data_file = type == Asymmetric ? save_amplitude_data_asymm_file : save_amplitude_data_symm_file;
-    }
-    out.use_symmetric_quark_momenta = type == Symmetric;
-    return out;
+    return opt;
   }
-  
 };
 
 

@@ -1,14 +1,12 @@
-#include <boost/timer/timer.hpp>
-
-#include<tensors.h>
+#include<distribution.h>
+#include<data_series.h>
 #include<common.h>
-#include<parser.h>
 #include<fit.h>
 
 using namespace CPSfit;
-
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
-#include <fit_ktopipi_gparity/fitfunc.h>
+
+#include <ktopipi_common/fitfunc.h>
 
 #include <fit_pipi_ktopipi_sim_gparity/fitfunc.h>
 #include <fit_pipi_ktopipi_sim_gparity/main.h>

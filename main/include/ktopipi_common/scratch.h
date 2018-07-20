@@ -1,6 +1,19 @@
 #ifndef _KTOPIPI_FIT_GPARITY_SCRATCH_H__
 #define _KTOPIPI_FIT_GPARITY_SCRATCH_H__
 
+#include <boost/timer/timer.hpp>
+
+#include<config.h>
+#include<utils/macros.h>
+
+#include<serialize.h>
+#include<common.h>
+
+#include "fitfunc.h"
+#include "data_containers.h"
+
+CPSFIT_START_NAMESPACE
+
 class scratch{
   std::vector<std::string> scratch_files;
   std::vector<int> tsep_k_pi;
@@ -24,8 +37,6 @@ public:
       }
     } 
   }
-
-  scratch(const Args &args, const CMDline &cmdline): scratch(cmdline.use_scratch, cmdline.use_scratch_stub, cmdline.use_existing_scratch_files, args.tsep_k_pi){}
 
   void writeScratch(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 		    std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
@@ -89,5 +100,6 @@ public:
 
 };
 
+CPSFIT_END_NAMESPACE
 
 #endif

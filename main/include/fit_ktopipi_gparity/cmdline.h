@@ -1,6 +1,8 @@
 #ifndef _FIT_KTOPIPI_GPARITY_CMDLINE_H
 #define _FIT_KTOPIPI_GPARITY_CMDLINE_H
 
+#include<containers/constrained_memory_vector.h>
+
 #include<fit_ktopipi_gparity/args.h>
 
 struct CMDline{

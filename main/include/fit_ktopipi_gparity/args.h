@@ -1,8 +1,6 @@
 #ifndef _FIT_KTOPIPI_GPARITY_ARGS_H_
 #define _FIT_KTOPIPI_GPARITY_ARGS_H_
 
-#include "enums.h"
-
 #define ARGS_MEMBERS						\
   ( std::string, data_dir )					\
   ( int, Lt)							\

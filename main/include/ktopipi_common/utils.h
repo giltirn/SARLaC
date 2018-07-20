@@ -1,7 +1,15 @@
 #ifndef _FIT_KTOPIPI_GPARITY_UTILS_H___
 #define _FIT_KTOPIPI_GPARITY_UTILS_H___
 
+#include<config.h>
+#include<utils/macros.h>
+
 #include<distribution.h>
+#include<tensors.h>
+#include<common.h>
+
+CPSFIT_START_NAMESPACE
+
 
 template<typename T, int Size, int Begin>
 class IndexedContainer{
@@ -37,7 +45,7 @@ inline NumericTensor<rawDataDistributionD,N> bin(const NumericTensor<rawDataDist
 }
 
 template<typename T, int N>
-struct CPSfit::iterate<NumericTensor<T,N> >{
+struct iterate<NumericTensor<T,N> >{
   static inline int size(const NumericTensor<T,N> &from){ 
     int sz = 1;
     for(int i=0;i<N;i++) sz *= from.size(i);
@@ -88,5 +96,6 @@ void resampleAverage(DistributionType & into, const Resampler &resampler, const 
   into = into/double(size);
 }
 
+CPSFIT_END_NAMESPACE
 
 #endif
