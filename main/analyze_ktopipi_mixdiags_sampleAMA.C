@@ -1,17 +1,23 @@
 #include<ktopipi_common/ktopipi_common.h>
-
-using namespace CPSfit;
+#include<ktopipi_sampleAMA_common/ktopipi_sampleAMA_common.h>
 
 //#define PRINT_CORRECTION
 
+using namespace CPSfit;
+
 #include <fit_ktopipi_gparity_sampleAMA/cmdline.h>
 #include <fit_ktopipi_gparity_sampleAMA/args.h>
-#include <fit_ktopipi_gparity_sampleAMA/data_structs.h>
-#include <fit_ktopipi_gparity_sampleAMA/resample_average_typedata.h>
-#include <fit_ktopipi_gparity_sampleAMA/alpha_vac_sub.h>
-#include <fit_ktopipi_gparity_sampleAMA/main.h>
 #include <fit_ktopipi_gparity_sampleAMA/fit_sama_expand.h>
 
+struct allInputs{
+  SampleAMAargs args;
+  SampleAMAcmdLine cmdline;
+
+  sampleAMA_resamplers resamplers;
+
+  allInputs(const SampleAMAargs &args, const SampleAMAcmdLine &cmdline): args(args),cmdline(cmdline),
+									 resamplers(args.traj_start_S, args.traj_lessthan_S, args.traj_start_C, args.traj_lessthan_C, args.traj_inc, args.bin_size){}
+};
 
 template<typename FitFunc>
 struct Plot{};
@@ -328,7 +334,7 @@ class getDataFixedTsepKpi{
 #define RC(DIST,ARG) sampleAMAresampleCorrect<DIST>(raw.raw_sloppy_S. ARG, \
 						    raw.raw_sloppy_C. ARG, \
 						    raw.raw_exact_C. ARG, \
-						    inputs.resampler_S,inputs.resampler_C);
+						    inputs.resamplers.resampler_S,inputs.resamplers.resampler_C);
 	
   
 	jackknifeDistributionD val_j = RC(jackknifeDistributionD, mix4_alltK_nobub({tK,t}));
@@ -366,8 +372,8 @@ class getDataFixedTsepKpi{
 			 const NumericTensor<DistributionType,1> &mix4_vacsub, const allRawData &raw){
 
     //Compute < <K|P|pipi> > via mix3 and mix4 diagrams
-    mix3 = resampleAverageSampleAMA<DistributionType,mixNaccessor>(raw, inputs, mixNaccessor(3));
-    mix4 = resampleAverageSampleAMA<DistributionType,mixNaccessor>(raw, inputs, mixNaccessor(4));
+    mix3 = resampleAverageSampleAMA<DistributionType,mixNaccessor>(raw, Lt, inputs.resamplers, mixNaccessor(3));
+    mix4 = resampleAverageSampleAMA<DistributionType,mixNaccessor>(raw, Lt, inputs.resamplers, mixNaccessor(4));
 
     //Perform vacuum subtraction and sum contributions
     mix4 = mix4 - mix4_vacsub;
@@ -422,10 +428,10 @@ class getDataFixedTsepKpi{
     //While not used for the fit, it is worthwhile also computing and writing out the coefficients alpha and looking more closely at the size of the contraction
     std::vector<CorrTypeJ> alpha_j(10, CorrTypeJ({Lt}));
 
-    CorrTypeJ mix4_nobub_srcavg = resampleAverageSampleAMA<jackknifeDistributionD,alphaCptAccessor>(raw, inputs, alphaCptAccessor(1));
+    CorrTypeJ mix4_nobub_srcavg = resampleAverageSampleAMA<jackknifeDistributionD,alphaCptAccessor>(raw, Lt, inputs.resamplers, alphaCptAccessor(1));
     for(int q=0;q<10;q++){
       std::cout << "alpha_" << q+1 << ":\n";
-      CorrTypeJ A0_type4_nobub_srcavg = resampleAverageSampleAMA<jackknifeDistributionD,alphaCptAccessor>(raw, inputs, alphaCptAccessor(0,q));
+      CorrTypeJ A0_type4_nobub_srcavg = resampleAverageSampleAMA<jackknifeDistributionD,alphaCptAccessor>(raw, Lt, inputs.resamplers, alphaCptAccessor(0,q));
       for(int t=0;t<Lt;t++){
 	alpha_j[q](&t) = A0_type4_nobub_srcavg(&t)/mix4_nobub_srcavg(&t);      
 	std::cout << t << " " << alpha_j[q](&t) << std::endl;
@@ -436,7 +442,7 @@ class getDataFixedTsepKpi{
     std::vector<CorrTypeJ> A0_pre(10), A0_post(10), correction(10);
 
     for(int q=0;q<10;q++){
-#define RA(type) resampleAverageSampleAMA<jackknifeDistributionD,typeDataAccessor>(raw, inputs, typeDataAccessor(q,type))	  
+#define RA(type) resampleAverageSampleAMA<jackknifeDistributionD,typeDataAccessor>(raw, Lt, inputs.resamplers, typeDataAccessor(q,type))	  
       A0_pre[q] = RA(1) + RA(2) + RA(3) + RA(4) - type4_vacsub_j[q];
 #undef RA
       correction[q] = CorrTypeJ({Lt},[&](const int *t){ return alpha_j[q](t)*(mix3_j(t) + mix4_j(t)); });
@@ -455,10 +461,15 @@ public:
 		      correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> &data_dj,
 		      const allInputs &inputs, const allBubbleData &bubble_data, const int tsep_k_pi): inputs(inputs), bubble_data(bubble_data), 
 												       tsep_k_pi(tsep_k_pi), Lt(inputs.args.Lt),
-												       nsample(inputs.nS + inputs.nC){
+												       nsample(inputs.resamplers.nS + inputs.resamplers.nC){
 
     std::cout << "Getting data for tsep_k_pi = " <<  tsep_k_pi << std::endl;
-    allRawData raw(bubble_data, tsep_k_pi, inputs);
+    readKtoPiPiDataSampleAMAoptions opt = inputs.cmdline.getSampleAMAreadOptions();
+
+    allRawData raw(bubble_data, tsep_k_pi, 
+		   inputs.args.data_dir_S, inputs.args.traj_start_S, inputs.args.traj_lessthan_S,
+		   inputs.args.data_dir_C, inputs.args.traj_start_C, inputs.args.traj_lessthan_C,
+		   inputs.args.traj_inc, inputs.args.bin_size, Lt, inputs.args.tsep_pipi, opt);
 
     std::vector<CorrTypeJ> type4_vacsub_j; //[q]{t}
     CorrTypeJ mix4_vacsub_j;
@@ -493,7 +504,11 @@ int main(const int argc, const char* argv[]){
 
   allInputs inputs(args,cmdline);
 
-  allBubbleData bubble_data(inputs);
+  readKtoPiPiDataSampleAMAoptions opt = cmdline.getSampleAMAreadOptions();
+
+  allBubbleData bubble_data(args.data_dir_S, args.traj_start_S, args.traj_lessthan_S,
+			    args.data_dir_C, args.traj_start_C, args.traj_lessthan_C,
+			    args.traj_inc, args.bin_size, args.Lt, args.tsep_pipi, inputs.resamplers, opt);
 
   correlationFunction<amplitudeDataCoord, jackknifeDistributionD> data_j;
   correlationFunction<amplitudeDataCoord, doubleJackknifeDistributionD> data_dj;
@@ -529,3 +544,4 @@ int main(const int argc, const char* argv[]){
 
   return 0;
 }
+

@@ -3,9 +3,8 @@
 
 #include<containers/constrained_memory_vector.h>
 
-#include<fit_ktopipi_gparity/args.h>
-
-enum SloppyExact {Sloppy, Exact};
+#include<ktopipi_common/freeze.h>
+#include<ktopipi_sampleAMA_common/data_structs.h>
 
 struct SampleAMAcmdLine{
   bool load_guess;
@@ -156,7 +155,7 @@ struct SampleAMAcmdLine{
   }
 
 
-  readKtoPiPiDataOptions getReadOptions(const char ens, const SloppyExact se){
+  readKtoPiPiDataOptions getReadOptions(const char ens, const SloppyExact se) const{
     readKtoPiPiDataOptions out;
     out.symmetric_quark_momenta_figure_file_extension = symmetric_quark_momenta_figure_file_extension;
 
@@ -185,6 +184,14 @@ struct SampleAMAcmdLine{
 	out.use_symmetric_quark_momenta = false;
       }
     }
+    return out;
+  }
+
+  readKtoPiPiDataSampleAMAoptions getSampleAMAreadOptions() const{
+    readKtoPiPiDataSampleAMAoptions out;
+    out.read_opts_sloppy_S = getReadOptions('S',Sloppy);
+    out.read_opts_sloppy_C = getReadOptions('C',Sloppy);
+    out.read_opts_exact_C = getReadOptions('C',Exact);
     return out;
   }
 

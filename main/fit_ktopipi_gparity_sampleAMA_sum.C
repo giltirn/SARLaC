@@ -1,4 +1,5 @@
 #include <ktopipi_common/ktopipi_common.h>
+#include <ktopipi_sampleAMA_common/ktopipi_sampleAMA_common.h>
 
 using namespace CPSfit;
 
@@ -6,11 +7,17 @@ using namespace CPSfit;
 
 #include <fit_ktopipi_gparity_sampleAMA/cmdline.h>
 #include <fit_ktopipi_gparity_sampleAMA/args.h>
-#include <fit_ktopipi_gparity_sampleAMA/data_structs.h>
-#include <fit_ktopipi_gparity_sampleAMA/resample_average_typedata.h>
-#include <fit_ktopipi_gparity_sampleAMA/alpha_vac_sub.h>
-#include <fit_ktopipi_gparity_sampleAMA/main.h>
 #include <fit_ktopipi_gparity_sampleAMA/fit_sama_expand.h>
+
+struct allInputs{
+  SampleAMAargs args;
+  SampleAMAcmdLine cmdline;
+
+  sampleAMA_resamplers resamplers;
+
+  allInputs(const SampleAMAargs &args, const SampleAMAcmdLine &cmdline): args(args),cmdline(cmdline),
+									 resamplers(args.traj_start_S, args.traj_lessthan_S, args.traj_start_C, args.traj_lessthan_C, args.traj_inc, args.bin_size){}
+};
 
 //Params   M0 M1 cK mK cpipi Epipi cexc Eexc
 class FitSum{
@@ -189,6 +196,10 @@ int main(const int argc, const char* argv[]){
 
   allInputs inputs(args,cmdline);
 
+  readKtoPiPiAllDataSampleAMAoptions data_opt;
+  data_opt.importGlobalOptions(cmdline);
+  data_opt.read_opts = cmdline.getSampleAMAreadOptions();
+
   if(cmdline.plot_only){
     std::cout << "Plotting results and exiting\n";
     assert(cmdline.load_amplitude_data);
@@ -204,7 +215,13 @@ int main(const int argc, const char* argv[]){
   printMem("Prior to getData");
     
   if(cmdline.checkpoint_and_exit){
-    checkpointRawOnly(inputs);
+    checkpointRawOnly(args.tsep_k_pi, 
+		      args.data_dir_S, args.traj_start_S, args.traj_lessthan_S,
+		      args.data_dir_C, args.traj_start_C, args.traj_lessthan_C,
+		      args.traj_inc, args.bin_size, args.Lt, args.tsep_pipi, data_opt.read_opts);
+    
+
+    
     return 0;
   }
 
@@ -219,7 +236,10 @@ int main(const int argc, const char* argv[]){
   std::vector<double> M1_fake(10,fake_exc_neg ? -1. : 1.);
 
   if(!fake_data){
-    getDataSampleAMA(A0_all_j, A0_all_dj, inputs);
+    getDataSampleAMA(A0_all_j, A0_all_dj, args.tsep_k_pi, 
+		     args.data_dir_S, args.traj_start_S, args.traj_lessthan_S,
+		     args.data_dir_C, args.traj_start_C, args.traj_lessthan_C,
+		     args.traj_inc, args.bin_size, args.Lt, args.tsep_pipi, data_opt);
   }else{ //Generate fake data for testing/exploration
     int tseps[] = {10,12,14,16,18};
 

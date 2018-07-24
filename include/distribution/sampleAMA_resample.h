@@ -179,6 +179,14 @@ public:
   inline void resample(DistributionType &out, const rawDataDistribution<double> &in) const{ 
     out = sampleAMAresample<DistributionType>::resample(in,ens,nS,nC);
   }
+  template<typename DistributionType>
+  inline DistributionType resample(const rawDataDistribution<double> &in) const{ 
+    return sampleAMAresample<DistributionType>::resample(in,ens,nS,nC);
+  }
+
+  inline int getnS() const{ return nS; }
+  inline int getnC() const{ return nC; }
+  inline char getEns() const{ return ens; }
 };
 
 //Function to resample raw data and perform the sampleAMA correction together
@@ -201,6 +209,39 @@ resampledDistributionType sampleAMAresampleCorrect(const rawDataDistribution<dou
   return out_r;
 }
 
+
+struct sampleAMA_resamplers{
+  int nS;
+  int nC;
+  sampleAMA_resampler resampler_S;
+  sampleAMA_resampler resampler_C;
+
+  void setup(const int traj_start_S, const int traj_lessthan_S,
+	     const int traj_start_C, const int traj_lessthan_C,
+	     const int traj_inc, const int bin_size){
+    nS = (traj_lessthan_S - traj_start_S)/traj_inc/bin_size;
+    nC = (traj_lessthan_C - traj_start_C)/traj_inc/bin_size;
+
+    resampler_S = sampleAMA_resampler('S',nS,nC);
+    resampler_C = sampleAMA_resampler('C',nS,nC);
+  }
+  sampleAMA_resamplers(){}
+  
+  sampleAMA_resamplers(const int traj_start_S, const int traj_lessthan_S,
+		      const int traj_start_C, const int traj_lessthan_C,
+		       const int traj_inc, const int bin_size){
+    setup(traj_start_S, traj_lessthan_S,
+	  traj_start_C, traj_lessthan_C,
+	  traj_inc, bin_size);
+  }
+};
+
+
+template<typename resampledDistributionType>
+inline resampledDistributionType sampleAMAresampleCorrect(const rawDataDistribution<double> &sloppy_S, const rawDataDistribution<double> &sloppy_C, const rawDataDistribution<double> &exact_C, 
+							  const sampleAMA_resamplers &resamplers, const std::string &descr = ""){
+  return sampleAMAresampleCorrect<resampledDistributionType>(sloppy_S,sloppy_C,exact_C,resamplers.resampler_S,resamplers.resampler_C,descr);
+}
 
 CPSFIT_END_NAMESPACE
 
