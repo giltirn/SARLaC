@@ -150,7 +150,7 @@ public:
       substr_chunk_map[ssidx] = chunked.size()-1;
     }
 
-    if(pos < the_string.size()-1)
+    if(pos < the_string.size())
       chunked.push_back(the_string.substr(pos, std::string::npos));
 
     chunk_substr_map.resize(chunked.size());
@@ -167,6 +167,59 @@ public:
       if(s == -1) os << chunked[c];
       else os << with[s];
     }
+  }
+
+  bool match(std::map<std::string,std::string> &results, const std::string &str) const{
+    std::size_t off = 0;
+
+    //std::cout << "Matching string " << str << std::endl;
+    //std::cout << "Chunks:\n";
+    //for(int c=0;c<chunked.size();c++) std::cout << chunked[c] << std::endl;
+
+    for(int c=0;c<chunked.size();c++){
+      //std::cout << "Matching chunk " << c << " with fmt " << chunked[c] << std::endl;
+      if(chunk_substr_map[c] == -1){ //match non-wildcard chunk exactly
+	//std::cout << "Chunk is non-wildcard, matching exactly\n";
+	for(int i=0;i<chunked[c].size();i++){
+	  if(str[off++] != chunked[c][i]) return false;
+	}
+	//std::cout << "Remaining " << str.substr(off,std::string::npos) << std::endl;
+      }else{ //match a wildcard chunk
+	//std::cout << "Chunk is wildcard\n";
+
+	//Look ahead for start of next non-wildcard chunk
+	int next_nwc_chunk = -1;
+	for(int d=c+1;d<chunked.size();d++){
+	  if(chunk_substr_map[d] == -1){
+	    next_nwc_chunk = d; break;
+	  }
+	}
+	if(next_nwc_chunk == -1){ //Rest of string matches wildcard. If c is not the last wildcard chunk we cannot match; this should be an error
+	  //std::cout << "No further non-wildcard chunks, rest of string " << str.substr(off,std::string::npos) << " should match\n";
+	  for(int d=c+1;d<chunked.size();d++)
+	    if(chunk_substr_map[d] != -1) 
+	      error_exit(std::cout << "In matching chunk " << d << " with key string " << chunked[c] 
+			 << ", there are no more non-wildcard chunks but this is not the last wildcard chunk; no way to match this\n");
+	  results[chunked[c]] = str.substr(off,std::string::npos);
+	  return true;
+	}else{ //match is region up to next non-wildcard chunk
+	  //std::cout << "Next nwc has index " << next_nwc_chunk << " and key " << chunked[next_nwc_chunk] << std::endl;
+	  //Find start of next non-wildcard chunk in string
+	  size_t pos = str.find(chunked[next_nwc_chunk],off);
+	  if(pos == std::string::npos) return false; //could not find next nwc chunk
+
+	  //std::cout << "Next nwc lives at pos " << pos << " after which the string is " << str.substr(pos, std::string::npos) << std::endl;
+
+	  results[chunked[c]] = str.substr(off, pos-off);
+
+	  //std::cout << "Matched wilcard " << chunked[c] << " with result " << results[chunked[c]] << std::endl;
+
+	  off = pos;
+	}
+	
+      }//end of wc chunk match
+    }//c-loop
+    return true;
   }
 
   subStringReplace() = default;
