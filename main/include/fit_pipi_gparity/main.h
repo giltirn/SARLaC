@@ -54,8 +54,11 @@ doubleJackCorrelationFunction generateData(const PiPiCorrelatorSelector &corr_se
 //User provides a set of total source pipi momenta. The data are read, rotational-state projected, resampled then averaged over the provided set of total momenta. The resulting correlation function is returned
 doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdline){
   if(args.total_mom.size() == 1 && args.total_mom[0] == threeMomentum({0,0,0})){
-    std::unique_ptr<PiPiCorrelatorSelector> corr_selector( getSelector(args.corr_selector, args.pion_momenta, args.total_mom[0], args.data_dir,
-								       args.proj_src, args.proj_snk, args.allowed_mom) );
+    std::unique_ptr<PiPiCorrelatorSelector> corr_selector( 
+							  getSelector(args.corr_selector, args.pion_momenta, args.total_mom[0], args.data_dir, args.figure_file_format,
+								      args.traj_start, args.tsep_pipi,
+								      args.proj_src, args.proj_snk, args.allowed_mom) 
+							   );
 #if 1    
     assert(!cmdline.use_symmetric_quark_momenta); //the _symm appelation can be specified in the format string
     figureFilenamePolicyGeneric ffn(args.figure_file_format, args.total_mom[0]);
@@ -81,8 +84,11 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
       PiPiProjectAllowOnlyExistingPionMom proj_snk_f(*proj_snk, -args.total_mom[p], args.pion_momenta);
       std::unique_ptr<PiPiMomAllow> allow( getMomPairFilter(args.allowed_mom, args.total_mom[p]) );
 
-      std::unique_ptr<PiPiCorrelatorSelector> corr_selector( getSelector(args.corr_selector, args.pion_momenta, args.total_mom[0], args.data_dir,
-									 &proj_src_f, &proj_snk_f, allow.get()) );
+      std::unique_ptr<PiPiCorrelatorSelector> corr_selector( 
+							    getSelector(args.corr_selector, args.pion_momenta, args.total_mom[p], args.data_dir, args.figure_file_format,
+									 args.traj_start, args.tsep_pipi,
+									 &proj_src_f, &proj_snk_f, allow.get()) 
+							     );
 
       readFigureTianleComovingPolicy ffn(args.total_mom[p]);
       readBubbleTianleComovingPolicy bfn_src(args.total_mom[p],Source);

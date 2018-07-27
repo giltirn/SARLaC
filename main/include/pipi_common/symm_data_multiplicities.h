@@ -22,6 +22,18 @@
 
 CPSFIT_START_NAMESPACE
 
+//expect substrings  <TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
+const std::vector<subStringSpecify> & pipiFileFormatKeys(){ 
+#define F(STR) subStringSpecify(STR)
+#define FO(STR) subStringSpecify(STR,true)
+  static std::vector<subStringSpecify> find = { F("<TRAJ>"), F("<FIG>"), F("<TSEP_PIPI>"), F("<P1SRC>"), F("<P1SNK>"),
+						FO("<P2SRC>"),FO("<P2SNK>") };
+#undef F
+#undef FO
+  return find;
+}
+
+
 struct ConMomentum{
   threeMomentum pi1_src;
   threeMomentum pi1_snk;
@@ -53,9 +65,6 @@ struct ConMomentum{
     std::regex r( R"(_p1src((?:_?\d+){3})_p2src((?:_?\d+){3})_p1snk((?:_?\d+){3})_p2snk((?:_?\d+){3}))");  
     assert(std::regex_search(filename,m,r));
 
-    /* std::cout << "parse " << filename << std::endl; //(?:(?:_\d+)|\d+){3} */
-    /* for(int i=0;i<=4;i++) std::cout << "\"" << m[i] << "\"" << std::endl; */
-
     pi1_src = parseMom(m[1]);
     pi2_src = parseMom(m[2]);
     pi1_snk = parseMom(m[3]);
@@ -78,8 +87,78 @@ struct ConMomentum{
     //std::cout << "Parsed " << filename << " : " << pi1_src << "  " << pi2_src << " " << pi1_snk << " " << pi2_snk << std::endl;
   }
 
+  //Original format assumes ptot == 0
+  void parseOrigFmt(const std::string &filename){ 
+    std::smatch m;
+    std::regex r( R"(_mom((?:_?\d+){3})_mom((?:_?\d+){3}))");  
+    assert(std::regex_search(filename,m,r));
+
+    pi1_src = parseMom(m[1]);
+    pi2_src = -pi1_src;
+    pi1_snk = parseMom(m[2]);
+    pi2_snk = -pi2_snk;
+    
+    p_tot = threeMomentum({0,0,0});
+    
+    //Daiqian used conventions where the Fourier transforms into momentum space come are \sum_x f(x) exp(ipx) and not with exp(-ipx). 
+    //Thus his file format (which I save in) has momentum with flipped sign relative to the actual momentum. Correct for that here
+#ifdef USE_DAIQIANS_CONVENTIONS
+    pi1_src = -pi1_src;
+    pi2_src = -pi2_src;
+    pi1_snk = -pi1_snk;
+    pi2_snk = -pi2_snk;
+    p_tot = -p_tot;
+#endif
+  }
+    
+  void parseGeneric(const std::string &filename, const std::string &fmt){ 
+    subStringReplace matcher(fmt, pipiFileFormatKeys());
+
+    std::map<std::string,std::string> smatch;
+    if(!matcher.match(smatch, filename)) error_exit(std::cout << "Could not match filename " << filename << " to format string " << fmt << std::endl);
+
+    pi1_src = parseMom(smatch["<P1SRC>"]);
+    pi1_snk = parseMom(smatch["<P1SNK>"]);
+    
+    bool foundp2[2] = {false,false};
+    std::map<std::string,std::string>::const_iterator it;
+    if( (it = smatch.find("<P2SRC>")) != smatch.end()){ 
+      pi2_src = parseMom(it->second); foundp2[0] = true;
+    }
+    if( (it = smatch.find("<P2SNK>")) != smatch.end()){ 
+      pi2_snk = parseMom(it->second); foundp2[1] = true;
+    }
+
+    if(foundp2[0] && foundp2[1]){
+      p_tot = pi1_src + pi2_src;
+      if(pi1_snk + pi2_snk != -p_tot) error_exit(std::cout << "Filename " << filename << " source and sink total momentum don't match!\n");
+    }else if(foundp2[0] && !foundp2[1]){
+      p_tot = pi1_src + pi2_src;
+      pi2_snk = -p_tot - pi1_snk;
+    }else if(!foundp2[0] && foundp2[1]){
+      p_tot = -pi1_snk - pi2_snk;
+      pi2_src = p_tot - pi1_src;
+    }else{
+      //Have to assume zero total momentum (eg old file format)
+      pi2_src = -pi1_src;
+      pi2_snk = -pi2_snk;
+      p_tot = threeMomentum({0,0,0});
+    }
+    
+    //Daiqian used conventions where the Fourier transforms into momentum space come are \sum_x f(x) exp(ipx) and not with exp(-ipx). 
+    //Thus his file format (which I save in) has momentum with flipped sign relative to the actual momentum. Correct for that here
+#ifdef USE_DAIQIANS_CONVENTIONS
+    pi1_src = -pi1_src;
+    pi2_src = -pi2_src;
+    pi1_snk = -pi1_snk;
+    pi2_snk = -pi2_snk;
+    p_tot = -p_tot;
+#endif
+  }
+
   ConMomentum(): p_tot({0,0,0}){}
   ConMomentum(const std::string &filename){ parse(filename); }
+  ConMomentum(const std::string &filename, const std::string &fmt){ parseGeneric(filename,fmt); }
   ConMomentum(const threeMomentum &pi1_src, const threeMomentum &pi1_snk, const threeMomentum &p_tot): pi1_src(pi1_src), pi2_src(p_tot-pi1_src),
 												       pi1_snk(pi1_snk), pi2_snk(-p_tot-pi1_snk), p_tot(p_tot){}
       
@@ -187,13 +266,35 @@ struct PiPiSymmetrySubset{
   PtotMapType corrs_avail;
 
   //Default regex is for new file format
-  void findAvailableCorrs(const std::string &dir){
-    std::vector<std::string> files = listFiles(dir, R"(traj_\d+_FigureC)");
-    std::cout << "PiPiSymmetrySubset::findAvailableCorrs found " << files.size() << " files with provided format\n";
+  void findAvailableCorrs(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
+			  const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot){
+    subStringReplace repl(file_fmt, pipiFileFormatKeys());
+    //<TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
 
-    for(int i=0;i<files.size();i++){
-      ConMomentum momentum(files[i]);
-      corrs_avail[momentum.p_tot].insert(momentum);
+    std::vector<std::string> wc = { anyToStr<int>(traj_start), "C", anyToStr<int>(tsep_pipi), "", "", "", "" };
+    std::string &p1src_s = wc[3];
+    std::string &p1snk_s = wc[4];
+    std::string &p2src_s = wc[5];
+    std::string &p2snk_s = wc[6];
+
+    for(int pt=0; pt< p_tot.size(); pt++){
+      for(int psrcidx=0; psrcidx < p_pi.size(); psrcidx++){
+	p1src_s = momStr(p_pi[psrcidx]);
+	p2src_s = momStr(p_tot[pt] - p_pi[psrcidx]);
+
+	for(int psnkidx=0; psnkidx < p_pi.size(); psnkidx++){
+	  p1snk_s = momStr(p_pi[psnkidx]);
+	  p2snk_s = momStr(-p_tot[pt] - p_pi[psnkidx]);
+
+	  std::ostringstream fn; fn << dir << "/";
+	  repl.replace(fn, wc);
+	  
+	  if(fileExists(fn.str())){
+	    ConMomentum momentum(p_pi[psrcidx], p_pi[psnkidx], p_tot[pt]);
+	    corrs_avail[p_tot[pt]].insert(momentum);
+	  }
+	}
+      }
     }
     for(auto it = corrs_avail.begin(); it != corrs_avail.end(); it++)
       std::cout << it->second.size() << " correlators with total momentum " << it->first << std::endl;
@@ -222,7 +323,6 @@ struct PiPiSymmetrySubset{
     error_exit(std::cout << "Could not find partner for correlator " << cmom << " among those available\n");
   }
 
-  //set    0 : (+-1,+-1,+-1)   1: (+-3,+-1,+-1) + perms   2: all 32 momenta
   PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow) const{
     int np = pimom.size();
 
@@ -265,10 +365,11 @@ struct PiPiSymmetrySubset{
   }
 
   PiPiSymmetrySubset(){}
-  PiPiSymmetrySubset(const std::string &dir){
-    findAvailableCorrs(dir);
+
+  PiPiSymmetrySubset(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
+		     const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot){
+    findAvailableCorrs(dir,file_fmt,traj_start,tsep_pipi,p_pi,p_tot);
   }
-       
 
   //Test the code for all the momenta used in the extended measurement proposal
   void test() const{
