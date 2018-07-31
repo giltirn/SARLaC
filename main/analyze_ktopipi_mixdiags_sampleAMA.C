@@ -466,7 +466,19 @@ public:
     std::cout << "Getting data for tsep_k_pi = " <<  tsep_k_pi << std::endl;
     readKtoPiPiDataSampleAMAoptions opt = inputs.cmdline.getSampleAMAreadOptions();
 
+    std::vector<std::string> data_file_fmt_sloppy =
+      { "traj_<TRAJ>_type1_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>_mom<MOM>",
+	"traj_<TRAJ>_type2_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>",
+	"traj_<TRAJ>_type3_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>",
+	"traj_<TRAJ>_type4" };
+
+    std::vector<std::string> data_file_fmt_exact(data_file_fmt_sloppy);
+    for(int i=0;i<data_file_fmt_exact.size();i++) data_file_fmt_exact[i] = data_file_fmt_exact[i] + inputs.cmdline.symmetric_quark_momenta_figure_file_extension;
+
+    std::vector<std::pair<threeMomentum, double> > type1_pimom_proj = {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  { {-1,1,1}, 3.0/8.0 }, { {1,-1,-1}, 3.0/8.0 }  };
+
     allRawData raw(bubble_data, tsep_k_pi, 
+		   data_file_fmt_sloppy, data_file_fmt_exact, type1_pimom_proj,
 		   inputs.args.data_dir_S, inputs.args.traj_start_S, inputs.args.traj_lessthan_S,
 		   inputs.args.data_dir_C, inputs.args.traj_start_C, inputs.args.traj_lessthan_C,
 		   inputs.args.traj_inc, inputs.args.bin_size, Lt, inputs.args.tsep_pipi, opt);
@@ -506,7 +518,16 @@ int main(const int argc, const char* argv[]){
 
   readKtoPiPiDataSampleAMAoptions opt = cmdline.getSampleAMAreadOptions();
 
-  allBubbleData bubble_data(args.data_dir_S, args.traj_start_S, args.traj_lessthan_S,
+  std::string bubble_file_fmt_sloppy = "traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_mom<PB>";
+  std::string bubble_file_fmt_exact =  bubble_file_fmt_sloppy + "_symm";
+
+  std::vector<std::pair<threeMomentum, double> > bubble_pimom_proj =  {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  
+								         { {-1,1,1}, 1.0/8.0 }, { {1,-1,-1}, 1.0/8.0 }, 
+								         { {1,-1,1}, 1.0/8.0 }, { {-1,1,-1}, 1.0/8.0 }, 
+								         { {1,1,-1}, 1.0/8.0 }, { {-1,-1,1}, 1.0/8.0 } };
+
+  allBubbleData bubble_data(bubble_file_fmt_sloppy, bubble_file_fmt_exact, bubble_pimom_proj,
+			    args.data_dir_S, args.traj_start_S, args.traj_lessthan_S,
 			    args.data_dir_C, args.traj_start_C, args.traj_lessthan_C,
 			    args.traj_inc, args.bin_size, args.Lt, args.tsep_pipi, inputs.resamplers, opt);
 

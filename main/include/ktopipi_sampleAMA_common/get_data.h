@@ -189,6 +189,8 @@ NumericTensor<DistributionType,1> computeQamplitudeSampleAMA(const int q, const 
 void getDataSampleAMA(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 		      std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 		      const int tsep_k_pi, const allBubbleData &bubble_data,
+		      const std::vector<std::string> &data_file_fmt_sloppy,  const std::vector<std::string> &data_file_fmt_exact,
+		      const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
 		      const std::string &data_dir_S, const int traj_start_S, const int traj_lessthan_S,
 		      const std::string &data_dir_C, const int traj_start_C, const int traj_lessthan_C,
 		      const int traj_inc, const int bin_size,
@@ -197,6 +199,7 @@ void getDataSampleAMA(std::vector<correlationFunction<amplitudeDataCoord, jackkn
   printMem("getData called");
   
   allRawData raw(bubble_data, tsep_k_pi, 
+		 data_file_fmt_sloppy, data_file_fmt_exact, type1_pimom_proj,
 		 data_dir_S, traj_start_S, traj_lessthan_S, 
 		 data_dir_C, traj_start_C, traj_lessthan_C, 
 		 traj_inc, bin_size,
@@ -252,6 +255,13 @@ struct readKtoPiPiAllDataSampleAMAoptions{
 void getDataSampleAMA(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 		      std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 		      const std::vector<int> &tsep_k_pi,
+
+		      const std::string &bubble_file_fmt_sloppy, const std::string &bubble_file_fmt_exact,
+		      const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
+
+		      const std::vector<std::string> &data_file_fmt_sloppy,  const std::vector<std::string> &data_file_fmt_exact,
+		      const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+
 		      const std::string &data_dir_S, const int traj_start_S, const int traj_lessthan_S,
 		      const std::string &data_dir_C, const int traj_start_C, const int traj_lessthan_C,
 		      const int traj_inc, const int bin_size, 
@@ -272,7 +282,8 @@ void getDataSampleAMA(std::vector<correlationFunction<amplitudeDataCoord, jackkn
 				    traj_inc, bin_size);
   
     //Read the bubble data
-    allBubbleData bubble_data(data_dir_S, traj_start_S, traj_lessthan_S,
+    allBubbleData bubble_data(bubble_file_fmt_sloppy, bubble_file_fmt_exact, bubble_pimom_proj,
+			      data_dir_S, traj_start_S, traj_lessthan_S,
 			      data_dir_C, traj_start_C, traj_lessthan_C,
 			      traj_inc, bin_size, Lt, tsep_pipi, resamplers, opt.read_opts);
 
@@ -280,7 +291,8 @@ void getDataSampleAMA(std::vector<correlationFunction<amplitudeDataCoord, jackkn
 
     for(int tsep_k_pi_idx=0;tsep_k_pi_idx<tsep_k_pi.size();tsep_k_pi_idx++){
       if(scratch_store.doSkipLoad(tsep_k_pi_idx)) continue;
-      getDataSampleAMA(A0_all_j, A0_all_dj, tsep_k_pi[tsep_k_pi_idx], bubble_data,
+      getDataSampleAMA(A0_all_j, A0_all_dj, tsep_k_pi[tsep_k_pi_idx], bubble_data, 
+		       data_file_fmt_sloppy, data_file_fmt_exact, type1_pimom_proj,
 		       data_dir_S, traj_start_S, traj_lessthan_S,
 		       data_dir_C, traj_start_C, traj_lessthan_C,
 		       traj_inc, bin_size,
@@ -304,6 +316,13 @@ void getDataSampleAMA(std::vector<correlationFunction<amplitudeDataCoord, jackkn
 }
 
 void checkpointRawOnly(const std::vector<int> &tsep_k_pi,
+
+		       const std::string &bubble_file_fmt_sloppy, const std::string &bubble_file_fmt_exact,
+		       const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
+		       
+		       const std::vector<std::string> &data_file_fmt_sloppy,  const std::vector<std::string> &data_file_fmt_exact,
+		       const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+
 		       const std::string &data_dir_S, const int traj_start_S, const int traj_lessthan_S,
 		       const std::string &data_dir_C, const int traj_start_C, const int traj_lessthan_C,
 		       const int traj_inc, const int bin_size, 
@@ -316,13 +335,15 @@ void checkpointRawOnly(const std::vector<int> &tsep_k_pi,
 				  traj_start_C, traj_lessthan_C,
 				  traj_inc, bin_size);
   
-  allBubbleData bubble_data(data_dir_S, traj_start_S, traj_lessthan_S,
+  allBubbleData bubble_data(bubble_file_fmt_sloppy, bubble_file_fmt_exact, bubble_pimom_proj,
+			    data_dir_S, traj_start_S, traj_lessthan_S,
 			    data_dir_C, traj_start_C, traj_lessthan_C,
 			    traj_inc, bin_size, Lt, tsep_pipi, resamplers, opt);
 
   for(int tsep_k_pi_idx=0;tsep_k_pi_idx<tsep_k_pi.size();tsep_k_pi_idx++){
     std::cout << "Getting data for tsep_k_pi = " <<  tsep_k_pi << std::endl;
     allRawData raw(bubble_data, tsep_k_pi[tsep_k_pi_idx], 
+		   data_file_fmt_sloppy, data_file_fmt_exact, type1_pimom_proj,
 		   data_dir_S, traj_start_S, traj_lessthan_S, 
 		   data_dir_C, traj_start_C, traj_lessthan_C, 
 		   traj_inc, bin_size,

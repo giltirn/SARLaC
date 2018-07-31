@@ -83,7 +83,7 @@ NumericTensor<DistributionType,1> resampleAverageMixDiagram(const NumericTensor<
 
 
 template<typename DistributionType, typename Resampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const BubbleData &bubble_data, const int Lt, const std::string &descr, const Resampler &resampler){
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const ProjectedBubbleData &bubble_data, const int Lt, const std::string &descr, const Resampler &resampler){
   //Compute alpha and type4/mix4 vacuum subtractions
   std::cout << "Computing " << descr << " alpha and vacuum subtractions\n";
   NumericTensor<DistributionType,1> alpha_r({Lt}), A0_type4_srcavg_vacsub_r({Lt}), mix4_srcavg_vacsub_r({Lt}); //[t]
@@ -119,15 +119,17 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
 template<typename Resampler>
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 	     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
-	     const int tsep_k_pi, const BubbleData &bubble_data, 
-	     const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+	     const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
+	     const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
+	     const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
 	     const int Lt, const int tsep_pipi, 
 	     const Resampler &resampler, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
 
   std::cout << "Getting data for tsep_k_pi = " <<  tsep_k_pi << std::endl;
   printMem("getData called");
   
-  RawKtoPiPiData raw(tsep_k_pi, bubble_data, data_dir, traj_start, traj_inc, traj_lessthan, bin_size, 
+  RawKtoPiPiData raw(tsep_k_pi, bubble_data, data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan, bin_size, 
 		     Lt, tsep_pipi, opt);
   
   for(int q=0;q<10;q++){
@@ -182,7 +184,10 @@ template<typename Resampler>
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 	     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 	     const std::vector<int> &tsep_k_pi,
-	     const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+	     const std::string &data_dir,  
+	     const std::vector<std::string> &data_file_fmt, const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+	     const std::string &bubble_file_fmt, const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
+	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
 	     const int Lt, const int tsep_pipi, 
 	     const Resampler &resampler, const readKtoPiPiAllDataOptions &opt = readKtoPiPiAllDataOptions()){
 
@@ -196,9 +201,8 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 #endif
   }else{
     //Read the bubble data
-    BubbleData bubble_data(data_dir, traj_start, traj_inc, traj_lessthan, bin_size,
-			   Lt, tsep_pipi, resampler, opt.read_opts);
-    
+    ProjectedBubbleData bubble_data(data_dir, bubble_file_fmt, traj_start, traj_inc, traj_lessthan, bin_size, Lt, tsep_pipi, bubble_pimom_proj, resampler, opt.read_opts);
+  
     //Read and prepare the amplitude data for fitting
     scratch scratch_store(opt.use_scratch, opt.use_scratch_stub, opt.use_existing_scratch_files, tsep_k_pi); //Setup scratch space if in use
 
@@ -206,7 +210,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
       if(scratch_store.doSkipLoad(tsep_k_pi_idx)) continue;
       
       getData(A0_all_j,A0_all_dj,tsep_k_pi[tsep_k_pi_idx],bubble_data,
-	      data_dir, traj_start, traj_inc, traj_lessthan, bin_size,
+	      data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan, bin_size,
 	      Lt, tsep_pipi, resampler, opt.read_opts);
 
       scratch_store.writeScratch(A0_all_j, A0_all_dj, tsep_k_pi_idx);
@@ -231,29 +235,39 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 	     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 	     const std::vector<int> &tsep_k_pi,
-	     const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+	     const std::string &data_dir,  
+	     const std::vector<std::string> &data_file_fmt, const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+	     const std::string &bubble_file_fmt, const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
+	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
 	     const int Lt, const int tsep_pipi, 
 	     const readKtoPiPiAllDataOptions &opt = readKtoPiPiAllDataOptions()){
   basic_resampler resampler;
   getData(A0_all_j, A0_all_dj, tsep_k_pi,
-	  data_dir, traj_start, traj_inc, traj_lessthan, bin_size, 
+	  data_dir, 
+	  data_file_fmt, type1_pimom_proj, 
+	  bubble_file_fmt, bubble_pimom_proj, 
+	  traj_start, traj_inc, traj_lessthan, bin_size, 
 	  Lt, tsep_pipi, resampler, opt);
 }
 
-
 void checkpointRawOnly(const std::vector<int> &tsep_k_pi,
-		       const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+		       const std::string &data_dir,  
+		       const std::vector<std::string> &data_file_fmt,
+		       const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+		       const std::string &bubble_file_fmt,
+		       const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
+		       const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
 		       const int Lt, const int tsep_pipi, 
 		       const readKtoPiPiDataOptions &opt){
   if(!opt.save_data_checkpoint) error_exit(std::cout << "checkpointRawOnly expect opt.save_data_checkpoint to be true\n");
   basic_resampler resampler;
-  BubbleData bubble_data(data_dir, traj_start, traj_inc, traj_lessthan, bin_size,
-			 Lt, tsep_pipi, resampler, opt);
+
+  ProjectedBubbleData bubble_data(data_dir, bubble_file_fmt, traj_start, traj_inc, traj_lessthan, bin_size, Lt, tsep_pipi, bubble_pimom_proj, resampler, opt);
 
   for(int tsep_k_pi_idx=0;tsep_k_pi_idx<tsep_k_pi.size();tsep_k_pi_idx++){
     int tsep_k_pi_ = tsep_k_pi[tsep_k_pi_idx];
     std::cout << "Getting data for tsep_k_pi = " <<  tsep_k_pi_ << std::endl;
-    RawKtoPiPiData raw(tsep_k_pi_, bubble_data, data_dir, traj_start, traj_inc, traj_lessthan, bin_size, 
+    RawKtoPiPiData raw(tsep_k_pi_, bubble_data, data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan, bin_size, 
 		       Lt, tsep_pipi, opt);
   }
 }

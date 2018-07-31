@@ -17,10 +17,7 @@ struct readKtoPiPiDataOptions{
   bool save_data_checkpoint;
   std::string save_data_checkpoint_stub;
 
-  bool use_symmetric_quark_momenta;
-  std::string symmetric_quark_momenta_figure_file_extension;
-
-  readKtoPiPiDataOptions(): load_data_checkpoint(false), save_data_checkpoint(false), use_symmetric_quark_momenta(false){}
+  readKtoPiPiDataOptions(): load_data_checkpoint(false), save_data_checkpoint(false){}
 
   template<typename T>
   void import(const T &from){
@@ -29,8 +26,6 @@ struct readKtoPiPiDataOptions{
     C(load_data_checkpoint_stub);
     C(save_data_checkpoint);
     C(save_data_checkpoint_stub);
-    C(use_symmetric_quark_momenta);
-    C(symmetric_quark_momenta_figure_file_extension);
 #undef C
   }
 };
@@ -49,28 +44,31 @@ struct resampleFunctorGeneral{
   }
 };
 
-NumericTensor<rawDataDistributionD,1> getA2projectedBubble(const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan,
-							   const int Lt, const int tsep_pipi, 
-							   const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+NumericTensor<rawDataDistributionD,1> getProjectedBubble(const std::string &data_dir, const std::string &file_fmt,
+							 const int traj_start, const int traj_inc, const int traj_lessthan, 
+							 const int Lt, const int tsep_pipi, 
+							 const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj, 
+							 const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+
   NumericTensor<rawDataDistributionD,1> bubble;
   if(opt.load_data_checkpoint){
 #ifdef HAVE_HDF5
     std::ostringstream file; file << opt.load_data_checkpoint_stub << "_bubble.hdf5";
     std::cout << "Loading checkpoint data for bubble from " << file.str() << std::endl;
     HDF5reader rd(file.str());
-    readBubble(rd,bubble,"bubble");
+    readProjectedBubble(rd,bubble,"bubble");
 #else
     error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
   }else{
-    bubble = readA2projectedBubble(traj_start,traj_inc,traj_lessthan,tsep_pipi,Lt,data_dir,opt.use_symmetric_quark_momenta);
+    bubble = readProjectedBubble(data_dir, file_fmt, traj_start,traj_inc,traj_lessthan, Lt, tsep_pipi, bubble_pimom_proj);
   }
   if(opt.save_data_checkpoint){
 #ifdef HAVE_HDF5
     std::ostringstream file; file << opt.save_data_checkpoint_stub << "_bubble.hdf5";
     std::cout << "Saving checkpoint data for bubble to " << file.str() << std::endl;
     HDF5writer wr(file.str());
-    writeBubble(wr,bubble,"bubble");
+    writeProjectedBubble(wr,bubble,"bubble");
 #else
     error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -81,29 +79,32 @@ NumericTensor<rawDataDistributionD,1> getA2projectedBubble(const std::string &da
 
 
 //Structure for containing raw and resampled A2-projected bubble data
-struct BubbleData{
+struct ProjectedBubbleData{
   NumericTensor<rawDataDistributionD,1> bubble;
   NumericTensor<rawDataDistributionD,1> bubble_binned;
   NumericTensor<jackknifeDistributionD,1> bubble_j;
   NumericTensor<doubleJackknifeDistributionD,1> bubble_dj;
 
-  BubbleData(){}
+  ProjectedBubbleData(){}
 
   template<typename Resampler>
-  BubbleData(const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size,
+  ProjectedBubbleData(const std::string &data_dir, const std::string &file_fmt, \
+	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size,
 	     const int Lt, const int tsep_pipi, 
+	     const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
 	     const Resampler &resampler, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
-
-    bubble = getA2projectedBubble(data_dir,traj_start,traj_inc,traj_lessthan,
-				  Lt,tsep_pipi,opt);
+  
+    bubble = getProjectedBubble(data_dir,file_fmt,
+				traj_start,traj_inc,traj_lessthan,
+				Lt, tsep_pipi, bubble_pimom_proj, opt);
     bubble_binned = bin(bubble,bin_size);
     bubble_j = bubble_binned.transform(resampleFunctorGeneral<jackknifeDistributionD,rawDataDistributionD,Resampler>(resampler));
     bubble_dj = bubble_binned.transform(resampleFunctorGeneral<doubleJackknifeDistributionD,rawDataDistributionD,Resampler>(resampler));
   }
 };
 template<typename DistributionType> struct getResampledBubble{};
-template<> struct getResampledBubble<jackknifeDistributionD>{ static inline const NumericTensor<jackknifeDistributionD,1> &get(const BubbleData &bubble_data){ return bubble_data.bubble_j; }  };
-template<> struct getResampledBubble<doubleJackknifeDistributionD>{ static inline const NumericTensor<doubleJackknifeDistributionD,1> &get(const BubbleData &bubble_data){ return bubble_data.bubble_dj; }  };
+template<> struct getResampledBubble<jackknifeDistributionD>{ static inline const NumericTensor<jackknifeDistributionD,1> &get(const ProjectedBubbleData &bubble_data){ return bubble_data.bubble_j; }  };
+template<> struct getResampledBubble<doubleJackknifeDistributionD>{ static inline const NumericTensor<doubleJackknifeDistributionD,1> &get(const ProjectedBubbleData &bubble_data){ return bubble_data.bubble_dj; }  };
 
 
 //Compute and store the raw amplitude data and data necessary for mix and vacuum subtractions
@@ -124,7 +125,9 @@ public:
 
 private:
   void getTypeData(IndexedContainer<type1234Data, 4, 1> &type_data, const int tsep_k_pi, 
-		   const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan,
+		   const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
+		   const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+		   const int traj_start, const int traj_inc, const int traj_lessthan,
 		   const int Lt, const int tsep_pipi, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
     //Read the data
     if(opt.load_data_checkpoint){
@@ -137,8 +140,9 @@ private:
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
     }else{
-      for(int i=1;i<=4;i++) type_data(i) = readType(i, traj_start, traj_inc, traj_lessthan, tsep_k_pi, tsep_pipi, Lt, 
-						    data_dir, opt.use_symmetric_quark_momenta, opt.symmetric_quark_momenta_figure_file_extension);
+      for(int i=1;i<=4;i++) type_data(i) = readType(i, traj_start, traj_inc, traj_lessthan, 
+						    tsep_k_pi, tsep_pipi, Lt, type1_pimom_proj, 
+						    data_dir, data_file_fmt[i-1]);
     }
 
     //Write checkpoint if necessary
@@ -157,13 +161,16 @@ private:
 public:
   RawKtoPiPiData(){}
 
-  RawKtoPiPiData(const int tsep_k_pi, const BubbleData &bubble_data, 
-		 const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+  RawKtoPiPiData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
+		 const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
+		 const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+		 const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
 		 const int Lt, const int tsep_pipi, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+
     std::cout << "Reading data with tsep_k_pi=" << tsep_k_pi << std::endl;
 
     IndexedContainer<type1234Data, 4, 1> type_data;
-    getTypeData(type_data, tsep_k_pi, data_dir, traj_start, traj_inc, traj_lessthan,
+    getTypeData(type_data, tsep_k_pi, data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan,
 		Lt, tsep_pipi, opt);
     
     for(int i=1;i<=4;i++){

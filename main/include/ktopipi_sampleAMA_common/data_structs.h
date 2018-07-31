@@ -30,20 +30,22 @@ struct allBubbleData{
   NumericTensor<jackknifeDistributionD,1> bubble_j;
   NumericTensor<doubleJackknifeDistributionD,1> bubble_dj;
 
-  allBubbleData(const std::string &data_dir_S, const int traj_start_S, const int traj_lessthan_S,
+  allBubbleData(const std::string &bubble_file_fmt_sloppy, const std::string &bubble_file_fmt_exact,
+		const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
+		const std::string &data_dir_S, const int traj_start_S, const int traj_lessthan_S,
 		const std::string &data_dir_C, const int traj_start_C, const int traj_lessthan_C,
 		const int traj_inc, const int bin_size, const int Lt, const int tsep_pipi,
 		const sampleAMA_resamplers &resamplers, const readKtoPiPiDataSampleAMAoptions &opt = readKtoPiPiDataSampleAMAoptions())
     :bubble_j({Lt}), bubble_dj({Lt}){
 
-    bubble_sloppy_S = getA2projectedBubble(data_dir_S, traj_start_S, traj_inc, traj_lessthan_S,
-					   Lt, tsep_pipi, opt.read_opts_sloppy_S);
-
-    bubble_sloppy_C = getA2projectedBubble(data_dir_C, traj_start_C, traj_inc, traj_lessthan_C,
-					   Lt, tsep_pipi, opt.read_opts_sloppy_C);
-
-    bubble_exact_C = getA2projectedBubble(data_dir_C, traj_start_C, traj_inc, traj_lessthan_C,
-					  Lt, tsep_pipi, opt.read_opts_exact_C);
+    bubble_sloppy_S = getProjectedBubble(data_dir_S, bubble_file_fmt_sloppy, traj_start_S, traj_inc, traj_lessthan_S,
+					 Lt, tsep_pipi, bubble_pimom_proj, opt.read_opts_sloppy_S);
+      
+    bubble_sloppy_C = getProjectedBubble(data_dir_C, bubble_file_fmt_sloppy, traj_start_C, traj_inc, traj_lessthan_C,
+					 Lt, tsep_pipi, bubble_pimom_proj, opt.read_opts_sloppy_C);
+      
+    bubble_exact_C = getProjectedBubble(data_dir_C, bubble_file_fmt_exact, traj_start_C, traj_inc, traj_lessthan_C,
+					Lt, tsep_pipi, bubble_pimom_proj, opt.read_opts_exact_C);
 
     bubble_sloppy_S_binned = bin(bubble_sloppy_S,bin_size);
     bubble_sloppy_C_binned = bin(bubble_sloppy_C,bin_size);
@@ -51,14 +53,14 @@ struct allBubbleData{
 
     for(int t=0;t<Lt;t++){
       bubble_j(&t) = sampleAMAresampleCorrect<jackknifeDistributionD>(bubble_sloppy_S_binned(&t), bubble_sloppy_C_binned(&t), bubble_exact_C_binned(&t), 
-							     resamplers.resampler_S, resamplers.resampler_C, stringize("Bubble(%d)",t));
+								      resamplers.resampler_S, resamplers.resampler_C, stringize("Bubble(%d)",t));
       bubble_dj(&t) = sampleAMAresampleCorrect<doubleJackknifeDistributionD>(bubble_sloppy_S_binned(&t), bubble_sloppy_C_binned(&t), bubble_exact_C_binned(&t), 
-							     resamplers.resampler_S, resamplers.resampler_C);
+									     resamplers.resampler_S, resamplers.resampler_C);
     }
   }
   
-  BubbleData extractUnbinnedBubble(const char ens, const SloppyExact se) const{
-    BubbleData out;
+  ProjectedBubbleData extractUnbinnedBubble(const char ens, const SloppyExact se) const{
+    ProjectedBubbleData out;
     if(ens == 'S'){
       assert(se == Sloppy);
       out.bubble = bubble_sloppy_S;
@@ -93,25 +95,30 @@ struct allRawData{
   RawKtoPiPiData raw_exact_C;
 
   allRawData(const allBubbleData &bubble_data, const int tsep_k_pi,
+	     const std::vector<std::string> &data_file_fmt_sloppy,  const std::vector<std::string> &data_file_fmt_exact,
+	     const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
 	     const std::string &data_dir_S, const int traj_start_S, const int traj_lessthan_S,
 	     const std::string &data_dir_C, const int traj_start_C, const int traj_lessthan_C,
 	     const int traj_inc, const int bin_size,
 	     const int Lt, const int tsep_pipi, const readKtoPiPiDataSampleAMAoptions &opt = readKtoPiPiDataSampleAMAoptions()){
 
-    BubbleData bubble_sloppy_S = bubble_data.extractUnbinnedBubble('S',Sloppy);
-    BubbleData bubble_sloppy_C = bubble_data.extractUnbinnedBubble('C',Sloppy);
-    BubbleData bubble_exact_C = bubble_data.extractUnbinnedBubble('C',Exact);
+    ProjectedBubbleData bubble_sloppy_S = bubble_data.extractUnbinnedBubble('S',Sloppy);
+    ProjectedBubbleData bubble_sloppy_C = bubble_data.extractUnbinnedBubble('C',Sloppy);
+    ProjectedBubbleData bubble_exact_C = bubble_data.extractUnbinnedBubble('C',Exact);
 
     std::cout << "allRawData loading sloppy_S" << std::endl;
-    raw_sloppy_S = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_S, data_dir_S, traj_start_S, traj_inc, traj_lessthan_S, bin_size,
+    raw_sloppy_S = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_S, data_dir_S, 
+				  data_file_fmt_sloppy, type1_pimom_proj, traj_start_S, traj_inc, traj_lessthan_S, bin_size,
 				  Lt, tsep_pipi, opt.read_opts_sloppy_S);
 
     std::cout << "allRawData loading sloppy_C" << std::endl;
-    raw_sloppy_C = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_C, data_dir_C, traj_start_C, traj_inc, traj_lessthan_C, bin_size,
+    raw_sloppy_C = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_C, data_dir_C,
+				  data_file_fmt_sloppy, type1_pimom_proj, traj_start_C, traj_inc, traj_lessthan_C, bin_size,
 				  Lt, tsep_pipi, opt.read_opts_sloppy_C);
 
     std::cout << "allRawData loading exact_C" << std::endl;
-    raw_exact_C = RawKtoPiPiData(tsep_k_pi, bubble_exact_C, data_dir_C, traj_start_C, traj_inc, traj_lessthan_C, bin_size,
+    raw_exact_C = RawKtoPiPiData(tsep_k_pi, bubble_exact_C, data_dir_C,
+				 data_file_fmt_exact, type1_pimom_proj, traj_start_C, traj_inc, traj_lessthan_C, bin_size,
 				 Lt, tsep_pipi, opt.read_opts_exact_C);
   }
 

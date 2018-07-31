@@ -122,6 +122,7 @@ struct contractions{
   }      
 };
 
+enum SinkState { PiPi, Sigma };
 
 class type1234Data{
   typedef contractions tdata; //data associated with given t, i.e. the contractions
@@ -141,18 +142,31 @@ class type1234Data{
 public:
   type1234Data(){}
   
-  type1234Data(const int _type, const int _Lt, const int _nsample): type(_type),Lt(_Lt), nsample(_nsample), nextra(0){
-    switch(type){
-    case 1:
-    case 2:
-      ncontract = 6; break;
-    case 3:
-    case 4:
-      ncontract = 10;
-      nextra = 2; break;  
-    default:
-      error_exit(std::cout << "type1234Data::type1234Data invalid type " << type << std::endl);
-    };
+  type1234Data(const int _type, const int _Lt, const int _nsample, SinkState state = PiPi): type(_type),Lt(_Lt), nsample(_nsample), nextra(0){
+    if(state == PiPi){
+      switch(type){
+      case 1:
+      case 2:
+	ncontract = 6; break;
+      case 3:
+      case 4:
+	ncontract = 10;
+	nextra = 2; break;  
+      default:
+	error_exit(std::cout << "type1234Data::type1234Data invalid type " << type << std::endl);
+      };
+    }else{ //State == Sigma
+      switch(type){
+      case 1:
+	ncontract = 5; break;
+      case 3:
+      case 4:
+	ncontract = 9;
+	nextra = 2; break;  
+      default:
+	error_exit(std::cout << "type1234Data::type1234Data invalid type " << type << std::endl);
+      };
+    }
 
     data.resize(Lt, tKdata(Lt, tdata(nsample,ncontract,nextra)));
   }

@@ -157,8 +157,6 @@ struct SampleAMAcmdLine{
 
   readKtoPiPiDataOptions getReadOptions(const char ens, const SloppyExact se) const{
     readKtoPiPiDataOptions out;
-    out.symmetric_quark_momenta_figure_file_extension = symmetric_quark_momenta_figure_file_extension;
-
     if(ens == 'S'){
       assert(se == Sloppy);
 
@@ -166,7 +164,6 @@ struct SampleAMAcmdLine{
       out.load_data_checkpoint_stub = load_data_checkpoint_stub_sloppy_S;
       out.save_data_checkpoint = save_data_checkpoint_sloppy_S;
       out.save_data_checkpoint_stub = save_data_checkpoint_stub_sloppy_S;
-      out.use_symmetric_quark_momenta = false;
     }else{
       assert(ens == 'C');
       
@@ -175,13 +172,11 @@ struct SampleAMAcmdLine{
 	out.load_data_checkpoint_stub = load_data_checkpoint_stub_sloppy_C;
 	out.save_data_checkpoint = save_data_checkpoint_sloppy_C;
 	out.save_data_checkpoint_stub = save_data_checkpoint_stub_sloppy_C;
-	out.use_symmetric_quark_momenta = false;
       }else{
 	out.load_data_checkpoint = load_data_checkpoint_exact_C;
 	out.load_data_checkpoint_stub = load_data_checkpoint_stub_exact_C;
 	out.save_data_checkpoint = save_data_checkpoint_exact_C;
 	out.save_data_checkpoint_stub = save_data_checkpoint_stub_exact_C;
-	out.use_symmetric_quark_momenta = false;
       }
     }
     return out;

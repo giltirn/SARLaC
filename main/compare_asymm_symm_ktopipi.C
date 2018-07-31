@@ -62,10 +62,26 @@ void getRawData(type1234Data &type1, type1234Data &type2, type1234Data &type3, t
     read(rd,type4,"type4");
   }else{
     const std::string &data_dir = symmetric ? args.data_dir_symm : args.data_dir_asymm;
-    type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
-    type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
-    type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
-    type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, data_dir, symmetric, "_symm");
+
+    std::vector<std::string> data_file_fmt_asymm =
+      { "traj_<TRAJ>_type1_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>_mom<MOM>",
+	"traj_<TRAJ>_type2_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>",
+	"traj_<TRAJ>_type3_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>",
+	"traj_<TRAJ>_type4" };
+
+    std::vector<std::string> data_file_fmt_symm(data_file_fmt_asymm);
+    for(int i=0;i<data_file_fmt_symm.size();i++) data_file_fmt_symm[i] = data_file_fmt_symm[i] + cmdline.symmetric_quark_momenta_figure_file_extension;
+
+    
+    const std::vector<std::string> &data_file_fmt = symmetric ? data_file_fmt_symm : data_file_fmt_asymm;
+
+
+    std::vector<std::pair<threeMomentum, double> > type1_pimom_proj = {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  { {-1,1,1}, 3.0/8.0 }, { {1,-1,-1}, 3.0/8.0 }  };
+
+    type1 = readType(1, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[0]);
+    type2 = readType(2, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[1]);
+    type3 = readType(3, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[2]);
+    type4 = readType(4, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[3]);
   }
 
   if(cmdline.save_data_checkpoint){
@@ -93,8 +109,8 @@ void compare(const NumericTensor<jackknifeDistributionD,1> &asymm,
 
 
 //Read and prepare the data for a particular tsep_k_pi_idx
-void analyze(const BubbleData &bubble_data_asymm,
-	     const BubbleData &bubble_data_symm,
+void analyze(const ProjectedBubbleData &bubble_data_asymm,
+	     const ProjectedBubbleData &bubble_data_symm,
 	     const int tsep_k_pi_idx, const ComparisonArgs &args, const ComparisonCMDline &cmdline){
   basic_resampler resampler;
 
@@ -257,11 +273,21 @@ void analyze(const ComparisonArgs &args, const ComparisonCMDline &cmdline){
   //Read the bubble data
   basic_resampler resampler;
 
+  std::string bubble_file_fmt_asymm = "traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_mom<PB>";
+  std::string bubble_file_fmt_symm =  bubble_file_fmt_asymm + "_symm";
+
+  std::vector<std::pair<threeMomentum, double> > bubble_pimom_proj =  {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  
+								         { {-1,1,1}, 1.0/8.0 }, { {1,-1,-1}, 1.0/8.0 }, 
+								         { {1,-1,1}, 1.0/8.0 }, { {-1,1,-1}, 1.0/8.0 }, 
+								         { {1,1,-1}, 1.0/8.0 }, { {-1,-1,1}, 1.0/8.0 } };
+
   readKtoPiPiDataOptions opt_asymm = cmdline.getReadOptions(Asymmetric);
-  BubbleData bubble_data_asymm(args.data_dir_asymm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, resampler, opt_asymm);
+  ProjectedBubbleData bubble_data_asymm(args.data_dir_asymm, bubble_file_fmt_asymm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, 
+					args.Lt, args.tsep_pipi, bubble_pimom_proj, resampler, opt_asymm);
 
   readKtoPiPiDataOptions opt_symm = cmdline.getReadOptions(Symmetric);
-  BubbleData bubble_data_symm(args.data_dir_symm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, resampler, opt_symm);
+  ProjectedBubbleData bubble_data_symm(args.data_dir_symm, bubble_file_fmt_symm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
+				       args.Lt, args.tsep_pipi, bubble_pimom_proj, resampler, opt_symm);
  
   for(int tsep_k_pi_idx=0;tsep_k_pi_idx<args.tsep_k_pi.size();tsep_k_pi_idx++){
     analyze(bubble_data_asymm,bubble_data_symm,tsep_k_pi_idx,args,cmdline);  
@@ -282,114 +308,8 @@ int main(const int argc, const char* argv[]){
   assert( (args.traj_lessthan - args.traj_start) % args.traj_inc == 0 );  
 
   ComparisonCMDline cmdline(argc,argv,2);
-
-  
+ 
   analyze(args,cmdline);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-#if 0
-  //Prepare the data
-  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_asymm_j(10), A0_all_symm_j(10);
-  {
-    CMDline c = cmdline.toCMDline(Asymmetric);
-    Args a = args.toArgs(Asymmetric);
-    std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > A0_all_dj(10);
-    getData(A0_all_asymm_j, A0_all_dj,a,c);
-  }
-  {
-    CMDline c = cmdline.toCMDline(Symmetric);
-    Args a = args.toArgs(Symmetric);
-    std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > A0_all_dj(10);
-    getData(A0_all_symm_j, A0_all_dj,a,c);
-  }
-
-  const int sz = A0_all_asymm_j[0].size();
-  for(int q=0;q<10;q++){
-    assert(A0_all_asymm_j[q].size() == A0_all_symm_j[q].size());
-    assert(A0_all_asymm_j[q].size() == sz);
-  }
-  
-  for(int i=0;i<args.tsep_k_pi.size();i++){
-    const int tsep_k_pi = args.tsep_k_pi[i];
-    for(int q=0;q<10;q++){
-      std::cout << "tsep_k_pi=" << tsep_k_pi << " Q=" << q+1 << std::endl;
-      correlationFunction<double, jackknifeDistributionD> A0_q_asymm_tsep_j, A0_q_symm_tsep_j;
-      for(int a=0;a<sz;a++){
-	if(A0_all_asymm_j[q].coord(a).tsep_k_pi == tsep_k_pi){
-	  typedef correlationFunction<double, jackknifeDistributionD>::ElementType Elem;
-	  assert(A0_all_asymm_j[q].coord(a) == A0_all_symm_j[q].coord(a));
-	  double tsep_op_pi = tsep_k_pi - A0_all_asymm_j[q].coord(a).t;
-	  if(tsep_op_pi < 0) continue;
-
-	  A0_q_asymm_tsep_j.push_back(Elem(tsep_op_pi, A0_all_asymm_j[q].value(a)));
-	  A0_q_symm_tsep_j.push_back(Elem(tsep_op_pi, A0_all_symm_j[q].value(a)));
-	}
-      }
-      int fsz = A0_q_symm_tsep_j.size();
-      std::cout << "Found " << fsz << " data with tsep_k_pi="<<tsep_k_pi<<" Q="<<q+1<<std::endl;
-      if(fsz == 0) error_exit(std::cout << "Error: Couldn't find any data for tsep_k_pi="<<tsep_k_pi<<" Q="<<q+1<<std::endl);
-
-      std::ostringstream plot_stub; plot_stub << "reldiff_Q" << q+1 << "_tsep_k_pi_" << tsep_k_pi;
-      compareRelativeDifferences(A0_q_asymm_tsep_j, A0_q_symm_tsep_j, plot_stub.str());
-    }
-  }
-
-  //Divide out the kaon mass exponential term so the data is dependent only on tsep_op_pi (in the kaon plateaux region)
-  jackknifeDistributionD mK_asymm, mK_symm;
-  {
-    std::vector<jackknifeDistributionD> tmp;
-    readParamsStandard(tmp,args.mK_file_asymm);
-    mK_asymm = std::move(tmp[args.mK_param_asymm]);
-  }
-  {
-    std::vector<jackknifeDistributionD> tmp;
-    readParamsStandard(tmp,args.mK_file_symm);
-    mK_symm = std::move(tmp[args.mK_param_symm]);
-  }
-  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_noKexp_all_asymm_j = A0_all_asymm_j;
-  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_noKexp_all_symm_j = A0_all_symm_j;
-
-  for(int q=0;q<10;q++){
-    for(int a=0;a<sz;a++){
-      double t = A0_all_asymm_j[q].coord(a).t;
-      A0_noKexp_all_asymm_j[q].value(a) = A0_noKexp_all_asymm_j[q].value(a)/exp(-mK_asymm * t);
-      A0_noKexp_all_symm_j[q].value(a) = A0_noKexp_all_symm_j[q].value(a)/exp(-mK_symm * t);
-    }
-  }
-
-  //Do the error weighted averages
-  std::vector<correlationFunction<double, jackknifeDistributionD> > errW_asymm(10), errW_symm(10);
-  errorWeightedAverage(errW_asymm, errW_symm, A0_noKexp_all_asymm_j, A0_noKexp_all_symm_j, args.weighted_avg_tmin_k_op);
-
-  for(int q=0;q<10;q++){
-    std::cout << "Weighted average of Q="<<q+1 <<" data with kaon time dependence divided out\n";
-    std::ostringstream plot_stub; plot_stub << "reldiff_Q" << q+1 << "_errW";
-    compareRelativeDifferences(errW_asymm[q], errW_symm[q], plot_stub.str());
-  }
-#endif
-
 
   std::cout << "Done" << std::endl;
   

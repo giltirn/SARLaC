@@ -23,11 +23,14 @@ struct ComparisonCMDline{
   std::string save_amplitude_data_asymm_file;
   std::string save_amplitude_data_symm_file;
   
+  std::string symmetric_quark_momenta_figure_file_extension;
+
   ComparisonCMDline(){
     load_data_checkpoint = false;
     save_data_checkpoint = false;
     load_amplitude_data = false;
     save_amplitude_data = false;
+    symmetric_quark_momenta_figure_file_extension = "_symm";
   }
   ComparisonCMDline(const int argc, const char** argv, const int begin = 0): ComparisonCMDline(){
     setup(argc,argv,begin);
@@ -59,7 +62,10 @@ struct ComparisonCMDline{
 	save_amplitude_data = true;
 	save_amplitude_data_asymm_file = sargv[i+1];
 	save_amplitude_data_symm_file = sargv[i+2];
-	i+=3;
+	i+=3;      
+      }else if(sargv[i] == "-symmetric_quark_momenta_figure_file_extension"){
+	symmetric_quark_momenta_figure_file_extension = sargv[i+1];
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
@@ -68,7 +74,6 @@ struct ComparisonCMDline{
 
   readKtoPiPiDataOptions getReadOptions(const AsymmSymm type) const{
     readKtoPiPiDataOptions opt;
-    opt.symmetric_quark_momenta_figure_file_extension = "_symm";
     opt.load_data_checkpoint = load_data_checkpoint;
     opt.save_data_checkpoint = save_data_checkpoint;
 
@@ -78,7 +83,6 @@ struct ComparisonCMDline{
     }else{
       opt.load_data_checkpoint_stub = load_data_checkpoint_symm_stub;
       opt.save_data_checkpoint_stub = save_data_checkpoint_symm_stub;
-      opt.use_symmetric_quark_momenta = true;
     }
     return opt;
   }

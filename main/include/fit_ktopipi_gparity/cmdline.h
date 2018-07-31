@@ -27,10 +27,6 @@ struct CMDline{
 
   bool use_existing_scratch_files; //if scratch files from a previous run exist, use these
 
-  bool use_symmetric_quark_momenta; //use data generated with mesonfields with symmetric quark momenta (_symm extension)
-  
-  std::string symmetric_quark_momenta_figure_file_extension;
-
   CMDline(){
     load_guess = false;
     load_data_checkpoint = false;
@@ -40,9 +36,7 @@ struct CMDline{
     load_freeze_data = false;
     use_scratch = false;
     use_existing_scratch_files = false;
-    use_symmetric_quark_momenta = false;
     use_scratch_stub = "scratch";
-    symmetric_quark_momenta_figure_file_extension = "_symm";
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -93,12 +87,6 @@ struct CMDline{
 	const size_t k = 1024;
 	bytes *= k*k*k;					  
 	constrainedMemoryManager::maxSize() = bytes;
-	i+=2;
-      }else if(sargv[i] == "-use_symmetric_quark_momenta"){
-	use_symmetric_quark_momenta = true;
-	i++;
-      }else if(sargv[i] == "-symmetric_quark_momenta_figure_file_extension"){
-	symmetric_quark_momenta_figure_file_extension = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-freeze"){
 	load_freeze_data = true;

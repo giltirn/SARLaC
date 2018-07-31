@@ -209,6 +209,25 @@ int main(const int argc, const char* argv[]){
     return 0;
   }
 
+  std::vector<std::string> data_file_fmt_sloppy =
+    { "traj_<TRAJ>_type1_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>_mom<MOM>",
+      "traj_<TRAJ>_type2_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>",
+      "traj_<TRAJ>_type3_deltat_<TSEP_K_PI>_sep_<TSEP_PIPI>",
+      "traj_<TRAJ>_type4" };
+
+  std::vector<std::string> data_file_fmt_exact(data_file_fmt_sloppy);
+  for(int i=0;i<data_file_fmt_exact.size();i++) data_file_fmt_exact[i] = data_file_fmt_exact[i] + cmdline.symmetric_quark_momenta_figure_file_extension;
+
+  std::vector<std::pair<threeMomentum, double> > type1_pimom_proj = {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  { {-1,1,1}, 3.0/8.0 }, { {1,-1,-1}, 3.0/8.0 }  };
+
+  std::string bubble_file_fmt_sloppy = "traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_mom<PB>";
+  std::string bubble_file_fmt_exact =  bubble_file_fmt_sloppy + "_symm";
+
+  std::vector<std::pair<threeMomentum, double> > bubble_pimom_proj =  {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  
+								         { {-1,1,1}, 1.0/8.0 }, { {1,-1,-1}, 1.0/8.0 }, 
+								         { {1,-1,1}, 1.0/8.0 }, { {-1,1,-1}, 1.0/8.0 }, 
+								         { {1,1,-1}, 1.0/8.0 }, { {-1,-1,1}, 1.0/8.0 } };
+
   //Prepare the data
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_all_j(10);
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > A0_all_dj(10);
@@ -216,11 +235,11 @@ int main(const int argc, const char* argv[]){
     
   if(cmdline.checkpoint_and_exit){
     checkpointRawOnly(args.tsep_k_pi, 
+		      bubble_file_fmt_sloppy, bubble_file_fmt_exact, bubble_pimom_proj,
+		      data_file_fmt_sloppy, data_file_fmt_exact, type1_pimom_proj,
 		      args.data_dir_S, args.traj_start_S, args.traj_lessthan_S,
 		      args.data_dir_C, args.traj_start_C, args.traj_lessthan_C,
 		      args.traj_inc, args.bin_size, args.Lt, args.tsep_pipi, data_opt.read_opts);
-    
-
     
     return 0;
   }
@@ -237,6 +256,8 @@ int main(const int argc, const char* argv[]){
 
   if(!fake_data){
     getDataSampleAMA(A0_all_j, A0_all_dj, args.tsep_k_pi, 
+		     bubble_file_fmt_sloppy, bubble_file_fmt_exact, bubble_pimom_proj,
+		     data_file_fmt_sloppy, data_file_fmt_exact, type1_pimom_proj,
 		     args.data_dir_S, args.traj_start_S, args.traj_lessthan_S,
 		     args.data_dir_C, args.traj_start_C, args.traj_lessthan_C,
 		     args.traj_inc, args.bin_size, args.Lt, args.tsep_pipi, data_opt);

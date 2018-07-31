@@ -12,7 +12,6 @@ using namespace CPSfit;
 #include<fit_simple/main.h>
 
 #include<fit_simple_sampleAMA/args.h>
-#include<fit_simple_sampleAMA/sampleAMA_resample.h>
 
 //Basic fitting with 'sample AMA' technique
 int main(const int argc, const char** argv){
