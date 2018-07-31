@@ -158,6 +158,18 @@ int main(const int argc, const char* argv[]){
     assert(failed);
   }
 
+  //Test std::pair parse
+  {
+    std::stringstream is;
+    is << "{ A, 2.3 }";
+    is >> std::noskipws;
+    boost::spirit::istream_iterator f(is);
+
+    std::pair<char,double> v;
+    f >> v;
+    std::cout << v.first << " " << v.second << std::endl;
+    assert(v.first == 'A' && v.second == 2.3);
+  }
 
   std::cout << "Test complete with no (unexpected!) errors" << std::endl;
   return 0;

@@ -34,6 +34,7 @@ namespace parsers{
   template<typename T>
   struct parser{};
 
+  DEF_X3_PARSER(char);
   DEF_X3_PARSER(int);
   DEF_X3_PARSER(double);
   DEF_X3_PARSER(bool);
@@ -104,6 +105,34 @@ namespace parsers{
     static auto const def_ = (inst.parse = parse_def);
     return def_.parse(first, last, context, unused, attr);
   }
+
+
+  //Pair parser
+  template<typename T, typename U>
+  struct pair_T_U_rule: error_handler{};
+
+  template<typename T, typename U>
+  struct parser< std::pair<T,U> >{
+    x3::rule<class pair_T_U_rule<T,U>, std::pair<T,U> > const parse;
+    parsers::parser<T> T_parser;
+    parsers::parser<U> U_parser;
+    
+    parser(): parse( typeid(std::pair<T,U>).name() ){}
+
+    inline decltype(auto) get_def() const{
+      return x3::char_('{') > T_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,T,&std::pair<T,U>::first>()] > ','
+	> U_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,U,&std::pair<T,U>::second>()] > '}';
+    }
+  };
+  template <typename T, typename U, typename Iterator, typename Context, typename Attribute>
+  bool parse_rule(x3::rule<class pair_T_U_rule<T,U>, std::pair<T,U> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
+    using boost::spirit::x3::unused;
+    static parser<std::pair<T,U> > inst;
+    static auto const parse_def = inst.get_def();
+    static auto const def_ = (inst.parse = parse_def);
+    return def_.parse(first, last, context, unused, attr);
+  }
+
 
   
   //String parser
