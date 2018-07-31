@@ -35,6 +35,7 @@ std::ostream & operator<<(std::ostream &os, const std::vector<T> &s){
   return os;
 }
 
+//Ostream output for array
 template<typename T, std::size_t S>
 std::ostream & operator<<(std::ostream &os, const std::array<T,S> &s){
   os << '(';
@@ -43,6 +44,12 @@ std::ostream & operator<<(std::ostream &os, const std::array<T,S> &s){
     os << s.back();
   }
   os << ')';
+}
+
+//Ostream output for pair
+template<typename T, typename U>
+std::ostream & operator<<(std::ostream &os, const std::pair<T,U> &s){
+  os << '{' << s.first << ", " << s.second << "}";
   return os;
 }
 

@@ -67,6 +67,16 @@ namespace parser_tools{
       os << val;
     }
   };
+
+  template<typename T>
+  inline _parser_output_print<T> parser_output_print(const T &val){
+    return _parser_output_print<T>(val);
+  }
+  template<typename T>
+  inline void parser_output_print(std::ostream &os, const T &val){
+    _parser_output_print<T> p(val); p.write(os);
+  }
+
   template<>
   void _parser_output_print<std::string>::write(std::ostream &os) const{
     os << "\"" << val << "\"";
@@ -76,11 +86,52 @@ namespace parser_tools{
     os << (val ? "true" : "false");
   }
 
-  
   template<typename T>
-  _parser_output_print<T> parser_output_print(const T &val){
-    return _parser_output_print<T>(val);
-  }
+  struct _parser_output_print< std::vector<T> >: public OstreamHook{
+    const std::vector<T> &val;
+    _parser_output_print(const std::vector<T> &_val): val(_val){}
+    void write(std::ostream &os) const{
+      os << '(';
+      if(val.size() > 0){
+	for(int i=0;i<val.size()-1;i++){
+	  parser_output_print(os, val[i]);
+	  os << ", ";
+	}
+	parser_output_print(os, val.back());
+      }
+      os << ')';
+    }
+  };
+
+  template<typename T, size_t N>
+  struct _parser_output_print< std::array<T,N> >: public OstreamHook{
+    const std::array<T,N> &val;
+    _parser_output_print(const std::array<T,N> &_val): val(_val){}
+    void write(std::ostream &os) const{
+      os << '(';
+      if(N > 0){
+	for(int i=0;i<N-1;i++){
+	  parser_output_print(os, val[i]);
+	  os << ", ";
+	}
+	parser_output_print(os, val.back());
+      }
+      os << ')';
+    }
+  };
+
+  template<typename T, typename U>
+  struct _parser_output_print< std::pair<T,U> >: public OstreamHook{
+    const std::pair<T,U> &val;
+    _parser_output_print(const std::pair<T,U> &_val): val(_val){}
+    void write(std::ostream &os) const{
+      os << '{';
+      parser_output_print(os, val.first);
+      os << ", ";
+      parser_output_print(os, val.second);
+      os << "}";
+    }
+  };
 
   struct tabbing{
     static int & depth(){ static int d=0; return d; }
