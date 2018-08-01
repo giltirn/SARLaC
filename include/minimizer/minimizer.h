@@ -97,6 +97,7 @@ private:
     delta = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
     last_params = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
 
+    iter = 0;
     converged = false;
     fail = false;
     use_derivs_from_last_step = false;
@@ -272,8 +273,12 @@ public:
   
   CostType fit(ParameterType &params){
     initialize(params);
-    while(!converged && !fail)
-      iterate();
+    if(parameters->size() == 0){ //can't fit to zero parameters; just return cost
+      converged = true;
+    }else{
+      while(!converged && !fail)
+	iterate();
+    }
     restoreEnvironment();
     params = *parameters;
     return cost;

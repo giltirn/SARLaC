@@ -70,6 +70,11 @@ struct PiPiProjectA1: public PiPiProject{
     if(abs(mom[0])==1 && abs(mom[1])==1 && abs(mom[2])==1){
       coeff = 1./8;
       return true;
+    }else if(   ( abs(mom[0])==3 && abs(mom[1])==1 && abs(mom[2])==1 ) ||
+		( abs(mom[0])==1 && abs(mom[1])==3 && abs(mom[2])==1 ) ||
+		( abs(mom[0])==1 && abs(mom[1])==1 && abs(mom[2])==3 ) ){ //extended momentum set
+      coeff = 1./24;
+      return true;
     }else{
       return false;
     }
