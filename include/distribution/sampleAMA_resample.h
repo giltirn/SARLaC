@@ -237,11 +237,105 @@ struct sampleAMA_resamplers{
 };
 
 
+//Perform the sampleAMA correction given the sloppy and exact data
 template<typename resampledDistributionType>
 inline resampledDistributionType sampleAMAresampleCorrect(const rawDataDistribution<double> &sloppy_S, const rawDataDistribution<double> &sloppy_C, const rawDataDistribution<double> &exact_C, 
 							  const sampleAMA_resamplers &resamplers, const std::string &descr = ""){
   return sampleAMAresampleCorrect<resampledDistributionType>(sloppy_S,sloppy_C,exact_C,resamplers.resampler_S,resamplers.resampler_C,descr);
 }
+
+
+
+
+//Boost a resampled distribution from the S or C ensemble onto a sample-AMA distribution. 
+//If the input distribution is a linear function of the distribution obtained from the raw data this will give exactly the same result as if the raw data had been sample-AMA resampled from the start
+//otherwise it will differ slightly by 1/N^2 effects due to having to obtain the average from the resampled distribution 
+template<typename DistributionType>
+struct sampleAMA_boost{};
+
+template<typename T>
+struct sampleAMA_boost<jackknifeDistribution<T> >{
+  static jackknifeDistribution<T> boost(const jackknifeDistribution<T> &v, const char ens, const int nS, const int nC){
+    assert(ens == 'S' || ens == 'C');
+    int cp_start = ens == 'S' ? 0 : nS;
+    int ncp = ens == 'S' ? nS : nC;
+    assert(v.size() == ncp);
+
+    T mean = v.mean();
+    jackknifeDistribution<T> out(nS+nC, mean);
+    for(int i=0;i<ncp;i++) out.sample(cp_start+i) = v.sample(i);    
+    return out;
+  }  
+};
+
+
+template<typename T>
+struct sampleAMA_boost<doubleJackknifeDistribution<T> >{
+  static doubleJackknifeDistribution<T> boost(const doubleJackknifeDistribution<T> &v, const char ens, const int nS, const int nC){
+    assert(ens == 'S' || ens == 'C');
+    jackknifeDistribution<T> vjack = v.toJackknife();
+    T vmean = vjack.mean();
+
+    doubleJackknifeDistribution<double> out(nS+nC);
+
+    if(ens == 'S'){
+      assert(v.size() == nS);
+      
+      for(int i=0;i<nS;i++){
+	int jj = 0;
+	for(int j=0;j<nS;j++){ //i<nS j<nS
+	  if(j!=i){
+	    out.sample(i).sample(jj) = v.sample(i).sample(jj);
+	    ++jj;
+	  }
+	}
+	const double val = vjack.sample(i);
+	for(int jj=nS-1;jj<nS+nC-1;jj++){ //i<nS j>=nS  (jj always j-1)
+	  out.sample(i).sample(jj) = val;
+	}
+      }
+      for(int i=nS;i<nS+nC;i++){
+	for(int jj=0;jj<nS;jj++){ //i>=nS j<nS  (jj==j)
+	  out.sample(i).sample(jj) = vjack.sample(jj);
+	}
+	for(int jj=nS;jj<nS+nC-1;jj++){ //i>=nS j>=nS (nC-1 values of j!=i)
+	  out.sample(i).sample(jj) = vmean;
+	}
+      }
+      return out;
+    }else{ //ens == 'C'
+      
+      assert(v.size() == nC);
+
+      for(int i=0;i<nS;i++){
+	for(int jj=0;jj<nS-1;jj++){ //i<nS j<nS   (nS-1 samples where j!=i)
+	  out.sample(i).sample(jj) = vmean;
+	}
+
+	int jj = nS-1;
+	for(int j=nS;j<nS+nC;j++){ //i<nS j>=nS
+	  out.sample(i).sample(jj++) = vjack.sample(j-nS);
+	}
+      }
+      for(int i=nS;i<nS+nC;i++){
+	const double val = vjack.sample(i-nS);
+	for(int j=0;j<nS;j++){ //i>=nS j<nS    (jj=j because i>=nS and j<nS)
+	  out.sample(i).sample(j) = val;
+	}
+
+	int jj=nS;
+	for(int j=nS;j<nS+nC;j++){ //i>=nS j>=nS
+	  if(j!=i){
+	    out.sample(i).sample(jj) = v.sample(i-nS).sample(jj-nS);
+	    ++jj;
+	  }
+	}
+      }
+      return out;
+    }
+  }
+};
+
 
 CPSFIT_END_NAMESPACE
 

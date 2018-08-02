@@ -101,6 +101,7 @@ public:
     return out;
   }
 
+  //Note this relationship is incorrect (by, I think 1/N^2 effects) if this distribution is related non-linearly to the original resampled distribution
   jackknifeDistribution<BaseDataType> toJackknife() const{
     jackknifeDistribution<BaseDataType> out(this->size());
     for(int j=0;j<this->size();j++)
