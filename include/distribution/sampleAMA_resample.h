@@ -10,145 +10,89 @@
 
 CPSFIT_START_NAMESPACE
 
+
+//Generalized version of the superjackknife resampling procedure supporting an arbitrary number of ensembles
+template<typename T> 
+jackknifeDistribution<T> superJackknifeResampleGen(const rawDataDistribution<T> &data, const int ens, const std::vector<int> sizes){
+  assert(data.size() == sizes[ens]);
+  int ntot = 0; for(int i=0;i<sizes.size();i++) ntot += sizes[i];
+  int npre = 0; for(int i=0;i<ens;i++) npre += sizes[i];
+
+  const int nens = sizes[ens];
+
+  const T Smean = data.mean();
+  const T Ssum = nens*Smean;
+  const double nrm = 1./(nens - 1);
+
+  jackknifeDistribution<double> out(ntot, Smean);
+  for(int s=0;s<nens;s++) out.sample(npre + s) = nrm * ( Ssum - data.sample(s) );
+
+  return out;
+}
+
+template<typename T> 
+doubleJackknifeDistribution<T> superDoubleJackknifeResampleGen(const rawDataDistribution<T> &data, const int ens, const std::vector<int> sizes){
+  assert(data.size() == sizes[ens]);
+  int ntot = 0; for(int i=0;i<sizes.size();i++) ntot += sizes[i];
+  int npre = 0; for(int i=0;i<ens;i++) npre += sizes[i];
+  const int nens = sizes[ens];
+
+  const T Smean = data.mean();
+  const T Ssum = nens*Smean;
+  const double invNm2 = 1./(nens - 2);
+  const double invNm1 = 1./(nens - 1);
+
+  doubleJackknifeDistribution<double> out(ntot, Smean);
+
+  for(int i=0;i<ntot;i++){
+    bool i_in_range = i>=npre && i<npre + nens;
+    int jj = 0;
+    for(int j=0;j<ntot;j++){
+      if(j==i) continue;
+     
+      bool j_in_range = j>=npre && j<npre + nens;
+
+      if(i_in_range){ //i is in range 	
+	if(j_in_range){ //If i and j in range for ensemble require the double-jack value
+	  out.sample(i).sample(jj) = invNm2 * ( Ssum - data.sample(i-npre) - data.sample(j-npre) );
+	}else{ //if j not in range then use single-jack value
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(i-npre) );
+	}
+      }else{ //i is not in range
+	if(j_in_range){ //If j is in range use single-jack value
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(j-npre) );
+	}
+	//if i and j not in range then use mean (default)
+      }      
+      ++jj;
+    }
+  }
+  return out;
+}
+
+
 //We consider a quantity Y that resides on nS samples, and a quantity Z that resides on a disjoint set of nC samples
 //We define a super-ensemble of size nS+nC for which Y resides only on the first nS and Z only on the last nC
 //The algorithm for jackknife and double-jackknife then proceeds as normal by defining reduced and doubly-reduced ensembles and averaging over the remaining data
-
-jackknifeDistribution<double> superJackknifeResampleS(const rawDataDistribution<double> &data, const int nS, const int nC){
-  assert(data.size() == nS);
-  double Smean = data.mean();
-  double Ssum = nS*Smean;
-  
-  return jackknifeDistribution<double>(nS+nC,
-				[&](const int s){
-				  if(s<nS) return 1./(nS-1)*(Ssum - data.sample(s));
-				  else return Smean;
-				}
-				);
-}
-jackknifeDistribution<double> superJackknifeResampleC(const rawDataDistribution<double> &data, const int nS, const int nC){
-  assert(data.size() == nC);
-  double Cmean = data.mean();
-  double Csum = nC*Cmean;
-  
-  return jackknifeDistribution<double>(nS+nC,
-				[&](const int s){
-				  if(s<nS) return Cmean;
-				  else return 1./(nC-1)*(Csum - data.sample(s-nS));
-				}
-				);
+template<typename T>
+inline jackknifeDistribution<T> superJackknifeResampleS(const rawDataDistribution<T> &data, const int nS, const int nC){
+  return superJackknifeResampleGen(data,0,{nS,nC});
 }
 
-doubleJackknifeDistribution<double> superDoubleJackknifeResampleS_orig(const rawDataDistribution<double> &data, const int nS, const int nC){
-  assert(data.size() == nS);
-  double Smean = data.mean();
-  double Ssum = nS*Smean;
-  
-  doubleJackknifeDistribution<double> out(nS+nC);
-  for(int i=0;i<nS+nC;i++){
-    int jj=0;
-    for(int j=0;j<nS+nC;j++){
-      if(j==i) continue;
-
-      if(i<nS && j<nS) out.sample(i).sample(jj) = 1./(nS-2)*(Ssum - data.sample(i) - data.sample(j)); 
-      else if(i<nS && j>= nS) out.sample(i).sample(jj) = 1./(nS-1)*(Ssum - data.sample(i));
-      else if(i>=nS && j< nS) out.sample(i).sample(jj) = 1./(nS-1)*(Ssum - data.sample(j));
-      else out.sample(i).sample(jj) = Smean;
-      ++jj;
-    }
-  }
-  return out;
+template<typename T>
+inline jackknifeDistribution<T> superJackknifeResampleC(const rawDataDistribution<T> &data, const int nS, const int nC){
+  return superJackknifeResampleGen(data,1,{nS,nC});
 }
 
-//A faster implementation of the above
-doubleJackknifeDistribution<double> superDoubleJackknifeResampleS(const rawDataDistribution<double> &data, const int nS, const int nC){
-  assert(data.size() == nS);
-  const double Smean = data.mean();
-  const double Ssum = nS*Smean;
-  const double invnSm2 = 1./(nS-2);
-  const double invnSm1 = 1./(nS-1);
-
-  doubleJackknifeDistribution<double> out(nS+nC);
-  for(int i=0;i<nS;i++){
-    int jj = 0;
-    for(int j=0;j<nS;j++){ //i<nS j<nS
-      if(j!=i) out.sample(i).sample(jj++) = invnSm2*(Ssum - data.sample(i) - data.sample(j)); 
-    }
-    const double val = invnSm1*(Ssum - data.sample(i));
-    for(int jj=nS-1;jj<nS+nC-1;jj++){ //i<nS j>=nS  (jj always j-1)
-      out.sample(i).sample(jj) = val;
-    }
-  }
-  for(int i=nS;i<nS+nC;i++){
-    for(int jj=0;jj<nS;jj++){ //i>=nS j<nS  (jj==j)
-      out.sample(i).sample(jj) = invnSm1*(Ssum - data.sample(jj));
-    }
-    for(int jj=nS;jj<nS+nC-1;jj++){ //i>=nS j>=nS (nC-1 values of j!=i)
-      out.sample(i).sample(jj) = Smean;
-    }
-  }
-  return out;
+template<typename T>
+inline doubleJackknifeDistribution<T> superDoubleJackknifeResampleS(const rawDataDistribution<T> &data, const int nS, const int nC){
+  return superDoubleJackknifeResampleGen(data, 0, {nS,nC});
 }
 
-
-
-
-
-doubleJackknifeDistribution<double> superDoubleJackknifeResampleC_orig(const rawDataDistribution<double> &data, const int nS, const int nC){
-  assert(data.size() == nC);
-  double Cmean = data.mean();
-  double Csum = nC*Cmean;
-  
-  doubleJackknifeDistribution<double> out(nS+nC);
-  for(int i=0;i<nS+nC;i++){
-    int jj=0;
-    for(int j=0;j<nS+nC;j++){
-      if(j==i) continue;
-
-      if(i<nS && j<nS) out.sample(i).sample(jj) = Cmean;
-      else if(i<nS && j>= nS) out.sample(i).sample(jj) = 1./(nC-1)*(Csum - data.sample(j-nS));
-      else if(i>=nS && j< nS) out.sample(i).sample(jj) = 1./(nC-1)*(Csum - data.sample(i-nS));
-      else out.sample(i).sample(jj) = 1./(nC-2)*(Csum - data.sample(i-nS) - data.sample(j-nS)); 
-      ++jj;
-    }
-  }
-  return out;
+template<typename T>
+inline doubleJackknifeDistribution<T> superDoubleJackknifeResampleC(const rawDataDistribution<T> &data, const int nS, const int nC){
+  return superDoubleJackknifeResampleGen(data, 1, {nS,nC});
 }
-
-//A faster implementation of the above
-doubleJackknifeDistribution<double> superDoubleJackknifeResampleC(const rawDataDistribution<double> &data, const int nS, const int nC){
-  assert(data.size() == nC);
-  const double Cmean = data.mean();
-  const double Csum = nC*Cmean;
-  const double invnCm2 = 1./(nC-2);
-  const double invnCm1 = 1./(nC-1);
-
-  doubleJackknifeDistribution<double> out(nS+nC);
-  for(int i=0;i<nS;i++){
-    for(int jj=0;jj<nS-1;jj++){ //i<nS j<nS   (nS-1 samples where j!=i)
-      out.sample(i).sample(jj) = Cmean;
-    }
-
-    int jj = nS-1;
-    for(int j=nS;j<nS+nC;j++){ //i<nS j>=nS
-      out.sample(i).sample(jj++) = invnCm1*(Csum - data.sample(j-nS));
-    }
-  }
-  for(int i=nS;i<nS+nC;i++){
-    const double val = invnCm1*(Csum - data.sample(i-nS));
-    for(int j=0;j<nS;j++){ //i>=nS j<nS    (jj=j because i>=nS and j<nS)
-      out.sample(i).sample(j) = val;
-    }
-
-    int jj=nS;
-    for(int j=nS;j<nS+nC;j++){ //i>=nS j>=nS
-      if(j!=i) out.sample(i).sample(jj++) = invnCm2*(Csum - data.sample(i-nS) - data.sample(j-nS));
-    }
-  }
-  return out;
-}
-
-
 
 template<typename DistributionType>
 struct sampleAMAresample{};
@@ -276,7 +220,7 @@ struct sampleAMA_boost<doubleJackknifeDistribution<T> >{
     jackknifeDistribution<T> vjack = v.toJackknife();
     T vmean = vjack.mean();
 
-    doubleJackknifeDistribution<double> out(nS+nC);
+    doubleJackknifeDistribution<T> out(nS+nC);
 
     if(ens == 'S'){
       assert(v.size() == nS);
@@ -289,7 +233,7 @@ struct sampleAMA_boost<doubleJackknifeDistribution<T> >{
 	    ++jj;
 	  }
 	}
-	const double val = vjack.sample(i);
+	const T val = vjack.sample(i);
 	for(int jj=nS-1;jj<nS+nC-1;jj++){ //i<nS j>=nS  (jj always j-1)
 	  out.sample(i).sample(jj) = val;
 	}
@@ -318,7 +262,7 @@ struct sampleAMA_boost<doubleJackknifeDistribution<T> >{
 	}
       }
       for(int i=nS;i<nS+nC;i++){
-	const double val = vjack.sample(i-nS);
+	const T val = vjack.sample(i-nS);
 	for(int j=0;j<nS;j++){ //i>=nS j<nS    (jj=j because i>=nS and j<nS)
 	  out.sample(i).sample(j) = val;
 	}
@@ -335,6 +279,13 @@ struct sampleAMA_boost<doubleJackknifeDistribution<T> >{
     }
   }
 };
+
+
+
+  
+
+
+
 
 
 CPSFIT_END_NAMESPACE
