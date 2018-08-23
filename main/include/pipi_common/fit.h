@@ -25,17 +25,10 @@ struct pipiFitOptions{
   bool load_guess;
   std::string guess_file;
 
-  pipiFitOptions(): load_frozen_fit_params(false), load_guess(false){}
+  bool load_mlparams;
+  std::string mlparams_file;
 
-  template<typename T>
-  inline void import(const T &from){ 
-#define I(A) A = from.A
-    I(load_frozen_fit_params);
-    I(load_frozen_fit_params_file);
-    I(load_guess);
-    I(guess_file);
-#undef I
-  }    
+  pipiFitOptions(): load_frozen_fit_params(false), load_guess(false), load_mlparams(false){}
 };
 
 
@@ -56,6 +49,14 @@ jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeC
 
   typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
   fitter<FitPolicies> fitter;
+  
+  if(opt.load_mlparams){
+    typename fitter<FitPolicies>::minimizerParamsType minparams;
+    parse(minparams, opt.mlparams_file);
+    std::cout << "Loaded minimizer params: " << minparams << std::endl;
+    fitter.setMinimizerParams(minparams);
+  }
+
   fitter.importFitFunc(fitfunc);
 
   if(opt.load_frozen_fit_params)

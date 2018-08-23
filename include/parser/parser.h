@@ -7,7 +7,7 @@
 
 CPSFIT_START_NAMESPACE
 
-//Combine all the above the specify a parser *outside the CPSfit namespace*
+//Specify a parser
 //Usage: GENERATE_PARSER( MY_STRUCT_NAME ,  (MY_TYPE1, MY_MEMBER1)(MY_TYPE2, MY_MEMBER2).... )
 #define GENERATE_PARSER(structname, structmembers) _GENERATE_PARSER(structname, structmembers)
 

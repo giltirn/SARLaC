@@ -80,6 +80,33 @@ struct PiPiProjectA1: public PiPiProject{
     }
   }
 };
+
+//Select out only threeMomentum in the basis (+-1, +-1, +-1) and provide coefficients for A1 projection
+struct PiPiProjectA1momSet111: public PiPiProject{
+  virtual bool operator()(std::complex<double> &coeff, const threeMomentum &mom) const{
+    if(abs(mom[0])==1 && abs(mom[1])==1 && abs(mom[2])==1){  
+      coeff = 1./8;
+      return true;
+    }else{
+      return false;
+    }
+  }
+};
+
+//Select out only threeMomentum in the basis (+-3, +-1, +-1) + perms and provide coefficients for A1 projection
+struct PiPiProjectA1momSet311: public PiPiProject{
+  virtual bool operator()(std::complex<double> &coeff, const threeMomentum &mom) const{
+    if(   ( abs(mom[0])==3 && abs(mom[1])==1 && abs(mom[2])==1 ) ||
+	  ( abs(mom[0])==1 && abs(mom[1])==3 && abs(mom[2])==1 ) ||
+	  ( abs(mom[0])==1 && abs(mom[1])==1 && abs(mom[2])==3 ) ){
+      coeff = 1./24;
+      return true;
+    }else{
+      return false;
+    }
+  }
+};
+
 struct PiPiProjectAvg4: public PiPiProject{
   virtual bool operator()(std::complex<double> &coeff, const threeMomentum &mom) const{
     coeff = 1./4;
@@ -124,6 +151,10 @@ PiPiProject* getProjector(const PiPiProjector p, const threeMomentum &ptot){
   switch(p){
   case PiPiProjector::A1:
     return (PiPiProject*)(new PiPiProjectA1);
+  case PiPiProjector::A1momSet111:
+    return (PiPiProject*)(new PiPiProjectA1momSet111);
+  case PiPiProjector::A1momSet311:
+    return (PiPiProject*)(new PiPiProjectA1momSet311);
   case PiPiProjector::Avg4:
     return (PiPiProject*)(new PiPiProjectAvg4);
   case PiPiProjector::Avg2:

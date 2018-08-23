@@ -190,7 +190,7 @@ int main(const int argc, const char* argv[]){
     }
   
   //Perform the fit
-  pipiFitOptions opt; opt.import(cmdline);
+  pipiFitOptions opt; cmdline.Export(opt);
   std::pair<jackknifeDistributionD,jackknifeDistributionD> Epipi_and_const = fit(pipi_j_inrange,pipi_dj_inrange,
 										 args.fitfunc, args.correlated, args.Lt, args.tsep_pipi, args.Ascale, args.Cscale, opt);
 

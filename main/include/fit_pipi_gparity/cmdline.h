@@ -21,6 +21,9 @@ struct CMDline{
 
   bool use_symmetric_quark_momenta; //use data generated with mesonfields with symmetric quark momenta (_symm extension)
   
+  bool load_mlparams;
+  std::string mlparams_file;
+
   CMDline(){
     load_guess = false;
     load_hdf5_data_checkpoint = false;
@@ -29,6 +32,7 @@ struct CMDline{
     save_combined_data = false;
     load_frozen_fit_params= false;
     use_symmetric_quark_momenta = false;
+    load_mlparams = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -79,11 +83,37 @@ struct CMDline{
       }else if(sargv[i] == "-use_symmetric_quark_momenta"){
 	use_symmetric_quark_momenta = true;
 	i++;
+      }else if(sargv[i] == "-load_mlparams"){
+	load_mlparams = true;
+	mlparams_file = sargv[i+1];
+	if(mlparams_file == "TEMPLATE"){
+	  MarquardtLevenbergParameters<double> templ;
+	  std::ofstream of("mlparams_template.args");
+	  of << templ;
+	  of.close();
+	  std::cout << "Wrote MLparams template to mlparams_template.args\n";
+	  exit(0);	 
+	}
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
     }
   }
+
+
+  void Export(pipiFitOptions &to){
+#define I(A) to.A = A
+    I(load_frozen_fit_params);
+    I(load_frozen_fit_params_file);
+    I(load_guess);
+    I(guess_file);
+    I(load_mlparams);
+    I(mlparams_file);
+#undef I
+  }
+
+
 };
 
 

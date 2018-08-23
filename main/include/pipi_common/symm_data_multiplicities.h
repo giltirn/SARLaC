@@ -342,13 +342,18 @@ struct PiPiSymmetrySubset{
     std::complex<double> csrc, csnk;
     double m;
 
+    int nproj1 = 0, nproj2 = 0, nallow = 0;
+    bool first_i_allowed = true;
     for(int i=0;i<np;i++){
       if(!proj_src(csrc, pimom[i])) continue;
+      nproj1++;
       for(int j=0;j<np;j++){
 	if(!proj_snk(csnk, pimom[j])) continue;
+	if(first_i_allowed) nproj2++;
 
 	if(!allow(m,pimom[i],pimom[j])) continue;
-
+	nallow++;
+	
 	ConMomentum want(pimom[i],  pimom[j], p_tot);
 	if(pimoms.count(want.pi2_src) == 0 || pimoms.count(want.pi2_snk) == 0) continue; //all momenta must be in the set 
 	AvailCorr avail = findPartnerInAvailableCorrs(want);
@@ -356,8 +361,9 @@ struct PiPiSymmetrySubset{
 	std::cout << "Found match to " << want << " : " << *avail.it << " by symms p=" << avail.p << " a=" << avail.a << " r=" << avail.r << std::endl;
 	out.incrementMultiplicity(*avail.it, std::real(csrc * csnk)*m );
       }
+      first_i_allowed = false;
     }
-    
+    std::cout << nproj1 << " pion momenta in src projection, " << nproj2 << " in snk projection, " << nallow << " combinations demanded\n";    
     return out;
   }
   

@@ -14,6 +14,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<utils/utils.h>
+#include<parser/parser.h>
 #include<tensors/gsl_svdinverse.h>
 
 CPSFIT_START_NAMESPACE
@@ -46,6 +47,13 @@ struct MarquardtLevenbergParameters{
   }
 };
 
+#define MLP_DOUBLE_MEM \
+  (double, lambda_factor)(double, lambda_min)(double, lambda_max)(double, lambda_start)(double, delta_cost_min)(int, max_iter) \
+  (bool, verbose)(bool, exit_on_convergence_fail)
+
+GENERATE_PARSER_GM( MarquardtLevenbergParameters<double>, MarquardtLevenbergParameters_double_grammar, MLP_DOUBLE_MEM)
+		    
+#undef MLP_DOUBLE_MEM
 
 //Run on a single thread
 template<typename CostFunction> 

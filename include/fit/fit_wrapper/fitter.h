@@ -26,6 +26,8 @@ public:
     min_params.verbose = true;
   }
   fitter(const minimizerParamsType &_min_params): min_params(_min_params){}
+
+  void setMinimizerParams(const minimizerParamsType &_min_params){ min_params = _min_params; }
   
   void fit(FitParameterDistribution &params,
 	   DistributionType &chisq,

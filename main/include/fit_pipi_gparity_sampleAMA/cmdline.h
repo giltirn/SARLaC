@@ -117,6 +117,15 @@ struct CMDlineSampleAMA{
       }
     }
   }
+
+  void Export(pipiFitOptions &to){
+#define I(A) to.A = A
+    I(load_frozen_fit_params);
+    I(load_frozen_fit_params_file);
+    I(load_guess);
+    I(guess_file);
+#undef I
+  }
 };
 
 
