@@ -33,10 +33,13 @@ int main(const int argc, const char* argv[]){
   
   doubleJackCorrelationFunction pipi_dj_inrange;
   jackknifeCorrelationFunction pipi_j_inrange;
+
+  std::cout << "Data in fit range:\n";
   for(int d=0;d<pipi_dj.size();d++)
     if(trange.accept(pipi_dj.coord(d),pipi_dj.value(d) )){
       pipi_dj_inrange.push_back(pipi_dj[d]);
       pipi_j_inrange.push_back(pipi_j[d]);
+      std::cout << pipi_j_inrange.coord(pipi_j_inrange.size()-1) << " " << pipi_j_inrange.value(pipi_j_inrange.size()-1) << std::endl;
     }
   
   //Perform the fit

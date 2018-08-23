@@ -15,6 +15,7 @@
 
 #include<config.h>
 #include<utils/macros.h>
+#include<utils/utils/string.h>
 
 #include "threemomentum.h"
 #include "enums.h"
@@ -258,8 +259,6 @@ std::ostream & operator<<(std::ostream &os, const PiPiMomSelectSymmetrySubset &f
 }
 
 
-
-
 struct PiPiSymmetrySubset{
   typedef std::unordered_set<ConMomentum, ConMomentumHasher> hashMapType;
   typedef std::map<threeMomentum, hashMapType> PtotMapType;
@@ -430,6 +429,48 @@ struct PiPiSymmetrySubset{
 
 
 };
+
+
+
+
+
+class PiPiSymmetrySubsetFigureFileMapping: public PiPiSymmetrySubset{
+  subStringReplace repl; //expect substrings  <TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
+  const threeMomentum p_tot;
+
+  inline std::string filename(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi) const{ 
+    std::vector<std::string> with = { anyToStr(traj), std::string(1,fig), anyToStr(tsep_pipi), momStr(psrc), momStr(psnk), momStr(p_tot - psrc), momStr(-p_tot-psnk) };
+    std::ostringstream os;
+    os << data_dir << '/';
+    repl.replace(os,with);
+    return os.str();
+  }
+public:  
+  
+  PiPiSymmetrySubsetFigureFileMapping(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
+				      const std::vector<threeMomentum> &p_pi, const threeMomentum &p_tot): 
+    PiPiSymmetrySubset(dir, file_fmt, traj_start, tsep_pipi, p_pi, {p_tot}), p_tot(p_tot){
+#define F(STR) subStringSpecify(STR)
+#define FO(STR) subStringSpecify(STR,true)
+
+    static std::vector<subStringSpecify> find = { F("<TRAJ>"), F("<FIG>"), F("<TSEP_PIPI>"), F("<P1SRC>"), F("<P1SNK>"),
+						  FO("<P2SRC>"),FO("<P2SNK>") };
+    repl.chunkString(file_fmt, find);
+
+#undef F
+#undef FO
+  }
+																	   
+  inline std::string operator()(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi) const{ 
+    ConMomentum want(psrc,  psnk, p_tot);
+    AvailCorr avail = findPartnerInAvailableCorrs(want);
+    const ConMomentum &found = *avail.it;
+    std::cout << "Found match to " << want << " : " << found << " by symms p=" << avail.p << " a=" << avail.a << " r=" << avail.r << std::endl;
+    return filename(data_dir, fig, traj, found.pi1_snk, found.pi1_src, tsep_pipi);
+  }
+
+};
+
 
 CPSFIT_END_NAMESPACE
 

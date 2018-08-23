@@ -61,7 +61,10 @@ doubleJackCorrelationFunction generateData(const Args &args, const CMDline &cmdl
 							   );
 #if 1    
     assert(!cmdline.use_symmetric_quark_momenta); //the _symm appelation can be specified in the format string
-    figureFilenamePolicyGeneric ffn(args.figure_file_format, args.total_mom[0]);
+    //figureFilenamePolicyGeneric ffn(args.figure_file_format, args.total_mom[0]);
+
+    PiPiSymmetrySubsetFigureFileMapping ffn(args.data_dir, args.figure_file_format, args.traj_start, args.tsep_pipi, args.pion_momenta, args.total_mom[0]);
+
     bubbleFilenamePolicyGeneric bfn_src(args.bubble_file_format, args.total_mom[0], Source);
     bubbleFilenamePolicyGeneric bfn_snk(args.bubble_file_format, args.total_mom[0], Sink);
 #else
