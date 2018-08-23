@@ -363,7 +363,17 @@ struct PiPiSymmetrySubset{
       }
       first_i_allowed = false;
     }
-    std::cout << nproj1 << " pion momenta in src projection, " << nproj2 << " in snk projection, " << nallow << " combinations demanded\n";    
+    std::cout << nproj1 << " pion momenta in src projection, " << nproj2 << " in snk projection, " << nallow << " combinations demanded\n"; 
+
+    std::cout << "(Non-zero) projection coefficients are:\n";
+    for(int i=0;i<np;i++){
+      for(int j=0;j<np;j++){
+	double coeff;
+	if(out(coeff, pimom[i],pimom[j])){
+	  std::cout << "p1src = " << pimom[i] << " p1snk = " << pimom[j] << " coeff = " << coeff << std::endl;
+	}
+      }
+    }  
     return out;
   }
   
