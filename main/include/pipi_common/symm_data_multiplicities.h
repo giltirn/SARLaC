@@ -298,11 +298,16 @@ struct PiPiSymmetrySubset{
     }
     for(auto it = corrs_avail.begin(); it != corrs_avail.end(); it++)
       std::cout << it->second.size() << " correlators with total momentum " << it->first << std::endl;
+
+    if(corrs_avail.size() == 0) error_exit(std::cout << "PiPiSymmetrySubset::findAvailableCorrs found no files in dir " << dir << " matching format " << file_fmt << " with traj = " << traj_start << ", tsep_pipi = " << tsep_pipi << " and fig = C\n");
+
   }
 
   //Find a partner for the momentum p that exists in the set of data available. We do not allow transformations that change the overall total momentum
   AvailCorr findPartnerInAvailableCorrs(const ConMomentum &cmom) const{
     typename PtotMapType::const_iterator ptot_it = corrs_avail.find(cmom.p_tot);
+    if(ptot_it == corrs_avail.end()) error_exit(std::cout << "PiPiSymmetrySubset::findPartnerInAvailableCorrs could not find total momentum " << cmom.p_tot << " in list\n");
+
     assert(ptot_it != corrs_avail.end());
 
     for(int par = 0; par < 2*2*6; par++){
@@ -320,7 +325,7 @@ struct PiPiSymmetrySubset{
       
       if(corr_it != ptot_it->second.end()){ return AvailCorr(corr_it, p, a, r); }
     }
-    error_exit(std::cout << "Could not find partner for correlator " << cmom << " among those available\n");
+    error_exit(std::cout << "PiPiSymmetrySubset::findPartnerInAvailableCorrs Could not find partner for correlator " << cmom << " among those available\n");
   }
 
   PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow) const{
