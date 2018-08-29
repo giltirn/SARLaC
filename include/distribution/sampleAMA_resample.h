@@ -1,6 +1,8 @@
 #ifndef _SAMPLEAMA_RESAMPLE_H
 #define _SAMPLEAMA_RESAMPLE_H
 
+#include<set>
+
 #include<config.h>
 #include<utils/macros.h>
 
@@ -12,55 +14,51 @@ CPSFIT_START_NAMESPACE
 
 
 //Generalized version of the superjackknife resampling procedure supporting an arbitrary number of ensembles
+
+//start is the index in the output distribution at which the sub-ensemble starts
+//subens_size is the size of the sub-ensemble
+//full_size is the size of the complete ensemble (i.e. the size of the output distribution)
+//It is assumed the sub-ensembles are contiguous in the output superjackknife distribution
 template<typename T> 
-jackknifeDistribution<T> superJackknifeResampleGen(const rawDataDistribution<T> &data, const int ens, const std::vector<int> sizes){
-  assert(data.size() == sizes[ens]);
-  int ntot = 0; for(int i=0;i<sizes.size();i++) ntot += sizes[i];
-  int npre = 0; for(int i=0;i<ens;i++) npre += sizes[i];
-
-  const int nens = sizes[ens];
-
+jackknifeDistribution<T> superJackknifeResampleGen(const rawDataDistribution<T> &data, const int start, const int subens_size, const int full_size){
+  assert(data.size() == subens_size);
   const T Smean = data.mean();
-  const T Ssum = nens*Smean;
-  const double nrm = 1./(nens - 1);
+  const T Ssum = subens_size*Smean;
+  const double nrm = 1./(subens_size - 1);
 
-  jackknifeDistribution<double> out(ntot, Smean);
-  for(int s=0;s<nens;s++) out.sample(npre + s) = nrm * ( Ssum - data.sample(s) );
+  jackknifeDistribution<double> out(full_size, Smean);
+  for(int s=0;s<subens_size;s++) out.sample(start + s) = nrm * ( Ssum - data.sample(s) );
 
   return out;
 }
 
 template<typename T> 
-doubleJackknifeDistribution<T> superDoubleJackknifeResampleGen(const rawDataDistribution<T> &data, const int ens, const std::vector<int> sizes){
-  assert(data.size() == sizes[ens]);
-  int ntot = 0; for(int i=0;i<sizes.size();i++) ntot += sizes[i];
-  int npre = 0; for(int i=0;i<ens;i++) npre += sizes[i];
-  const int nens = sizes[ens];
-
+doubleJackknifeDistribution<T> superDoubleJackknifeResampleGen(const rawDataDistribution<T> &data, const int start, const int subens_size, const int full_size){
+  assert(data.size() == subens_size);
   const T Smean = data.mean();
-  const T Ssum = nens*Smean;
-  const double invNm2 = 1./(nens - 2);
-  const double invNm1 = 1./(nens - 1);
+  const T Ssum = subens_size*Smean;
+  const double invNm2 = 1./(subens_size - 2);
+  const double invNm1 = 1./(subens_size - 1);
 
-  doubleJackknifeDistribution<double> out(ntot, Smean);
+  doubleJackknifeDistribution<double> out(full_size, Smean);
 
-  for(int i=0;i<ntot;i++){
-    bool i_in_range = i>=npre && i<npre + nens;
+  for(int i=0;i<full_size;i++){
+    bool i_in_range = i>=start && i<start + subens_size;
     int jj = 0;
-    for(int j=0;j<ntot;j++){
+    for(int j=0;j<full_size;j++){
       if(j==i) continue;
      
-      bool j_in_range = j>=npre && j<npre + nens;
+      bool j_in_range = j>=start && j<start + subens_size;
 
       if(i_in_range){ //i is in range 	
 	if(j_in_range){ //If i and j in range for ensemble require the double-jack value
-	  out.sample(i).sample(jj) = invNm2 * ( Ssum - data.sample(i-npre) - data.sample(j-npre) );
+	  out.sample(i).sample(jj) = invNm2 * ( Ssum - data.sample(i-start) - data.sample(j-start) );
 	}else{ //if j not in range then use single-jack value
-	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(i-npre) );
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(i-start) );
 	}
       }else{ //i is not in range
 	if(j_in_range){ //If j is in range use single-jack value
-	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(j-npre) );
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(j-start) );
 	}
 	//if i and j not in range then use mean (default)
       }      
@@ -70,6 +68,145 @@ doubleJackknifeDistribution<T> superDoubleJackknifeResampleGen(const rawDataDist
   return out;
 }
 
+//These versions take a sub-ensemble index and a list of sub-ensemble sizes. It is assumed the sub-ensembles are contiguous in the output superjackknife distribution
+template<typename T> 
+jackknifeDistribution<T> superJackknifeResampleGen(const rawDataDistribution<T> &data, const int ens, const std::vector<int> sizes){
+  int full_size = 0; for(int i=0;i<sizes.size();i++) full_size += sizes[i];
+  int start = 0; for(int i=0;i<ens;i++) start += sizes[i];  
+  return superJackknifeResampleGen(data, start, sizes[ens], full_size);
+}
+
+template<typename T> 
+inline doubleJackknifeDistribution<T> superDoubleJackknifeResampleGen(const rawDataDistribution<T> &data, const int ens, const std::vector<int> sizes){
+  assert(data.size() == sizes[ens]);
+  int full_size = 0; for(int i=0;i<sizes.size();i++) full_size += sizes[i];
+  int start = 0; for(int i=0;i<ens;i++) start += sizes[i];
+  return superDoubleJackknifeResampleGen(data, start, sizes[ens], full_size);
+}
+
+//These versions do not assume the sub-ensembles are contiguous in the output superjackknife distribution. We must take a map of output index to the index of the raw data. Entries of -1 indicate
+//that output sample does not exist in the raw data
+template<typename T> 
+jackknifeDistribution<T> superJackknifeResampleGen(const rawDataDistribution<T> &data, const std::vector<int> &subens_idxmap, const int subens_size, const int full_size){
+  assert(data.size() == subens_size);
+  const T Smean = data.mean();
+  const T Ssum = subens_size*Smean;
+  const double nrm = 1./(subens_size - 1);
+
+  jackknifeDistribution<double> out(full_size, Smean);
+  for(int s=0;s<full_size;s++)
+    if(subens_idxmap[s] != -1)
+      out.sample(s) = nrm * (Ssum - data.sample(subens_idxmap[s]));
+
+  return out;
+}
+
+template<typename T> 
+doubleJackknifeDistribution<T> superDoubleJackknifeResampleGen(const rawDataDistribution<T> &data, const std::vector<int> &subens_idxmap, const int subens_size, const int full_size){
+  assert(data.size() == subens_size);
+  const T Smean = data.mean();
+  const T Ssum = subens_size*Smean;
+  const double invNm2 = 1./(subens_size - 2);
+  const double invNm1 = 1./(subens_size - 1);
+
+  doubleJackknifeDistribution<double> out(full_size, Smean);
+
+  for(int i=0;i<full_size;i++){
+    int i_in = subens_idxmap[i];
+    bool i_in_range = i_in != -1;
+    int jj = 0;
+    for(int j=0;j<full_size;j++){
+      if(j==i) continue;
+     
+      int j_in = subens_idxmap[j];
+      bool j_in_range = j_in != -1;
+
+      if(i_in_range){ //i is in range 	
+	if(j_in_range){ //If i and j in range for ensemble require the double-jack value
+	  out.sample(i).sample(jj) = invNm2 * ( Ssum - data.sample(i_in) - data.sample(j_in) );
+	}else{ //if j not in range then use single-jack value
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(i_in) );
+	}
+      }else{ //i is not in range
+	if(j_in_range){ //If j is in range use single-jack value
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(j_in) );
+	}
+	//if i and j not in range then use mean (default)
+      }      
+      ++jj;
+    }
+  }
+  return out;
+}
+
+
+
+//These versions do not assume the sub-ensembles are contiguous in the output superjackknife distribution. Rather than take a map to the indices of a smaller distribution, these
+//versions take in a rawDataDistribution of full_size, where only the relevant entries have been filled with data - the others are ignored
+//The set of entries that have data are provided by subens_samples
+template<typename T> 
+jackknifeDistribution<T> superJackknifeResampleGen(const rawDataDistribution<T> &data, const std::set<int> &subens_samples){
+  int full_size = data.size();
+  int subens_size = subens_samples.size();
+  T Smean; zeroit(Smean); 
+  for(auto it = subens_samples.begin(); it != subens_samples.end(); ++it) Smean = Smean + data.sample(*it);
+  Smean = Smean / double(subens_size);
+
+  const T Ssum = subens_size*Smean;
+  const double nrm = 1./(subens_size - 1);
+
+  jackknifeDistribution<double> out(full_size, Smean);
+  for(int s=0;s<full_size;s++)
+    if(subens_samples.count(s))
+      out.sample(s) = nrm * (Ssum - data.sample(s));
+
+  return out;
+}
+
+template<typename T> 
+doubleJackknifeDistribution<T> superDoubleJackknifeResampleGen(const rawDataDistribution<T> &data, const std::set<int> &subens_samples){
+  int full_size = data.size();
+  int subens_size = subens_samples.size();
+  T Smean; zeroit(Smean); 
+  for(auto it = subens_samples.begin(); it != subens_samples.end(); ++it) Smean = Smean + data.sample(*it);
+  Smean = Smean / double(subens_size);
+
+  const T Ssum = subens_size*Smean;
+  const double invNm2 = 1./(subens_size - 2);
+  const double invNm1 = 1./(subens_size - 1);
+
+  doubleJackknifeDistribution<double> out(full_size, Smean);
+
+  for(int i=0;i<full_size;i++){
+    bool i_in_range = (subens_samples.count(i) != 0);
+    int jj = 0;
+    for(int j=0;j<full_size;j++){
+      if(j==i) continue;
+     
+      bool j_in_range = (subens_samples.count(j) != 0);
+
+      if(i_in_range){ //i is in range 	
+	if(j_in_range){ //If i and j in range for ensemble require the double-jack value
+	  out.sample(i).sample(jj) = invNm2 * ( Ssum - data.sample(i) - data.sample(j) );
+	}else{ //if j not in range then use single-jack value
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(i) );
+	}
+      }else{ //i is not in range
+	if(j_in_range){ //If j is in range use single-jack value
+	  out.sample(i).sample(jj) = invNm1 * ( Ssum - data.sample(j) );
+	}
+	//if i and j not in range then use mean (default)
+      }      
+      ++jj;
+    }
+  }
+  return out;
+}
+
+
+
+
+//Those below are designed in a simple sample-AMA context where we have a base ensemble S and a disjoint correction ensemble C
 
 //We consider a quantity Y that resides on nS samples, and a quantity Z that resides on a disjoint set of nC samples
 //We define a super-ensemble of size nS+nC for which Y resides only on the first nS and Z only on the last nC

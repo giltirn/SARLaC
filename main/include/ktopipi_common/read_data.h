@@ -15,7 +15,7 @@ CPSFIT_START_NAMESPACE
 
 //Will sum over all pion mom provided with the coefficient provided to project onto the desired rotational state (only applies to type1 ; other types the average is performed at runtime)
 //For original calculation use  {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  { {-1,1,1}, 3.0/8.0 }, { {1,-1,-1}, 3.0/8.0 }  }
-type1234Data readType(const int type, const int traj_start, const int traj_inc, const int traj_lessthan,
+type1234Data readKtoPiPiType(const int type, const int traj_start, const int traj_inc, const int traj_lessthan,
 		      const int tsep_k_pi, const int tsep_pipi, const int Lt, const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
 		      const std::string &data_dir, const std::string &file_fmt){
   int nsample = (traj_lessthan - traj_start)/traj_inc;
@@ -80,7 +80,7 @@ type1234Data readType(const int type, const int traj_start, const int traj_inc, 
     }
     return typedata;
   }else{
-    error_exit(std::cout << "readType invalid type " << type << std::endl);
+    error_exit(std::cout << "readKtoPiPiType invalid type " << type << std::endl);
   }
 }
 
@@ -88,10 +88,10 @@ type1234Data readType(const int type, const int traj_start, const int traj_inc, 
 //                                                      { {-1,1,1}, 1.0/8.0 }, { {1,-1,-1}, 1.0/8.0 }, 
 //                                                      { {1,-1,1}, 1.0/8.0 }, { {-1,1,-1}, 1.0/8.0 }, 
 //                                                      { {1,1,-1}, 1.0/8.0 }, { {-1,-1,1}, 1.0/8.0 } }
-NumericTensor<rawDataDistributionD,1> readProjectedBubble(const std::string &data_dir, const std::string &file_fmt,
-							  const int traj_start, const int traj_inc, const int traj_lessthan, 
-							  const int Lt, const int tsep_pipi, 
-							  const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj){
+NumericTensor<rawDataDistributionD,1> readProjectedPiPiBubble(const std::string &data_dir, const std::string &file_fmt,
+							      const int traj_start, const int traj_inc, const int traj_lessthan, 
+							      const int Lt, const int tsep_pipi, 
+							      const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj){
   bubbleDataAllMomenta raw_bubble_data;
 
   int nsample = (traj_lessthan - traj_start)/traj_inc;

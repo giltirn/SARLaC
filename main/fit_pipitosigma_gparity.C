@@ -40,17 +40,15 @@ int main(const int argc, const char* argv[]){
 
   PiPiToSigmaCMDline cmdline(argc,argv,2);
  
-
-
-  figureData sigma2pt_data;
-  readPiPiToSigma(sigma2pt_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  figureData sigmatopipi_data;
+  readPiPiToSigma(sigmatopipi_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
 
   sigmaSelfContraction sigma_self_data;
   readSigmaSelf(sigma_self_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
 
-  bubbleData pipi_self_data = getPiPiBubble(args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_pipi, args.Lt);
+  bubbleData pipi_self_data = getA1projectedSourcePiPiBubble(args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_pipi, args.Lt);
 
-  rawCorrelationFunction correlator_raw = sourceAverage(sigma2pt_data);
+  rawCorrelationFunction correlator_raw = sourceAverage(sigmatopipi_data);
 
   doubleJackCorrelationFunction correlator_dj(args.Lt,
   					      [&](const int t){ 

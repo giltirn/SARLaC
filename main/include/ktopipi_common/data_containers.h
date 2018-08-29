@@ -157,8 +157,8 @@ public:
       };
     }else{ //State == Sigma
       switch(type){
-      case 1:
-	ncontract = 5; break;
+      case 2:
+	ncontract = 5; break; //type1/2
       case 3:
       case 4:
 	ncontract = 9;

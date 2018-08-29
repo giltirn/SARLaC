@@ -61,7 +61,7 @@ NumericTensor<rawDataDistributionD,1> getProjectedBubble(const std::string &data
     error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
   }else{
-    bubble = readProjectedBubble(data_dir, file_fmt, traj_start,traj_inc,traj_lessthan, Lt, tsep_pipi, bubble_pimom_proj);
+    bubble = readProjectedPiPiBubble(data_dir, file_fmt, traj_start,traj_inc,traj_lessthan, Lt, tsep_pipi, bubble_pimom_proj);
   }
   if(opt.save_data_checkpoint){
 #ifdef HAVE_HDF5
@@ -140,9 +140,9 @@ private:
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
     }else{
-      for(int i=1;i<=4;i++) type_data(i) = readType(i, traj_start, traj_inc, traj_lessthan, 
-						    tsep_k_pi, tsep_pipi, Lt, type1_pimom_proj, 
-						    data_dir, data_file_fmt[i-1]);
+      for(int i=1;i<=4;i++) type_data(i) = readKtoPiPiType(i, traj_start, traj_inc, traj_lessthan, 
+							   tsep_k_pi, tsep_pipi, Lt, type1_pimom_proj, 
+							   data_dir, data_file_fmt[i-1]);
     }
 
     //Write checkpoint if necessary

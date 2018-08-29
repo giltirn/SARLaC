@@ -3,6 +3,7 @@
 
 #include<ktopipi_common/data_containers.h>
 #include<ktopipi_common/compute_amplitude.h>
+#include<ktopipi_common/compute_amplitude_ktosigma.h>
 #include<ktopipi_common/read_data.h>
 #include<ktopipi_common/utils.h>
 #include<ktopipi_common/amplitude_data.h>
