@@ -57,11 +57,17 @@ int main(const int argc, const char* argv[]){
   readPiPiToSigma(pipitosigma_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
   
   //Reconstruct disconnected and connected part
-  figureData pipitosigma_disconn_data;
-  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data, pipi_self_data_Z, sigma_self_data_Z);
+  figureData pipitosigma_disconn_data_ReZZ;
+  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data_ReZZ, pipi_self_data_Z, sigma_self_data_Z); // Re ( pipi_bubble * sigma_bubble )
  
+  figureData pipitosigma_disconn_data_ReZReZ;
+  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data_ReZReZ, pipi_self_data, sigma_self_data); // Re ( pipi_bubble ) * Re ( sigma_bubble )
+
   figureData pipitosigma_conn_data;
-  reconstructPiPiToSigmaConnected(pipitosigma_conn_data, pipitosigma_data, pipitosigma_disconn_data, args.tstep_src);
+  reconstructPiPiToSigmaConnected(pipitosigma_conn_data, pipitosigma_data, pipitosigma_disconn_data_ReZZ, args.tstep_src);
+
+  //(Very slightly) better statistics if we use the Re ( pipi_bubble ) * Re ( sigma_bubble ) for the disconnected part, taking advantage of the fact that the bubbles are real under the ensemble avg
+  figureData &pipitosigma_disconn_data = pipitosigma_disconn_data_ReZReZ;
 
   //The code computes the disconnected component for all tsrc, but this option can be used to constrain the number of source timeslices to observe the effect
   if(cmdline.force_disconn_tstep_src){

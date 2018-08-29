@@ -73,6 +73,7 @@ void readPiPiToSigma(figureData &raw_data, const std::string &data_dir, const in
 }
 
 
+//Construct disconnected part from  Re(  pipi_buble * sigma_bubble ) as we did in the parallel calculation
 void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z){
   const int Lt = pipi_self_data_Z.getLt();
   assert(sigma_self_data_Z.getLt() == Lt);
@@ -91,6 +92,25 @@ void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleDataZ &
     }
   }
 }
+
+//Compute the disconnected part from Re( pipi_bubble ) * Re (sigma_bubble)   - this may have better statistical error
+void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleData &pipi_self_data, const sigmaSelfContraction &sigma_self_data){
+  const int Lt = pipi_self_data.getLt();
+  assert(sigma_self_data.getLt() == Lt);
+
+  const int nsample = pipi_self_data.getNsample();
+  assert( sigma_self_data.getNsample() == nsample);
+
+  disconn.setup(Lt, nsample);
+  for(int tsrc=0;tsrc<Lt;tsrc++){
+    for(int tsep=0;tsep<Lt;tsep++){
+      int tsnk = ( tsrc + tsep ) % Lt;
+      disconn(tsrc,tsep) = -sqrt(6.)/2 * pipi_self_data(tsrc) * sigma_self_data(tsnk); 
+    }
+  }
+}
+
+
 
 //In the current runs we sum the connected and disconnected diagrams online. However for tstep > 1 this means the vacuum diagrams are also only sampled on a subset of timeslices
 //This can be rectified by removing the disconnected component and performing the source timeslice average of the connected part, then afterwards constructing the disconnected part
