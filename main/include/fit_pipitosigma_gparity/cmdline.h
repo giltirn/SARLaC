@@ -8,9 +8,13 @@ struct PiPiToSigmaCMDline{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
  
+  bool force_disconn_tstep_src; //the code computes the disconnected component for all tsrc, but this option can be used to constrain the number of source timeslices to observe the effect
+  int disconn_tstep_src;
+
   PiPiToSigmaCMDline(){
     load_guess = false;
     load_frozen_fit_params= false;
+    force_disconn_tstep_src = false;
   }
   PiPiToSigmaCMDline(const int argc, const char** argv, const int begin = 0): PiPiToSigmaCMDline(){
     setup(argc,argv,begin);
@@ -33,6 +37,10 @@ struct PiPiToSigmaCMDline{
       }else if(sargv[i] == "-load_frozen_fit_params"){
 	load_frozen_fit_params = true;
 	load_frozen_fit_params_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-force_disconn_tstep_src"){
+	force_disconn_tstep_src = true;
+	disconn_tstep_src = strToAny<int>(sargv[i+1]);
 	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

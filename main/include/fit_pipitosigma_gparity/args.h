@@ -5,6 +5,7 @@
   ( std::string, data_dir ) \
   ( int, Lt) \
   ( int, tsep_pipi ) \
+  ( int, tstep_src ) \
   ( bool, do_vacuum_subtraction ) \
   ( PiPiToSigmaFitFunction, fitfunc) \
   ( bool, correlated)	      \
@@ -20,7 +21,7 @@
 struct PiPiToSigmaArgs{
   GENERATE_MEMBERS(PIPI_TO_SIGMA_ARGS_MEMBERS)
 
-  PiPiToSigmaArgs(): data_dir("data"), Lt(64), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(PiPiToSigmaFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), tsep_pipi(4){}
+  PiPiToSigmaArgs(): data_dir("data"), Lt(64), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), fitfunc(PiPiToSigmaFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), tsep_pipi(4), tstep_src(1){}
 
   void transfer(PiPiToSigmaFitArgs &fargs) const{
     fargs.fitfunc = fitfunc;  //FCoshPlusConstant;

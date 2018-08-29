@@ -52,6 +52,8 @@ auto sourceAverage(const FigureDataType & data)->correlationFunction<double,type
   }
   double N(tsrc_include.size());
 
+  std::cout << "sourceAverage detected " << N << " non-zero timeslices\n";
+
   for(int tsep=0;tsep<Lt;tsep++){
     auto & v = into.value(tsep);
     v.zero();

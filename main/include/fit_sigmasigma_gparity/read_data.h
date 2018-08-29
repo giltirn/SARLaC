@@ -90,8 +90,8 @@ struct SigmaSelfBasicReadPolicy{
   }
 };
 
-template<typename ReadPolicy>
-void readSigmaSelf(sigmaSelfContraction &raw_data, const int Lt, const ReadPolicy &rp){
+template<typename ContainerType, typename ReadPolicy>
+void readSigmaSelf(ContainerType &raw_data, const int Lt, const ReadPolicy &rp){
   const int nsample = rp.nsample();
 
   std::vector<threeMomentum> quark_mom = { {1,1,1}, {-1,-1,-1},
@@ -103,7 +103,7 @@ void readSigmaSelf(sigmaSelfContraction &raw_data, const int Lt, const ReadPolic
   raw_data.setup(Lt,nsample);
   raw_data.zero();
 
-  sigmaSelfContraction tmp_data(Lt,nsample);
+  ContainerType tmp_data(Lt,nsample);
 
   for(int p=0;p<nmom;p++){    
 #pragma omp parallel for
@@ -117,11 +117,13 @@ void readSigmaSelf(sigmaSelfContraction &raw_data, const int Lt, const ReadPolic
   }
 }
 
-inline void readSigmaSelf(sigmaSelfContraction &raw_data, const std::string &data_dir, const int Lt,
+template<typename ContainerType>
+inline void readSigmaSelf(ContainerType &raw_data, const std::string &data_dir, const int Lt,
 			  const int traj_start, const int traj_inc, const int traj_lessthan){   
   SigmaSelfBasicReadPolicy rp(data_dir, traj_start, traj_inc, traj_lessthan);
   readSigmaSelf(raw_data, Lt, rp);
 } 
+
 
 CPSFIT_END_NAMESPACE
 

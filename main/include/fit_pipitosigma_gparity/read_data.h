@@ -1,6 +1,11 @@
 #ifndef _PIPI_TO_SIGMA_READ_DATA_H_
 #define _PIPI_TO_SIGMA_READ_DATA_H_
 
+#include<config.h>
+#include<utils/macros.h>
+
+CPSFIT_START_NAMESPACE
+
 struct PiPiToSigmaBasicReadPolicy{
   int traj_start, traj_inc, traj_lessthan;
   std::string dir;
@@ -68,6 +73,45 @@ void readPiPiToSigma(figureData &raw_data, const std::string &data_dir, const in
 }
 
 
+void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z){
+  const int Lt = pipi_self_data_Z.getLt();
+  assert(sigma_self_data_Z.getLt() == Lt);
+
+  const int nsample = pipi_self_data_Z.getNsample();
+  assert( sigma_self_data_Z.getNsample() == nsample);
+
+  disconn.setup(Lt, nsample);
+  for(int tsrc=0;tsrc<Lt;tsrc++){
+    for(int tsep=0;tsep<Lt;tsep++){
+      int tsnk = ( tsrc + tsep ) % Lt;
+      //note the pipi bubble is computed online as 0.5 tr( mf(t) mf(t-tsep) ), and this is combined with the sigma bubble with a coeff sqrt(6)/2 in the parallel code to form the pipi->sigma disconnected part
+      //However the correct formula for the pipi bubble is -0.5 tr( mf(t) mf(t-tsep) )   ; this is corrected for when the bubble is loaded in this analysis code. Hence the coeff here needs to be -sqrt(6)/2
+      rawDataDistribution<std::complex<double> > valz = -sqrt(6.)/2 * pipi_self_data_Z(tsrc) * sigma_self_data_Z(tsnk); 
+      for(int s=0;s<valz.size();s++) disconn(tsrc,tsep).sample(s) = valz.sample(s).real();
+    }
+  }
+}
+
+//In the current runs we sum the connected and disconnected diagrams online. However for tstep > 1 this means the vacuum diagrams are also only sampled on a subset of timeslices
+//This can be rectified by removing the disconnected component and performing the source timeslice average of the connected part, then afterwards constructing the disconnected part
+//and source timeslice averaging that over all Lt
+void reconstructPiPiToSigmaConnected(figureData &conn, const figureData &full, const figureData &disconn, const int tstep_src_full){
+  const int Lt = full.getLt();
+  assert(disconn.getLt() == Lt);
+
+  const int nsample = full.getNsample();
+  assert( disconn.getNsample() == nsample);
+
+  conn.setup(Lt, nsample);
+  conn.zero();
+  for(int tsrc=0; tsrc< Lt; tsrc += tstep_src_full)
+    for(int tsep=0;tsep<Lt;tsep++)
+      conn(tsrc, tsep) = full(tsrc, tsep) - disconn(tsrc, tsep);
+}
+
+
+
+
 bubbleData A1projectPiPiBubble(const bubbleDataAllMomenta &pipi_self_data, const std::vector<threeMomentum> &pion_mom, const int Lt, const int tsep_pipi){
   int nsample_raw = pipi_self_data.getNsample();
   bubbleData out(Source,Lt,tsep_pipi,nsample_raw);
@@ -80,22 +124,29 @@ bubbleData A1projectPiPiBubble(const bubbleDataAllMomenta &pipi_self_data, const
   return out;
 }
 
-template<typename ReadPolicy>
-bubbleData getA1projectedSourcePiPiBubble(const int Lt, const int tsep_pipi, const ReadPolicy &rp){
-  bubbleDataAllMomenta pipi_self_data(Lt, tsep_pipi, rp.nsample());
+template<typename ContainerType, typename ReadPolicy>
+void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const ReadPolicy &rp){
+  out.setup(Source, Lt, tsep_pipi, rp.nsample());
+  out.zero();
+  
+  ContainerType temp(Source, Lt, tsep_pipi, rp.nsample());
   std::vector<threeMomentum> pion_mom = { {1,1,1}, {-1,-1,-1},
 					  {-1,1,1}, {1,-1,-1},
 					  {1,-1,1}, {-1,1,-1},
 					  {1,1,-1}, {-1,-1,1} };
-  readBubble(pipi_self_data, Lt, rp, pion_mom, Source);  
-  return A1projectPiPiBubble(pipi_self_data, pion_mom, Lt, tsep_pipi);
+  for(int p=0;p<pion_mom.size();p++){
+    readBubble(temp, Lt, pion_mom[p], rp);
+    for(int t=0;t<Lt;t++) out(t) = out(t) + temp(t) * (1./pion_mom.size());
+  }
 }
 
-bubbleData getA1projectedSourcePiPiBubble(const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt){
+template<typename ContainerType>
+void getA1projectedSourcePiPiBubble(ContainerType &out, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt){
   readBubbleStationaryPolicy fp(false,Source);
   PiPiBubbleBasicReadPolicy<readBubbleStationaryPolicy> rp(fp, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
-  return getA1projectedSourcePiPiBubble(Lt, tsep_pipi, rp);
+  getA1projectedSourcePiPiBubble(out, Lt, tsep_pipi, rp);
 }
 
+CPSFIT_END_NAMESPACE
 
 #endif

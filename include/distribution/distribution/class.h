@@ -113,14 +113,6 @@ public:
     return threadedSum(op)/double(N);
   }
 
-  template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
-  distribution<typename U::value_type,VectorType> real() const{
-    distribution<typename U::value_type,VectorType> out(this->size());
-#pragma omp parallel for
-    for(int i=0;i<this->size();i++) out.sample(i) = this->sample(i).real();
-    return out;
-  }
-
   inline void zero(){
     for(int i=0;i<this->size();i++) zeroit(this->sample(i));
   }

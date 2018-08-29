@@ -215,20 +215,25 @@ struct PiPiBubbleBasicReadPolicy{
 };
 
 
+template<typename ContainerType, typename ReadPolicy>
+void readBubble(ContainerType &into, const int Lt, const threeMomentum &mom, const ReadPolicy &rp){    
+  const int nsample = rp.nsample();
+    
+#pragma omp parallel for
+  for(int sample=0; sample < nsample; sample++){
+    std::string filename = rp.filename(sample,mom);
+    std::cout << "Parsing " << filename << std::endl;
+    into.parse(filename, sample);
+  }
+}
+
 template<typename ReadPolicy>
 void readBubble(bubbleDataAllMomenta &raw_data, const int Lt, const ReadPolicy &rp, const std::vector<threeMomentum> &pion_momenta, const SourceOrSink src_snk){    
   const int nmom = pion_momenta.size();
-  const int nsample = rp.nsample();
 
   for(int p=0;p<nmom;p++){
     bubbleData &into = raw_data(src_snk,pion_momenta[p]);
-    
-#pragma omp parallel for
-    for(int sample=0; sample < nsample; sample++){
-      std::string filename = rp.filename(sample,pion_momenta[p]);
-      std::cout << "Parsing " << filename << std::endl;
-      into.parse(filename, sample);
-    }
+    readBubble(into, Lt, pion_momenta[p], rp);
   }
 }
 

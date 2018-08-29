@@ -37,19 +37,52 @@ int main(const int argc, const char* argv[]){
     parse(args,arg_file);
     std::cout << "Read arguments: \n" << args << std::endl;
   }
-
+  
   PiPiToSigmaCMDline cmdline(argc,argv,2);
+
+  //Read sigma bubble as complex
+  sigmaSelfContractionZ sigma_self_data_Z;
+  readSigmaSelf(sigma_self_data_Z, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+
+  sigmaSelfContraction sigma_self_data = reIm(sigma_self_data_Z, 0); //copy real part
+
+  //Read pipi bubble as complex
+  bubbleDataZ pipi_self_data_Z;
+  getA1projectedSourcePiPiBubble(pipi_self_data_Z, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_pipi, args.Lt);
+
+  bubbleData pipi_self_data = reIm(pipi_self_data_Z, 0); //real part
+
+  //Get pipi->sigma data
+  figureData pipitosigma_data;
+  readPiPiToSigma(pipitosigma_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  
+  //Reconstruct disconnected and connected part
+  figureData pipitosigma_disconn_data;
+  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data, pipi_self_data_Z, sigma_self_data_Z);
  
-  figureData sigmatopipi_data;
-  readPiPiToSigma(sigmatopipi_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  figureData pipitosigma_conn_data;
+  reconstructPiPiToSigmaConnected(pipitosigma_conn_data, pipitosigma_data, pipitosigma_disconn_data, args.tstep_src);
 
-  sigmaSelfContraction sigma_self_data;
-  readSigmaSelf(sigma_self_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  //The code computes the disconnected component for all tsrc, but this option can be used to constrain the number of source timeslices to observe the effect
+  if(cmdline.force_disconn_tstep_src){
+    for(int tsrc=0;tsrc<args.Lt;tsrc++){
+      if(tsrc % cmdline.disconn_tstep_src != 0)
+	for(int t=0;t<args.Lt;t++) pipitosigma_disconn_data(tsrc, t).zero();
+    }
+  }
 
-  bubbleData pipi_self_data = getA1projectedSourcePiPiBubble(args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_pipi, args.Lt);
+  //Source avg connected and disconnected parts and sum the contributions
+  rawCorrelationFunction correlator_raw_conn = sourceAverage(pipitosigma_conn_data);
+  rawCorrelationFunction correlator_raw_disconn = sourceAverage(pipitosigma_disconn_data);
 
-  rawCorrelationFunction correlator_raw = sourceAverage(sigmatopipi_data);
+  rawCorrelationFunction correlator_raw = correlator_raw_conn;
+  for(int t=0;t<args.Lt;t++) correlator_raw.value(t) = correlator_raw.value(t) + correlator_raw_disconn.value(t);
 
+  std::cout << "Raw data connected/disconnected parts:\n";
+  for(int t=0;t<args.Lt;t++) std::cout << t << " " << correlator_raw_conn.value(t) << " " << correlator_raw_disconn.value(t) << std::endl;
+
+
+  //Resample data
   doubleJackCorrelationFunction correlator_dj(args.Lt,
   					      [&](const int t){ 
   						return typename doubleJackCorrelationFunction::ElementType(t, doubleJackknifeDistributionD(correlator_raw.value(t).bin(args.bin_size)));
@@ -71,6 +104,9 @@ int main(const int argc, const char* argv[]){
 
   correlator_j = foldPiPiToSigma(correlator_j, args.Lt, args.tsep_pipi);
   correlator_dj = foldPiPiToSigma(correlator_dj, args.Lt, args.tsep_pipi);
+
+  std::cout << "Resampled data:\n";
+  for(int t=0;t<args.Lt;t++) std::cout << t << " " << correlator_j.value(t) << std::endl;
 
   //Filter out the data that is to be fitted
   filterXrange<double> trange(args.t_min,args.t_max);

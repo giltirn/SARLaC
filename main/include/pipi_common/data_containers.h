@@ -68,15 +68,29 @@ inline void read(HDF5reader &reader, bubbleDataBase<D,P> &d, const std::string &
 #endif
 
 
+//Useful policies for setting output type to real or re/im
+struct setValueRealPart{
+  template<typename T>
+  static inline void set(T &into, const double re, const double im){ into = re; }
+};
+struct setValueComplex{
+  template<typename T>
+  static inline void set(T &into, const double re, const double im){ into.real(re); into.imag(im); }
+};
 
-
+//Policy for parsing raw bubble data
+template<typename ValueType, typename ValueTypeSetPolicy>
 class bubbleDataPolicies{
-  inline bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & upcast(){ return *static_cast< bubbleDataBase<rawDataDistributionD, bubbleDataPolicies>* >(this); }
-  inline const bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & upcast() const{ return *static_cast< bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> const* >(this); }
+  typedef bubbleDataPolicies<ValueType, ValueTypeSetPolicy> MyType;
+  typedef rawDataDistribution<ValueType> DistType;
+  typedef bubbleDataBase<DistType, MyType> MasterType;
+
+  inline MasterType & upcast(){ return *static_cast<MasterType*>(this); }
+  inline const MasterType & upcast() const{ return *static_cast<MasterType const* >(this); }
 
 public:
   void parse(std::istream &in, const int sample){
-    bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & me = upcast();
+    auto & me = upcast();
     int t;
     for(int t_expect=0;t_expect<me.getLt();t_expect++){
       if(!(in >> t)) error_exit(std::cout << "bubbleData::parse failed to read t for config " << sample << "\n");
@@ -84,12 +98,13 @@ public:
 
       if(me.getSrcSnk() == Sink) t = (t - me.getTsepPiPi() + me.getLt() ) % me.getLt(); //the raw data file time coordinate is that of the later pion
 
-      double &re = me(t).sample(sample);
-      double im; //discard because it is zero
+      double re, im;
       if(!(in >> re >> im)) error_exit(std::cout << "bubbleData::parse failed to real values for config " << sample << "\n");
 #ifdef DAIQIAN_COMPATIBILITY_MODE
       re = -re; //correct for missing minus sign
+      im = -im;
 #endif      
+      ValueTypeSetPolicy::set(me(t).sample(sample), re, im);
     }
   }
   void parse(const std::string &filename, const int sample){
@@ -101,7 +116,7 @@ public:
   }
 
   void bin(const int bin_size){
-    bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> & me = upcast();
+    auto & me = upcast();
     const int Lt = me.getLt();
 #pragma omp parallel for
     for(int t=0;t<Lt;t++){
@@ -111,9 +126,18 @@ public:
 
 };
 
-typedef bubbleDataBase<rawDataDistributionD, bubbleDataPolicies> bubbleData;
+typedef bubbleDataBase<rawDataDistributionD, bubbleDataPolicies<double, setValueRealPart> > bubbleData;
+typedef bubbleDataBase<rawDataDistribution<std::complex<double> >, bubbleDataPolicies<std::complex<double>, setValueComplex> > bubbleDataZ;
 typedef bubbleDataBase<jackknifeDistributionD > bubbleDataJack;
 typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
+
+inline bubbleData reIm(const bubbleDataZ &in, const int reim){
+  bubbleData out(in.getSrcSnk(), in.getLt(), in.getTsepPiPi(), in.getNsample());
+  for(int t=0;t<in.getLt();t++)
+    for(int s=0;s<in.getNsample();s++)
+      out(t).sample(s) = ( reim == 0 ? in(t).sample(s).real() : in(t).sample(s).imag() );
+  return out;
+}
 
 template<typename _DistributionType, typename Policies = empty_t>
 class figureDataBase: public Policies{
@@ -308,10 +332,14 @@ template<typename D,typename P>
 inline void read(HDF5reader &reader, sigmaSelfContractionBase<D,P> &d, const std::string &tag){ d.read(reader,tag); }
 #endif
 
-
+template<typename ValueType, typename ValueTypeSetPolicy>
 class sigmaSelfContractionPolicies{
-  inline sigmaSelfContractionBase<rawDataDistributionD, sigmaSelfContractionPolicies> & upcast(){ return *static_cast< sigmaSelfContractionBase<rawDataDistributionD, sigmaSelfContractionPolicies>* >(this); }
-  inline const sigmaSelfContractionBase<rawDataDistributionD, sigmaSelfContractionPolicies> & upcast() const{ return *static_cast< sigmaSelfContractionBase<rawDataDistributionD, sigmaSelfContractionPolicies> const* >(this); }
+  typedef sigmaSelfContractionPolicies<ValueType, ValueTypeSetPolicy> MyType;
+  typedef rawDataDistribution<ValueType> DistType;
+  typedef sigmaSelfContractionBase<DistType, MyType> MasterType;
+
+  inline MasterType & upcast(){ return *static_cast<MasterType*>(this); }
+  inline const MasterType & upcast() const{ return *static_cast<MasterType const* >(this); }
 
 public:
 
@@ -322,10 +350,10 @@ public:
     for(int t_expect=0;t_expect<me.getLt();t_expect++){
       if(!(in >> t)) error_exit(std::cout << "sigmaSelfContraction::parse failed to read t for config " << sample << "\n");
       if(t != t_expect) error_exit(std::cout << "sigmaSelfContraction::parse t doesn't match expectations: " << t << ":" << t_expect << " for config " << sample << "\n");
-
-      double &re = me(t).sample(sample);
-      double im; //discard because it is zero
+      
+      double re, im;
       if(!(in >> re >> im)) error_exit(std::cout << "sigmaSelfContraction::parse failed to real values for config " << sample << "\n");
+      ValueTypeSetPolicy::set(me(t).sample(sample), re, im); 
     }
   }
   void parse(const std::string &filename, const int sample){
@@ -347,7 +375,16 @@ public:
 };
 
 
-typedef sigmaSelfContractionBase<rawDataDistributionD , sigmaSelfContractionPolicies> sigmaSelfContraction;
+typedef sigmaSelfContractionBase<rawDataDistributionD , sigmaSelfContractionPolicies<double, setValueRealPart> > sigmaSelfContraction;
+typedef sigmaSelfContractionBase<rawDataDistribution<std::complex<double> > , sigmaSelfContractionPolicies<std::complex<double>, setValueComplex> > sigmaSelfContractionZ;
+
+inline sigmaSelfContraction reIm(const sigmaSelfContractionZ &in, const int reim){
+  sigmaSelfContraction out(in.getLt(), in.getNsample());
+  for(int t=0;t<in.getLt();t++)
+    for(int s=0;s<in.getNsample();s++)
+      out(t).sample(s) = ( reim == 0 ? in(t).sample(s).real() : in(t).sample(s).imag() );
+  return out;
+}
 
 CPSFIT_END_NAMESPACE
 
