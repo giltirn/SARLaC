@@ -84,7 +84,7 @@ inline void bin(rawCorrelationFunction &raw, const int bin_size){
 
 //Given the parsed, raw data, compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data. This includes projecting the pipi states onto
 //a user-selected linear combination (for example projecting onto the A1 cubic representation)
-void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, 
+void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMomenta &raw_data,
 			const PiPiCorrelatorSelector &corr_select, const int isospin, const std::vector<threeMomentum> &pion_momenta,
 			const int bin_size, const std::string &extra_descr = "", bool output_raw_data = true){
  

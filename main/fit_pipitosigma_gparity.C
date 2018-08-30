@@ -52,41 +52,14 @@ int main(const int argc, const char* argv[]){
 
   bubbleData pipi_self_data = reIm(pipi_self_data_Z, 0); //real part
 
-  //Get pipi->sigma data
-  figureData pipitosigma_data;
-  readPiPiToSigma(pipitosigma_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
-  
-  //Reconstruct disconnected and connected part
-  figureData pipitosigma_disconn_data_ReZZ;
-  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data_ReZZ, pipi_self_data_Z, sigma_self_data_Z); // Re ( pipi_bubble * sigma_bubble )
- 
-  figureData pipitosigma_disconn_data_ReZReZ;
-  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data_ReZReZ, pipi_self_data, sigma_self_data); // Re ( pipi_bubble ) * Re ( sigma_bubble )
+  readReconstructPiPiToSigmaWithDisconnAllTsrcOptions opt;
+  opt.force_disconn_tstep_src = cmdline.force_disconn_tstep_src;
+  opt.disconn_tstep_src = cmdline.disconn_tstep_src;
+  opt.compute_disconn_ReRe = !cmdline.use_disconn_complex_prod;
 
-  figureData pipitosigma_conn_data;
-  reconstructPiPiToSigmaConnected(pipitosigma_conn_data, pipitosigma_data, pipitosigma_disconn_data_ReZZ, args.tstep_src);
-
-  //(Very slightly) better statistics if we use the Re ( pipi_bubble ) * Re ( sigma_bubble ) for the disconnected part, taking advantage of the fact that the bubbles are real under the ensemble avg
-  figureData &pipitosigma_disconn_data = pipitosigma_disconn_data_ReZReZ;
-
-  //The code computes the disconnected component for all tsrc, but this option can be used to constrain the number of source timeslices to observe the effect
-  if(cmdline.force_disconn_tstep_src){
-    for(int tsrc=0;tsrc<args.Lt;tsrc++){
-      if(tsrc % cmdline.disconn_tstep_src != 0)
-	for(int t=0;t<args.Lt;t++) pipitosigma_disconn_data(tsrc, t).zero();
-    }
-  }
-
-  //Source avg connected and disconnected parts and sum the contributions
-  rawCorrelationFunction correlator_raw_conn = sourceAverage(pipitosigma_conn_data);
-  rawCorrelationFunction correlator_raw_disconn = sourceAverage(pipitosigma_disconn_data);
-
-  rawCorrelationFunction correlator_raw = correlator_raw_conn;
-  for(int t=0;t<args.Lt;t++) correlator_raw.value(t) = correlator_raw.value(t) + correlator_raw_disconn.value(t);
-
-  std::cout << "Raw data connected/disconnected parts:\n";
-  for(int t=0;t<args.Lt;t++) std::cout << t << " " << correlator_raw_conn.value(t) << " " << correlator_raw_disconn.value(t) << std::endl;
-
+  rawCorrelationFunction correlator_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(args.data_dir, args.Lt, args.tstep_src, args.traj_start, args.traj_inc, args.traj_lessthan,
+										       pipi_self_data_Z, sigma_self_data_Z,
+										       opt);
 
   //Resample data
   doubleJackCorrelationFunction correlator_dj(args.Lt,

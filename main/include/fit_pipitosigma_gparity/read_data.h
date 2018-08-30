@@ -130,11 +130,72 @@ void reconstructPiPiToSigmaConnected(figureData &conn, const figureData &full, c
 }
 
 
+struct readReconstructPiPiToSigmaWithDisconnAllTsrcOptions{
+  //Choose a tstep for the vacuum diagram that is not 1 for testing
+  bool force_disconn_tstep_src;
+  int disconn_tstep_src;
+  
+  //Choose whether to compute the disconnected part using Re ( pipi_bubble * sigma_bubble ) or Re ( pipi_bubble ) * Re ( sigma_bubble )
+  //The former is how it was computed in the parallel code, but the latter (default) has very slightly better stat error
+  bool compute_disconn_ReRe;
 
+  readReconstructPiPiToSigmaWithDisconnAllTsrcOptions(): force_disconn_tstep_src(false), compute_disconn_ReRe(true){}
+};
 
-bubbleData A1projectPiPiBubble(const bubbleDataAllMomenta &pipi_self_data, const std::vector<threeMomentum> &pion_mom, const int Lt, const int tsep_pipi){
+//Combine above, reading the pipi->sigma data and reconstructing the disconnected component for all tsrc
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src,
+								    const int traj_start, const int traj_inc, const int traj_lessthan,
+								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
+								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
+
+  bubbleData pipi_self_data = reIm(pipi_self_data_Z, 0); //real part
+  sigmaSelfContraction sigma_self_data = reIm(sigma_self_data_Z, 0); //copy real part
+
+  //Get pipi->sigma data
+  figureData pipitosigma_data;
+  readPiPiToSigma(pipitosigma_data, data_dir, Lt, traj_start, traj_inc, traj_lessthan);
+  
+  //Reconstruct disconnected and connected part
+  figureData pipitosigma_disconn_data_ReZZ;
+  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data_ReZZ, pipi_self_data_Z, sigma_self_data_Z); // Re ( pipi_bubble * sigma_bubble )
+ 
+  figureData pipitosigma_disconn_data_ReZReZ;
+  reconstructPiPiToSigmaDisconnected(pipitosigma_disconn_data_ReZReZ, pipi_self_data, sigma_self_data); // Re ( pipi_bubble ) * Re ( sigma_bubble )
+
+  figureData pipitosigma_conn_data;
+  reconstructPiPiToSigmaConnected(pipitosigma_conn_data, pipitosigma_data, pipitosigma_disconn_data_ReZZ, tstep_src);
+
+  //(Very slightly) better statistics if we use the Re ( pipi_bubble ) * Re ( sigma_bubble ) for the disconnected part, taking advantage of the fact that the bubbles are real under the ensemble avg
+  figureData &pipitosigma_disconn_data = opt.compute_disconn_ReRe ? pipitosigma_disconn_data_ReZReZ : pipitosigma_disconn_data_ReZZ;
+
+  //The code computes the disconnected component for all tsrc, but this option can be used to constrain the number of source timeslices to observe the effect
+  if(opt.force_disconn_tstep_src){
+    for(int tsrc=0;tsrc<Lt;tsrc++){
+      if(tsrc % opt.disconn_tstep_src != 0)
+	for(int t=0;t<Lt;t++) pipitosigma_disconn_data(tsrc, t).zero();
+    }
+  }
+
+  //Source avg connected and disconnected parts and sum the contributions
+  rawCorrelationFunction correlator_raw_conn = sourceAverage(pipitosigma_conn_data);
+  rawCorrelationFunction correlator_raw_disconn = sourceAverage(pipitosigma_disconn_data);
+
+  rawCorrelationFunction correlator_raw = correlator_raw_conn;
+  for(int t=0;t<Lt;t++) correlator_raw.value(t) = correlator_raw.value(t) + correlator_raw_disconn.value(t);
+
+  std::cout << "Pipi->sigma raw data connected/disconnected parts:\n";
+  for(int t=0;t<Lt;t++) std::cout << t << " " << correlator_raw_conn.value(t) << " " << correlator_raw_disconn.value(t) << std::endl;
+
+  return correlator_raw;
+}
+
+//Averages over pion momenta to produce a rotationally invariant state
+template<typename AllMomentaContainerType>
+typename AllMomentaContainerType::ContainerType A1projectPiPiBubble(const AllMomentaContainerType &pipi_self_data, const std::vector<threeMomentum> &pion_mom){
   int nsample_raw = pipi_self_data.getNsample();
-  bubbleData out(Source,Lt,tsep_pipi,nsample_raw);
+  int Lt = pipi_self_data.getLt();
+  int tsep_pipi = pipi_self_data.getTsepPiPi();
+  typename AllMomentaContainerType::ContainerType out(Source,Lt,tsep_pipi,nsample_raw);
   out.zero();
 
   for(int t=0;t<Lt;t++)
@@ -143,6 +204,17 @@ bubbleData A1projectPiPiBubble(const bubbleDataAllMomenta &pipi_self_data, const
   
   return out;
 }
+
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src,
+								    const int traj_start, const int traj_inc, const int traj_lessthan,
+								    const std::vector<threeMomentum> &pion_mom,
+								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
+								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
+  bubbleDataZ pipi_self_A1_Z = A1projectPiPiBubble(pipi_self_data_Z, pion_mom);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(data_dir, Lt, tstep_src, traj_start, traj_inc, traj_lessthan, pipi_self_A1_Z, sigma_self_data_Z, opt);
+}
+
+
 
 template<typename ContainerType, typename ReadPolicy>
 void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const ReadPolicy &rp){

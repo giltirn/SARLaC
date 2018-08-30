@@ -11,10 +11,13 @@ struct PiPiToSigmaCMDline{
   bool force_disconn_tstep_src; //the code computes the disconnected component for all tsrc, but this option can be used to constrain the number of source timeslices to observe the effect
   int disconn_tstep_src;
 
+  bool use_disconn_complex_prod; //use Re( pipi_bubble * sigma_bubble )  [original strategy] for disconnected piece rather than Re ( pipi_bubble ) * Re ( sigma_bubble )
+
   PiPiToSigmaCMDline(){
     load_guess = false;
     load_frozen_fit_params= false;
     force_disconn_tstep_src = false;
+    use_disconn_complex_prod = false;
   }
   PiPiToSigmaCMDline(const int argc, const char** argv, const int begin = 0): PiPiToSigmaCMDline(){
     setup(argc,argv,begin);
@@ -42,6 +45,9 @@ struct PiPiToSigmaCMDline{
 	force_disconn_tstep_src = true;
 	disconn_tstep_src = strToAny<int>(sargv[i+1]);
 	i+=2;
+      }else if(sargv[i] == "-use_disconn_complex_prod"){
+	use_disconn_complex_prod = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

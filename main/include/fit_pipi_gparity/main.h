@@ -26,7 +26,7 @@ doubleJackCorrelationFunction generateData(const PiPiCorrelatorSelector &corr_se
 		cmdline.load_hdf5_data_checkpoint, cmdline.load_hdf5_data_checkpoint_stub);
     
     if(cmdline.save_hdf5_data_checkpoint) checkpointRawData(raw_data, raw_bubble_data, cmdline.save_hdf5_data_checkpoint_stub, extra_descr);
-    getRawPiPiCorrFunc(pipi_raw, raw_data, raw_bubble_data, corr_select, isospin, args.pion_momenta, args.bin_size, extra_descr);
+    getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, isospin, args.pion_momenta, args.bin_size, extra_descr);
   }
 
   const int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;

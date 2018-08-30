@@ -75,7 +75,7 @@ int main(const int argc, const char* argv[]){
   //Compute vacuum subtractions
   if(args.do_vacuum_subtraction){
     { //Pipi->sigma
-      bubbleData pipi_self_proj = A1projectPiPiBubble(pipi_self_data, pion_mom, args.Lt, args.tsep_pipi);
+      bubbleData pipi_self_proj = A1projectPiPiBubble(pipi_self_data, pion_mom);
       doubleJackCorrelationFunction vac_sub_dj = computePiPiToSigmaVacSub(sigma_self_data, pipi_self_proj, args.bin_size);
       pipi_to_sigma_dj = pipi_to_sigma_dj - vac_sub_dj;
     }

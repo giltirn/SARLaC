@@ -187,20 +187,22 @@ template<typename C,typename E>
 inline void read(HDF5reader &reader, bubbleDataAllMomentaBase<C,E> &d, const std::string &tag){ d.read(reader,tag); }
 #endif
 
+template<typename BubbleDataContainerType>
 struct bubbleDataAllMomentaExtra{
-  typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra> full_type;
+  typedef bubbleDataAllMomentaBase<BubbleDataContainerType, bubbleDataAllMomentaExtra<BubbleDataContainerType> > full_type;
   inline full_type & upcast(){ return *static_cast< full_type* >(this); }
 
   inline void bin(const int bin_size){
     full_type & me = upcast();
-    for(full_type::iterator it = me.begin(); it != me.end(); it++)
+    for(auto it = me.begin(); it != me.end(); it++)
 	it->second.bin(bin_size);  
     me.Nsample /= bin_size;
   }
 };
 
 
-typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra> bubbleDataAllMomenta;
+typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra<bubbleData> > bubbleDataAllMomenta;
+typedef bubbleDataAllMomentaBase<bubbleDataZ, bubbleDataAllMomentaExtra<bubbleDataZ> > bubbleDataAllMomentaZ;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
 
 void saveHDF5checkpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
@@ -214,6 +216,13 @@ void loadHDF5checkpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &ra
   HDF5reader rd(file);
   read(rd,raw_data,"raw_data");
   read(rd,raw_bubble_data,"raw_bubble_data");
+}
+
+inline bubbleDataAllMomenta reIm(const bubbleDataAllMomentaZ &in, const int reim){
+  bubbleDataAllMomenta out(in.getLt(), in.getTsepPiPi(), in.getNsample());
+  for(auto it = in.begin(); it != in.end(); ++it)
+    out(it->first) = reIm(it->second, reim);
+  return out;
 }
 
 CPSFIT_END_NAMESPACE

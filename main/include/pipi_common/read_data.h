@@ -227,34 +227,37 @@ void readBubble(ContainerType &into, const int Lt, const threeMomentum &mom, con
   }
 }
 
-template<typename ReadPolicy>
-void readBubble(bubbleDataAllMomenta &raw_data, const int Lt, const ReadPolicy &rp, const std::vector<threeMomentum> &pion_momenta, const SourceOrSink src_snk){    
+template<typename bubbleDataAllMomentaType, typename ReadPolicy>
+void readBubble(bubbleDataAllMomentaType &raw_data, const int Lt, const ReadPolicy &rp, const std::vector<threeMomentum> &pion_momenta, const SourceOrSink src_snk){    
   const int nmom = pion_momenta.size();
 
   for(int p=0;p<nmom;p++){
-    bubbleData &into = raw_data(src_snk,pion_momenta[p]);
+    auto &into = raw_data(src_snk,pion_momenta[p]);
     readBubble(into, Lt, pion_momenta[p], rp);
   }
 }
 
-template<typename FilenamePolicy>
-inline void readBubble(bubbleDataAllMomenta &raw_data, const std::string &data_dir, const int tsep_pipi, const int Lt,
+template<typename bubbleDataAllMomentaType, typename FilenamePolicy>
+inline void readBubble(bubbleDataAllMomentaType &raw_data, const std::string &data_dir, const int tsep_pipi, const int Lt,
 		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, 
 		const std::vector<threeMomentum> &pion_momenta, const SourceOrSink src_snk){   
   PiPiBubbleBasicReadPolicy<FilenamePolicy> rp(fn, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
   readBubble(raw_data, Lt, rp, pion_momenta, src_snk);
 }
 
-template<typename FilenamePolicy>
-void readBubble(bubbleDataAllMomenta &raw_data, const std::string &data_dir, const int tsep_pipi, const int Lt,
-		const int traj_start, const int traj_inc, const int traj_lessthan, 
-		const FilenamePolicy &fn_src, const FilenamePolicy &fn_snk,
+
+template<typename bubbleDataAllMomentaType, typename ReadPolicy>
+void readBubble(bubbleDataAllMomentaType &raw_data, const int Lt, const int tsep_pipi,
+		const ReadPolicy &rp_src, const ReadPolicy &rp_snk,
 		const std::vector<threeMomentum> &pion_momenta,
 		const PiPiCorrelatorSelector &corr_select){
   std::cout << "Reading bubble\n"; boost::timer::auto_cpu_timer t("Report: Read bubble in %w s\n");
-  int nsample = (traj_lessthan - traj_start)/traj_inc;
+  int nsample = rp_src.nsample();
+  assert(rp_snk.nsample() == nsample);
+
   raw_data.setup(Lt,tsep_pipi,nsample);
   
+  //Filter data read into container according to those that pass the corr_select filter
   std::vector<threeMomentum> src_mom_need;
   std::vector<threeMomentum> snk_mom_need;
   double m;
@@ -267,8 +270,24 @@ void readBubble(bubbleDataAllMomenta &raw_data, const std::string &data_dir, con
     }
   }
 
-  readBubble(raw_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn_src, src_mom_need, Source);
-  readBubble(raw_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn_snk, snk_mom_need, Sink);
+  readBubble(raw_data, Lt, rp_src, src_mom_need, Source);
+  readBubble(raw_data, Lt, rp_snk, snk_mom_need, Sink);
+}
+
+
+
+
+
+template<typename bubbleDataAllMomentaType, typename FilenamePolicy>
+void readBubble(bubbleDataAllMomentaType &raw_data, const std::string &data_dir, const int tsep_pipi, const int Lt,
+		const int traj_start, const int traj_inc, const int traj_lessthan, 
+		const FilenamePolicy &fn_src, const FilenamePolicy &fn_snk,
+		const std::vector<threeMomentum> &pion_momenta,
+		const PiPiCorrelatorSelector &corr_select){
+  PiPiBubbleBasicReadPolicy<FilenamePolicy> rp_src(fn_src, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
+  PiPiBubbleBasicReadPolicy<FilenamePolicy> rp_snk(fn_snk, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
+
+  readBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, pion_momenta, corr_select);
 }
 
 CPSFIT_END_NAMESPACE
