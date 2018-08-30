@@ -6,16 +6,14 @@
 
 CPSFIT_START_NAMESPACE
 
-struct Sigma2ptBasicReadPolicy{
+struct Sigma2ptGenericReadPolicy{
   int traj_start, traj_inc, traj_lessthan;
   std::string dir;
   subStringReplace fmt;
   
-  Sigma2ptBasicReadPolicy(const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
+  Sigma2ptGenericReadPolicy(const std::string &fmt_str, const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
     traj_start(traj_start), traj_inc(traj_inc), traj_lessthan(traj_lessthan), dir(dir){
-
-    std::string ffmt = "traj_<CONF>_sigmacorr_mompsrc<PSRC_QUARK>psnk<PSNK_QUARK>_v2";
-    fmt.chunkString(ffmt, { subStringSpecify("<CONF>"), subStringSpecify("<PSRC_QUARK>"), subStringSpecify("<PSNK_QUARK>") });
+    fmt.chunkString(fmt_str, { subStringSpecify("<CONF>"), subStringSpecify("<PSRC_QUARK>"), subStringSpecify("<PSNK_QUARK>") });
   }
 
   int nsample() const{ return (traj_lessthan - traj_start)/traj_inc; }
@@ -27,6 +25,14 @@ struct Sigma2ptBasicReadPolicy{
     return os.str();
   }
 };
+
+struct Sigma2ptBasicReadPolicy: public Sigma2ptGenericReadPolicy{
+  Sigma2ptBasicReadPolicy(const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
+    Sigma2ptGenericReadPolicy("traj_<CONF>_sigmacorr_mompsrc<PSRC_QUARK>psnk<PSNK_QUARK>_v2", dir, traj_start, traj_inc, traj_lessthan)
+  {}
+};
+
+
 
 template<typename ReadPolicy>
 void readSigmaSigma(figureData &raw_data, const int Lt, const ReadPolicy &rp){
@@ -66,18 +72,20 @@ inline void readSigmaSigma(figureData &raw_data, const std::string &data_dir, co
   Sigma2ptBasicReadPolicy rp(data_dir, traj_start, traj_inc, traj_lessthan);
   readSigmaSigma(raw_data, Lt, rp);
 } 
+inline void readSigmaSigma(figureData &raw_data, const std::string &file_fmt, const std::string &data_dir, const int Lt,
+		    const int traj_start, const int traj_inc, const int traj_lessthan){
+  Sigma2ptGenericReadPolicy rp(file_fmt, data_dir, traj_start, traj_inc, traj_lessthan);
+  readSigmaSigma(raw_data, Lt, rp);
+} 
 
-
-struct SigmaSelfBasicReadPolicy{
+struct SigmaSelfGenericReadPolicy{
   int traj_start, traj_inc, traj_lessthan;
   std::string dir;
   subStringReplace fmt;
   
-  SigmaSelfBasicReadPolicy(const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
+  SigmaSelfGenericReadPolicy(const std::string &file_fmt, const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
     traj_start(traj_start), traj_inc(traj_inc), traj_lessthan(traj_lessthan), dir(dir){
-
-    std::string ffmt = "traj_<CONF>_sigmaself_mom<PQUARK>_v2";
-    fmt.chunkString(ffmt, { subStringSpecify("<CONF>"), subStringSpecify("<PQUARK>") });
+    fmt.chunkString(file_fmt, { subStringSpecify("<CONF>"), subStringSpecify("<PQUARK>") });
   }
 
   int nsample() const{ return (traj_lessthan - traj_start)/traj_inc; }
@@ -89,6 +97,13 @@ struct SigmaSelfBasicReadPolicy{
     return os.str();
   }
 };
+
+struct SigmaSelfBasicReadPolicy: public SigmaSelfGenericReadPolicy{
+  SigmaSelfBasicReadPolicy(const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
+    SigmaSelfGenericReadPolicy("traj_<CONF>_sigmaself_mom<PQUARK>_v2", dir, traj_start, traj_inc, traj_lessthan){}
+};
+
+
 
 template<typename ContainerType, typename ReadPolicy>
 void readSigmaSelf(ContainerType &raw_data, const int Lt, const ReadPolicy &rp){
@@ -123,7 +138,13 @@ inline void readSigmaSelf(ContainerType &raw_data, const std::string &data_dir, 
   SigmaSelfBasicReadPolicy rp(data_dir, traj_start, traj_inc, traj_lessthan);
   readSigmaSelf(raw_data, Lt, rp);
 } 
-
+template<typename ContainerType>
+inline void readSigmaSelf(ContainerType &raw_data, const std::string &file_fmt, 
+			  const std::string &data_dir, const int Lt,
+			  const int traj_start, const int traj_inc, const int traj_lessthan){   
+  SigmaSelfGenericReadPolicy rp(file_fmt, data_dir, traj_start, traj_inc, traj_lessthan);
+  readSigmaSelf(raw_data, Lt, rp);
+} 
 
 CPSFIT_END_NAMESPACE
 

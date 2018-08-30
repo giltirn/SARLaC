@@ -6,16 +6,14 @@
 
 CPSFIT_START_NAMESPACE
 
-struct PiPiToSigmaBasicReadPolicy{
+struct PiPiToSigmaGenericReadPolicy{
   int traj_start, traj_inc, traj_lessthan;
   std::string dir;
   subStringReplace fmt;
   
-  PiPiToSigmaBasicReadPolicy(const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
+  PiPiToSigmaGenericReadPolicy(const std::string &file_fmt, const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
     traj_start(traj_start), traj_inc(traj_inc), traj_lessthan(traj_lessthan), dir(dir){
-
-    std::string ffmt = "traj_<CONF>_pipitosigma_sigmawdagmom<MOM_QUARK_SIGMA>_pionmom<MOM_PI>_v2";
-    fmt.chunkString(ffmt, { subStringSpecify("<CONF>"), subStringSpecify("<MOM_QUARK_SIGMA>"), subStringSpecify("<MOM_PI>") });
+    fmt.chunkString(file_fmt, { subStringSpecify("<CONF>"), subStringSpecify("<MOM_QUARK_SIGMA>"), subStringSpecify("<MOM_PI>") });
   }
 
   int nsample() const{ return (traj_lessthan - traj_start)/traj_inc; }
@@ -28,6 +26,13 @@ struct PiPiToSigmaBasicReadPolicy{
   }
 };
   
+struct PiPiToSigmaBasicReadPolicy: public PiPiToSigmaGenericReadPolicy{
+  PiPiToSigmaBasicReadPolicy(const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan):
+    PiPiToSigmaGenericReadPolicy("traj_<CONF>_pipitosigma_sigmawdagmom<MOM_QUARK_SIGMA>_pionmom<MOM_PI>_v2", dir, traj_start, traj_inc, traj_lessthan)
+  {}
+};
+  
+
 
 template<typename ReadPolicy>
 void readPiPiToSigma(figureData &raw_data, const int Lt, const ReadPolicy &rd){
@@ -71,7 +76,11 @@ void readPiPiToSigma(figureData &raw_data, const std::string &data_dir, const in
   PiPiToSigmaBasicReadPolicy rd(data_dir, traj_start, traj_inc, traj_lessthan);
   readPiPiToSigma(raw_data, Lt, rd);
 }
-
+void readPiPiToSigma(figureData &raw_data, const std::string &file_fmt, const std::string &data_dir, const int Lt,
+		     const int traj_start, const int traj_inc, const int traj_lessthan){ 
+  PiPiToSigmaGenericReadPolicy rd(file_fmt, data_dir, traj_start, traj_inc, traj_lessthan);
+  readPiPiToSigma(raw_data, Lt, rd);
+}
 
 //Construct disconnected part from  Re(  pipi_buble * sigma_bubble ) as we did in the parallel calculation
 void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z){
@@ -143,8 +152,9 @@ struct readReconstructPiPiToSigmaWithDisconnAllTsrcOptions{
 };
 
 //Combine above, reading the pipi->sigma data and reconstructing the disconnected component for all tsrc
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src,
-								    const int traj_start, const int traj_inc, const int traj_lessthan,
+template<typename ReadPolicy>
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPolicy &rp,
+								    const int Lt, const int tstep_src,
 								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
 
@@ -153,7 +163,7 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::s
 
   //Get pipi->sigma data
   figureData pipitosigma_data;
-  readPiPiToSigma(pipitosigma_data, data_dir, Lt, traj_start, traj_inc, traj_lessthan);
+  readPiPiToSigma(pipitosigma_data, Lt, rp);
   
   //Reconstruct disconnected and connected part
   figureData pipitosigma_disconn_data_ReZZ;
@@ -189,6 +199,22 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::s
   return correlator_raw;
 }
 
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src,
+								    const int traj_start, const int traj_inc, const int traj_lessthan,
+								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
+								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
+  PiPiToSigmaBasicReadPolicy rd(data_dir, traj_start, traj_inc, traj_lessthan);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,  pipi_self_data_Z, sigma_self_data_Z, opt);
+}
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src,
+								    const int traj_start, const int traj_inc, const int traj_lessthan,
+								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
+								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
+  PiPiToSigmaGenericReadPolicy rd(file_fmt, data_dir, traj_start, traj_inc, traj_lessthan);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,  pipi_self_data_Z, sigma_self_data_Z, opt);
+}
+
+
 //Averages over pion momenta to produce a rotationally invariant state
 template<typename AllMomentaContainerType>
 typename AllMomentaContainerType::ContainerType A1projectPiPiBubble(const AllMomentaContainerType &pipi_self_data, const std::vector<threeMomentum> &pion_mom){
@@ -213,7 +239,14 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::s
   bubbleDataZ pipi_self_A1_Z = A1projectPiPiBubble(pipi_self_data_Z, pion_mom);
   return readReconstructPiPiToSigmaWithDisconnAllTsrc(data_dir, Lt, tstep_src, traj_start, traj_inc, traj_lessthan, pipi_self_A1_Z, sigma_self_data_Z, opt);
 }
-
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src,
+								    const int traj_start, const int traj_inc, const int traj_lessthan,
+								    const std::vector<threeMomentum> &pion_mom,
+								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
+								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
+  bubbleDataZ pipi_self_A1_Z = A1projectPiPiBubble(pipi_self_data_Z, pion_mom);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(file_fmt, data_dir, Lt, tstep_src, traj_start, traj_inc, traj_lessthan, pipi_self_A1_Z, sigma_self_data_Z, opt);
+}
 
 
 template<typename ContainerType, typename ReadPolicy>

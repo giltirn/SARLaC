@@ -1,13 +1,21 @@
 #ifndef _PIPI_SIGMA_SIM_FIT_READ_DATA_H_
 #define _PIPI_SIGMA_SIM_FIT_READ_DATA_H_
 
+
+#include<config.h>
+#include<utils/macros.h>
+
+CPSFIT_START_NAMESPACE
+
 void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
-		 const std::string &data_dir, const int tsep_pipi, const int tstep_pipi, const int Lt,
+		 const std::string &data_dir, 
+		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
+		 const int tsep_pipi, const int tstep_pipi, const int Lt,
 		 const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom){
   PiPiCorrelatorBasicSelector corr_select(PiPiProjector::A1,PiPiProjector::A1,PiPiMomAllowed::All,{0,0,0});
   
   //Read C, D, R diagrams
-  readFigureStationaryPolicy ffn(false);
+  PiPiSymmetrySubsetFigureFileMapping ffn(data_dir, figure_file_fmt, traj_start, tsep_pipi, pion_mom, {0,0,0});
   figureDataAllMomenta raw_data;
   char figs[3] = {'C','D','R'};
 
@@ -16,8 +24,8 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
     zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
   }
 
-  readBubbleStationaryPolicy bpsrc(false,Source);
-  readBubbleStationaryPolicy bpsnk(false,Sink);
+  bubbleFilenamePolicyGeneric bpsrc(bubble_file_fmt, {0,0,0}, Source);
+  bubbleFilenamePolicyGeneric bpsnk(bubble_file_fmt, {0,0,0}, Sink);
 
   readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, pion_mom, corr_select);
 
@@ -57,37 +65,46 @@ void readCheckpoint(rawCorrelationFunction &pipi_raw,
   read(rd, sigma_self_data, "sigma_self_data");
 }
 
+//compute_pipitosigma_disconn_ReRe = false was original strategy; setting to true gives a slight stat error improvement
 void readData(rawCorrelationFunction &pipi_raw,
 	      rawCorrelationFunction &pipi_to_sigma_raw,
 	      rawCorrelationFunction &sigma2pt_raw,
 	      bubbleDataAllMomenta &pipi_self_data,
 	      sigmaSelfContraction &sigma_self_data,
-	      const std::vector<threeMomentum> &pion_mom,
-	      const PiPiSigmaSimArgs &args){
+	      const std::string &data_dir, 
+	      const std::string &pipi2pt_figure_file_fmt, 
+	      const std::string &sigma2pt_file_fmt, 
+	      const std::string &pipitosigma_file_fmt, 
+	      const std::string &pipi_bubble_file_fmt, 
+	      const std::string &sigma_bubble_file_fmt,
+	      const int tsep_pipi, const std::vector<threeMomentum> &pion_mom,
+	      const int tstep_pipi2pt, int tstep_pipitosigma,
+	      const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan,
+	      bool compute_pipitosigma_disconn_ReRe){
+
   //pipi 2pt + pipi self (complex)
   bubbleDataAllMomentaZ pipi_self_data_Z;
-  readPiPi2pt(pipi_raw, pipi_self_data_Z, args.data_dir, args.tsep_pipi, args.tstep_pipi2pt, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, pion_mom);
+  readPiPi2pt(pipi_raw, pipi_self_data_Z, data_dir, pipi2pt_figure_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi2pt, Lt, traj_start, traj_inc, traj_lessthan, pion_mom);
   pipi_self_data = reIm(pipi_self_data_Z, 0);
 
   //sigma 2pt + sigma self (complex)
   figureData sigma2pt_data;
-  readSigmaSigma(sigma2pt_data, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  readSigmaSigma(sigma2pt_data, sigma2pt_file_fmt, data_dir, Lt, traj_start, traj_inc, traj_lessthan);
   sigma2pt_raw = sourceAverage(sigma2pt_data);
 
   sigmaSelfContractionZ sigma_self_data_Z;
-  readSigmaSelf(sigma_self_data_Z, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+  readSigmaSelf(sigma_self_data_Z, sigma_bubble_file_fmt, data_dir, Lt, traj_start, traj_inc, traj_lessthan);
   sigma_self_data = reIm(sigma_self_data_Z, 0);
   
   //pipi->sigma
   readReconstructPiPiToSigmaWithDisconnAllTsrcOptions opt;
-  opt.compute_disconn_ReRe = false; //original strategy
+  opt.compute_disconn_ReRe = compute_pipitosigma_disconn_ReRe;
 
-  int tstep_pipitosigma = 1;
-  pipi_to_sigma_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(args.data_dir, args.Lt, tstep_pipitosigma, args.traj_start, args.traj_inc, args.traj_lessthan,
+  pipi_to_sigma_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(pipitosigma_file_fmt, data_dir, Lt, tstep_pipitosigma, traj_start, traj_inc, traj_lessthan,
 								   pion_mom, pipi_self_data_Z, sigma_self_data_Z,
 								   opt);
 }
 
-
+CPSFIT_END_NAMESPACE
 
 #endif

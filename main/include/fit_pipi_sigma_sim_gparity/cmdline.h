@@ -18,6 +18,7 @@ struct PiPiSigmaSimCMDline{
   bool load_checkpoint;
   std::string load_checkpoint_file;
   
+  bool use_pipitosigma_disconn_complex_prod; //use Re( pipi_bubble * sigma_bubble )  [original strategy] for pipi->sigma disconnected piece rather than Re ( pipi_bubble ) * Re ( sigma_bubble )
 
   PiPiSigmaSimCMDline(){
     load_guess = false;
@@ -27,6 +28,7 @@ struct PiPiSigmaSimCMDline{
     include_sigma_2pt = true;
     save_checkpoint = false;
     load_checkpoint = false;
+    use_pipitosigma_disconn_complex_prod = false;
   }
   PiPiSigmaSimCMDline(const int argc, const char** argv, const int begin = 0): PiPiSigmaSimCMDline(){
     setup(argc,argv,begin);
@@ -75,6 +77,9 @@ struct PiPiSigmaSimCMDline{
 	load_checkpoint = true;
 	load_checkpoint_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-use_pipitosigma_disconn_complex_prod"){
+	use_pipitosigma_disconn_complex_prod = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

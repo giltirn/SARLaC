@@ -60,9 +60,14 @@ int main(const int argc, const char* argv[]){
   if(cmdline.load_checkpoint){
     readCheckpoint(pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data,cmdline.load_checkpoint_file);
   }else{
-    readData(pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data,pion_mom,args);
+    readData(pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data,
+	     args.data_dir, 
+	     args.pipi2pt_figure_file_fmt, args.sigma2pt_file_fmt, args.pipitosigma_file_fmt,
+	     args.pipi_bubble_file_fmt, args.sigma_bubble_file_fmt,
+	     args.tsep_pipi, pion_mom, args.tstep_pipi2pt, args.tstep_pipitosigma,
+	     args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, !cmdline.use_pipitosigma_disconn_complex_prod);
   }
- 
+
   if(cmdline.save_checkpoint){
     writeCheckpoint(cmdline.save_checkpoint_file,pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data);
   }
