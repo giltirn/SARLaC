@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.67])
-AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
+AC_INIT([CPSfit], [0.1], [ckelly@phys.columbia.edu])
 AC_CONFIG_SRCDIR([include/utils.h])
 AC_CONFIG_HEADERS([config.h])
 
@@ -14,6 +14,12 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_LANG(C++)
 AC_REQUIRE_CPP
+
+AC_CHECK_PROGS([DOXYGEN], [doxygen])
+if test -z "$DOXYGEN";
+   then AC_MSG_WARN([Doxygen not found - continuing without Doxygen support])
+fi
+
 
 # Check for c++14
 CXXFLAGS="-std=c++14 $CXXFLAGS"
@@ -136,7 +142,13 @@ AC_CHECK_FUNCS([fesetround pow rint sqrt])
 
 AC_SUBST(CONF_LDADD, $CONF_LDADD)
 
+
+#Generate Doxygen file
+AM_CONDITIONAL([HAVE_DOXYGEN],
+[test -n "$DOXYGEN"])AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Doxyfile])])
+
+
 # Output files
-AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile example/Makefile test/Makefile)
+AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile example/Makefile test/Makefile docs/Makefile)
 AM_INIT_AUTOMAKE([subdir-objects])
 
