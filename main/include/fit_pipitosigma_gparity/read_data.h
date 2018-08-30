@@ -4,6 +4,8 @@
 #include<config.h>
 #include<utils/macros.h>
 
+#include<pipi_common/pipi_common.h>
+
 CPSFIT_START_NAMESPACE
 
 struct PiPiToSigmaGenericReadPolicy{

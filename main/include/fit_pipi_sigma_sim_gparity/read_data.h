@@ -5,6 +5,9 @@
 #include<config.h>
 #include<utils/macros.h>
 
+#include <fit_sigmasigma_gparity/read_data.h>
+#include <fit_pipitosigma_gparity/read_data.h>
+
 CPSFIT_START_NAMESPACE
 
 void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
@@ -37,6 +40,18 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
   //Combine diagrams to construct raw correlator
   getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, 0, pion_mom, 1);
 }
+inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
+			const std::string &data_dir, 
+			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
+			const int tsep_pipi, const int tstep_pipi, const int Lt,
+			const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom){
+  bubbleDataAllMomentaZ raw_bubble_data_Z;
+  readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
+	      traj_start, traj_inc, traj_lessthan, pion_mom);
+  raw_bubble_data = reIm(raw_bubble_data_Z, 0);
+}
+
+
 
 void writeCheckpoint(const std::string &file, 
 		     const rawCorrelationFunction &pipi_raw,
