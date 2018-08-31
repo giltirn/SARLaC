@@ -3,6 +3,8 @@
 
 #define DAIQIAN_COMPATIBILITY_MODE
 
+#include<map>
+
 #include<config.h>
 #include<utils/macros.h>
 
@@ -215,12 +217,13 @@ std::ostream & operator<<(std::ostream &os, const figureDataBase<DistributionTyp
 }
 
 class figureDataPolicies{
-  inline figureDataBase<rawDataDistributionD, figureDataPolicies> & upcast(){ return *static_cast< figureDataBase<rawDataDistributionD, figureDataPolicies>* >(this); }
-  inline const figureDataBase<rawDataDistributionD, figureDataPolicies> & upcast() const{ return *static_cast< figureDataBase<rawDataDistributionD, figureDataPolicies> const* >(this); }
+  typedef figureDataBase<rawDataDistributionD, figureDataPolicies> MasterType;
+  inline MasterType & upcast(){ return *static_cast< MasterType* >(this); }
+  inline const MasterType & upcast() const{ return *static_cast< MasterType const* >(this); }
 
 public:
   void parseCDR(std::istream &in, const int sample){
-    figureDataBase<rawDataDistributionD, figureDataPolicies> &me = upcast();
+    auto &me = upcast();
     
     const int Lt = me.getLt();
     const int nelems = Lt*Lt;
@@ -239,17 +242,44 @@ public:
       if(!(in >> re >> im)) error_exit(std::cout << "FigureData::parseCDR failed to read values for config " << sample << "\n");
     }
   }
+  
+  //Optional cache for read data for if the files will be read multiple
+  typedef std::map< std::pair<std::string, int>, std::vector<double> > CacheType;
+  static bool & useFileCache(){ static bool use = false; return use; }
+  static CacheType & getFileCache(){ static CacheType cache; return cache; }
+
   void parseCDR(const std::string &filename, const int sample){
+    auto & me = upcast();
+
+    CacheType::const_iterator it;
+    if(useFileCache() && ( it = getFileCache().find(std::pair<std::string, int>(filename,sample)) ) != getFileCache().end() ){
+      int i = 0;
+      for(int tsrc=0;tsrc<me.getLt();tsrc++) 
+	for(int t=0;t<me.getLt();t++) 
+	  me.at(tsrc, t).sample(sample) = it->second[i++];
+      std::cout << "Retrieved " << filename << " from cache" << std::endl;
+      return;
+    }
+
     std::ifstream is(filename.c_str());
     if(!is.good()){ std::cout << "Could not open file \"" << filename << "\"\n"; std::cout.flush(); exit(-1); }
     parseCDR(is,sample);
     if(is.fail() || is.bad()){ std::cout << "Error reading file \"" << filename << "\"\n"; std::cout.flush(); exit(-1); }
     is.close();
+
+    if(useFileCache()){
+      std::vector<double> v(me.getLt() * me.getLt());
+      int i = 0;
+      for(int tsrc=0;tsrc<me.getLt();tsrc++) 
+	for(int t=0;t<me.getLt();t++) 
+	  v[i++] = me.at(tsrc, t).sample(sample);
+      getFileCache()[ std::pair<std::string, int>(filename,sample) ] = std::move(v);
+    }
   }    
 
   //Data not measured on every tsrc usually
   bool isZero(const int tsrc) const{
-    const figureDataBase<rawDataDistributionD, figureDataPolicies> &me = upcast();
+    auto &me = upcast();
     
     for(int tsep=0;tsep<me.getLt();tsep++)
       for(int sample=0;sample<me.getNsample();sample++)
@@ -258,7 +288,7 @@ public:
   }
 
   void bin(const int bin_size){
-    figureDataBase<rawDataDistributionD, figureDataPolicies> &me = upcast();
+    auto &me = upcast();
     const int Lt = me.getLt();
 #pragma omp parallel for
     for(int i=0;i<Lt*Lt;i++){
