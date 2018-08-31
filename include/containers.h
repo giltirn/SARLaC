@@ -7,4 +7,5 @@
 #include<containers/single_value_container.h>
 #include<containers/parameter_vector.h>
 #include<containers/enumerated_struct.h>
+#include<containers/tagged_value_container.h>
 #endif
