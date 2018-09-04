@@ -14,8 +14,10 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
 		 const std::string &data_dir, 
 		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 		 const int tsep_pipi, const int tstep_pipi, const int Lt,
-		 const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom){
-  PiPiCorrelatorBasicSelector corr_select(PiPiProjector::A1,PiPiProjector::A1,PiPiMomAllowed::All,{0,0,0});
+		 const int traj_start, const int traj_inc, const int traj_lessthan, 
+		 const std::vector<threeMomentum> &pion_mom,
+		 const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
+  PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
   
   //Read C, D, R diagrams
   PiPiSymmetrySubsetFigureFileMapping ffn(data_dir, figure_file_fmt, traj_start, tsep_pipi, pion_mom, {0,0,0});
@@ -40,14 +42,18 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
   //Combine diagrams to construct raw correlator
   getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, 0, pion_mom, 1);
 }
+
+
+
 inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
 			const std::string &data_dir, 
 			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 			const int tsep_pipi, const int tstep_pipi, const int Lt,
-			const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom){
+			const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom,
+			const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
   bubbleDataAllMomentaZ raw_bubble_data_Z;
   readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
-	      traj_start, traj_inc, traj_lessthan, pion_mom);
+	      traj_start, traj_inc, traj_lessthan, pion_mom, proj_src, proj_snk);
   raw_bubble_data = reIm(raw_bubble_data_Z, 0);
 }
 

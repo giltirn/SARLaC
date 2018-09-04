@@ -1,8 +1,18 @@
 #ifndef _PIPI_SIGMA_SIM_FIT_RESAMPLED_CORRELATOR_H_
 #define _PIPI_SIGMA_SIM_FIT_RESAMPLED_CORRELATOR_H_
 
-doubleJackCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom){
-  PiPiCorrelatorBasicSelector corr_select(PiPiProjector::A1,PiPiProjector::A1,PiPiMomAllowed::All,{0,0,0});
+
+#include<config.h>
+#include<utils/macros.h>
+
+#include<pipi_common/pipi_common.h>
+
+CPSFIT_START_NAMESPACE
+
+doubleJackCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, 
+						   const std::vector<threeMomentum> &pion_mom,
+						   const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
+  PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
 
   bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResampleBubble(raw, bin_size);
   doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectSourceAvg(dj_bubble_data,tsep_pipi,corr_select,pion_mom);
@@ -18,6 +28,6 @@ doubleJackCorrelationFunction binDoubleJackResample(const rawCorrelationFunction
 				       );
 }
 
-
+CPSFIT_END_NAMESPACE
 
 #endif
