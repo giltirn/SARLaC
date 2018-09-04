@@ -127,13 +127,33 @@ struct readFigureTianleComovingPolicy{
   }
 };
 
-//For a given figure (C,D,R) read the raw data. Selector is used to only load data that is required
+
+
 template<typename FilenamePolicy>
-void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::string &data_dir, const int tsep_pipi, const int Lt,
-		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, const std::vector<threeMomentum> &pion_momenta,
-		const PiPiCorrelatorSelector &corr_select){
+struct PiPiFigureBasicReadPolicy{
+  int traj_start, traj_inc, traj_lessthan;
+  std::string dir;
+  int tsep_pipi;
+  const FilenamePolicy &fn;
+  
+  PiPiFigureBasicReadPolicy(const FilenamePolicy &fn, const std::string &dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi):
+    fn(fn), traj_start(traj_start), traj_inc(traj_inc), traj_lessthan(traj_lessthan), dir(dir), tsep_pipi(tsep_pipi){
+  }
+
+  int nsample() const{ return (traj_lessthan - traj_start)/traj_inc; }
+  
+  std::string filename(const int sample, const char fig, const threeMomentum &psnk, const threeMomentum &psrc) const{
+    return fn(dir, fig, traj_start + sample * traj_inc, psnk, psrc, tsep_pipi);
+  }
+};
+
+
+//For a given figure (C,D,R) read the raw data. Selector is used to only load data that is required
+template<typename ReadPolicy>
+void readFigure(figureDataAllMomenta &raw_data, const char fig, const int Lt, const std::vector<threeMomentum> &pion_momenta,
+		const PiPiCorrelatorSelector &corr_select, const ReadPolicy &rp){
   std::cout << "Reading figure " << fig << "\n"; boost::timer::auto_cpu_timer t(std::string("Report: Read figure ") + fig + " in %w s\n");
-  int nsample = (traj_lessthan - traj_start)/traj_inc;
+  int nsample = rp.nsample();
 
   raw_data.setup(Lt,nsample);
 
@@ -149,8 +169,7 @@ void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::strin
       
 #pragma omp parallel for
       for(int sample=0; sample < nsample; sample++){
-	int traj = traj_start + sample * traj_inc;
-	std::string filename = fn(data_dir, fig, traj, pion_momenta[psnk], pion_momenta[psrc], tsep_pipi);
+	std::string filename = rp.filename(sample, fig, pion_momenta[psnk], pion_momenta[psrc]);
 	std::cout << "Parsing " << filename << std::endl;
 	into.parseCDR(filename, sample);
       }
@@ -158,6 +177,13 @@ void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::strin
   }
 }
 
+template<typename FilenamePolicy>
+inline void readFigure(figureDataAllMomenta &raw_data, const char fig, const std::string &data_dir, const int tsep_pipi, const int Lt,
+		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, const std::vector<threeMomentum> &pion_momenta,
+		const PiPiCorrelatorSelector &corr_select){
+  PiPiFigureBasicReadPolicy<FilenamePolicy> rp(fn, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
+  readFigure(raw_data, fig, Lt, pion_momenta, corr_select, rp);
+}
 
 struct readBubbleStationaryPolicy{
   SourceOrSink src_snk; //whether a source or sink pipi
