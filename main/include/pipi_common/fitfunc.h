@@ -134,37 +134,6 @@ struct pipiParamsPrinter<FitCoshPlusConstant>: public distributionPrinter<jackkn
   }
 };
 
-
-
-struct WindowBoundedMapping{
-  static inline double map(const double pint, const double min, const double max){
-    return min + (sin(pint)+1)*(max-min)/2.;
-  }
-  //dmap/dpint
-  static inline double deriv(const double pint, const double min, const double max){
-    return cos(pint)*(max-min)/2.;
-  }
-};
-struct MinBoundedMapping{
-  static inline double map(const double pint, const double min){
-    return min -1.+ sqrt( pint*pint + 1 );
-  }
-  //dmap/dpint
-  static inline double deriv(const double pint, const double min){
-    return pint/sqrt( pint*pint + 1 );
-  }
-};
-struct MaxBoundedMapping{
-  static inline double map(const double pint, const double max){
-    return max +1.- sqrt( pint*pint + 1 );
-  }
-  //dmap/dpint
-  static inline double deriv(const double pint, const double max){
-    return -pint/sqrt( pint*pint + 1 );
-  }
-};
-
-
 //#define PIPI_2EXP_E1BOUNDED
 
 class FitCoshPlusConstantDoubleExp{

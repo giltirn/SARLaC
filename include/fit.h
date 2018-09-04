@@ -4,4 +4,5 @@
 #include<fit/fitfunc.h>
 #include<fit/fit_wrapper.h>
 #include<fit/pvalue.h>
+#include<fit/param_bounds.h>
 #endif
