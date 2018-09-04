@@ -17,6 +17,14 @@ template<typename T, typename TagType = std::string>
 class taggedValueContainer{
   std::unordered_map<TagType,size_t> const* tag_map; //unique and shared over instances of this class
   std::vector<T> t;
+
+  inline size_t checkGetIdx(const TagType &tag) const{ 
+    if(tag_map == NULL) error_exit(std::cout << "taggedValueContainer::checkGetIdx tag map is NULL" << std::endl);
+    auto it = tag_map->find(tag); 
+    if(it == tag_map->end()) error_exit(std::cout << "taggedValueContainer::checkGetIdx could not find tag " << tag << std::endl);
+    return it->second;
+  }
+
 public:
   ENABLE_GENERIC_ET(taggedValueContainer, taggedValueContainer<T>, taggedValueContainer<T>);
   taggedValueContainer(): tag_map(NULL), t(0){}
@@ -27,12 +35,12 @@ public:
   inline const T &operator()(const size_t i) const{ return t[i]; }
 
   //Tagged accessors
-  inline T & operator()(const TagType &i){ assert(tag_map != NULL); auto it = tag_map->find(i); assert(it != tag_map->end()); return t[it->second]; }
-  inline const T &operator()(const TagType &i) const{ assert(tag_map != NULL); auto it = tag_map->find(i); assert(it != tag_map->end()); return t[it->second]; }
+  inline T & operator()(const TagType &i){ return t[checkGetIdx(i)]; }
+  inline const T &operator()(const TagType &i) const{ return t[checkGetIdx(i)]; }
   
   //This version also returns the index
-  inline T & operator()(size_t &idx, const TagType &i){ assert(tag_map != NULL); auto it = tag_map->find(i); assert(it != tag_map->end()); idx = it->second; return t[idx]; }
-  inline const T &operator()(size_t &idx, const TagType &i) const{ assert(tag_map != NULL); auto it = tag_map->find(i); assert(it != tag_map->end()); idx = it->second; return t[idx]; }
+  inline T & operator()(size_t &idx, const TagType &i){ idx = checkGetIdx(i); return t[idx]; }
+  inline const T &operator()(size_t &idx, const TagType &i) const{ idx = checkGetIdx(i); return t[idx]; }
   
   //Usual boilerplate stuff
   inline size_t size() const{ return t.size(); }
@@ -57,7 +65,7 @@ public:
   inline std::unordered_map<TagType,size_t> const* getTagMap() const{ return tag_map; }
   
   //Parameter index
-  size_t index(const TagType &tag) const{ auto it = tag_map->find(tag); assert(it != tag_map.end()); return it->second; }
+  size_t index(const TagType &tag) const{ return checkGetIdx(tag); }
 };
 
 template<typename T, typename TagType>
