@@ -299,19 +299,22 @@ public:
   }
 };
 
-class figureDataDoubleJackPolicies{
-  inline figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> & upcast(){ return *static_cast< figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies>* >(this); }
-  inline const figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> & upcast() const{ return *static_cast< figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> const* >(this); }
+template<typename DistributionType>
+class figureDataDistributionPolicies{
+  typedef figureDataBase<DistributionType, figureDataDistributionPolicies<DistributionType> > MasterType;
+
+  inline MasterType & upcast(){ return *static_cast<MasterType* >(this); }
+  inline const MasterType & upcast() const{ return *static_cast<MasterType const* >(this); }
 
 public:
   bool isZero(const int tsrc) const{
-    const figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies> &me = upcast();
+    const auto &me = upcast();
     
-    for(int tsep=0;tsep<me.getLt();tsep++)
-      for(int sample=0;sample<me.getNsample();sample++)
-	for(int sub_sample=0;sub_sample<me.getNsample()-1;sub_sample++)
-	  if( me.at(tsrc,tsep).sample(sample).sample(sub_sample) != 0. ) return false;
-      
+    for(int tsep=0;tsep<me.getLt();tsep++){
+      const auto &dist = me.at(tsrc,tsep);
+      for(int i=0;i<iterate<DistributionType>::size(dist);i++)
+	if( iterate<DistributionType>::at(i, dist) != 0. ) return false;
+    }      
     return true;
   }
 };
@@ -319,7 +322,8 @@ public:
   
 
 typedef figureDataBase<rawDataDistributionD , figureDataPolicies> figureData;
-typedef figureDataBase<doubleJackknifeDistributionD, figureDataDoubleJackPolicies > figureDataDoubleJack;
+typedef figureDataBase<doubleJackknifeDistributionD, figureDataDistributionPolicies<doubleJackknifeDistributionD> > figureDataDoubleJack;
+typedef figureDataBase<jackknifeDistributionD, figureDataDistributionPolicies<jackknifeDistributionD> > figureDataJack;
 
 
 
