@@ -219,7 +219,7 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::s
 
 //Averages over pion momenta to produce a rotationally invariant state
 template<typename AllMomentaContainerType>
-typename AllMomentaContainerType::ContainerType A1projectPiPiBubble(const AllMomentaContainerType &pipi_self_data, const std::vector<threeMomentum> &pion_mom){
+typename AllMomentaContainerType::ContainerType A1projectSourcePiPiBubble(const AllMomentaContainerType &pipi_self_data, const std::vector<threeMomentum> &pion_mom){
   int nsample_raw = pipi_self_data.getNsample();
   int Lt = pipi_self_data.getLt();
   int tsep_pipi = pipi_self_data.getTsepPiPi();
@@ -238,7 +238,7 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::s
 								    const std::vector<threeMomentum> &pion_mom,
 								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
-  bubbleDataZ pipi_self_A1_Z = A1projectPiPiBubble(pipi_self_data_Z, pion_mom);
+  bubbleDataZ pipi_self_A1_Z = A1projectSourcePiPiBubble(pipi_self_data_Z, pion_mom);
   return readReconstructPiPiToSigmaWithDisconnAllTsrc(data_dir, Lt, tstep_src, traj_start, traj_inc, traj_lessthan, pipi_self_A1_Z, sigma_self_data_Z, opt);
 }
 rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src,
@@ -246,26 +246,33 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::s
 								    const std::vector<threeMomentum> &pion_mom,
 								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
-  bubbleDataZ pipi_self_A1_Z = A1projectPiPiBubble(pipi_self_data_Z, pion_mom);
+  bubbleDataZ pipi_self_A1_Z = A1projectSourcePiPiBubble(pipi_self_data_Z, pion_mom);
   return readReconstructPiPiToSigmaWithDisconnAllTsrc(file_fmt, data_dir, Lt, tstep_src, traj_start, traj_inc, traj_lessthan, pipi_self_A1_Z, sigma_self_data_Z, opt);
 }
 
 
 template<typename ContainerType, typename ReadPolicy>
-void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const ReadPolicy &rp){
+void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom, const ReadPolicy &rp){
   out.setup(Source, Lt, tsep_pipi, rp.nsample());
   out.zero();
   
   ContainerType temp(Source, Lt, tsep_pipi, rp.nsample());
-  std::vector<threeMomentum> pion_mom = { {1,1,1}, {-1,-1,-1},
-					  {-1,1,1}, {1,-1,-1},
-					  {1,-1,1}, {-1,1,-1},
-					  {1,1,-1}, {-1,-1,1} };
   for(int p=0;p<pion_mom.size();p++){
     readBubble(temp, Lt, pion_mom[p], rp);
     for(int t=0;t<Lt;t++) out(t) = out(t) + temp(t) * (1./pion_mom.size());
   }
 }
+
+
+template<typename ContainerType, typename ReadPolicy>
+inline void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const ReadPolicy &rp){
+  std::vector<threeMomentum> pion_mom = { {1,1,1}, {-1,-1,-1},
+					  {-1,1,1}, {1,-1,-1},
+					  {1,-1,1}, {-1,1,-1},
+					  {1,1,-1}, {-1,-1,1} };
+  getA1projectedSourcePiPiBubble(out, Lt, tsep_pipi, pion_mom, rp);
+}
+
 
 template<typename ContainerType>
 void getA1projectedSourcePiPiBubble(ContainerType &out, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt){

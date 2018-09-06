@@ -1,6 +1,11 @@
 #ifndef _PIPI_SIGMA_SIM_FIT_FITFUNC_H_
 #define _PIPI_SIGMA_SIM_FIT_FITFUNC_H_
 
+#include<config.h>
+#include<utils/macros.h>
+
+CPSFIT_START_NAMESPACE
+
 GENERATE_ENUM_AND_PARSER(SimFitType, (PiPiToSigma)(Sigma2pt)(PiPi2pt) );
 
 #define SIM_FIT_COORD_ARGS \
@@ -80,12 +85,14 @@ public:
 #define ENUMERATED_STRUCT_JACKPRINT_MEMBERS(DEF) BOOST_PP_SEQ_FOR_EACH_I(_ENUMERATED_STRUCT_JACKPRINT_MEMBER, , DEF)
 
 template<>
-struct CPSfit::pipiParamsPrinter<FitSim>: public distributionPrinter<jackknifeDistribution< FitSim::Params> >{
+struct pipiParamsPrinter<FitSim>: public distributionPrinter<jackknifeDistribution< FitSim::Params> >{
   void print(std::ostream &os, const jackknifeDistribution< FitSim::Params> &dist) const{
     FitSim::Params cen = dist.best();
     FitSim::Params err = dist.standardError();
     ENUMERATED_STRUCT_JACKPRINT_MEMBERS(SIM_FIT_PARAMS_MEMBERS);
   }
 };
+
+CPSFIT_END_NAMESPACE
 
 #endif

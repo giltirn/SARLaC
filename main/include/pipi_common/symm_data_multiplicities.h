@@ -264,7 +264,6 @@ struct PiPiSymmetrySubset{
   typedef std::map<threeMomentum, hashMapType> PtotMapType;
   PtotMapType corrs_avail;
 
-  //Default regex is for new file format
   void findAvailableCorrs(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
 			  const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot){
     subStringReplace repl(file_fmt, pipiFileFormatKeys());

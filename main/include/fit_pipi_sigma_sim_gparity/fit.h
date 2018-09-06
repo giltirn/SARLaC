@@ -1,6 +1,10 @@
 #ifndef _PIPI_SIGMA_SIM_FIT_FIT_H_
 #define _PIPI_SIGMA_SIM_FIT_FIT_H_
 
+#include<config.h>
+#include<utils/macros.h>
+
+CPSFIT_START_NAMESPACE
 
 struct SimFitArgs{
   bool correlated;
@@ -76,5 +80,6 @@ void fit(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data_dj, const S
   }
 }
 
+CPSFIT_END_NAMESPACE
 
 #endif

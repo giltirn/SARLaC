@@ -100,9 +100,9 @@ void generateResampledData(doubleJackCorrelationFunction &dj_data_gnd_gnd, doubl
 
     std::cout << "Folding data" << std::endl;
     //Fold data
-    dj_data_gnd_gnd = fold(dj_data_gnd_gnd, tsep_pipi);
-    dj_data_exc_exc = fold(dj_data_exc_exc, tsep_pipi);
-    dj_data_gnd_exc = fold(dj_data_gnd_exc, tsep_pipi);
+    dj_data_gnd_gnd = foldPiPi2pt(dj_data_gnd_gnd, tsep_pipi);
+    dj_data_exc_exc = foldPiPi2pt(dj_data_exc_exc, tsep_pipi);
+    dj_data_gnd_exc = foldPiPi2pt(dj_data_gnd_exc, tsep_pipi);
   }
 
   if(opt.save_combined_data){

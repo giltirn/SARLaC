@@ -77,17 +77,31 @@ bubbleDataDoubleJackAllMomenta binDoubleJackknifeResampleBubble(const bubbleData
   return out;
 }
 
+/*
+Generic fold routine. 
+The data typically is symmetric as   C(Lt - fold_offset - t) ~ C(t) 
+fold_offset should be  2*tsep_pipi  for pipi2pt,   tsep_pipi  for pipi->sigma and 0 for sigma 2pt
+*/
 template<typename T>
-inline correlationFunction<double,T> fold(const correlationFunction<double,T> &f, const int tsep_pipi){
+inline correlationFunction<double,T> fold(const correlationFunction<double,T> &f, const int fold_offset){
   const int Lt = f.size();
   correlationFunction<double,T> out(Lt);
-  const int Tref = Lt-2*tsep_pipi;
+  const int Tref = Lt-fold_offset;
   for(int t=0;t<Lt;t++){
     out.coord(t) = f.coord(t);
     out.value(t) = ( f.value(t) + f.value( (Tref-t+Lt) % Lt ) )/2.;
   }
   return out;
 }
+
+
+template<typename T>
+inline correlationFunction<double,T> foldPiPi2pt(const correlationFunction<double,T> &f, const int tsep_pipi){
+  return fold(f, 2*tsep_pipi);
+}
+
+
+
 
 CPSFIT_END_NAMESPACE
 

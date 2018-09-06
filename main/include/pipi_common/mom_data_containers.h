@@ -178,6 +178,8 @@ public:
   inline iterator begin(){ return B.begin(); }
   inline iterator end(){ return B.end(); }
 
+  inline size_t getNmomenta() const{ return B.size(); }
+
   GENERATE_HDF5_SERIALIZE_METHOD((B)(Lt)(Nsample)(tsep_pipi));
 };
 #ifdef HAVE_HDF5
@@ -203,6 +205,7 @@ struct bubbleDataAllMomentaExtra{
 
 typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra<bubbleData> > bubbleDataAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataZ, bubbleDataAllMomentaExtra<bubbleDataZ> > bubbleDataAllMomentaZ;
+typedef bubbleDataAllMomentaBase<bubbleDataJack> bubbleDataJackAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
 
 void saveHDF5checkpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &file){

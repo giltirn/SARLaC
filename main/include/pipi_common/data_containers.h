@@ -21,8 +21,12 @@ inline void read(CPSfit::HDF5reader &reader, SourceOrSink &d, const std::string 
   d = (SourceOrSink)dd;
 }
 
-template<typename DistributionType, typename Policies = empty_t>
+template<typename _DistributionType, typename Policies = empty_t>
 class bubbleDataBase: public Policies{
+public:
+  typedef _DistributionType DistributionType;
+
+private:
   NumericVector<DistributionType> d; //(t).sample(cfg)
   int Lt;
   int tsep_pipi;
@@ -331,7 +335,9 @@ typedef figureDataBase<jackknifeDistributionD, figureDataDistributionPolicies<ja
 
 template<typename _DistributionType, typename Policies = empty_t>
 class sigmaSelfContractionBase: public Policies{
+public:
   typedef _DistributionType DistributionType;
+private:
   NumericVector<DistributionType> d; //(t).sample(cfg)
   int Lt;
 
@@ -411,6 +417,9 @@ public:
 
 typedef sigmaSelfContractionBase<rawDataDistributionD , sigmaSelfContractionPolicies<double, setValueRealPart> > sigmaSelfContraction;
 typedef sigmaSelfContractionBase<rawDataDistribution<std::complex<double> > , sigmaSelfContractionPolicies<std::complex<double>, setValueComplex> > sigmaSelfContractionZ;
+typedef sigmaSelfContractionBase<jackknifeDistributionD> sigmaSelfContractionJack;
+typedef sigmaSelfContractionBase<doubleJackknifeDistributionD> sigmaSelfContractionDoubleJack;
+
 
 inline sigmaSelfContraction reIm(const sigmaSelfContractionZ &in, const int reim){
   sigmaSelfContraction out(in.getLt(), in.getNsample());

@@ -46,7 +46,7 @@ doubleJackCorrelationFunction generateData(const PiPiCorrelatorSelector &corr_se
     pipi_dj = pipi_dj - 3*A2_realavg_V_dj;
   }
   
-  pipi_dj = fold(pipi_dj, args.tsep_pipi);
+  pipi_dj = foldPiPi2pt(pipi_dj, args.tsep_pipi);
   return pipi_dj;
 }
 

@@ -80,7 +80,7 @@ int main(const int argc, const char* argv[]){
   //Compute vacuum subtractions
   if(args.do_vacuum_subtraction){
     { //Pipi->sigma
-      bubbleData pipi_self_proj = A1projectPiPiBubble(pipi_self_data, pion_mom);
+      bubbleData pipi_self_proj = A1projectSourcePiPiBubble(pipi_self_data, pion_mom);
       doubleJackCorrelationFunction vac_sub_dj = computePiPiToSigmaVacSub(sigma_self_data, pipi_self_proj, args.bin_size);
       pipi_to_sigma_dj = pipi_to_sigma_dj - vac_sub_dj;
     }
@@ -98,7 +98,7 @@ int main(const int argc, const char* argv[]){
   //Fold data
   pipi_to_sigma_dj = foldPiPiToSigma(pipi_to_sigma_dj, args.Lt, args.tsep_pipi);
   sigma2pt_dj = foldSigma(sigma2pt_dj, args.Lt);
-  pipi_dj = fold(pipi_dj, args.tsep_pipi);
+  pipi_dj = foldPiPi2pt(pipi_dj, args.tsep_pipi);
   
   //Build the combined data set
   simFitCorrFuncDJ corr_comb_dj;
@@ -112,6 +112,11 @@ int main(const int argc, const char* argv[]){
 	corr_comb_dj.push_back( simFitCorrFuncDJ::ElementType(  SimFitCoord(dtype[d],t), dsets[d]->value(t) ) );
   
   simFitCorrFuncJ corr_comb_j(corr_comb_dj.size(), [&](const int i){ return simFitCorrFuncJ::ElementType(corr_comb_dj.coord(i), corr_comb_dj.value(i).toJackknife()); });
+
+  std::cout << "Data in fit range:\n";
+  for(int i=0;i<corr_comb_j.size();i++){
+    std::cout << corr_comb_j.coord(i).type << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
+  }
 
   //Run the fit
   SimFitArgs fargs;
