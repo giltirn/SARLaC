@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include "compute_amplitude.h"
+#include "compute_amplitude_ktopipi.h"
 
 CPSFIT_START_NAMESPACE
 

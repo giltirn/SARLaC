@@ -5,7 +5,7 @@
 #include<utils/macros.h>
 
 #include "scratch.h"
-#include "amplitude_data.h"
+#include "amplitude_data_ktopipi.h"
 
 CPSFIT_START_NAMESPACE
 

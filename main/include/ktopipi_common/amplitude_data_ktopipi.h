@@ -4,9 +4,9 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include "read_data.h"
+#include "read_data_ktopipi.h"
 #include "utils.h"
-#include "compute_amplitude.h"
+#include "compute_amplitude_ktopipi.h"
 
 CPSFIT_START_NAMESPACE
 
