@@ -13,41 +13,89 @@
 
 CPSFIT_START_NAMESPACE
 
-//type can be 2,3,4
-type1234Data readKtoSigmaType(const int type, const int traj_start, const int traj_inc, const int traj_lessthan,
-		      const int tsep_k_sigma, const int Lt, 
-		      const std::string &data_dir, const std::string &file_fmt){
-  int nsample = (traj_lessthan - traj_start)/traj_inc;
-  if(type == 2 || type == 3){
-    //File format expected <TRAJ> <TSEP_K_SIGMA>
-    static std::vector<subStringSpecify> keys { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_SIGMA>") };
-    subStringReplace repl(file_fmt, keys);
+struct KtoSigmaFilenamePolicyGen{
+  subStringReplace repl_type2; //File format expects <TRAJ> <TSEP_K_SIGMA>
+  subStringReplace repl_type3; //Same as type 2
+  subStringReplace repl_type4; //File format expects <TRAJ>
+  
+  KtoSigmaFilenamePolicyGen(const std::string &type2_fmt, 
+			    const std::string &type3_fmt,
+			    const std::string &type4_fmt):
+    repl_type2(type2_fmt, { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_SIGMA>") }),
+    repl_type3(type3_fmt, { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_SIGMA>") }),
+    repl_type4(type4_fmt, { subStringSpecify("<TRAJ>") })
+  {}
+  
+  inline std::string type2filename(const std::string &data_dir, const int traj, const int tsep_k_sigma) const{
+    std::ostringstream fname;
+    fname << data_dir << '/';
+    repl_type2.replace(fname, { anyToStr(traj), anyToStr(tsep_k_sigma) });
+    return fname.str();
+  }
+  inline std::string type3filename(const std::string &data_dir, const int traj, const int tsep_k_sigma) const{
+    std::ostringstream fname;
+    fname << data_dir << '/';
+    repl_type3.replace(fname, { anyToStr(traj), anyToStr(tsep_k_sigma) });
+    return fname.str();
+  }
+  inline std::string type4filename(const std::string &data_dir, const int traj) const{
+    std::ostringstream fname;
+    fname << data_dir << '/';
+    repl_type4.replace(fname, { anyToStr(traj) });
+    return fname.str();
+  }
+};
 
+
+template<typename FilenamePolicy>
+class BasicKtoSigmaReadPolicy{
+  const std::string data_dir;
+  const int traj_start;
+  const int traj_inc;
+  const int traj_lessthan;
+  const FilenamePolicy &fp;
+
+  int traj(const int sample) const{ return traj_start + sample*traj_inc; }
+
+public:
+  int nSample() const{ return (traj_lessthan - traj_start)/traj_inc; }
+
+  inline std::string type2filename(const int sample, const int tsep_k_sigma) const{
+    return fp.type2filename(data_dir, traj(sample), tsep_k_sigma);
+  }
+  inline std::string type3filename(const int sample, const int tsep_k_sigma) const{
+    return fp.type3filename(data_dir, traj(sample), tsep_k_sigma);
+  }
+  inline std::string type4filename(const int sample) const{
+    return fp.type4filename(data_dir, traj(sample));
+  }
+
+  BasicKtoSigmaReadPolicy(const std::string &data_dir, int traj_start, int traj_inc, int traj_lessthan, const FilenamePolicy &fp): 
+    data_dir(data_dir), traj_start(traj_start), traj_inc(traj_inc), traj_lessthan(traj_lessthan), fp(fp){}
+};
+
+
+
+
+
+//type can be 2,3,4
+template<typename ReadPolicy>
+type1234Data readKtoSigmaType(const int type, const int tsep_k_sigma, const int Lt, const ReadPolicy &rp){
+  int nsample = rp.nSample();
+  if(type == 2 || type == 3){
     type1234Data typedata(type,Lt,nsample,Sigma);
 #pragma omp parallel for
-    for(int i=0;i<nsample;i++){
-      const int traj = traj_start + i*traj_inc;
-
-      std::ostringstream fname;
-      fname << data_dir << '/';
-      repl.replace(fname, { anyToStr(traj), anyToStr(tsep_k_sigma) });
-      typedata.parse(fname.str(),i);
+    for(int sample=0;sample<nsample;sample++){
+      std::string filename = type == 2 ? rp.type2filename(sample, tsep_k_sigma) : rp.type3filename(sample, tsep_k_sigma);
+      typedata.parse(filename,sample);
     }
     return typedata;
   }else if(type == 4){
-    //File format expects <TRAJ>
-    static std::vector<subStringSpecify> keys { subStringSpecify("<TRAJ>") };
-    subStringReplace repl(file_fmt, keys);
-
     type1234Data typedata(type,Lt,nsample,Sigma);
 #pragma omp parallel for
-    for(int i=0;i<nsample;i++){
-      const int traj = traj_start + i*traj_inc;
-
-      std::ostringstream fname;
-      fname << data_dir << '/';
-      repl.replace(fname, { anyToStr(traj) });
-      typedata.parse(fname.str(),i);
+    for(int sample=0;sample<nsample;sample++){
+      std::string filename = rp.type4filename(sample);
+      typedata.parse(filename, sample);
     }
     return typedata;
   }else{

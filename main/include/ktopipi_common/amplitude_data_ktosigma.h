@@ -84,10 +84,9 @@ public:
 
 private:
   //Data dir requires *3* formats: type1/2,  type3, type4
+  template<typename ReadPolicy>
   void getTypeData(IndexedContainer<type1234Data, 3, 2> &type_data, const int tsep_k_sigma, 
-		   const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
-		   const int traj_start, const int traj_inc, const int traj_lessthan,
-		   const int Lt, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+		   const int Lt, const ReadPolicy &rp, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
     //Read the data
     if(opt.load_data_checkpoint){
 #ifdef HAVE_HDF5
@@ -99,8 +98,7 @@ private:
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
     }else{
-      for(int i=2;i<=4;i++) type_data(i) = readKtoSigmaType(i, traj_start, traj_inc, traj_lessthan, 
-							    tsep_k_sigma, Lt, data_dir, data_file_fmt[i-2]);
+      for(int i=2;i<=4;i++) type_data(i) = readKtoSigmaType(i, tsep_k_sigma, Lt, rp);
     }
 
     //Write checkpoint if necessary
@@ -115,19 +113,16 @@ private:
 #endif
     }
   }
- 
-public:
-  RawKtoSigmaData(){}
 
-  RawKtoSigmaData(const int tsep_k_sigma, const ProjectedSigmaBubbleData &bubble_data, 
-		  const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
-		  const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
-		  const int Lt, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+    template<typename ReadPolicy>
+    void getAllData(const int tsep_k_sigma, const ProjectedSigmaBubbleData &bubble_data, 
+		    const int bin_size, const int Lt, const ReadPolicy &rp,
+		    const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
 
     std::cout << "Reading K->sigma data with tsep_k_sigma=" << tsep_k_sigma << std::endl;
 
     IndexedContainer<type1234Data, 3, 2> type_data;
-    getTypeData(type_data, tsep_k_sigma, data_dir, data_file_fmt, traj_start, traj_inc, traj_lessthan, Lt, opt);
+    getTypeData(type_data, tsep_k_sigma, Lt, rp, opt);
     
     //Get the type1-4 and mix3/mix4 components of the data.
     //Note that we have not yet multiplied the type4/mix4 data by the pipi bubble, hence these  are just the K->vac component which are needed for computing alpha
@@ -170,6 +165,26 @@ public:
     
     std::cout << "Finished reading raw K->sigma data with tsep_k_sigma=" << tsep_k_sigma << std::endl;
   }
+ 
+public:
+  RawKtoSigmaData(){}
+
+  template<typename ReadPolicy>
+  RawKtoSigmaData(const int tsep_k_sigma, const ProjectedSigmaBubbleData &bubble_data, 
+		  const int bin_size, const int Lt, const ReadPolicy &rp,
+		  const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+    getAllData(tsep_k_sigma, bubble_data, bin_size, Lt, rp, opt);
+  }
+
+  RawKtoSigmaData(const int tsep_k_sigma, const ProjectedSigmaBubbleData &bubble_data, 
+		  const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
+		  const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+		  const int Lt, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+    KtoSigmaFilenamePolicyGen fp(data_file_fmt[0], data_file_fmt[1], data_file_fmt[2]);
+    BasicKtoSigmaReadPolicy<KtoSigmaFilenamePolicyGen> rp(data_dir, traj_start, traj_inc, traj_lessthan, fp);
+    getAllData(tsep_k_sigma, bubble_data, bin_size, Lt, rp, opt);
+  }
+
 };
 
 

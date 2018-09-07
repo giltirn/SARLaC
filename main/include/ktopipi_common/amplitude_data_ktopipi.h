@@ -124,11 +124,10 @@ public:
   IndexedContainer<std::vector<int>, 4, 1> nonzerotK; //(type idx)
 
 private:
+  template<typename ReadPolicy>
   void getTypeData(IndexedContainer<type1234Data, 4, 1> &type_data, const int tsep_k_pi, 
-		   const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
 		   const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-		   const int traj_start, const int traj_inc, const int traj_lessthan,
-		   const int Lt, const int tsep_pipi, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+		   const int Lt, const int tsep_pipi, const ReadPolicy &rp, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
     //Read the data
     if(opt.load_data_checkpoint){
 #ifdef HAVE_HDF5
@@ -140,9 +139,7 @@ private:
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
     }else{
-      for(int i=1;i<=4;i++) type_data(i) = readKtoPiPiType(i, traj_start, traj_inc, traj_lessthan, 
-							   tsep_k_pi, tsep_pipi, Lt, type1_pimom_proj, 
-							   data_dir, data_file_fmt[i-1]);
+      for(int i=1;i<=4;i++) type_data(i) = readKtoPiPiType(i, tsep_k_pi, tsep_pipi, Lt, type1_pimom_proj, rp);
     }
 
     //Write checkpoint if necessary
@@ -157,21 +154,17 @@ private:
 #endif
     }
   }
- 
-public:
-  RawKtoPiPiData(){}
 
-  RawKtoPiPiData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
-		 const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
-		 const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-		 const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
-		 const int Lt, const int tsep_pipi, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
-
+  template<typename ReadPolicy>
+  void getAllData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
+	     const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+	     const int bin_size, const int Lt, const int tsep_pipi, const ReadPolicy &rd,
+	     const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+    
     std::cout << "Reading data with tsep_k_pi=" << tsep_k_pi << std::endl;
 
     IndexedContainer<type1234Data, 4, 1> type_data;
-    getTypeData(type_data, tsep_k_pi, data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan,
-		Lt, tsep_pipi, opt);
+    getTypeData(type_data, tsep_k_pi, type1_pimom_proj, Lt, tsep_pipi, rd, opt);
     
     for(int i=1;i<=4;i++){
       nonzerotK(i) = type_data(i).getNonZeroKaonTimeslices();
@@ -218,6 +211,27 @@ public:
     mix4_alltK_nobub = bin(mix4_alltK_nobub, bin_size);  
     
     std::cout << "Finished reading raw data with tsep_k_pi=" << tsep_k_pi << std::endl;
+  }
+ 
+public:
+  RawKtoPiPiData(){}
+
+  template<typename ReadPolicy>
+  RawKtoPiPiData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
+		 const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+		 const int bin_size, const int Lt, const int tsep_pipi, const ReadPolicy &rd,
+		 const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+    getAllData(tsep_k_pi, bubble_data, type1_pimom_proj, bin_size, Lt, tsep_pipi, rd, opt);
+  }
+
+  RawKtoPiPiData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
+		 const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
+		 const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+		 const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+		 const int Lt, const int tsep_pipi, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+    KtoPiPiFilenamePolicyGen fp(data_file_fmt[0], data_file_fmt[1], data_file_fmt[2], data_file_fmt[3]);
+    BasicKtoPiPiReadPolicy<KtoPiPiFilenamePolicyGen> rp(data_dir, traj_start, traj_inc, traj_lessthan, fp);
+    getAllData(tsep_k_pi, bubble_data, type1_pimom_proj, bin_size, Lt, tsep_pipi, rp, opt);
   }
 };
 

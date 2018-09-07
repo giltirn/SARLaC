@@ -11,32 +11,100 @@
 
 #include "data_containers.h"
 
+//Parse K->pipi type 1-4 data files and A1 projected pipi bubble into raw data structures
+
 CPSFIT_START_NAMESPACE
+
+struct KtoPiPiFilenamePolicyGen{
+  subStringReplace repl_type1; //File format expects <TRAJ> <TSEP_K_PI> <TSEP_PIPI> <MOM>   where mom is the momentum of pi_1^snk
+  subStringReplace repl_type2; //File format expects <TRAJ> <TSEP_K_PI> <TSEP_PIPI>
+  subStringReplace repl_type3; //Same as type 2
+  subStringReplace repl_type4; //File format expects <TRAJ>
+  
+  KtoPiPiFilenamePolicyGen(const std::string &type1_fmt, 
+			   const std::string &type2_fmt, 
+			   const std::string &type3_fmt,
+			   const std::string &type4_fmt):
+    repl_type1(type1_fmt, { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_PI>"), subStringSpecify("<TSEP_PIPI>"), subStringSpecify("<MOM>") }),
+    repl_type2(type2_fmt, { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_PI>"), subStringSpecify("<TSEP_PIPI>") }),
+    repl_type3(type3_fmt, { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_PI>"), subStringSpecify("<TSEP_PIPI>") }),
+    repl_type4(type4_fmt, { subStringSpecify("<TRAJ>") })
+  {}
+  
+  inline std::string type1filename(const std::string &data_dir, const int traj, const int tsep_k_pi, const int tsep_pipi, threeMomentum p) const{
+#ifdef DAIQIAN_PION_PHASE_CONVENTION
+    p = -p;
+#endif
+    std::ostringstream fname;
+    fname << data_dir << '/';
+    repl_type1.replace(fname, { anyToStr(traj), anyToStr(tsep_k_pi), anyToStr(tsep_pipi), momStr(p) });
+    return fname.str();
+  }
+  inline std::string type2filename(const std::string &data_dir, const int traj, const int tsep_k_pi, const int tsep_pipi) const{
+    std::ostringstream fname;
+    fname << data_dir << '/';
+    repl_type2.replace(fname, { anyToStr(traj), anyToStr(tsep_k_pi), anyToStr(tsep_pipi) });
+    return fname.str();
+  }
+  inline std::string type3filename(const std::string &data_dir, const int traj, const int tsep_k_pi, const int tsep_pipi) const{
+    std::ostringstream fname;
+    fname << data_dir << '/';
+    repl_type3.replace(fname, { anyToStr(traj), anyToStr(tsep_k_pi), anyToStr(tsep_pipi) });
+    return fname.str();
+  }
+  inline std::string type4filename(const std::string &data_dir, const int traj) const{
+    std::ostringstream fname;
+    fname << data_dir << '/';
+    repl_type4.replace(fname, { anyToStr(traj) });
+    return fname.str();
+  }
+};
+
+
+template<typename FilenamePolicy>
+class BasicKtoPiPiReadPolicy{
+  const std::string data_dir;
+  const int traj_start;
+  const int traj_inc;
+  const int traj_lessthan;
+  const FilenamePolicy &fp;
+
+  int traj(const int sample) const{ return traj_start + sample*traj_inc; }
+
+public:
+  int nSample() const{ return (traj_lessthan - traj_start)/traj_inc; }
+
+  inline std::string type1filename(const int sample, const int tsep_k_pi, const int tsep_pipi, const threeMomentum &p) const{
+    return fp.type1filename(data_dir, traj(sample), tsep_k_pi, tsep_pipi, p);
+  }
+  inline std::string type2filename(const int sample, const int tsep_k_pi, const int tsep_pipi) const{
+    return fp.type2filename(data_dir, traj(sample), tsep_k_pi, tsep_pipi);
+  }
+  inline std::string type3filename(const int sample, const int tsep_k_pi, const int tsep_pipi) const{
+    return fp.type3filename(data_dir, traj(sample), tsep_k_pi, tsep_pipi);
+  }
+  inline std::string type4filename(const int sample) const{
+    return fp.type4filename(data_dir, traj(sample));
+  }
+
+  BasicKtoPiPiReadPolicy(const std::string &data_dir, int traj_start, int traj_inc, int traj_lessthan, const FilenamePolicy &fp): 
+    data_dir(data_dir), traj_start(traj_start), traj_inc(traj_inc), traj_lessthan(traj_lessthan), fp(fp){}
+};
 
 //Will sum over all pion mom provided with the coefficient provided to project onto the desired rotational state (only applies to type1 ; other types the average is performed at runtime)
 //For original calculation use  {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  { {-1,1,1}, 3.0/8.0 }, { {1,-1,-1}, 3.0/8.0 }  }
-type1234Data readKtoPiPiType(const int type, const int traj_start, const int traj_inc, const int traj_lessthan,
-		      const int tsep_k_pi, const int tsep_pipi, const int Lt, const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-		      const std::string &data_dir, const std::string &file_fmt){
-  int nsample = (traj_lessthan - traj_start)/traj_inc;
+template<typename ReadPolicy>
+type1234Data readKtoPiPiType(const int type, const int tsep_k_pi, const int tsep_pipi, const int Lt, const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+			     const ReadPolicy &rp){
+  int nsample = rp.nSample();
   if(type == 1){
-    //File format expects <TRAJ> <TSEP_K_PI> <TSEP_PIPI> <MOM>   where mom is the momentum of pi_1^snk
-    static std::vector<subStringSpecify> keys { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_PI>"), subStringSpecify("<TSEP_PIPI>"), subStringSpecify("<MOM>") };
-    subStringReplace repl(file_fmt, keys);
-    
     std::vector<type1234Data> type1_momdata(type1_pimom_proj.size(), type1234Data(1,Lt,nsample) );
 #pragma omp parallel for
-    for(int i=0;i<nsample;i++){
-      const int traj = traj_start + i*traj_inc;
+    for(int sample=0;sample<nsample;sample++){
       for(int pp=0;pp<type1_pimom_proj.size();pp++){
 	threeMomentum p = type1_pimom_proj[pp].first;
-#ifdef DAIQIAN_PION_PHASE_CONVENTION
-	p = -p;
-#endif
-	std::ostringstream fname;
-	fname << data_dir << '/';
-	repl.replace(fname, { anyToStr(traj), anyToStr(tsep_k_pi), anyToStr(tsep_pipi), momStr(p) });
-	type1_momdata[pp].parse(fname.str(), i);
+	std::string filename = rp.type1filename(sample, tsep_k_pi, tsep_pipi, p);
+	type1_momdata[pp].parse(filename, sample);
       }
     }
     type1234Data out = type1_momdata[0] * type1_pimom_proj[0].second;
@@ -45,44 +113,37 @@ type1234Data readKtoPiPiType(const int type, const int traj_start, const int tra
 
     return out;
   }else if(type == 2 || type == 3){
-    //File format expects <TRAJ> <TSEP_K_PI> <TSEP_PIPI>
-    static std::vector<subStringSpecify> keys { subStringSpecify("<TRAJ>"), subStringSpecify("<TSEP_K_PI>"), subStringSpecify("<TSEP_PIPI>") };
-    subStringReplace repl(file_fmt, keys);
-
     type1234Data typedata(type,Lt,nsample);
 #pragma omp parallel for
-    for(int i=0;i<nsample;i++){
-      const int traj = traj_start + i*traj_inc;
-
-      std::ostringstream fname;
-      fname << data_dir << '/';
-      repl.replace(fname, { anyToStr(traj), anyToStr(tsep_k_pi), anyToStr(tsep_pipi) });
-      typedata.parse(fname.str(),i);
+    for(int sample=0;sample<nsample;sample++){
+      std::string filename = type ==2 ? rp.type2filename(sample, tsep_k_pi, tsep_pipi) : rp.type3filename(sample, tsep_k_pi, tsep_pipi);
+      typedata.parse(filename,sample);
     }
 #ifdef DAIQIAN_COMPATIBILITY_MODE
     if(type == 2 || type == 3) typedata = typedata * 0.5; //correct for missing coefficient
 #endif
     return typedata;
   }else if(type == 4){
-    //File format expects <TRAJ>
-    static std::vector<subStringSpecify> keys { subStringSpecify("<TRAJ>") };
-    subStringReplace repl(file_fmt, keys);
-
     type1234Data typedata(type,Lt,nsample);
 #pragma omp parallel for
-    for(int i=0;i<nsample;i++){
-      const int traj = traj_start + i*traj_inc;
-
-      std::ostringstream fname;
-      fname << data_dir << '/';
-      repl.replace(fname, { anyToStr(traj) });
-      typedata.parse(fname.str(),i);
+    for(int sample=0;sample<nsample;sample++){
+      std::string filename = rp.type4filename(sample);
+      typedata.parse(filename,sample);
     }
     return typedata;
   }else{
     error_exit(std::cout << "readKtoPiPiType invalid type " << type << std::endl);
   }
 }
+
+template<typename FilenamePolicy>
+inline type1234Data readKtoPiPiType(const int type, const int traj_start, const int traj_inc, const int traj_lessthan,
+				    const int tsep_k_pi, const int tsep_pipi, const int Lt, const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+				    const std::string &data_dir, const FilenamePolicy &fp){
+  BasicKtoPiPiReadPolicy<FilenamePolicy> rp(data_dir, traj_start, traj_inc, traj_lessthan, fp);
+  return readKtoPiPiType(type, tsep_k_pi, tsep_pipi, Lt, type1_pimom_proj, rp);
+}
+
 
 //For bubble_pimom_proj in original calculation use  {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  
 //                                                      { {-1,1,1}, 1.0/8.0 }, { {1,-1,-1}, 1.0/8.0 }, 

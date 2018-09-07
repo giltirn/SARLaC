@@ -78,10 +78,12 @@ void getRawData(type1234Data &type1, type1234Data &type2, type1234Data &type3, t
 
     std::vector<std::pair<threeMomentum, double> > type1_pimom_proj = {  { {1,1,1}, 1.0/8.0 }, { {-1,-1,-1}, 1.0/8.0 },  { {-1,1,1}, 3.0/8.0 }, { {1,-1,-1}, 3.0/8.0 }  };
 
-    type1 = readKtoPiPiType(1, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[0]);
-    type2 = readKtoPiPiType(2, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[1]);
-    type3 = readKtoPiPiType(3, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[2]);
-    type4 = readKtoPiPiType(4, args.traj_start, args.traj_inc, args.traj_lessthan, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, data_dir, data_file_fmt[3]);
+    KtoPiPiFilenamePolicyGen fp(data_file_fmt[0], data_file_fmt[1], data_file_fmt[2], data_file_fmt[3]);
+    BasicKtoPiPiReadPolicy<KtoPiPiFilenamePolicyGen> rp(data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, fp);
+    type1 = readKtoPiPiType(1, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, rp);
+    type2 = readKtoPiPiType(2, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, rp);
+    type3 = readKtoPiPiType(3, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, rp);
+    type4 = readKtoPiPiType(4, tsep_k_pi, args.tsep_pipi, args.Lt, type1_pimom_proj, rp);
   }
 
   if(cmdline.save_data_checkpoint){
