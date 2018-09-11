@@ -80,8 +80,13 @@ int main(const int argc, const char* argv[]){
 
   printMem("Prior to fitting");
   if(cmdline.SAMAexpand) fitAndPlotSAMAexpand(A0_all_j,A0_all_dj,args,cmdline);
-  else fitAndPlot(A0_all_j,A0_all_dj, args.Lt, args.tmin_k_op, args.tmin_op_pi, args.fitfunc, args.correlated, cmdline.load_freeze_data, cmdline.freeze_data);
+  else{
+    FitKtoPiPiOptions opt;
+    opt.load_freeze_data = cmdline.load_freeze_data;
+    opt.freeze_data = cmdline.freeze_data;    
   
+    fitAndPlot(A0_all_j,A0_all_dj, args.Lt, args.tmin_k_op, args.tmin_op_pi, args.fitfunc, args.correlated, opt);
+  }
   std::cout << "Done" << std::endl;
   
   return 0;

@@ -14,12 +14,22 @@
 
 CPSFIT_START_NAMESPACE
 
+struct FitKtoPiPiOptions{
+  bool load_freeze_data;
+  std::string freeze_data;
+
+  bool import_freeze_data;
+  FitKtoPiPiFreezeBase const* freeze_data_mgr;
+
+  FitKtoPiPiOptions(): load_freeze_data(false), import_freeze_data(false){}
+};
+
 //Fit to each Q independently
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr{
   static std::vector<jackknifeDistribution<typename FitFunc::Params> > fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 									   const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
-									   bool load_freeze_data, const std::string &freeze_data){
+									   const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
     const int nsample = A0_fit_j[0].value(0).size();
     typedef typename FitFunc::Params Params;
     std::vector<Params> guess(10);
@@ -39,8 +49,9 @@ struct fit_corr_uncorr{
       //Compute the correlation matrix / weights
       importCostFunctionParameters<corrUncorrFitPolicy,FitPolicies> prepare(fitter, A0_fit_dj[q]);
 
-      if(load_freeze_data) readFrozenParams(fitter, q+1, freeze_data, nsample);
-  
+      if(opt.load_freeze_data) readFrozenParams(fitter, q+1, opt.freeze_data, nsample);
+      else if(opt.import_freeze_data) readFrozenParams(fitter, q+1, *opt.freeze_data_mgr, nsample);
+
       jackknifeDistribution<Params> &params = fit_params[q];
       params = jackknifeDistribution<Params>(nsample, guess[q]);
       jackknifeDistributionD &chisq = fit_chisq[q];
@@ -70,7 +81,7 @@ template<template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
   static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
-							      bool load_freeze_data, const std::string &freeze_data){
+							      const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
     const int nsample = A0_fit_j[0].value(0).size();
     typedef FitKtoPiPiSim<10> FitFunc;
     typedef FitFunc::Params Params;
@@ -110,7 +121,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
     //Compute the correlation matrix / weights
     importCostFunctionParameters<corrUncorrFitPolicy,FitPolicies> prepare(fitter, A0_fit_dj_all);
 
-    if(load_freeze_data) readFrozenParams(fitter, -1, freeze_data, nsample);
+    if(opt.load_freeze_data) readFrozenParams(fitter, -1, opt.freeze_data, nsample);
 
     distributionPrint<jackknifeDistribution<Params> >::printer(new ktopipiParamsPrinter<FitFunc>);
     
@@ -133,7 +144,7 @@ template<template<typename> class corrUncorrFitPolicy>
 struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
   static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
-							      bool load_freeze_data, const std::string &freeze_data){
+							      const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
     const int nsample = A0_fit_j[0].value(0).size();
     typedef FitKtoPiPiSim<7> FitFunc;
     typedef FitFunc::Params Params;
@@ -198,7 +209,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
     //Compute the correlation matrix / weights
     importCostFunctionParameters<corrUncorrFitPolicy,FitPolicies> prepare(fitter, A0_fit_dj_all);
 
-    if(load_freeze_data) readFrozenParams(fitter, -1, freeze_data, nsample);
+    if(opt.load_freeze_data) readFrozenParams(fitter, -1, opt.freeze_data, nsample);
 
     distributionPrint<jackknifeDistribution<Params> >::printer(new ktopipiParamsPrinter<FitFunc>);
     
@@ -254,10 +265,10 @@ template<typename FitFunc>
 inline typename fitReturnType<FitFunc>::type fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 						 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 						 const bool correlated,
-						 bool load_freeze_data, const std::string &freeze_data){
+						 const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
   return correlated ?
-    fit_corr_uncorr<FitFunc,correlatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,load_freeze_data,freeze_data) :
-    fit_corr_uncorr<FitFunc,uncorrelatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,load_freeze_data,freeze_data);
+    fit_corr_uncorr<FitFunc,correlatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,opt) :
+    fit_corr_uncorr<FitFunc,uncorrelatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,opt);
 }
 
 void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
@@ -285,7 +296,7 @@ inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoor
 			 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 			 const int Lt, const int tmin_k_op, const int tmin_op_pi,
 			 const bool correlated,
-			 bool load_freeze_data, const std::string &freeze_data){
+			 const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
 
   //Extract the data we are going to fit
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > A0_fit_j(10);
@@ -299,7 +310,7 @@ inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoor
       std::cout << A0_fit_j[q].coord(i) << " : " << A0_fit_j[q].value(i) << std::endl;
   }
   
-  typename fitReturnType<FitFunc>::type fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,correlated,load_freeze_data,freeze_data);
+  typename fitReturnType<FitFunc>::type fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,correlated,opt);
 
   plotFF<FitFunc>::plot(A0_all_j, fit_params, Lt, tmin_k_op, tmin_op_pi);
 
@@ -312,18 +323,18 @@ inline void fitAndPlot(const std::vector<correlationFunction<amplitudeDataCoord,
 		       const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 		       const int Lt, const int tmin_k_op, const int tmin_op_pi,
 		       const KtoPiPiFitFunc fitfunc, const bool correlated,
-		       bool load_freeze_data, const std::string &freeze_data){
+		       const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
   switch(fitfunc){
   case KtoPiPiFitFunc::FitSeparate:
-    return fitAndPlotFF<FitKtoPiPi>(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,load_freeze_data,freeze_data);
+    return fitAndPlotFF<FitKtoPiPi>(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,opt);
   case KtoPiPiFitFunc::FitSimultaneous:
-    return fitAndPlotFF<FitKtoPiPiSim<10> >(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,load_freeze_data,freeze_data);
+    return fitAndPlotFF<FitKtoPiPiSim<10> >(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,opt);
   case KtoPiPiFitFunc::FitSimultaneousChiralBasis:
-    return fitAndPlotFF<FitKtoPiPiSim<7> >(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,load_freeze_data,freeze_data);
+    return fitAndPlotFF<FitKtoPiPiSim<7> >(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,opt);
   case KtoPiPiFitFunc::FitSeparateWithConstant:
-    return fitAndPlotFF<FitKtoPiPiWithConstant>(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,load_freeze_data,freeze_data);
+    return fitAndPlotFF<FitKtoPiPiWithConstant>(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,opt);
   case KtoPiPiFitFunc::FitSeparateTwoExp:
-    return fitAndPlotFF<FitKtoPiPiTwoExp>(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,load_freeze_data,freeze_data);
+    return fitAndPlotFF<FitKtoPiPiTwoExp>(A0_all_j,A0_all_dj,Lt,tmin_k_op,tmin_op_pi,correlated,opt);
   default:
     error_exit(std::cout << "fitAndPlot(..) Unknown fit function " << fitfunc << std::endl);
   }

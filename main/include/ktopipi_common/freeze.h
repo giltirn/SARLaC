@@ -84,6 +84,49 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const std::s
   fitter.freeze(freeze, values);
 }
 
+
+struct FitKtoPiPiFreezeBase{
+  //Q in (1..10)
+  virtual std::vector< std::pair<int, jackknifeDistribution<double> > > getFreeze(const int Q, const int nsample) const = 0;
+  virtual ~FitKtoPiPiFreezeBase(){}
+};
+
+//Same frozen parameters for all Q
+struct FitKtoPiPiFreezeFixed: public FitKtoPiPiFreezeBase{
+  std::vector< std::pair<int, jackknifeDistribution<double> > > pv;
+
+  std::vector< std::pair<int, jackknifeDistribution<double> > > getFreeze(const int Q, const int nsample) const{ return pv; }
+  void addFreeze(const int param, const jackknifeDistribution<double> &val){ pv.push_back( std::pair<int, jackknifeDistribution<double> >(param,val) ); }
+};
+	      
+template<typename FitFuncPolicies>
+void readFrozenParams(fitter<FitFuncPolicies> &fitter, const int Q, const FitKtoPiPiFreezeBase &freezer, const int nsample){
+  typedef typename FitFuncPolicies::FitParameterDistribution FitParameterDistribution;
+  FitParameterDistribution values(nsample);
+  
+  std::vector< std::pair<int, jackknifeDistribution<double> > > params_vals = freezer.getFreeze(Q, nsample);
+  std::vector<int> freeze(params_vals.size());  
+
+  for(int i=0; i<params_vals.size(); i++){
+    std::cout << "Freezing param " << params_vals[i].first << " to " << params_vals[i].second << std::endl;
+    freeze[i] = params_vals[i].first;
+    
+    for(int s=0;s<nsample;s++)
+      values.sample(s)(freeze[i]) = params_vals[i].second.sample(s);    
+  }
+  fitter.freeze(freeze, values);
+}
+
+
+
+
+
+
+
+
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

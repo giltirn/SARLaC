@@ -34,7 +34,12 @@ int main(const int argc, const char* argv[]){
 	  args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, read_opt);
   
   printMem("Prior to fitting");
-  fitAndPlot(A0_all_j,A0_all_dj, args.Lt, args.tmin_k_op, args.tmin_op_pi, args.fitfunc, args.correlated, cmdline.load_freeze_data, cmdline.freeze_data);
+
+  FitKtoPiPiOptions opt;
+  opt.load_freeze_data = cmdline.load_freeze_data;
+  opt.freeze_data = cmdline.freeze_data;  
+
+  fitAndPlot(A0_all_j,A0_all_dj, args.Lt, args.tmin_k_op, args.tmin_op_pi, args.fitfunc, args.correlated, opt);
   
   std::cout << "Done" << std::endl;
   
