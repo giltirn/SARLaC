@@ -81,7 +81,7 @@ void simultaneousFit(const std::vector<correlationFunction<amplitudeDataCoord, j
 
   FitFunc fitfunc(param_idx_map.size());
 
-  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy>::type FitPolicies;
+  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
     
   std::vector<jackknifeDistribution<Params> > params(10, jackknifeDistribution<Params>(nsample, guess));
   std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample));
@@ -106,8 +106,9 @@ void simultaneousFit(const std::vector<correlationFunction<amplitudeDataCoord, j
     fit.importFitFunc(fitfunc);
     fit.freeze(freeze_params, freeze_vals);
       
-    importCostFunctionParameters<uncorrelatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
-      
+    importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
+    if(!correlated) import.setUncorrelated();
+          
     fit.fit(params[q], chisq[q], chisq_per_dof[q], A0_sim_j[q]);
   }
 

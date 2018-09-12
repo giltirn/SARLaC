@@ -75,6 +75,15 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
   }
+
+  void setUncorrelated(){ //because the fitter stores pointers we can modify the correlation matrix in place
+    std::cout << "Setting correlation matrix to unit matrix\n";
+    int nsample = sigma(0).size();
+    for(int i=0;i<sigma.size();i++)
+      for(int j=0;j<sigma.size();j++)
+	inv_corr(i,j) = corr(i,j) = jackknifeDistribution<double>(nsample, i==j ? 1. : 0.);
+  }
+
 };
 
 
