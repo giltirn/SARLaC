@@ -7,7 +7,6 @@ using namespace CPSfit;
 
 #include <fit_sigmasigma_gparity/resampled_correlator.h>
 
-#include <fit_pipitosigma_gparity/read_data.h>
 #include <fit_pipitosigma_gparity/resampled_correlator.h>
 
 #include <fit_pipi_sigma_sim_gparity/fitfunc.h>

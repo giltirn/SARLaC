@@ -6,7 +6,9 @@
 #include<utils/macros.h>
 
 #include <pipi_common/read_data_sigma.h>
-#include <fit_pipitosigma_gparity/read_data.h>
+#include <pipi_common/read_data_pipitosigma.h>
+#include <pipi_common/symm_data_multiplicities.h>
+#include <pipi_common/raw_data.h>
 
 CPSFIT_START_NAMESPACE
 

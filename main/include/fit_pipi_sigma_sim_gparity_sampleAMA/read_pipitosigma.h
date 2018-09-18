@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include <fit_pipitosigma_gparity/read_data.h>
+#include <pipi_common/read_data_pipitosigma.h>
 #include <fit_pipitosigma_gparity/resampled_correlator.h>
 
 CPSFIT_START_NAMESPACE

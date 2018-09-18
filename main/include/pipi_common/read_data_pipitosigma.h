@@ -4,7 +4,8 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include<pipi_common/pipi_common.h>
+#include "raw_correlator.h"
+#include "read_data_pipi.h"
 
 CPSFIT_START_NAMESPACE
 

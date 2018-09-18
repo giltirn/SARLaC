@@ -2,7 +2,6 @@
 
 using namespace CPSfit;
 
-#include <fit_pipitosigma_gparity/read_data.h>
 #include <fit_pipitosigma_gparity/resampled_correlator.h>
 #include <fit_pipitosigma_gparity/fit.h>
 #include <fit_pipitosigma_gparity/args.h>
@@ -92,3 +91,4 @@ int main(const int argc, const char* argv[]){
   std::cout << "Done\n";
   return 0;
 }
+
