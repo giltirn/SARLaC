@@ -25,14 +25,14 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
   char figs[3] = {'C','D','R'};
 
   for(int f=0;f<3;f++){
-    readFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_mom, corr_select);
+    readPiPi2ptFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_mom, corr_select);
     zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
   }
 
   bubbleFilenamePolicyGeneric bpsrc(bubble_file_fmt, {0,0,0}, Source);
   bubbleFilenamePolicyGeneric bpsnk(bubble_file_fmt, {0,0,0}, Sink);
 
-  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, pion_mom, corr_select);
+  readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, pion_mom, corr_select);
 
   //Compute V diagram using the real part of the bubble
   bubbleDataAllMomenta raw_bubble_data_real = reIm(raw_bubble_data, 0);

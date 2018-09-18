@@ -163,7 +163,7 @@ NumericTensor<rawDataDistributionD,1> readProjectedPiPiBubble(const std::string 
     pion_momenta[i] = bubble_pimom_proj[i].first;
 
   bubbleFilenamePolicyGeneric fn(file_fmt, {0,0,0}, Sink);
-  readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn, pion_momenta, Sink);
+  readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn, pion_momenta, Sink);
 
   NumericTensor<rawDataDistributionD,1> out({Lt}, rawDataDistributionD(nsample,0.));
   for(int t=0;t<Lt;t++)
@@ -192,7 +192,7 @@ void writeProjectedBubble(HDF5writer &writer, const NumericTensor<rawDataDistrib
   writer.leave();
 }
 void readProjectedBubble(HDF5reader &reader, NumericTensor<rawDataDistributionD,1> &value, const std::string &tag){
-  boost::timer::auto_cpu_timer total_time("readBubble(HDF5writer &, NumericTensor<rawDataDistributionD,1> &, const std::string &)  %w s\n");
+  boost::timer::auto_cpu_timer total_time("readProjectedBubble(HDF5writer &, NumericTensor<rawDataDistributionD,1> &, const std::string &)  %w s\n");
   reader.enter(tag);
   int size;
   int nsample;

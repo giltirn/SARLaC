@@ -258,7 +258,7 @@ void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int 
   
   ContainerType temp(Source, Lt, tsep_pipi, rp.nsample());
   for(int p=0;p<pion_mom.size();p++){
-    readBubble(temp, Lt, pion_mom[p], rp);
+    readPiPiBubble(temp, Lt, pion_mom[p], rp);
     for(int t=0;t<Lt;t++) out(t) = out(t) + temp(t) * (1./pion_mom.size());
   }
 }

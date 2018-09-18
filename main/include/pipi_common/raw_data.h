@@ -86,10 +86,10 @@ void readRawData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubbl
   if(load_hdf5_data_checkpoint){
     loadHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(load_hdf5_data_checkpoint_stub, descr));
   }else{
-    readFigure(raw_data, 'C', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
-    readFigure(raw_data, 'D', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
-    readFigure(raw_data, 'R', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
-    readBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bfn_src, bfn_snk, pion_momenta, corr_select);
+    readPiPi2ptFigure(raw_data, 'C', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
+    readPiPi2ptFigure(raw_data, 'D', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
+    readPiPi2ptFigure(raw_data, 'R', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
+    readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bfn_src, bfn_snk, pion_momenta, corr_select);
   }
   //Do the stuff below even if reading from checkpoint because some older checkpoints were saved prior to these operations being performed
 

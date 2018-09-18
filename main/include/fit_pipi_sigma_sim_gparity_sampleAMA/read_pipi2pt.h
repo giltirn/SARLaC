@@ -59,12 +59,12 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw,
   char figs[3] = {'C','D','R'};
   
   for(int f=0;f<3;f++){
-    readFigure(raw_data, figs[f], Lt, pion_mom, corr_select, rp);
+    readPiPi2ptFigure(raw_data, figs[f], Lt, pion_mom, corr_select, rp);
     zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
   }
 
   bubbleDataAllMomenta raw_bubble_data;
-  readBubble(raw_bubble_data, tsep_pipi, Lt, dinfo_map, pion_mom, corr_select);
+  readPiPiBubble(raw_bubble_data, tsep_pipi, Lt, dinfo_map, pion_mom, corr_select);
   
   computeV(raw_data, raw_bubble_data, tsep_pipi, pion_mom, corr_select);
 

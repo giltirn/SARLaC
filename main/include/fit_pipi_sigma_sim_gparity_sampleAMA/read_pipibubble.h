@@ -33,13 +33,13 @@ struct PiPiBubbleMapReadPolicy{
 };
 
 template<typename bubbleDataAllMomentaType>
-void readBubble(bubbleDataAllMomentaType &raw_data, const int tsep_pipi, const int Lt,
+void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int tsep_pipi, const int Lt,
 		const std::map<int, DataLocationInfo const*> &dinfo_map,
 		const std::vector<threeMomentum> &pion_momenta,
 		const PiPiCorrelatorSelector &corr_select){
   PiPiBubbleMapReadPolicy rp_src(tsep_pipi, {0,0,0}, Source, dinfo_map);
   PiPiBubbleMapReadPolicy rp_snk(tsep_pipi, {0,0,0}, Sink, dinfo_map);
-  readBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, pion_momenta, corr_select);
+  readPiPiBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, pion_momenta, corr_select);
 }
 
 //For use in pipi->sigma
@@ -153,7 +153,7 @@ void getPiPiBubble(resampledBubbleDataAllMomentaType &out,
   for(auto dtag = loop_tags.begin(); dtag != loop_tags.end(); dtag++){
     const auto &subens = data_info_map.find(*dtag)->second;
     bubbleDataAllMomenta raw;
-    readBubble(raw, tsep_pipi, Lt, subens, pion_mom, corr_select);
+    readPiPiBubble(raw, tsep_pipi, Lt, subens, pion_mom, corr_select);
 
     sjack[*dtag].setup(Lt,tsep_pipi,full_ens_size);
     for(auto it = raw.begin(); it != raw.end(); it++)
@@ -164,35 +164,7 @@ void getPiPiBubble(resampledBubbleDataAllMomentaType &out,
 }
 
 
-// template<typename bubbleDataType>
-// void getA1projectedPiPiBubble(bubbleDataType &out,
-// 			      const int Lt, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom,
-// 			      const std::map<DataTag, std::map<int, DataLocationInfo const*> > &data_info_map, const int full_ens_size){
-//   std::vector<DataTag> loop_tags = { DataTag::AsymmOnly, DataTag::AsymmCorr, DataTag::SymmCorr, DataTag::SymmOnly };
-
-//   std::map<DataTag, bubbleDataType> sjack;
-//   for(auto dtag = loop_tags.begin(); dtag != loop_tags.end(); dtag++){
-//     const auto &subens = data_info_map.find(*dtag)->second;
-//     bubbleData raw;
-//     getA1projectedSourcePiPiBubble(raw, Lt, tsep_pipi, pion_mom, subens);
-
-//     superJackknifeResample(sjack[*dtag], raw, subens, full_ens_size);
-//   }
-//   out = combineResampledDataSets(sjack, data_info_map, Lt);
-// }
-
 CPSFIT_END_NAMESPACE
 
 #endif
 
-
-
-  // bubbleDataJack corrected = sjack[DataTag::AsymmOnly];
-  // for(int t=0;t<Lt;t++){
-  //   corrected(t) = corrected(t) + sjack[DataTag::SymmCorr](t) - sjack[DataTag::AsymmCorr](t);
-    
-  //   jackknifeDistributionD reldiff = 2. * (corrected(t) - sjack[DataTag::AsymmOnly](t)) / (corrected(t) + sjack[DataTag::AsymmOnly](t));
-
-  //   std::cout << t << " " << sjack[DataTag::AsymmOnly](t) << " " << corrected(t) << " " << reldiff << std::endl;
-  // }
-  // return corrected;
