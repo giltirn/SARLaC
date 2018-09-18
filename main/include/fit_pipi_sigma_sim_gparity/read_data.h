@@ -5,7 +5,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include <fit_sigmasigma_gparity/read_data.h>
+#include <pipi_common/read_data_sigma.h>
 #include <fit_pipitosigma_gparity/read_data.h>
 
 CPSFIT_START_NAMESPACE
