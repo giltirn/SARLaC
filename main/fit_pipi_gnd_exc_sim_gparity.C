@@ -6,159 +6,10 @@ using namespace CPSfit;
 
 #include<fit_pipi_gnd_exc_sim_gparity/args.h>
 #include<fit_pipi_gnd_exc_sim_gparity/cmdline.h>
+#include<fit_pipi_gnd_exc_sim_gparity/read_data.h>
+#include<fit_pipi_gnd_exc_sim_gparity/resampled_data.h>
+#include<fit_pipi_gnd_exc_sim_gparity/fit.h>
 
-struct readRawDataOptions{
-  bool load_hdf5_data_checkpoint;
-  std::string load_hdf5_data_checkpoint_stub;
-  bool save_hdf5_data_checkpoint;
-  std::string save_hdf5_data_checkpoint_stub;
-  readRawDataOptions(): load_hdf5_data_checkpoint(false), save_hdf5_data_checkpoint(false){}
-};
-
-void readRawData(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataAllMomenta &raw_bubble_exc_exc, bubbleDataAllMomenta &raw_bubble_gnd_exc,
-		 rawCorrelationFunction &raw_data_gnd_gnd, rawCorrelationFunction &raw_data_exc_exc, rawCorrelationFunction &raw_data_gnd_exc,
-		 const std::string &data_dir, const std::string &figure_file_format, const std::string &bubble_file_format,
-		 const int Lt, const int tsep_pipi, const int tstep_pipi, const std::vector<threeMomentum> &pion_mom,
-		 const int traj_start, const int traj_inc, const int traj_lessthan,
-		 const readRawDataOptions &opt = readRawDataOptions()){
-  
-  if(opt.load_hdf5_data_checkpoint){
-    HDF5reader rd(opt.load_hdf5_data_checkpoint_stub);
-    read(rd, raw_bubble_gnd_gnd, "raw_bubble_gnd_gnd");
-    read(rd, raw_bubble_exc_exc, "raw_bubble_exc_exc");
-    read(rd, raw_bubble_gnd_exc, "raw_bubble_gnd_exc");
-    read(rd, raw_data_gnd_gnd, "raw_data_gnd_gnd");
-    read(rd, raw_data_exc_exc, "raw_data_exc_exc");
-    read(rd, raw_data_gnd_exc, "raw_data_gnd_exc");
-  }else{
-    figureData::useFileCache() = true;
-    readPiPi2pt(raw_data_gnd_gnd, raw_bubble_gnd_gnd, data_dir, figure_file_format, bubble_file_format, tsep_pipi, tstep_pipi, Lt, traj_start, traj_inc, traj_lessthan, 
-		pion_mom, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
-  
-    figureData::getFileCache().clear();
-
-    readPiPi2pt(raw_data_exc_exc, raw_bubble_exc_exc, data_dir, figure_file_format, bubble_file_format, tsep_pipi, tstep_pipi, Lt, traj_start, traj_inc, traj_lessthan, 
-		pion_mom, PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
-
-    figureData::getFileCache().clear();
-
-    readPiPi2pt(raw_data_gnd_exc, raw_bubble_gnd_exc, data_dir, figure_file_format, bubble_file_format, tsep_pipi, tstep_pipi, Lt, traj_start, traj_inc, traj_lessthan, 
-		pion_mom, PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
-
-    figureData::getFileCache().clear();
-  }
-
-  if(opt.save_hdf5_data_checkpoint){
-    HDF5writer wr(opt.save_hdf5_data_checkpoint_stub);
-    write(wr, raw_bubble_gnd_gnd, "raw_bubble_gnd_gnd");
-    write(wr, raw_bubble_exc_exc, "raw_bubble_exc_exc");
-    write(wr, raw_bubble_gnd_exc, "raw_bubble_gnd_exc");
-    write(wr, raw_data_gnd_gnd, "raw_data_gnd_gnd");
-    write(wr, raw_data_exc_exc, "raw_data_exc_exc");
-    write(wr, raw_data_gnd_exc, "raw_data_gnd_exc");
-  }
-}
-
-struct generateResampledDataOptions{
-  bool load_combined_data;
-  std::string load_combined_data_file;
-
-  bool save_combined_data;
-  std::string save_combined_data_file;
-
-  generateResampledDataOptions(): load_combined_data(false), save_combined_data(false){}
-};
-
-void generateResampledData(doubleJackCorrelationFunction &dj_data_gnd_gnd, doubleJackCorrelationFunction &dj_data_exc_exc, doubleJackCorrelationFunction &dj_data_gnd_exc,
-			   const bubbleDataAllMomenta &raw_bubble_gnd_gnd, const bubbleDataAllMomenta &raw_bubble_exc_exc, const bubbleDataAllMomenta &raw_bubble_gnd_exc,
-			   const rawCorrelationFunction &raw_data_gnd_gnd, const rawCorrelationFunction &raw_data_exc_exc, const rawCorrelationFunction &raw_data_gnd_exc,
-			   const int tsep_pipi, const std::vector<threeMomentum> &pion_mom, const int bin_size, 
-			   const bool do_vacuum_subtraction, const generateResampledDataOptions &opt = generateResampledDataOptions()){
-
-  if(opt.load_combined_data){
-    HDF5reader rd(opt.load_combined_data_file);
-    read(rd, dj_data_gnd_gnd, "dj_data_gnd_gnd");
-    read(rd, dj_data_exc_exc, "dj_data_exc_exc");
-    read(rd, dj_data_gnd_exc, "dj_data_gnd_exc");
-  }else{
-    dj_data_gnd_gnd = binDoubleJackResample(raw_data_gnd_gnd, bin_size);
-    dj_data_exc_exc = binDoubleJackResample(raw_data_exc_exc, bin_size);
-    dj_data_gnd_exc = binDoubleJackResample(raw_data_gnd_exc, bin_size);
-  
-    //Compute vacuum subtractions
-    if(do_vacuum_subtraction){
-      std::cout << "Computing vacuum subtractions" << std::endl;
-      doubleJackCorrelationFunction vac_sub_dj = computePiPi2ptVacSub(raw_bubble_gnd_gnd, bin_size, tsep_pipi, pion_mom, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
-      dj_data_gnd_gnd = dj_data_gnd_gnd - vac_sub_dj;
-
-      vac_sub_dj = computePiPi2ptVacSub(raw_bubble_exc_exc, bin_size, tsep_pipi, pion_mom, PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
-      dj_data_exc_exc = dj_data_exc_exc - vac_sub_dj;
-
-      vac_sub_dj = computePiPi2ptVacSub(raw_bubble_gnd_exc, bin_size, tsep_pipi, pion_mom, PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
-      dj_data_gnd_exc = dj_data_gnd_exc - vac_sub_dj;
-    }
-
-    std::cout << "Folding data" << std::endl;
-    //Fold data
-    dj_data_gnd_gnd = foldPiPi2pt(dj_data_gnd_gnd, tsep_pipi);
-    dj_data_exc_exc = foldPiPi2pt(dj_data_exc_exc, tsep_pipi);
-    dj_data_gnd_exc = foldPiPi2pt(dj_data_gnd_exc, tsep_pipi);
-  }
-
-  if(opt.save_combined_data){
-    HDF5writer wr(opt.save_combined_data_file);
-    write(wr, dj_data_gnd_gnd, "dj_data_gnd_gnd");
-    write(wr, dj_data_exc_exc, "dj_data_exc_exc");
-    write(wr, dj_data_gnd_exc, "dj_data_gnd_exc");
-  }
-
-}
-
-struct fitOptions{
-  bool load_frozen_fit_params;
-  std::string load_frozen_fit_params_file;
-  fitOptions(): load_frozen_fit_params(false){}
-};
-
-
-template<typename FitFunc>
-void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
-	    const correlationFunction<SimFitCoordGen, jackknifeDistributionD> &corr_comb_j,
-	    const correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> &corr_comb_dj,
-	    const FitFunc &fitfunc, const fitOptions &opt = fitOptions()){
-    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-    const int nsample = corr_comb_j.value(0).size();
-
-    fitter<FitPolicies> fit;
-    fit.importFitFunc(fitfunc);
-    
-    if(opt.load_frozen_fit_params)
-      readFrozenParams(fit, opt.load_frozen_fit_params_file, nsample, &params.sample(0));
-
-    importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, corr_comb_dj);
-
-    fit.fit(params, chisq, chisq_per_dof, corr_comb_j);
-}  
-
-void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
-	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
-	 const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj,
-	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
-	 const int Lt, const double Ascale, const double Cscale,
-	 const fitOptions &opt = fitOptions()){
-
-  if(ffunc == FitFuncType::FSimGenOneState){
-    typedef FitSimGenOneState FitFunc;
-    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
-  }else if(ffunc == FitFuncType::FSimGenTwoState){
-    typedef FitSimGenTwoState FitFunc;
-    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
-  }else{
-    assert(0);
-  }
-}
 
 
 int main(const int argc, const char* argv[]){
@@ -177,27 +28,6 @@ int main(const int argc, const char* argv[]){
 
   CMDline cmdline(argc,argv,2);
 
-  std::vector<threeMomentum> pion_mom = { {1,1,1}, {-1,-1,-1},
-					  {-1,1,1}, {1,-1,-1},
-					  {1,-1,1}, {-1,1,-1},
-					  {1,1,-1}, {-1,-1,1},
-  
-					  {3,1,1}, {-3,-1,-1},
-					  {-3,1,1}, {3,-1,-1},
-					  {3,-1,1}, {-3,1,-1},
-					  {3,1,-1}, {-3,-1,1},
-					  
-					  {1,3,1}, {-1,-3,-1},
-					  {-1,3,1}, {1,-3,-1},
-					  {1,-3,1}, {-1,3,-1},
-					  {1,3,-1}, {-1,-3,1},
-					  
-					  {1,1,3}, {-1,-1,-3},
-					  {-1,1,3}, {1,-1,-3},
-					  {1,-1,3}, {-1,1,-3},
-					  {1,1,-3}, {-1,-1,3}
-  };
-
   bubbleDataAllMomenta raw_bubble_gnd_gnd, raw_bubble_exc_exc, raw_bubble_gnd_exc;
   rawCorrelationFunction raw_data_gnd_gnd, raw_data_exc_exc, raw_data_gnd_exc;
   
@@ -207,11 +37,11 @@ int main(const int argc, const char* argv[]){
   ropt.save_hdf5_data_checkpoint = cmdline.save_hdf5_data_checkpoint;
   ropt.save_hdf5_data_checkpoint_stub = cmdline.save_hdf5_data_checkpoint_stub;
   
-  if(!cmdline.load_combined_data) readRawData(raw_bubble_gnd_gnd, raw_bubble_exc_exc, raw_bubble_gnd_exc,
-					      raw_data_gnd_gnd, raw_data_exc_exc, raw_data_gnd_exc,
-					      args.data_dir, args.figure_file_format, args.bubble_file_format,
-					      args.Lt, args.tsep_pipi, args.tstep_pipi, pion_mom,
-					      args.traj_start, args.traj_inc, args.traj_lessthan, ropt);
+  if(!cmdline.load_combined_data) getRawPiPiGndExcData(raw_bubble_gnd_gnd, raw_bubble_exc_exc, raw_bubble_gnd_exc,
+					     raw_data_gnd_gnd, raw_data_exc_exc, raw_data_gnd_exc,
+					     args.data_dir, args.figure_file_format, args.bubble_file_format,
+					     args.Lt, args.tsep_pipi, args.tstep_pipi,
+					     args.traj_start, args.traj_inc, args.traj_lessthan, ropt);
   
 
   //Get double-jack data
@@ -226,7 +56,7 @@ int main(const int argc, const char* argv[]){
   generateResampledData(dj_data_gnd_gnd, dj_data_exc_exc, dj_data_gnd_exc,
 			raw_bubble_gnd_gnd, raw_bubble_exc_exc, raw_bubble_gnd_exc,
 			raw_data_gnd_gnd, raw_data_exc_exc, raw_data_gnd_exc,
-			args.tsep_pipi, pion_mom, args.bin_size, 
+			args.tsep_pipi, args.bin_size, 
 			args.do_vacuum_subtraction, gopt);
 
   int nsample = dj_data_gnd_gnd.value(0).size();
