@@ -16,12 +16,16 @@ struct CMDline{
   bool save_combined_data;
   std::string save_combined_data_file;
 
+  bool load_frozen_fit_params;
+  std::string load_frozen_fit_params_file;
+
   CMDline(){
     load_guess = false;
     load_hdf5_data_checkpoint = false;
     save_hdf5_data_checkpoint = false;
     load_combined_data = false;
     save_combined_data = false;
+    load_frozen_fit_params = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -56,6 +60,19 @@ struct CMDline{
       }else if(sargv[i] == "-save_combined_data"){ //save the double-jackknife data set previously generated
 	save_combined_data = true;
 	save_combined_data_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_frozen_fit_params"){
+	load_frozen_fit_params = true;
+	load_frozen_fit_params_file = sargv[i+1];
+
+	if(load_frozen_fit_params_file == "TEMPLATE"){
+	  std::cout << "Saving frozen fit params template file to freeze_template.args" << std::endl;
+	  FreezeParams fp;
+	  std::ofstream of("freeze_template.args");
+	  of << fp;
+	  of.close();
+	  exit(0);
+	}else if(!fileExists(load_frozen_fit_params_file)) error_exit(std::cout << "CMDline freeze data file " << load_frozen_fit_params_file << " does not exist!\n");
 	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

@@ -106,8 +106,9 @@ void applyOperation(jackknifeDistribution<double> &fval, const std::string &oper
 }
 
 //The main function - read and import the  frozen parameters. A struct "FreezeParams" is read in from "freeze_file" and used for perform the required actions
+//For parameter types that don't have a default constructor the user should provide a pointer 'psetup' to a setup instance of the parameter type
 template<typename FitFuncPolicies>
-void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze_file, const int nsample){
+void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze_file, const int nsample, typename FitFuncPolicies::baseFitFunc::ParameterType const* psetup = NULL){
   if(!fileExists(freeze_file)){
     FreezeParams templ;
     std::ofstream of("freeze_template.dat");
@@ -118,6 +119,7 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze
 
   typedef typename FitFuncPolicies::FitParameterDistribution FitParameterDistribution;
   FitParameterDistribution values(nsample);
+  if(psetup!=NULL) for(int s=0;s<nsample;s++) values.sample(s) = *psetup;
   
   std::vector<int> freeze;
   FreezeParams fparams;

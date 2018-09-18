@@ -50,8 +50,7 @@ struct PiPiSigmaSimCMDline{
 	i+=2;
       }else if(sargv[i] == "-load_frozen_fit_params"){
 	load_frozen_fit_params = true;
-	load_frozen_fit_params_file = sargv[i+1];
-	if(!fileExists(load_frozen_fit_params_file)) error_exit(std::cout << "PiPiSigmaSimCMDline freeze data file " << load_frozen_fit_params_file << " does not exist!\n");
+	load_frozen_fit_params_file = sargv[i+1];	
 
 	if(load_frozen_fit_params_file == "TEMPLATE"){
 	  std::cout << "Saving frozen fit params template file to freeze_template.args" << std::endl;
@@ -60,7 +59,7 @@ struct PiPiSigmaSimCMDline{
 	  of << fp;
 	  of.close();
 	  exit(0);
-	}
+	}else if(!fileExists(load_frozen_fit_params_file)) error_exit(std::cout << "PiPiSigmaSimCMDline freeze data file " << load_frozen_fit_params_file << " does not exist!\n");
 	i+=2;
       }else if(sargv[i] == "-exclude_pipi_2pt"){
 	include_pipi_2pt = false;

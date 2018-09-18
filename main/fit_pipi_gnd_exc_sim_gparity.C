@@ -114,16 +114,27 @@ void generateResampledData(doubleJackCorrelationFunction &dj_data_gnd_gnd, doubl
 
 }
 
+struct fitOptions{
+  bool load_frozen_fit_params;
+  std::string load_frozen_fit_params_file;
+  fitOptions(): load_frozen_fit_params(false){}
+};
+
+
 template<typename FitFunc>
 void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
 	    const correlationFunction<SimFitCoordGen, jackknifeDistributionD> &corr_comb_j,
 	    const correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> &corr_comb_dj,
-	    const FitFunc &fitfunc){
-    typedef typename composeFitPolicy<FitFunc, standardFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-  
+	    const FitFunc &fitfunc, const fitOptions &opt = fitOptions()){
+    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+    const int nsample = corr_comb_j.value(0).size();
+
     fitter<FitPolicies> fit;
     fit.importFitFunc(fitfunc);
     
+    if(opt.load_frozen_fit_params)
+      readFrozenParams(fit, opt.load_frozen_fit_params_file, nsample, &params.sample(0));
+
     importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, corr_comb_dj);
 
     fit.fit(params, chisq, chisq_per_dof, corr_comb_j);
@@ -133,16 +144,17 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
 	 const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj,
 	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
-	 const int Lt, const double Ascale, const double Cscale){
+	 const int Lt, const double Ascale, const double Cscale,
+	 const fitOptions &opt = fitOptions()){
 
   if(ffunc == FitFuncType::FSimGenOneState){
     typedef FitSimGenOneState FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
   }else if(ffunc == FitFuncType::FSimGenTwoState){
     typedef FitSimGenTwoState FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
   }else{
     assert(0);
   }
@@ -302,14 +314,31 @@ int main(const int argc, const char* argv[]){
     guess("Cpipi_gnd_exc") = 0;
   }
 
+  if(cmdline.load_guess){
+    std::map<std::string,double> gmap;
+    parse(gmap, cmdline.guess_file);
+    for(auto it = param_map.begin(); it != param_map.end(); it++){
+      const auto &tag = it->first;
+      auto git = gmap.find(tag);
+      if(git == gmap.end()) error_exit(std::cout << "In guess file " << cmdline.guess_file << " could not find tag " << tag << std::endl);
+      guess(tag) = git->second;
+    }
+    std::cout << "Loaded guess: " << guess << std::endl;
+  }
+
   std::cout << "Performing fit" << std::endl;
 
   jackknifeDistribution<Params> params(nsample, guess);
   jackknifeDistributionD chisq(nsample), chisq_per_dof(nsample);
 
+
+  fitOptions opt;
+  opt.load_frozen_fit_params = cmdline.load_frozen_fit_params;
+  opt.load_frozen_fit_params_file = cmdline.load_frozen_fit_params_file;
+
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.Lt, args.Ascale, args.Cscale);
+      args.Lt, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n" << params << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
