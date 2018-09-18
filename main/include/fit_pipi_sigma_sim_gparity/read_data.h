@@ -39,7 +39,7 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
   //Compute V diagram using the real part of the bubble
   bubbleDataAllMomenta raw_bubble_data_real = reIm(raw_bubble_data, 0);
 
-  computeV(raw_data, raw_bubble_data_real, tsep_pipi, pion_mom, corr_select);
+  computePiPi2ptFigureV(raw_data, raw_bubble_data_real, tsep_pipi, pion_mom, corr_select);
 
   //Combine diagrams to construct raw correlator
   getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, 0, pion_mom, 1);

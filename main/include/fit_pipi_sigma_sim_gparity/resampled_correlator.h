@@ -15,7 +15,7 @@ doubleJackCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &r
   PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
 
   bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResampleBubble(raw, bin_size);
-  doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectSourceAvg(dj_bubble_data,tsep_pipi,corr_select,pion_mom);
+  doubleJackCorrelationFunction A2_realavg_V_dj = computePiPi2ptFigureVprojectSourceAvg(dj_bubble_data,tsep_pipi,corr_select,pion_mom);
   return doubleJackCorrelationFunction(3. * A2_realavg_V_dj);
 }
 

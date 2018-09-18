@@ -66,7 +66,7 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw,
   bubbleDataAllMomenta raw_bubble_data;
   readPiPiBubble(raw_bubble_data, tsep_pipi, Lt, dinfo_map, pion_mom, corr_select);
   
-  computeV(raw_data, raw_bubble_data, tsep_pipi, pion_mom, corr_select);
+  computePiPi2ptFigureV(raw_data, raw_bubble_data, tsep_pipi, pion_mom, corr_select);
 
   //Combine diagrams to construct raw correlator
   const int bin_size = 1;
@@ -102,7 +102,7 @@ void performPiPi2ptVacuumSubtraction(resampledCorrFuncType &out,
 				     const int Lt, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom,
 				     const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
   PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
-  auto vacsub = computeVprojectSourceAvg(bubble, tsep_pipi, corr_select, pion_mom);
+  auto vacsub = computePiPi2ptFigureVprojectSourceAvg(bubble, tsep_pipi, corr_select, pion_mom);
   out = resampledCorrFuncType(Lt, [&](const int t){ return typename resampledCorrFuncType::ElementType(in.coord(t), in.value(t) - 3.*vacsub.value(t)); });  //3V
 }
 

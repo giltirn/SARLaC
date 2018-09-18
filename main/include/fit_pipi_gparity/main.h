@@ -42,7 +42,7 @@ doubleJackCorrelationFunction generateData(const PiPiCorrelatorSelector &corr_se
   
   if(isospin == 0 && args.do_vacuum_subtraction){
     bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResampleBubble(raw_bubble_data, args.bin_size);
-    doubleJackCorrelationFunction A2_realavg_V_dj = computeVprojectSourceAvg(dj_bubble_data,args.tsep_pipi,corr_select,args.pion_momenta);
+    doubleJackCorrelationFunction A2_realavg_V_dj = computePiPi2ptFigureVprojectSourceAvg(dj_bubble_data,args.tsep_pipi,corr_select,args.pion_momenta);
     pipi_dj = pipi_dj - 3*A2_realavg_V_dj;
   }
   

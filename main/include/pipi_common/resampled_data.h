@@ -13,7 +13,7 @@ CPSFIT_START_NAMESPACE
 
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
-auto computeVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiCorrelatorSelector &corr_select, const std::vector<threeMomentum> &pion_momenta)
+auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiCorrelatorSelector &corr_select, const std::vector<threeMomentum> &pion_momenta)
   ->correlationFunction<double,typename std::decay<decltype(raw_bubble_data(Source,*((threeMomentum*)NULL))(0))>::type>{
 
   (std::cout << "Computing projected, src-averaged V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 

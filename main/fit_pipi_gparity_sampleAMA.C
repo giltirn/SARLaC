@@ -109,7 +109,7 @@ void resampleCombineData(correlationFunction<double,DistributionType> &pipi,
   if(isospin == 0 && args.do_vacuum_subtraction){
     auto bubble_data_corrected_r = resampleCorrectBubbleSampleAMA<DistributionType>(raw,nS,nC,args.bin_size);
     std::vector<threeMomentum> pion_momenta({ {1,1,1}, {-1,-1,-1}, {1,1,-1}, {-1,-1,1}, {1,-1,1}, {-1,1,-1}, {-1,1,1}, {1,-1,-1} });
-    CorrFunc A2_realavg_V_r = computeVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, corr_select, pion_momenta);
+    CorrFunc A2_realavg_V_r = computePiPi2ptFigureVprojectSourceAvg(bubble_data_corrected_r,args.tsep_pipi, corr_select, pion_momenta);
     pipi = pipi - 3*A2_realavg_V_r;
   }
 }
