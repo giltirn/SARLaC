@@ -171,6 +171,27 @@ int main(const int argc, const char* argv[]){
     assert(v.first == 'A' && v.second == 2.3);
   }
 
+  //Test std::map rule
+  {
+    std::stringstream ss; 
+    ss << "{ \"Hello\":1,  \"World\":2 }";
+    ss >> std::noskipws;
+    boost::spirit::istream_iterator f(ss);
+    
+    std::map<std::string,int> v;
+    f >> v;
+    for(auto it=v.begin(); it !=v.end(); it++){
+      std::cout << it->first << " : " << it->second << std::endl;
+    }
+    auto it = v.find("Hello");
+    assert(it != v.end() && it->second == 1);
+    it = v.find("World");
+    assert(it != v.end() && it->second == 2);
+  } 
+    
+
+  
+
   std::cout << "Test complete with no (unexpected!) errors" << std::endl;
   return 0;
 }

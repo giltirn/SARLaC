@@ -1,6 +1,7 @@
 #ifndef _CPSFIT_PARSERS_H___
 #define _CPSFIT_PARSERS_H___
 
+#include<map>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 
 #include<config.h>
@@ -149,6 +150,66 @@ namespace parsers{
   x3::rule<complexD_, std::complex<double> > const complexD_rule = "complexD_rule";
   BOOST_SPIRIT_DEFINE(complexD_rule);
   DEF_CUSTOM_PARSER(std::complex<double>, complexD_rule);
+
+  //std::map parser
+  template<typename T, typename U>
+  struct map_pair_T_U_rule: error_handler{};
+
+  template<typename T, typename U>
+  struct map_pair_T_U_parser{
+    x3::rule<class map_pair_T_U_rule<T,U>, std::pair<T,U> > const parse;
+    parsers::parser<T> T_parser;
+    parsers::parser<U> U_parser;
+    
+    map_pair_T_U_parser(): parse( typeid(std::pair<T,U>).name() ){}
+
+    inline decltype(auto) get_def() const{
+      return T_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,T,&std::pair<T,U>::first>()] > ':'
+	> U_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,U,&std::pair<T,U>::second>()];
+    }
+  };
+  template <typename T, typename U, typename Iterator, typename Context, typename Attribute>
+  bool parse_rule(x3::rule<class map_pair_T_U_rule<T,U>, std::pair<T,U> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
+    using boost::spirit::x3::unused;
+    static map_pair_T_U_parser<T,U> inst;
+    static auto const parse_def = inst.get_def();
+    static auto const def_ = (inst.parse = parse_def);
+    return def_.parse(first, last, context, unused, attr);
+  }
+
+  template<typename T, typename U>
+  struct map_T_U_rule{};
+
+  template<typename T, typename U>
+  struct parser< std::map<T,U> >{
+    x3::rule<class map_T_U_rule<T,U>, std::map<T,U> > const parse;
+    map_pair_T_U_parser<T,U> elem_parser;
+
+    parser(): parse( typeid(std::map<T,U>).name() ){}
+
+    struct map_insert_elem{
+      template <typename Context>
+      void operator()(Context const& ctx) const{
+	reinterpret_cast<std::map<T,U> &>(_val(ctx)).insert(_attr(ctx));
+      }
+    };
+
+    inline decltype(auto) get_def() const{
+      return x3::char_('{') >> *( elem_parser.parse[map_insert_elem()] >> *(',' >> elem_parser.parse[map_insert_elem()]) ) > '}';
+    }
+  };
+  template <typename T, typename U, typename Iterator, typename Context, typename Attribute>
+  bool parse_rule(x3::rule<class map_T_U_rule<T,U>, std::map<T,U> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
+    using boost::spirit::x3::unused;
+    static parser<std::map<T,U> > inst;
+    static auto const parse_def = inst.get_def();
+    static auto const def_ = (inst.parse = parse_def);
+    return def_.parse(first, last, context, unused, attr);
+  }
+
+
+
+
 };
 
 
