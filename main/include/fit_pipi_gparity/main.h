@@ -19,13 +19,15 @@ doubleJackCorrelationFunction generateData(const PiPiCorrelatorSelector &corr_se
   rawCorrelationFunction pipi_raw;
   {
     figureDataAllMomenta raw_data;
+    if(cmdline.load_hdf5_data_checkpoint) loadRawDataCheckpoint(raw_data, raw_bubble_data, cmdline.load_hdf5_data_checkpoint_stub, extra_descr);
 
-    readRawData(raw_data, raw_bubble_data, ffn, 
+    std::cout << "Reading raw data " << extra_descr << std::endl;
+
+    readRawPiPi2ptData(raw_data, raw_bubble_data, ffn, 
 		bfn_src, bfn_snk, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, 
-		args.Lt, args.tstep_pipi, args.tsep_pipi, args.pion_momenta, corr_select, extra_descr, 
-		cmdline.load_hdf5_data_checkpoint, cmdline.load_hdf5_data_checkpoint_stub);
+		args.Lt, args.tstep_pipi, args.tsep_pipi, args.pion_momenta, corr_select);
     
-    if(cmdline.save_hdf5_data_checkpoint) checkpointRawData(raw_data, raw_bubble_data, cmdline.save_hdf5_data_checkpoint_stub, extra_descr);
+    if(cmdline.save_hdf5_data_checkpoint) saveRawDataCheckpoint(raw_data, raw_bubble_data, cmdline.save_hdf5_data_checkpoint_stub, extra_descr);
     getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, isospin, args.pion_momenta, args.bin_size, extra_descr);
   }
 

@@ -6,35 +6,11 @@
 
 #include "mom_data_containers.h"
 #include "mom_project.h"
+#include "raw_data.h"
 
 CPSFIT_START_NAMESPACE
 
-//Givem the raw data, perform the rotational-state projection. User can decide on how the projection is performed (for example, choosing a representation) via the "selector" which filters
-//data and provides the coefficient under the projection/sum
-template<typename DataAllMomentumType>
-typename DataAllMomentumType::ContainerType project(const char fig, const DataAllMomentumType &raw_data, 
-						    const PiPiCorrelatorSelector &corr_select, 
-						    const std::vector<threeMomentum> &pion_momenta){
-  std::cout << "Computing projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 
-  boost::timer::auto_cpu_timer t(std::string("Report: Computed projection of figure ") + fig + " with DataAllMomentumType = " + printType<DataAllMomentumType>() + " in %w s\n");
-
-  const int nmom = pion_momenta.size();
-  
-  typename DataAllMomentumType::ContainerType out(raw_data.getLt(), raw_data.getNsample()); out.zero();
-
-  double m;
-  for(int psnk=0;psnk<nmom;psnk++){
-    for(int psrc=0;psrc<nmom;psrc++){
-      
-      if(!corr_select(m,pion_momenta[psrc],pion_momenta[psnk])) continue;
-
-      out = out + m*raw_data(fig, momComb(pion_momenta[psnk], pion_momenta[psrc]));
-    }
-  }
-
-  return out;
-}
-
+//Generate a correlation function by source-averaging the raw data
 template<typename FigureDataType>
 auto sourceAverage(const FigureDataType & data)->correlationFunction<double,typename std::decay<decltype(data(0,0))>::type>{
   typedef typename std::decay<decltype(data(0,0))>::type DistributionType;
@@ -64,7 +40,7 @@ auto sourceAverage(const FigureDataType & data)->correlationFunction<double,type
   return into;
 }
 
-void outputRawData(const std::string &filename, const correlationFunction<double,rawDataDistributionD> &data, const double coeff){
+void outputRawCorrelator(const std::string &filename, const correlationFunction<double,rawDataDistributionD> &data, const double coeff){
   std::ofstream of(filename.c_str());
   of << std::setprecision(11) << std::scientific;
   int Lt = data.size();
@@ -110,10 +86,10 @@ void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMom
     bin(A2_realavg_R_b, bin_size);
     bin(A2_realavg_V_b, bin_size);    
 
-    outputRawData("raw_data_Cpart"+ee+".dat", A2_realavg_C_b, 1.);
-    outputRawData("raw_data_Dpart"+ee+".dat", A2_realavg_D_b, 2.);
-    outputRawData("raw_data_Rpart"+ee+".dat", A2_realavg_R_b, -6.);
-    outputRawData("raw_data_Vpart"+ee+".dat", A2_realavg_V_b, 3.);
+    outputRawCorrelator("raw_data_Cpart"+ee+".dat", A2_realavg_C_b, 1.);
+    outputRawCorrelator("raw_data_Dpart"+ee+".dat", A2_realavg_D_b, 2.);
+    outputRawCorrelator("raw_data_Rpart"+ee+".dat", A2_realavg_R_b, -6.);
+    outputRawCorrelator("raw_data_Vpart"+ee+".dat", A2_realavg_V_b, 3.);
   }    
   
   if(isospin == 0){

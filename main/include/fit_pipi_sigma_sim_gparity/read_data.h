@@ -18,7 +18,7 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
 		 const int tsep_pipi, const int tstep_pipi, const int Lt,
 		 const int traj_start, const int traj_inc, const int traj_lessthan, 
 		 const std::vector<threeMomentum> &pion_mom,
-		 const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
+		 const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1, const int isospin = 0){
   PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
   
   //Read C, D, R diagrams
@@ -42,7 +42,7 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
   computePiPi2ptFigureV(raw_data, raw_bubble_data_real, tsep_pipi, pion_mom, corr_select);
 
   //Combine diagrams to construct raw correlator
-  getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, 0, pion_mom, 1);
+  getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, isospin, pion_mom, 1);
 }
 
 
@@ -52,10 +52,10 @@ inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &
 			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 			const int tsep_pipi, const int tstep_pipi, const int Lt,
 			const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom,
-			const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
+			const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1, const int isospin = 0){
   bubbleDataAllMomentaZ raw_bubble_data_Z;
   readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
-	      traj_start, traj_inc, traj_lessthan, pion_mom, proj_src, proj_snk);
+	      traj_start, traj_inc, traj_lessthan, pion_mom, proj_src, proj_snk, isospin);
   raw_bubble_data = reIm(raw_bubble_data_Z, 0);
 }
 

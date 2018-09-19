@@ -69,38 +69,60 @@ inline std::string checkpointFilename(const std::string &stub, const std::string
   return filename.str();
 }
 
-void checkpointRawData(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &filename_stub, const std::string &extra_descr){
+void saveRawDataCheckpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &filename_stub, const std::string &extra_descr){
   saveHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(filename_stub, extra_descr) );
 }
+void loadRawDataCheckpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data, const std::string &filename_stub, const std::string &extra_descr){
+  loadHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(filename_stub, extra_descr) );
+}
+
+
 
 //Read the raw contraction data. No rotational-state projection is done, but we do avoid reading data that won't be needed, hence the discriminators input
 template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>
-void readRawData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data,
+void readRawPiPi2ptData(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &raw_bubble_data,
 		 const FigureFilenamePolicy &ffn, const BubbleFilenamePolicy &bfn_src, const BubbleFilenamePolicy &bfn_snk,
 		 const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, 
 		 const int Lt, const int tstep_pipi,
-		 const int tsep_pipi, const std::vector<threeMomentum> &pion_momenta, const PiPiCorrelatorSelector &corr_select,
-		 const std::string &descr, bool load_hdf5_data_checkpoint = false, const std::string &load_hdf5_data_checkpoint_stub = ""){
-  std::cout << "Reading raw data " << descr << std::endl;
-
-  if(load_hdf5_data_checkpoint){
-    loadHDF5checkpoint(raw_data, raw_bubble_data, checkpointFilename(load_hdf5_data_checkpoint_stub, descr));
-  }else{
-    readPiPi2ptFigure(raw_data, 'C', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
-    readPiPi2ptFigure(raw_data, 'D', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
-    readPiPi2ptFigure(raw_data, 'R', data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
-    readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bfn_src, bfn_snk, pion_momenta, corr_select);
+		 const int tsep_pipi, const std::vector<threeMomentum> &pion_momenta, const PiPiCorrelatorSelector &corr_select){
+  const char figs[3] = {'C','D','R'};
+  for(int f=0;f<3;f++){
+    readPiPi2ptFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_momenta, corr_select);
+    //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
+    zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
   }
-  //Do the stuff below even if reading from checkpoint because some older checkpoints were saved prior to these operations being performed
+  readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bfn_src, bfn_snk, pion_momenta, corr_select);
 
   //Populate the V diagrams from the bubble data
   computePiPi2ptFigureV(raw_data, raw_bubble_data, tsep_pipi, pion_momenta, corr_select);
-
-  //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
-  zeroUnmeasuredSourceTimeslices(raw_data, 'C', tstep_pipi);
-  zeroUnmeasuredSourceTimeslices(raw_data, 'D', tstep_pipi);
-  zeroUnmeasuredSourceTimeslices(raw_data, 'R', tstep_pipi);
 }
+
+//Givem the raw data, perform the rotational-state projection. User can decide on how the projection is performed (for example, choosing a representation) via the "selector" which filters
+//data and provides the coefficient under the projection/sum
+template<typename DataAllMomentumType>
+typename DataAllMomentumType::ContainerType project(const char fig, const DataAllMomentumType &raw_data, 
+						    const PiPiCorrelatorSelector &corr_select, 
+						    const std::vector<threeMomentum> &pion_momenta){
+  std::cout << "Computing projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 
+  boost::timer::auto_cpu_timer t(std::string("Report: Computed projection of figure ") + fig + " with DataAllMomentumType = " + printType<DataAllMomentumType>() + " in %w s\n");
+
+  const int nmom = pion_momenta.size();
+  
+  typename DataAllMomentumType::ContainerType out(raw_data.getLt(), raw_data.getNsample()); out.zero();
+
+  double m;
+  for(int psnk=0;psnk<nmom;psnk++){
+    for(int psrc=0;psrc<nmom;psrc++){
+      
+      if(!corr_select(m,pion_momenta[psrc],pion_momenta[psnk])) continue;
+
+      out = out + m*raw_data(fig, momComb(pion_momenta[psnk], pion_momenta[psrc]));
+    }
+  }
+
+  return out;
+}
+
 
 CPSFIT_END_NAMESPACE
 

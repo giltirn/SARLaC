@@ -40,16 +40,19 @@ struct rawData{ //raw, unbinned data
       std::string checkpoint_filename;
       bool load_checkpoint = cmdline.load_checkpoint(checkpoint_filename,se[i],ens[i]);
 
-      readRawData(raw_data, *raw_bubble_data[i], 
+      if(load_checkpoint) loadRawDataCheckpoint(raw_data, *raw_bubble_data[i], checkpoint_filename, descr[i]);
+
+      std::cout << "Reading raw data " << descr[i] << std::endl;
+
+      readRawPiPi2ptData(raw_data, *raw_bubble_data[i], 
 		  ffn, bfn_src, bfn_snk, 
 		  args.data_dir(ens[i]), traj_start, traj_inc, traj_lessthan, 
 		  args.Lt, args.tstep_pipi, 
-		  args.tsep_pipi, pion_momenta, corr_select, 
-		  descr[i], load_checkpoint, checkpoint_filename);
+		  args.tsep_pipi, pion_momenta, corr_select);
 
       bool save_checkpoint = cmdline.save_checkpoint(checkpoint_filename,se[i],ens[i]);
 
-      if(save_checkpoint) checkpointRawData(raw_data, *raw_bubble_data[i], checkpoint_filename, descr[i]);
+      if(save_checkpoint) saveRawDataCheckpoint(raw_data, *raw_bubble_data[i], checkpoint_filename, descr[i]);
 
       getRawPiPiCorrFunc(*pipi_raw[i], raw_data, corr_select, isospin, pion_momenta, args.bin_size, "", false);
     }
