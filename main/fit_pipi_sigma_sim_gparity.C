@@ -5,10 +5,6 @@ using namespace CPSfit;
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/cmdline.h>
 
-#include <fit_sigmasigma_gparity/resampled_correlator.h>
-
-#include <fit_pipitosigma_gparity/resampled_correlator.h>
-
 #include <fit_pipi_sigma_sim_gparity/fitfunc.h>
 #include <fit_pipi_sigma_sim_gparity/fit.h>
 #include <fit_pipi_sigma_sim_gparity/args.h>

@@ -2,7 +2,6 @@
 
 using namespace CPSfit;
 
-#include <fit_pipitosigma_gparity/resampled_correlator.h>
 #include <fit_pipitosigma_gparity/fit.h>
 #include <fit_pipitosigma_gparity/args.h>
 #include <fit_pipitosigma_gparity/cmdline.h>

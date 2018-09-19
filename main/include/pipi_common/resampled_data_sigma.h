@@ -4,6 +4,8 @@
 #include<config.h>
 #include<utils/macros.h>
 
+#include "data_containers.h"
+
 CPSFIT_START_NAMESPACE
 
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;

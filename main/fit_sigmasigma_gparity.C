@@ -1,8 +1,8 @@
+
 #include<pipi_common/pipi_common.h>
 
 using namespace CPSfit;
 
-#include <fit_sigmasigma_gparity/resampled_correlator.h>
 #include <fit_sigmasigma_gparity/fit.h>
 #include <fit_sigmasigma_gparity/args.h>
 #include <fit_sigmasigma_gparity/cmdline.h>
