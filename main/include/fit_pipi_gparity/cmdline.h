@@ -19,8 +19,6 @@ struct CMDline{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
 
-  bool use_symmetric_quark_momenta; //use data generated with mesonfields with symmetric quark momenta (_symm extension)
-  
   bool load_mlparams;
   std::string mlparams_file;
 
@@ -31,7 +29,6 @@ struct CMDline{
     load_combined_data = false;
     save_combined_data = false;
     load_frozen_fit_params= false;
-    use_symmetric_quark_momenta = false;
     load_mlparams = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
@@ -80,9 +77,6 @@ struct CMDline{
 	  exit(0);	 
 	}
 	i+=2;
-      }else if(sargv[i] == "-use_symmetric_quark_momenta"){
-	use_symmetric_quark_momenta = true;
-	i++;
       }else if(sargv[i] == "-load_mlparams"){
 	load_mlparams = true;
 	mlparams_file = sargv[i+1];

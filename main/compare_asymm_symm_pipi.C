@@ -14,10 +14,6 @@
 
 using namespace CPSfit;
 
-#include<fit_pipi_gparity/cmdline.h>
-#include<fit_pipi_gparity/args.h>
-#include<fit_pipi_gparity/main.h>
-
 #include <compare_asymm_symm_pipi/cmdline.h>
 #include <compare_asymm_symm_pipi/args.h>
 #include <compare_simple_correlators/compare.h>
@@ -38,17 +34,37 @@ int main(const int argc, const char* argv[]){
   
   ComparisonCMDline cmdline(argc,argv,2);
 
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(args.proj_src, {0,0,0}) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(args.proj_snk, {0,0,0}) );
+
+  getResampledPiPi2ptDataOpts opts;
+#define CP(A) opts.A = cmdline.A
+  CP(load_hdf5_data_checkpoint);
+  CP(save_hdf5_data_checkpoint);    
+#undef CP
   //Get the double-jackknife resampled data
   doubleJackCorrelationFunction pipi_dj_asymm, pipi_dj_symm;
   {
-    CMDline c = cmdline.toCMDline(Asymmetric);
-    Args a = args.toArgs(Asymmetric);
-    pipi_dj_asymm = getData(a,c);
+    readFigureStationaryPolicy ffn(false);
+    readBubbleStationaryPolicy bfn_src(false,Source), bfn_snk(false,Sink);
+
+    opts.load_hdf5_data_checkpoint_stub = cmdline.load_hdf5_data_checkpoint_asymm_stub;
+    opts.save_hdf5_data_checkpoint_stub = cmdline.save_hdf5_data_checkpoint_asymm_stub;
+
+    pipi_dj_asymm = getResampledPiPi2ptData(*proj_src,*proj_snk, args.isospin, args.Lt, args.tsep_pipi, args.tstep_pipi, args.do_vacuum_subtraction,
+					    args.data_dir_asymm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
+					    ffn, bfn_src, bfn_snk, "", opts); 
   }
   {
-    CMDline c = cmdline.toCMDline(Symmetric);
-    Args a = args.toArgs(Symmetric);
-    pipi_dj_symm = getData(a,c);
+    readFigureStationaryPolicy ffn(true);
+    readBubbleStationaryPolicy bfn_src(true,Source), bfn_snk(true,Sink);
+
+    opts.load_hdf5_data_checkpoint_stub = cmdline.load_hdf5_data_checkpoint_symm_stub;
+    opts.save_hdf5_data_checkpoint_stub = cmdline.save_hdf5_data_checkpoint_symm_stub;
+
+    pipi_dj_symm = getResampledPiPi2ptData(*proj_src,*proj_snk, args.isospin, args.Lt, args.tsep_pipi, args.tstep_pipi, args.do_vacuum_subtraction,
+					    args.data_dir_symm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
+					    ffn, bfn_src, bfn_snk, "", opts); 
   }
 
   //Convert to single-jackknife

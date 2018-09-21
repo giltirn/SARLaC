@@ -71,10 +71,10 @@ int main(const int argc, const char* argv[]){
   std::map<DataTag, std::map<int, DataLocationInfo const*> > ground_pipi_data_map = getGroundPiPiDataSubsets(ground_pipi_subsets, dmap);
 
   bubbleDataDoubleJackAllMomenta ground_pipi_bub;
-  getPiPiBubble(ground_pipi_bub, args.Lt, args.tsep_pipi, gnd_pion_mom, ground_pipi_data_map, nsample_full);
+  getPiPiBubble(ground_pipi_bub, args.Lt, args.tsep_pipi, ground_pipi_data_map, nsample_full, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
 
   doubleJackCorrelationFunction ground_pipi2pt;
-  getPiPi2pt(ground_pipi2pt, args.Lt, args.tsep_pipi, args.tstep_pipi2pt, ground_pipi_data_map, nsample_full, gnd_pion_mom);
+  getPiPi2pt(ground_pipi2pt, args.Lt, args.tsep_pipi, args.tstep_pipi2pt, ground_pipi_data_map, nsample_full, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
 
   /*-------------------------------------------
     Ground operator pipi->sigma
@@ -102,7 +102,7 @@ int main(const int argc, const char* argv[]){
   
   //Do vacuum subtractions
   if(args.do_vacuum_subtraction){
-    performPiPi2ptVacuumSubtraction(ground_pipi2pt, ground_pipi2pt, ground_pipi_bub, args.Lt, args.tsep_pipi, gnd_pion_mom);
+    performPiPi2ptVacuumSubtraction(ground_pipi2pt, ground_pipi2pt, ground_pipi_bub, args.Lt, args.tsep_pipi, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
     performPiPiToSigmaVacuumSubtraction(pipi_to_sigma, pipi_to_sigma, sigma_bub, ground_pipi_bub, args.Lt, gnd_pion_mom);
     performSigma2ptVacuumSubtraction(sigma2pt, sigma2pt, sigma_bub);
   }

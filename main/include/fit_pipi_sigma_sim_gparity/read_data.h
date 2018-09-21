@@ -17,32 +17,32 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
 		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 		 const int tsep_pipi, const int tstep_pipi, const int Lt,
 		 const int traj_start, const int traj_inc, const int traj_lessthan, 
-		 const std::vector<threeMomentum> &pion_mom,
-		 const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1, const int isospin = 0){
-  PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
-  
+		 const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111, const int isospin = 0){
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
+    
   //Read C, D, R diagrams
-  PiPiSymmetrySubsetFigureFileMapping ffn(data_dir, figure_file_fmt, traj_start, tsep_pipi, pion_mom, {0,0,0});
+  PiPiSymmetrySubsetFigureFileMapping ffn(data_dir, figure_file_fmt, traj_start, tsep_pipi, getSrcSnkMomentumSet(*proj_src, *proj_snk), {0,0,0});
   figureDataAllMomenta raw_data;
   char figs[3] = {'C','D','R'};
 
   for(int f=0;f<3;f++){
-    readPiPi2ptFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, ffn, pion_mom, corr_select);
+    readPiPi2ptFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, *proj_src, *proj_snk,  ffn);
     zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
   }
 
   bubbleFilenamePolicyGeneric bpsrc(bubble_file_fmt, {0,0,0}, Source);
   bubbleFilenamePolicyGeneric bpsnk(bubble_file_fmt, {0,0,0}, Sink);
 
-  readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, pion_mom, corr_select);
+  readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, *proj_src, *proj_snk);
 
   //Compute V diagram using the real part of the bubble
   bubbleDataAllMomenta raw_bubble_data_real = reIm(raw_bubble_data, 0);
 
-  computePiPi2ptFigureV(raw_data, raw_bubble_data_real, tsep_pipi, pion_mom, corr_select);
+  computePiPi2ptFigureV(raw_data, raw_bubble_data_real, tsep_pipi, *proj_src, *proj_snk);
 
   //Combine diagrams to construct raw correlator
-  getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, isospin, pion_mom, 1);
+  getRawPiPiCorrFunc(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, 1);
 }
 
 
@@ -51,11 +51,11 @@ inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &
 			const std::string &data_dir, 
 			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 			const int tsep_pipi, const int tstep_pipi, const int Lt,
-			const int traj_start, const int traj_inc, const int traj_lessthan, const std::vector<threeMomentum> &pion_mom,
-			const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1, const int isospin = 0){
+			const int traj_start, const int traj_inc, const int traj_lessthan,
+			const PiPiProjector proj_src = PiPiProjector::A1momSet111, const PiPiProjector proj_snk = PiPiProjector::A1momSet111, const int isospin = 0){
   bubbleDataAllMomentaZ raw_bubble_data_Z;
   readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
-	      traj_start, traj_inc, traj_lessthan, pion_mom, proj_src, proj_snk, isospin);
+	      traj_start, traj_inc, traj_lessthan, proj_src, proj_snk, isospin);
   raw_bubble_data = reIm(raw_bubble_data_Z, 0);
 }
 
@@ -100,14 +100,15 @@ void readData(rawCorrelationFunction &pipi_raw,
 	      const std::string &pipitosigma_file_fmt, 
 	      const std::string &pipi_bubble_file_fmt, 
 	      const std::string &sigma_bubble_file_fmt,
-	      const int tsep_pipi, const std::vector<threeMomentum> &pion_mom,
+	      const int tsep_pipi,
 	      const int tstep_pipi2pt, int tstep_pipitosigma,
 	      const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan,
 	      bool compute_pipitosigma_disconn_ReRe){
 
   //pipi 2pt + pipi self (complex)
   bubbleDataAllMomentaZ pipi_self_data_Z;
-  readPiPi2pt(pipi_raw, pipi_self_data_Z, data_dir, pipi2pt_figure_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi2pt, Lt, traj_start, traj_inc, traj_lessthan, pion_mom);
+  readPiPi2pt(pipi_raw, pipi_self_data_Z, data_dir, pipi2pt_figure_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi2pt, Lt, traj_start, traj_inc, traj_lessthan, 
+	      PiPiProjector::A1momSet111, PiPiProjector::A1momSet111, 0);;
   pipi_self_data = reIm(pipi_self_data_Z, 0);
 
   //sigma 2pt + sigma self (complex)
@@ -123,8 +124,11 @@ void readData(rawCorrelationFunction &pipi_raw,
   readReconstructPiPiToSigmaWithDisconnAllTsrcOptions opt;
   opt.compute_disconn_ReRe = compute_pipitosigma_disconn_ReRe;
 
+  std::vector<threeMomentum> pion_mom({  {1,1,1}, {-1,1,1}, {1,-1,1}, {1,1,-1},
+				         {-1,-1,-1}, {1,-1,-1}, {-1,1,-1}, {-1,-1,1} });
+
   pipi_to_sigma_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(pipitosigma_file_fmt, data_dir, Lt, tstep_pipitosigma, traj_start, traj_inc, traj_lessthan,
-								   pion_mom, pipi_self_data_Z, sigma_self_data_Z,
+								   pion_mom,pipi_self_data_Z, sigma_self_data_Z,
 								   opt);
 }
 

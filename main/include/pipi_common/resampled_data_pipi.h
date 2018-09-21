@@ -13,14 +13,12 @@ CPSFIT_START_NAMESPACE
 
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
-auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiCorrelatorSelector &corr_select, const std::vector<threeMomentum> &pion_momenta)
+auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk)
   ->correlationFunction<double,typename std::decay<decltype(raw_bubble_data(Source,*((threeMomentum*)NULL))(0))>::type>{
 
   (std::cout << "Computing projected, src-averaged V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed projected, src-averaged V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
 
-  const int nmom = pion_momenta.size();
-  
   const int Lt = raw_bubble_data.getLt();
   const int Nsample = raw_bubble_data.getNsample();
 
@@ -34,23 +32,18 @@ auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data
   int nthr = omp_get_max_threads();
   std::vector<correlationFunction<double,DistributionType> > thr_sum(nthr, out);
   
-  std::vector<std::tuple<int,int,double> > todo;
-  double coeff;
-  for(int psnk=0;psnk<nmom;psnk++)
-    for(int psrc=0;psrc<nmom;psrc++)
-      if(corr_select(coeff,pion_momenta[psrc],pion_momenta[psnk])){
-	todo.push_back(std::make_tuple(psrc,psnk,coeff));
-      }
+  int npsrc = proj_src.nMomenta();
+  int npsnk = proj_snk.nMomenta();
 
 #pragma omp parallel for
-  for(int pp=0;pp<todo.size();pp++){
+  for(int pp=0;pp<npsrc*npsnk;pp++){ //psnk + npsnk*psrc
     int me = omp_get_thread_num();
-    int psrc = std::get<0>(todo[pp]);
-    int psnk = std::get<1>(todo[pp]);
-    double coeff = std::get<2>(todo[pp]);
+    threeMomentum psrc = proj_src.momentum(pp/npsnk);
+    threeMomentum psnk = proj_snk.momentum(pp%npsnk);
+    double coeff = std::real(proj_src.coefficient(pp/npsnk) * proj_snk.coefficient(pp%npsnk));
 
-    const auto &Bp1_snk = raw_bubble_data(Sink, pion_momenta[psnk] ); 
-    const auto &Bp1_src  = raw_bubble_data(Source,  pion_momenta[psrc] );
+    const auto &Bp1_snk = raw_bubble_data(Sink, psnk); 
+    const auto &Bp1_src  = raw_bubble_data(Source,  psrc);
 
     for(int tsrc=0;tsrc<Lt;tsrc++)
       for(int tsep=0;tsep<Lt;tsep++)
@@ -77,6 +70,10 @@ bubbleDataDoubleJackAllMomenta binDoubleJackknifeResampleBubble(const bubbleData
   return out;
 }
 
+
+
+
+
 /*
 Generic fold routine. 
 The data typically is symmetric as   C(Lt - fold_offset - t) ~ C(t) 
@@ -101,6 +98,60 @@ inline correlationFunction<double,T> foldPiPi2pt(const correlationFunction<doubl
 }
 
 
+struct getResampledPiPi2ptDataOpts{
+  bool load_hdf5_data_checkpoint;
+  std::string load_hdf5_data_checkpoint_stub;
+  bool save_hdf5_data_checkpoint;
+  std::string save_hdf5_data_checkpoint_stub;
+  getResampledPiPi2ptDataOpts(): load_hdf5_data_checkpoint(false), save_hdf5_data_checkpoint(false){}
+};
+
+
+//Read and combine/double-jack resample data from original files or a checkpoint of the entire data set
+template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>
+doubleJackCorrelationFunction getResampledPiPi2ptData(const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk,
+						      const int isospin, const int Lt, const int tsep_pipi, const int tstep_pipi, bool do_vacuum_subtraction,
+						      const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size,
+						      const FigureFilenamePolicy &ffn, const BubbleFilenamePolicy &bfn_src, const BubbleFilenamePolicy &bfn_snk, const std::string &extra_descr,
+						      const getResampledPiPi2ptDataOpts &opts = getResampledPiPi2ptDataOpts()){
+
+  //Read the data
+  bubbleDataAllMomenta raw_bubble_data;
+  rawCorrelationFunction pipi_raw;
+  {
+    figureDataAllMomenta raw_data;
+    if(opts.load_hdf5_data_checkpoint) loadRawDataCheckpoint(raw_data, raw_bubble_data, opts.load_hdf5_data_checkpoint_stub, extra_descr);
+
+    std::cout << "Reading raw data " << extra_descr << std::endl;
+
+    readRawPiPi2ptData(raw_data, raw_bubble_data, ffn, 
+		       bfn_src, bfn_snk, data_dir, traj_start, traj_inc, traj_lessthan, 
+		       Lt, tstep_pipi, tsep_pipi, proj_src, proj_snk);
+    
+    if(opts.save_hdf5_data_checkpoint) saveRawDataCheckpoint(raw_data, raw_bubble_data, opts.save_hdf5_data_checkpoint_stub, extra_descr);
+    getRawPiPiCorrFunc(pipi_raw, raw_data, proj_src, proj_snk, isospin, bin_size, extra_descr);
+  }
+
+  const int nsample = (traj_lessthan - traj_start)/traj_inc/bin_size;
+  
+  doubleJackCorrelationFunction pipi_dj(Lt,
+					[&](const int t)
+					{
+					  typename doubleJackCorrelationFunction::ElementType out(t, doubleJackknifeDistributionD(nsample));
+					  out.second.resample(pipi_raw.value(t).bin(bin_size));
+					  return out;
+					}
+					);
+  
+  if(isospin == 0 && do_vacuum_subtraction){
+    bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResampleBubble(raw_bubble_data, bin_size);
+    doubleJackCorrelationFunction A2_realavg_V_dj = computePiPi2ptFigureVprojectSourceAvg(dj_bubble_data,tsep_pipi,proj_src,proj_snk);
+    pipi_dj = pipi_dj - 3*A2_realavg_V_dj;
+  }
+  
+  pipi_dj = foldPiPi2pt(pipi_dj, tsep_pipi);
+  return pipi_dj;
+}
 
 
 CPSFIT_END_NAMESPACE

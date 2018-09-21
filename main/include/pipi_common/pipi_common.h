@@ -11,6 +11,6 @@
 #include <pipi_common/resampled_data_pipi.h>
 #include <pipi_common/resampled_data_sigma.h>
 #include <pipi_common/resampled_data_pipitosigma.h>
-#include <pipi_common/corr_selector_factory.h>
+#include <pipi_common/symm_data_multiplicities.h>
 
 #endif

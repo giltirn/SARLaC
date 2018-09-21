@@ -48,38 +48,37 @@ struct PiPiFigureMapReadPolicy{
 void readPiPi2pt(rawCorrelationFunction &pipi_raw,
 		 const int tsep_pipi, const int tstep_pipi, const int Lt,
 		 const std::map<int, DataLocationInfo const*> &dinfo_map,
-		 const std::vector<threeMomentum> &pion_mom,
-		 const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
-  PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
+		 const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111){
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
   
-  PiPiFigureMapReadPolicy rp(tsep_pipi, pion_mom, {0,0,0}, dinfo_map);
+  PiPiFigureMapReadPolicy rp(tsep_pipi, getSrcSnkMomentumSet(*proj_src, *proj_snk), {0,0,0}, dinfo_map);
 
   //Read C, D, R diagrams
   figureDataAllMomenta raw_data;
   char figs[3] = {'C','D','R'};
   
   for(int f=0;f<3;f++){
-    readPiPi2ptFigure(raw_data, figs[f], Lt, pion_mom, corr_select, rp);
+    readPiPi2ptFigure(raw_data, figs[f], Lt, *proj_src, *proj_snk, rp);
     zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
   }
 
   bubbleDataAllMomenta raw_bubble_data;
-  readPiPiBubble(raw_bubble_data, tsep_pipi, Lt, dinfo_map, pion_mom, corr_select);
+  readPiPiBubble(raw_bubble_data, tsep_pipi, Lt, dinfo_map, *proj_src, *proj_snk);
   
-  computePiPi2ptFigureV(raw_data, raw_bubble_data, tsep_pipi, pion_mom, corr_select);
+  computePiPi2ptFigureV(raw_data, raw_bubble_data, tsep_pipi, *proj_src, *proj_snk);
 
   //Combine diagrams to construct raw correlator
   const int bin_size = 1;
   const int isospin = 0;
-  getRawPiPiCorrFunc(pipi_raw, raw_data, corr_select, isospin, pion_mom, bin_size); //binned, source-averaged pipi 2pt data
+  getRawPiPiCorrFunc(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, bin_size); //binned, source-averaged pipi 2pt data
 }
 
 template<typename resampledCorrFuncType>
 void getPiPi2pt(resampledCorrFuncType &out,
 		const int Lt, const int tsep_pipi, const int tstep_pipi, 
 		const std::map<DataTag, std::map<int, DataLocationInfo const*> > &data_info_map, const int full_ens_size,
-		const std::vector<threeMomentum> &pion_mom,
-		const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
+		const PiPiProjector proj_src = PiPiProjector::A1momSet111, const PiPiProjector proj_snk = PiPiProjector::A1momSet111){
   std::vector<DataTag> loop_tags = { DataTag::AsymmOnly, DataTag::AsymmCorr, DataTag::SymmCorr, DataTag::SymmOnly };
 
   std::map<DataTag, resampledCorrFuncType> sjack;
@@ -88,7 +87,7 @@ void getPiPi2pt(resampledCorrFuncType &out,
     const std::map<int, DataLocationInfo const*> &subens = data_info_map.find(*dtag)->second;
 
     rawCorrelationFunction pipi_raw;
-    readPiPi2pt(pipi_raw, tsep_pipi, tstep_pipi, Lt, subens, pion_mom, proj_src, proj_snk);
+    readPiPi2pt(pipi_raw, tsep_pipi, tstep_pipi, Lt, subens, proj_src, proj_snk);
 
     superJackknifeResample(sjack[*dtag], pipi_raw, subens, full_ens_size);
   }
@@ -99,10 +98,11 @@ void getPiPi2pt(resampledCorrFuncType &out,
 template<typename resampledCorrFuncType, typename resampledBubbleDataAllMomentaType>
 void performPiPi2ptVacuumSubtraction(resampledCorrFuncType &out,
 				     const resampledCorrFuncType &in, const resampledBubbleDataAllMomentaType &bubble,
-				     const int Lt, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom,
-				     const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
-  PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
-  auto vacsub = computePiPi2ptFigureVprojectSourceAvg(bubble, tsep_pipi, corr_select, pion_mom);
+				     const int Lt, const int tsep_pipi,				     
+				     const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111){
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
+  auto vacsub = computePiPi2ptFigureVprojectSourceAvg(bubble, tsep_pipi, *proj_src, *proj_snk);
   out = resampledCorrFuncType(Lt, [&](const int t){ return typename resampledCorrFuncType::ElementType(in.coord(t), in.value(t) - 3.*vacsub.value(t)); });  //3V
 }
 

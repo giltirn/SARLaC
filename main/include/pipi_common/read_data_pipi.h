@@ -148,28 +148,26 @@ struct PiPiFigureBasicReadPolicy{
 };
 
 
-//For a given figure (C,D,R) read the raw data. Selector is used to only load data that is required
+//For a given figure (C,D,R) read the raw data. Projectors are used to only load data that is required
 template<typename ReadPolicy>
-void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int Lt, const std::vector<threeMomentum> &pion_momenta,
-		const PiPiCorrelatorSelector &corr_select, const ReadPolicy &rp){
+void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int Lt, 
+		       const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk, const ReadPolicy &rp){
   std::cout << "Reading figure " << fig << "\n"; boost::timer::auto_cpu_timer t(std::string("Report: Read figure ") + fig + " in %w s\n");
   int nsample = rp.nsample();
 
   raw_data.setup(Lt,nsample);
 
-  const int nmom = pion_momenta.size();
-  
-  double dummy;
+  for(int psnki=0; psnki<proj_snk.nMomenta();psnki++){
+    threeMomentum psnk = proj_snk.momentum(psnki);
 
-  for(int psnk=0;psnk<nmom;psnk++){
-    for(int psrc=0;psrc<nmom;psrc++){
-      if(!corr_select(dummy,pion_momenta[psrc],pion_momenta[psnk])) continue;
+    for(int psrci=0; psrci<proj_src.nMomenta();psrci++){
+      threeMomentum psrc = proj_src.momentum(psrci);
 
-      figureData &into = raw_data(fig, momComb(pion_momenta[psnk], pion_momenta[psrc]));      
+      figureData &into = raw_data(fig, momComb(psnk, psrc));      
       
 #pragma omp parallel for
       for(int sample=0; sample < nsample; sample++){
-	std::string filename = rp.filename(sample, fig, pion_momenta[psnk], pion_momenta[psrc]);
+	std::string filename = rp.filename(sample, fig, psnk, psrc);
 	std::cout << "Parsing " << filename << std::endl;
 	into.parseCDR(filename, sample);
       }
@@ -179,11 +177,17 @@ void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int
 
 template<typename FilenamePolicy>
 inline void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const std::string &data_dir, const int tsep_pipi, const int Lt,
-		const int traj_start, const int traj_inc, const int traj_lessthan, const FilenamePolicy &fn, const std::vector<threeMomentum> &pion_momenta,
-		const PiPiCorrelatorSelector &corr_select){
+			      const int traj_start, const int traj_inc, const int traj_lessthan, 
+			      const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk, 
+			      const FilenamePolicy &fn){
   PiPiFigureBasicReadPolicy<FilenamePolicy> rp(fn, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
-  readPiPi2ptFigure(raw_data, fig, Lt, pion_momenta, corr_select, rp);
+  readPiPi2ptFigure(raw_data, fig, Lt, proj_src, proj_snk, rp);
 }
+
+
+
+
+
 
 struct readBubbleStationaryPolicy{
   SourceOrSink src_snk; //whether a source or sink pipi
@@ -271,12 +275,10 @@ inline void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const std::string
   readPiPiBubble(raw_data, Lt, rp, pion_momenta, src_snk);
 }
 
-
 template<typename bubbleDataAllMomentaType, typename ReadPolicy>
 void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int Lt, const int tsep_pipi,
-		const ReadPolicy &rp_src, const ReadPolicy &rp_snk,
-		const std::vector<threeMomentum> &pion_momenta,
-		const PiPiCorrelatorSelector &corr_select){
+		    const ReadPolicy &rp_src, const ReadPolicy &rp_snk,
+		    const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk){
   std::cout << "Reading bubble\n"; boost::timer::auto_cpu_timer t("Report: Read bubble in %w s\n");
   int nsample = rp_src.nsample();
   assert(rp_snk.nsample() == nsample);
@@ -284,17 +286,11 @@ void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int Lt, const int 
   raw_data.setup(Lt,tsep_pipi,nsample);
   
   //Filter data read into container according to those that pass the corr_select filter
-  std::vector<threeMomentum> src_mom_need;
-  std::vector<threeMomentum> snk_mom_need;
-  double m;
-  for(int i=0;i<pion_momenta.size();i++){
-    for(int j=0;j<pion_momenta.size();j++){
-      if(corr_select(m, pion_momenta[i],pion_momenta[j])){
-	if(std::find(src_mom_need.begin(), src_mom_need.end(), pion_momenta[i]) == src_mom_need.end()) src_mom_need.push_back(pion_momenta[i]);
-	if(std::find(snk_mom_need.begin(), snk_mom_need.end(), pion_momenta[j]) == snk_mom_need.end()) snk_mom_need.push_back(pion_momenta[j]);
-      }
-    }
-  }
+  std::vector<threeMomentum> src_mom_need(proj_src.nMomenta());
+  for(int i=0;i<proj_src.nMomenta();i++) src_mom_need[i] = proj_src.momentum(i);
+
+  std::vector<threeMomentum> snk_mom_need(proj_snk.nMomenta());
+  for(int i=0;i<proj_snk.nMomenta();i++) snk_mom_need[i] = proj_snk.momentum(i);
 
   readPiPiBubble(raw_data, Lt, rp_src, src_mom_need, Source);
   readPiPiBubble(raw_data, Lt, rp_snk, snk_mom_need, Sink);
@@ -302,19 +298,17 @@ void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int Lt, const int 
 
 
 
-
-
 template<typename bubbleDataAllMomentaType, typename FilenamePolicy>
 void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const std::string &data_dir, const int tsep_pipi, const int Lt,
-		const int traj_start, const int traj_inc, const int traj_lessthan, 
-		const FilenamePolicy &fn_src, const FilenamePolicy &fn_snk,
-		const std::vector<threeMomentum> &pion_momenta,
-		const PiPiCorrelatorSelector &corr_select){
+		    const int traj_start, const int traj_inc, const int traj_lessthan, 
+		    const FilenamePolicy &fn_src, const FilenamePolicy &fn_snk,
+		    const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk){
   PiPiBubbleBasicReadPolicy<FilenamePolicy> rp_src(fn_src, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
   PiPiBubbleBasicReadPolicy<FilenamePolicy> rp_snk(fn_snk, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
 
-  readPiPiBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, pion_momenta, corr_select);
+  readPiPiBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, proj_src, proj_snk);
 }
+
 
 CPSFIT_END_NAMESPACE
 

@@ -61,45 +61,33 @@ inline void bin(rawCorrelationFunction &raw, const int bin_size){
 //Given the parsed, raw data, compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data. This includes projecting the pipi states onto
 //a user-selected linear combination (for example projecting onto the A1 cubic representation)
 void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMomenta &raw_data,
-			const PiPiCorrelatorSelector &corr_select, const int isospin, const std::vector<threeMomentum> &pion_momenta,
+			const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk, const int isospin, 
 			const int bin_size, const std::string &extra_descr = "", bool output_raw_data = true){
- 
-  figureData A2_C = project('C', raw_data, corr_select, pion_momenta);
-  figureData A2_D = project('D', raw_data, corr_select, pion_momenta);
-  figureData A2_R = project('R', raw_data, corr_select, pion_momenta);
-  figureData A2_V = project('V', raw_data, corr_select, pion_momenta);
-  
-  rawCorrelationFunction A2_realavg_C = sourceAverage(A2_C);
-  rawCorrelationFunction A2_realavg_D = sourceAverage(A2_D);
-  rawCorrelationFunction A2_realavg_R = sourceAverage(A2_R);
-  rawCorrelationFunction A2_realavg_V = sourceAverage(A2_V);
+  if(isospin != 0 && isospin != 2) error_exit(std::cout << "getRawPiPiCorrFunc only supports isospin 0,2\n");
+  const char figs[4] = {'C','D','R','V'};
+  const std::vector<double> coeffs = isospin == 0 ? std::vector<double>({1., 2., -6., 3.}) : std::vector<double>({-2., 2., 0., 0.});
+  std::string ee = extra_descr != "" ? "_" + extra_descr : "";  
 
-  if(output_raw_data){
-    std::string ee = extra_descr != "" ? "_" + extra_descr : "";
-    //These data are saved after binning
-    rawCorrelationFunction A2_realavg_C_b(A2_realavg_C);
-    rawCorrelationFunction A2_realavg_D_b(A2_realavg_D);
-    rawCorrelationFunction A2_realavg_R_b(A2_realavg_R);
-    rawCorrelationFunction A2_realavg_V_b(A2_realavg_V);
-    bin(A2_realavg_C_b, bin_size);
-    bin(A2_realavg_D_b, bin_size);
-    bin(A2_realavg_R_b, bin_size);
-    bin(A2_realavg_V_b, bin_size);    
+  rawCorrelationFunction fig_corr[4];  
 
-    outputRawCorrelator("raw_data_Cpart"+ee+".dat", A2_realavg_C_b, 1.);
-    outputRawCorrelator("raw_data_Dpart"+ee+".dat", A2_realavg_D_b, 2.);
-    outputRawCorrelator("raw_data_Rpart"+ee+".dat", A2_realavg_R_b, -6.);
-    outputRawCorrelator("raw_data_Vpart"+ee+".dat", A2_realavg_V_b, 3.);
+  for(int f=0;f<4;f++){
+    figureData proj_data = project(figs[f], raw_data, proj_src, proj_snk);
+    fig_corr[f] = sourceAverage(proj_data);
+
+    if(output_raw_data){
+      //These data are saved after binning
+      rawCorrelationFunction realavg_b(fig_corr[f]);
+      bin(realavg_b, bin_size);
+      outputRawCorrelator(stringize("raw_data_%cpart%s.dat",figs[f],ee.c_str()), realavg_b, coeffs[f]);
+    }
   }    
   
-  if(isospin == 0){
-    pipi_raw = 2*A2_realavg_D + A2_realavg_C - 6*A2_realavg_R + 3*A2_realavg_V;
-  }else if(isospin == 2){
-    pipi_raw = 2*A2_realavg_D - 2*A2_realavg_C;
-  }else error_exit(std::cout << "getRawPiPiCorrFunc only supports isospin 0,2\n");
-
+  pipi_raw = coeffs[0]*fig_corr[0] + coeffs[1]*fig_corr[1] + coeffs[2]*fig_corr[2] + coeffs[3]*fig_corr[3];
   std::cout << "Raw data " << extra_descr << ":\n" << pipi_raw << std::endl;
 }
+
+
+
 
 CPSFIT_END_NAMESPACE
 

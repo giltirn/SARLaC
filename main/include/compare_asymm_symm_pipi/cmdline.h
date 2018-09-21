@@ -62,28 +62,6 @@ struct ComparisonCMDline{
       }
     }
   }
-
-  CMDline toCMDline(const AsymmSymm type) const{
-    CMDline out;
-    if(load_hdf5_data_checkpoint){
-      out.load_hdf5_data_checkpoint = true;
-      out.load_hdf5_data_checkpoint_stub = type == Asymmetric ? load_hdf5_data_checkpoint_asymm_stub : load_hdf5_data_checkpoint_symm_stub;
-    }
-    if(save_hdf5_data_checkpoint){
-      out.save_hdf5_data_checkpoint = true;
-      out.save_hdf5_data_checkpoint_stub = type == Asymmetric ? save_hdf5_data_checkpoint_asymm_stub : save_hdf5_data_checkpoint_symm_stub;
-    }
-    if(load_combined_data){
-      out.load_combined_data = true;
-      out.load_combined_data_file = type == Asymmetric ? load_combined_data_asymm_file : load_combined_data_symm_file;
-    }
-    if(save_combined_data){
-      out.save_combined_data = true;
-      out.save_combined_data_file = type == Asymmetric ? save_combined_data_asymm_file : save_combined_data_symm_file;
-    }
-    out.use_symmetric_quark_momenta = type == Asymmetric ? false : true;
-    return out;    
-  }
   
 };
 

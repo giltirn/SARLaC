@@ -34,12 +34,11 @@ struct PiPiBubbleMapReadPolicy{
 
 template<typename bubbleDataAllMomentaType>
 void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int tsep_pipi, const int Lt,
-		const std::map<int, DataLocationInfo const*> &dinfo_map,
-		const std::vector<threeMomentum> &pion_momenta,
-		const PiPiCorrelatorSelector &corr_select){
+		    const std::map<int, DataLocationInfo const*> &dinfo_map,
+		    const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk){
   PiPiBubbleMapReadPolicy rp_src(tsep_pipi, {0,0,0}, Source, dinfo_map);
   PiPiBubbleMapReadPolicy rp_snk(tsep_pipi, {0,0,0}, Sink, dinfo_map);
-  readPiPiBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, pion_momenta, corr_select);
+  readPiPiBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, proj_src, proj_snk);
 }
 
 //For use in pipi->sigma
@@ -60,13 +59,6 @@ void superJackknifeResample(resampledBubbleDataType &out,
   for(int t=0;t<in.getLt();t++)
     superJackknifeResample(out(t), in(t), idxmap, data_info_map.size(), full_ens_size);
 }
-
-// ,   
-// 	 typename std::enable_if< 
-// 	   std::is_same<resampledBubbleDataType, bubbleDataJack>::value || std::is_same<resampledBubbleDataType, bubbleDataDoubleJack>::value,
-// 	   void
-// 	 >::type
-
 
 template<typename bubbleDataType>
 struct bubbleDataAccessor{
@@ -142,10 +134,11 @@ bubbleDataAllMomentaType combineResampledBubbleAllMomenta(const std::map<DataTag
 
 template<typename resampledBubbleDataAllMomentaType>
 void getPiPiBubble(resampledBubbleDataAllMomentaType &out,
-		   const int Lt, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom,
+		   const int Lt, const int tsep_pipi,
 		   const std::map<DataTag, std::map<int, DataLocationInfo const*> > &data_info_map, const int full_ens_size,
-		   const PiPiProjector proj_src = PiPiProjector::A1, const PiPiProjector proj_snk = PiPiProjector::A1){
-  PiPiCorrelatorBasicSelector corr_select(proj_src, proj_snk,PiPiMomAllowed::All,{0,0,0});
+		   const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111){
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
 
   std::vector<DataTag> loop_tags = { DataTag::AsymmOnly, DataTag::AsymmCorr, DataTag::SymmCorr, DataTag::SymmOnly };
 
@@ -153,7 +146,7 @@ void getPiPiBubble(resampledBubbleDataAllMomentaType &out,
   for(auto dtag = loop_tags.begin(); dtag != loop_tags.end(); dtag++){
     const auto &subens = data_info_map.find(*dtag)->second;
     bubbleDataAllMomenta raw;
-    readPiPiBubble(raw, tsep_pipi, Lt, subens, pion_mom, corr_select);
+    readPiPiBubble(raw, tsep_pipi, Lt, subens, *proj_src, *proj_snk);
 
     sjack[*dtag].setup(Lt,tsep_pipi,full_ens_size);
     for(auto it = raw.begin(); it != raw.end(); it++)

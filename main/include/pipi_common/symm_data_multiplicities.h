@@ -228,35 +228,7 @@ struct AvailCorr{
   AvailCorr(typename hashMapType::const_iterator it, int p, int a, int r): it(it), p(p), a(a), r(r){}
 };
 
-struct PiPiMomSelectSymmetrySubset: public PiPiCorrelatorSelector{
-  std::unordered_map<ConMomentum, double, ConMomentumHasher> multiplicities;
-  threeMomentum p_tot;
 
-  PiPiMomSelectSymmetrySubset(const threeMomentum &p_tot): p_tot(p_tot){};
-
-  inline void incrementMultiplicity(const ConMomentum &cm, const double by){
-    auto it = multiplicities.find(cm);
-    if(it == multiplicities.end()) multiplicities[cm] = by;
-    else it->second = it->second + by;
-  }
-
-  bool operator()(double &coeff, const threeMomentum &p1src, const threeMomentum &p1snk) const{
-    ConMomentum cm(p1src, p1snk, p_tot);
-    auto it = multiplicities.find(cm);
-    if(it != multiplicities.end()){
-      coeff = it->second;
-      return true;
-    }else{
-      return false;
-    }
-  }
-};
-
-std::ostream & operator<<(std::ostream &os, const PiPiMomSelectSymmetrySubset &f){
-  for(auto it = f.multiplicities.begin(); it != f.multiplicities.end(); it++)
-    os << it->first << " : " << it->second << std::endl;
-  return os;
-}
 
 
 struct PiPiSymmetrySubset{
@@ -326,107 +298,12 @@ struct PiPiSymmetrySubset{
     error_exit(std::cout << "PiPiSymmetrySubset::findPartnerInAvailableCorrs Could not find partner for correlator " << cmom << " among those available\n");
   }
 
-  PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProject &proj_src, const PiPiProject &proj_snk, const PiPiMomAllow &allow) const{
-    int np = pimom.size();
-
-    struct threeMomentumHasher{
-      size_t operator()(const threeMomentum &p) const{ return boost::hash_value(p); }
-    };    
-    std::unordered_set<threeMomentum, threeMomentumHasher> pimoms; 
-    for(int i=0; i<np; i++) pimoms.insert(pimom[i]);
-    
-    PiPiMomSelectSymmetrySubset out(p_tot);
-    
-    std::complex<double> csrc, csnk;
-    double m;
-
-    int nproj1 = 0, nproj2 = 0, nallow = 0;
-    bool first_i_allowed = true;
-    for(int i=0;i<np;i++){
-      if(!proj_src(csrc, pimom[i])) continue;
-      nproj1++;
-      for(int j=0;j<np;j++){
-	if(!proj_snk(csnk, pimom[j])) continue;
-	if(first_i_allowed) nproj2++;
-
-	if(!allow(m,pimom[i],pimom[j])) continue;
-	nallow++;
-	
-	ConMomentum want(pimom[i],  pimom[j], p_tot);
-	if(pimoms.count(want.pi2_src) == 0 || pimoms.count(want.pi2_snk) == 0) continue; //all momenta must be in the set 
-	AvailCorr avail = findPartnerInAvailableCorrs(want);
-	
-	std::cout << "Found match to " << want << " : " << *avail.it << " by symms p=" << avail.p << " a=" << avail.a << " r=" << avail.r << std::endl;
-	out.incrementMultiplicity(*avail.it, std::real(csrc * csnk)*m );
-      }
-      first_i_allowed = false;
-    }
-    std::cout << nproj1 << " pion momenta in src projection, " << nproj2 << " in snk projection, " << nallow << " combinations demanded\n"; 
-
-    std::cout << "(Non-zero) projection coefficients are:\n";
-    for(int i=0;i<np;i++){
-      for(int j=0;j<np;j++){
-	double coeff;
-	if(out(coeff, pimom[i],pimom[j])){
-	  std::cout << "p1src = " << pimom[i] << " p1snk = " << pimom[j] << " coeff = " << coeff << std::endl;
-	}
-      }
-    }  
-    return out;
-  }
-  
-  //Factory version
-  inline PiPiMomSelectSymmetrySubset createSelector(const std::vector<threeMomentum> &pimom, const threeMomentum &p_tot, const PiPiProjector proj_src, const PiPiProjector proj_snk, const PiPiMomAllowed allow){
-    std::unique_ptr<PiPiProject> prjsrc( getProjector(proj_src, p_tot) );
-    std::unique_ptr<PiPiProject> prjsnk( getProjector(proj_snk, -p_tot) );
-    std::unique_ptr<PiPiMomAllow> allw( getMomPairFilter(allow, p_tot) );
-    return createSelector(pimom, p_tot, *prjsrc, *prjsnk, *allw);
-  }
-
   PiPiSymmetrySubset(){}
 
   PiPiSymmetrySubset(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
 		     const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot){
     findAvailableCorrs(dir,file_fmt,traj_start,tsep_pipi,p_pi,p_tot);
   }
-
-  //Test the code for all the momenta used in the extended measurement proposal
-  void test() const{
-    std::vector<threeMomentum> ptot = {
-      {0,0,0}, 
-      {2,0,0}, {0,2,0}, {0,0,2},
-      {2,2,0}, {2,0,2}, {0,2,2},
-      {-2,2,0}, {-2,0,2}, {0,-2,2},
-      {2,2,2}, 
-      {-2,2,2}, {2,-2,2}, {2,2,-2}
-    };
-
-    PiPiProjectSolo proj_all;
-    PiPiMomAllowAll allow_all;
-
-    for(int set=0;set<2;set++){
-      std::vector<threeMomentum> pimom;
-      if(set == 0 || set == 2){
-	pimom = { {1,1,1}, {-1,1,1}, {1,-1,1}, {1,1,-1},
-		  {-1,-1,-1}, {1,-1,-1}, {-1,1,-1}, {-1,-1,1} };
-      }
-      if(set == 1 || set == 2){
-	std::vector<threeMomentum> pimom_base = { {3,1,1}, {-3,1,1}, {3,-1,1}, {3,1,-1},
-						  {-3,-1,-1}, {3,-1,-1}, {-3,1,-1}, {-3,-1,1} };
-	for(int n=0;n<3;n++) //cyclic permutation amount
-	  for(int i=0;i<8;i++)
-	    pimom.push_back(cyclicPermute(n, pimom_base[i]));      
-      }
-
-      for(int p=0;p<ptot.size();p++){
-	std::cout << "Doing set " << set << " ptot " << ptot[p] << std::endl;
-	auto f = createSelector(pimom, ptot[p], proj_all, proj_all, allow_all);
-	std::cout << f << std::endl;
-      }
-    }
-  }
-
-
 };
 
 

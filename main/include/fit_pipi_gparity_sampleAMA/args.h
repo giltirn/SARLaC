@@ -11,7 +11,6 @@
   ( int, tstep_pipi) \
   ( PiPiProjector, proj_src ) \
   ( PiPiProjector, proj_snk ) \
-  ( PiPiMomAllowed, allowed_mom ) \
   ( int, isospin )		  \
   ( bool, do_vacuum_subtraction ) \
   ( PiPiFitFunction, fitfunc) \
@@ -31,7 +30,7 @@
 struct ArgsSampleAMA{
   GENERATE_MEMBERS(ARGS_SAMPLEAMA_MEMBERS)
 
-  ArgsSampleAMA(): data_dir_S("data_S"), data_dir_C("data_C"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_inc(1), Ascale(1e13), Cscale(1e13), fitfunc(PiPiFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), traj_start_S(0), traj_lessthan_S(2), traj_start_C(0), traj_lessthan_C(2), proj_src(PiPiProjector::A1), proj_snk(PiPiProjector::A1), allowed_mom(PiPiMomAllowed::All), isospin(0)  {}
+  ArgsSampleAMA(): data_dir_S("data_S"), data_dir_C("data_C"), Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_inc(1), Ascale(1e13), Cscale(1e13), fitfunc(PiPiFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), traj_start_S(0), traj_lessthan_S(2), traj_start_C(0), traj_lessthan_C(2), proj_src(PiPiProjector::A1momSet111), proj_snk(PiPiProjector::A1momSet111), isospin(0)  {}
 
   inline const std::string & data_dir(const char ens) const{ return ens == 'S' ? data_dir_S :  data_dir_C; };
 

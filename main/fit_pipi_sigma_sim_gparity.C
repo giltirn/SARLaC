@@ -45,7 +45,7 @@ int main(const int argc, const char* argv[]){
 	     args.data_dir, 
 	     args.pipi2pt_figure_file_fmt, args.sigma2pt_file_fmt, args.pipitosigma_file_fmt,
 	     args.pipi_bubble_file_fmt, args.sigma_bubble_file_fmt,
-	     args.tsep_pipi, pion_mom, args.tstep_pipi2pt, args.tstep_pipitosigma,
+	     args.tsep_pipi, args.tstep_pipi2pt, args.tstep_pipitosigma,
 	     args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, !cmdline.use_pipitosigma_disconn_complex_prod);
   }
 
