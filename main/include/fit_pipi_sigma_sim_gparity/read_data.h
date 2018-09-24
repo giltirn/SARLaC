@@ -75,11 +75,9 @@ void readData(rawCorrelationFunction &pipi_raw,
   readReconstructPiPiToSigmaWithDisconnAllTsrcOptions opt;
   opt.compute_disconn_ReRe = compute_pipitosigma_disconn_ReRe;
 
-  std::vector<threeMomentum> pion_mom({  {1,1,1}, {-1,1,1}, {1,-1,1}, {1,1,-1},
-				         {-1,-1,-1}, {1,-1,-1}, {-1,1,-1}, {-1,-1,1} });
-
-  pipi_to_sigma_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(pipitosigma_file_fmt, data_dir, Lt, tstep_pipitosigma, traj_start, traj_inc, traj_lessthan,
-								   pion_mom,pipi_self_data_Z, sigma_self_data_Z,
+  PiPiProjectorA1Basis111 proj_pipi;
+  pipi_to_sigma_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(pipitosigma_file_fmt, data_dir, Lt, tstep_pipitosigma, proj_pipi, traj_start, traj_inc, traj_lessthan,
+								   pipi_self_data_Z, sigma_self_data_Z,
 								   opt);
 }
 

@@ -62,11 +62,6 @@ int main(const int argc, const char* argv[]){
     Ground operator pipi 2pt and bubble
     -------------------------------------------*/
 
-  std::vector<threeMomentum> gnd_pion_mom = { {1,1,1}, {-1,-1,-1},
-					  {-1,1,1}, {1,-1,-1},
-					  {1,-1,1}, {-1,1,-1},
-					  {1,1,-1}, {-1,-1,1} };
-
   std::map<SubensTag, std::set<int> > ground_pipi_subsets = getGroundPiPiSubsets(dmap);
   std::map<DataTag, std::map<int, DataLocationInfo const*> > ground_pipi_data_map = getGroundPiPiDataSubsets(ground_pipi_subsets, dmap);
 
@@ -103,7 +98,8 @@ int main(const int argc, const char* argv[]){
   //Do vacuum subtractions
   if(args.do_vacuum_subtraction){
     performPiPi2ptVacuumSubtraction(ground_pipi2pt, ground_pipi2pt, ground_pipi_bub, args.Lt, args.tsep_pipi, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
-    performPiPiToSigmaVacuumSubtraction(pipi_to_sigma, pipi_to_sigma, sigma_bub, ground_pipi_bub, args.Lt, gnd_pion_mom);
+    PiPiProjectorA1Basis111 proj_pipi;
+    performPiPiToSigmaVacuumSubtraction(pipi_to_sigma, pipi_to_sigma, sigma_bub, ground_pipi_bub, args.Lt, proj_pipi);
     performSigma2ptVacuumSubtraction(sigma2pt, sigma2pt, sigma_bub);
   }
 

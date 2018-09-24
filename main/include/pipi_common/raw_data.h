@@ -6,7 +6,7 @@
 
 #include "mom_data_containers.h"
 #include "mom_project.h"
-
+#include "read_data_pipi.h"
 CPSFIT_START_NAMESPACE
 
 void zeroUnmeasuredSourceTimeslices(figureDataAllMomenta &data, const char fig, const int tstep_pipi){

@@ -30,8 +30,9 @@ int main(const int argc, const char* argv[]){
   sigmaSelfContraction sigma_self_data = reIm(sigma_self_data_Z, 0); //copy real part
 
   //Read pipi bubble as complex
+  PiPiProjectorA1Basis111 proj_pipi;
   bubbleDataZ pipi_self_data_Z;
-  getA1projectedSourcePiPiBubble(pipi_self_data_Z, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.tsep_pipi, args.Lt);
+  getProjectedSourcePiPiBubble(pipi_self_data_Z, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.Lt, args.tsep_pipi, proj_pipi);
 
   bubbleData pipi_self_data = reIm(pipi_self_data_Z, 0); //real part
 
@@ -40,7 +41,7 @@ int main(const int argc, const char* argv[]){
   opt.disconn_tstep_src = cmdline.disconn_tstep_src;
   opt.compute_disconn_ReRe = !cmdline.use_disconn_complex_prod;
 
-  rawCorrelationFunction correlator_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(args.data_dir, args.Lt, args.tstep_src, args.traj_start, args.traj_inc, args.traj_lessthan,
+  rawCorrelationFunction correlator_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(args.data_dir, args.Lt, args.tstep_src, proj_pipi, args.traj_start, args.traj_inc, args.traj_lessthan,
 										       pipi_self_data_Z, sigma_self_data_Z,
 										       opt);
 

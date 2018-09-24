@@ -52,18 +52,20 @@ void getPiPiToSigma(resampledCorrFuncType &out, const int Lt, const int tsep_pip
 
   std::map<DataTag, resampledCorrFuncType> sjack;
 
+  PiPiProjectorA1Basis111 proj_pipi;
+
   for(auto dtag = loop_tags.begin(); dtag != loop_tags.end(); dtag++){
     const std::map<int, DataLocationInfo const*> &subens = data_info_map.find(*dtag)->second;
     int nsample_ens = subens.size();
     
     bubbleDataZ raw_pipi_bubble;
-    getA1projectedSourcePiPiBubble(raw_pipi_bubble, Lt, tsep_pipi, subens);
+    getProjectedSourcePiPiBubble(raw_pipi_bubble, Lt, tsep_pipi, proj_pipi, subens);
     
     sigmaSelfContractionZ raw_sigma_bubble;
     readSigmaSelf(raw_sigma_bubble, Lt, subens);
 
     PiPiToSigmaMapReadPolicy rd(subens);
-    rawCorrelationFunction raw_srcavg = readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,raw_pipi_bubble, raw_sigma_bubble);
+    rawCorrelationFunction raw_srcavg = readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src, proj_pipi, raw_pipi_bubble, raw_sigma_bubble);
 
     superJackknifeResample(sjack[*dtag], raw_srcavg, subens, full_ens_size);
   }
@@ -75,9 +77,9 @@ template<typename resampledCorrFuncType, typename resampledSigmaBubbleType, type
 void performPiPiToSigmaVacuumSubtraction(resampledCorrFuncType &out,
 					 const resampledCorrFuncType &in, 
 					 const resampledSigmaBubbleType &sigma_bubble, const resampledPiPiBubbleDataAllMomentaType &pipi_bubble,
-					 const int Lt, const std::vector<threeMomentum> &pion_mom){
+					 const int Lt, const PiPiProjectorBase &proj_pipi){
 
-  auto pipi_srcbub_proj = A1projectSourcePiPiBubble(pipi_bubble, pion_mom);
+  auto pipi_srcbub_proj = projectSourcePiPiBubble(pipi_bubble, proj_pipi);
   auto vacsub = computePiPiToSigmaVacSub(sigma_bubble, pipi_srcbub_proj);
   out = resampledCorrFuncType(Lt, [&](const int t){ return typename resampledCorrFuncType::ElementType(in.coord(t), in.value(t) - vacsub.value(t)); }); 
 }

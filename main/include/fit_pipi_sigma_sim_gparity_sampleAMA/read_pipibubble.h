@@ -44,9 +44,9 @@ void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int tsep_pipi, con
 //For use in pipi->sigma
 //expected ContainerType = bubbleData or bubbleDataZ
 template<typename ContainerType>
-inline void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom, const std::map<int, DataLocationInfo const*> &data_info_map){
+inline void getProjectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const PiPiProjectorBase &proj_pipi, const std::map<int, DataLocationInfo const*> &data_info_map){
   PiPiBubbleMapReadPolicy rp(tsep_pipi, {0,0,0}, Source, data_info_map);
-  getA1projectedSourcePiPiBubble(out,Lt,tsep_pipi,pion_mom, rp);
+  getProjectedSourcePiPiBubble(out,Lt,tsep_pipi,proj_pipi, rp);
 }
 
 template<typename resampledBubbleDataType>

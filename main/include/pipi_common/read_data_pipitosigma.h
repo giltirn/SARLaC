@@ -6,6 +6,7 @@
 
 #include "raw_correlator.h"
 #include "read_data_pipi.h"
+#include "mom_project.h"
 
 CPSFIT_START_NAMESPACE
 
@@ -38,7 +39,7 @@ struct PiPiToSigmaBasicReadPolicy: public PiPiToSigmaGenericReadPolicy{
 
 
 template<typename ReadPolicy>
-void readPiPiToSigma(figureData &raw_data, const int Lt, const ReadPolicy &rd){
+void readPiPiToSigma(figureData &raw_data, const int Lt, const PiPiProjectorBase &proj_pipi, const ReadPolicy &rd){
   std::cout << "Reading pipi->sigma data\n"; boost::timer::auto_cpu_timer t("Read pipi->sigma in %w s\n");
   int nsample = rd.nsample();
 
@@ -51,41 +52,38 @@ void readPiPiToSigma(figureData &raw_data, const int Lt, const ReadPolicy &rd){
 					   {1,1,-3}, {-1,-1,3} };
 
   
-  std::vector<threeMomentum> pion_mom = { {2,2,2}, {-2,-2,-2},
-					  {-2,2,2}, {2,-2,-2},
-					  {2,-2,2}, {-2,2,-2},
-					  {2,2,-2}, {-2,-2,2} };
-
   figureData tmp_raw_data(Lt,nsample);
 
-  for(int ppiidx = 0 ; ppiidx < 8 ; ppiidx++){
+  for(int ppiidx = 0 ; ppiidx < proj_pipi.nMomenta() ; ppiidx++){
+    threeMomentum ppi = proj_pipi.momentum(ppiidx) * 2; //Tianle's conventions for the pion energy are in units of pi/2L     
+    double pipi_coeff = std::real(proj_pipi.coefficient(ppiidx));    
+
     for(int psigqidx = 0 ; psigqidx < 8 ; psigqidx++){
 #pragma omp parallel for
       for(int sample=0; sample < nsample; sample++){
-	std::string filename = rd.filename(sample, quark_mom[psigqidx], pion_mom[ppiidx]);
+	std::string filename = rd.filename(sample, quark_mom[psigqidx], ppi);
 	std::cout << "Parsing " << filename << std::endl;
 	tmp_raw_data.parseCDR(filename, sample);
       }
 
-      raw_data = raw_data + tmp_raw_data;
+      raw_data = raw_data + 1./8 * pipi_coeff*tmp_raw_data;
     }
   }
-  
-  raw_data = raw_data/64.;
 }
 
-void readPiPiToSigma(figureData &raw_data, const std::string &data_dir, const int Lt,
+void readPiPiToSigma(figureData &raw_data, const std::string &data_dir, const int Lt, const PiPiProjectorBase &proj_pipi,
 		     const int traj_start, const int traj_inc, const int traj_lessthan){ 
   PiPiToSigmaBasicReadPolicy rd(data_dir, traj_start, traj_inc, traj_lessthan);
-  readPiPiToSigma(raw_data, Lt, rd);
+  readPiPiToSigma(raw_data, Lt, proj_pipi, rd);
 }
-void readPiPiToSigma(figureData &raw_data, const std::string &file_fmt, const std::string &data_dir, const int Lt,
+void readPiPiToSigma(figureData &raw_data, const std::string &file_fmt, const std::string &data_dir, const int Lt, const PiPiProjectorBase &proj_pipi,
 		     const int traj_start, const int traj_inc, const int traj_lessthan){ 
   PiPiToSigmaGenericReadPolicy rd(file_fmt, data_dir, traj_start, traj_inc, traj_lessthan);
-  readPiPiToSigma(raw_data, Lt, rd);
+  readPiPiToSigma(raw_data, Lt, proj_pipi, rd);
 }
 
 //Construct disconnected part from  Re(  pipi_buble * sigma_bubble ) as we did in the parallel calculation
+//pipi_self_data_Z should be pre-projected
 void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z){
   const int Lt = pipi_self_data_Z.getLt();
   assert(sigma_self_data_Z.getLt() == Lt);
@@ -105,7 +103,8 @@ void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleDataZ &
   }
 }
 
-//Compute the disconnected part from Re( pipi_bubble ) * Re (sigma_bubble)   - this may have better statistical error
+//Compute the disconnected part from Re( pipi_bubble ) * Re (sigma_bubble)   - this has a slightly better statistical error than the above
+//pipi_self_data should be pre-projected
 void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleData &pipi_self_data, const sigmaSelfContraction &sigma_self_data){
   const int Lt = pipi_self_data.getLt();
   assert(sigma_self_data.getLt() == Lt);
@@ -155,9 +154,10 @@ struct readReconstructPiPiToSigmaWithDisconnAllTsrcOptions{
 };
 
 //Combine above, reading the pipi->sigma data and reconstructing the disconnected component for all tsrc
+//pipi_self_data_Z should be pre-projected
 template<typename ReadPolicy>
 rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPolicy &rp,
-								    const int Lt, const int tstep_src,
+								    const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
 
@@ -166,7 +166,7 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPo
 
   //Get pipi->sigma data
   figureData pipitosigma_data;
-  readPiPiToSigma(pipitosigma_data, Lt, rp);
+  readPiPiToSigma(pipitosigma_data, Lt, proj_pipi, rp);
   
   //Reconstruct disconnected and connected part
   figureData pipitosigma_disconn_data_ReZZ;
@@ -202,84 +202,88 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPo
   return correlator_raw;
 }
 
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src,
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const int traj_start, const int traj_inc, const int traj_lessthan,
 								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
   PiPiToSigmaBasicReadPolicy rd(data_dir, traj_start, traj_inc, traj_lessthan);
-  return readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,  pipi_self_data_Z, sigma_self_data_Z, opt);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,  proj_pipi, pipi_self_data_Z, sigma_self_data_Z, opt);
 }
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src,
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const int traj_start, const int traj_inc, const int traj_lessthan,
 								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
   PiPiToSigmaGenericReadPolicy rd(file_fmt, data_dir, traj_start, traj_inc, traj_lessthan);
-  return readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,  pipi_self_data_Z, sigma_self_data_Z, opt);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,  proj_pipi, pipi_self_data_Z, sigma_self_data_Z, opt);
 }
 
 
 //Averages over pion momenta to produce a rotationally invariant state
+template<typename RealOrComplex>
+struct _getReOrZ{
+  static inline double get(const std::complex<double> &val){ return std::real(val); }
+};
+template<typename T>
+struct _getReOrZ<std::complex<T> >{
+  static inline std::complex<double> get(const std::complex<double> &val){ return val; }
+};
+template<typename BubbleDataType>
+struct projectSourcePiPiBubble_getCoeff{
+  typedef typename BubbleDataType::DistributionType::DataType DataType;
+  static inline auto getCoeff(const std::complex<double> &val)->decltype(_getReOrZ<DataType>::get(val)){ return _getReOrZ<DataType>::get(val); }
+};
+
 template<typename AllMomentaContainerType>
-typename AllMomentaContainerType::ContainerType A1projectSourcePiPiBubble(const AllMomentaContainerType &pipi_self_data, const std::vector<threeMomentum> &pion_mom){
+typename AllMomentaContainerType::ContainerType projectSourcePiPiBubble(const AllMomentaContainerType &pipi_self_data, const PiPiProjectorBase &proj_pipi){
   int nsample_raw = pipi_self_data.getNsample();
   int Lt = pipi_self_data.getLt();
   int tsep_pipi = pipi_self_data.getTsepPiPi();
-  typename AllMomentaContainerType::ContainerType out(Source,Lt,tsep_pipi,nsample_raw);
+  typedef typename AllMomentaContainerType::ContainerType OutType;
+  OutType out(Source,Lt,tsep_pipi,nsample_raw);
   out.zero();
 
   for(int t=0;t<Lt;t++)
-    for(int p=0;p<pion_mom.size();p++)
-      out(t) = out(t) + pipi_self_data(Source,pion_mom[p])(t)/double(pion_mom.size()); //A1 project
+    for(int p=0;p<proj_pipi.nMomenta();p++)
+      out(t) = out(t) + projectSourcePiPiBubble_getCoeff<OutType>::getCoeff(proj_pipi.coefficient(p)) * pipi_self_data(Source,proj_pipi.momentum(p))(t);
   
   return out;
 }
 
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src,
-								    const int traj_start, const int traj_inc, const int traj_lessthan,
-								    const std::vector<threeMomentum> &pion_mom,
+//This version does the pipi projection
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
+								    const int traj_start, const int traj_inc, const int traj_lessthan,								    
 								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
-  bubbleDataZ pipi_self_A1_Z = A1projectSourcePiPiBubble(pipi_self_data_Z, pion_mom);
-  return readReconstructPiPiToSigmaWithDisconnAllTsrc(data_dir, Lt, tstep_src, traj_start, traj_inc, traj_lessthan, pipi_self_A1_Z, sigma_self_data_Z, opt);
+  bubbleDataZ pipi_self_proj_Z = projectSourcePiPiBubble(pipi_self_data_Z, proj_pipi);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(data_dir, Lt, tstep_src, proj_pipi, traj_start, traj_inc, traj_lessthan, pipi_self_proj_Z, sigma_self_data_Z, opt);
 }
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src,
-								    const int traj_start, const int traj_inc, const int traj_lessthan,
-								    const std::vector<threeMomentum> &pion_mom,
+rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
+								    const int traj_start, const int traj_inc, const int traj_lessthan,								    
 								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
-  bubbleDataZ pipi_self_A1_Z = A1projectSourcePiPiBubble(pipi_self_data_Z, pion_mom);
-  return readReconstructPiPiToSigmaWithDisconnAllTsrc(file_fmt, data_dir, Lt, tstep_src, traj_start, traj_inc, traj_lessthan, pipi_self_A1_Z, sigma_self_data_Z, opt);
+  bubbleDataZ pipi_self_proj_Z = projectSourcePiPiBubble(pipi_self_data_Z, proj_pipi);
+  return readReconstructPiPiToSigmaWithDisconnAllTsrc(file_fmt, data_dir, Lt, tstep_src, proj_pipi, traj_start, traj_inc, traj_lessthan, pipi_self_proj_Z, sigma_self_data_Z, opt);
 }
 
-
+//Read and project pipi bubble
 template<typename ContainerType, typename ReadPolicy>
-void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const std::vector<threeMomentum> &pion_mom, const ReadPolicy &rp){
+void getProjectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const PiPiProjectorBase &proj_pipi, const ReadPolicy &rp){
   out.setup(Source, Lt, tsep_pipi, rp.nsample());
   out.zero();
   
   ContainerType temp(Source, Lt, tsep_pipi, rp.nsample());
-  for(int p=0;p<pion_mom.size();p++){
-    readPiPiBubble(temp, Lt, pion_mom[p], rp);
-    for(int t=0;t<Lt;t++) out(t) = out(t) + temp(t) * (1./pion_mom.size());
+  for(int p=0;p<proj_pipi.nMomenta();p++){
+    readPiPiBubble(temp, Lt, proj_pipi.momentum(p), rp);
+    for(int t=0;t<Lt;t++) out(t) = out(t) + projectSourcePiPiBubble_getCoeff<ContainerType>::getCoeff(proj_pipi.coefficient(p)) * temp(t);
   }
 }
 
-
-template<typename ContainerType, typename ReadPolicy>
-inline void getA1projectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const ReadPolicy &rp){
-  std::vector<threeMomentum> pion_mom = { {1,1,1}, {-1,-1,-1},
-					  {-1,1,1}, {1,-1,-1},
-					  {1,-1,1}, {-1,1,-1},
-					  {1,1,-1}, {-1,-1,1} };
-  getA1projectedSourcePiPiBubble(out, Lt, tsep_pipi, pion_mom, rp);
-}
-
-
 template<typename ContainerType>
-void getA1projectedSourcePiPiBubble(ContainerType &out, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int tsep_pipi, const int Lt){
+void getProjectedSourcePiPiBubble(ContainerType &out, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, 
+				  const int Lt, const int tsep_pipi,  const PiPiProjectorBase &proj_pipi){
   readBubbleStationaryPolicy fp(false,Source);
   PiPiBubbleBasicReadPolicy<readBubbleStationaryPolicy> rp(fp, data_dir, traj_start, traj_inc, traj_lessthan, tsep_pipi);
-  getA1projectedSourcePiPiBubble(out, Lt, tsep_pipi, rp);
+  getProjectedSourcePiPiBubble(out, Lt, tsep_pipi, proj_pipi, rp);
 }
 
 CPSFIT_END_NAMESPACE
