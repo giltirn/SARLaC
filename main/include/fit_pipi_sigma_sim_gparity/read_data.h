@@ -12,55 +12,6 @@
 
 CPSFIT_START_NAMESPACE
 
-void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
-		 const std::string &data_dir, 
-		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
-		 const int tsep_pipi, const int tstep_pipi, const int Lt,
-		 const int traj_start, const int traj_inc, const int traj_lessthan, 
-		 const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111, const int isospin = 0){
-  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
-  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
-    
-  //Read C, D, R diagrams
-  PiPiSymmetrySubsetFigureFileMapping ffn(data_dir, figure_file_fmt, traj_start, tsep_pipi, getSrcSnkMomentumSet(*proj_src, *proj_snk), {0,0,0});
-  figureDataAllMomenta raw_data;
-  char figs[3] = {'C','D','R'};
-
-  for(int f=0;f<3;f++){
-    readPiPi2ptFigure(raw_data, figs[f], data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, *proj_src, *proj_snk,  ffn);
-    zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
-  }
-
-  bubbleFilenamePolicyGeneric bpsrc(bubble_file_fmt, {0,0,0}, Source);
-  bubbleFilenamePolicyGeneric bpsnk(bubble_file_fmt, {0,0,0}, Sink);
-
-  readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, bpsrc, bpsnk, *proj_src, *proj_snk);
-
-  //Compute V diagram using the real part of the bubble
-  bubbleDataAllMomenta raw_bubble_data_real = reIm(raw_bubble_data, 0);
-
-  computePiPi2ptFigureV(raw_data, raw_bubble_data_real, tsep_pipi, *proj_src, *proj_snk);
-
-  //Combine diagrams to construct raw correlator
-  getRawPiPiCorrFunc(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, 1);
-}
-
-
-
-inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
-			const std::string &data_dir, 
-			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
-			const int tsep_pipi, const int tstep_pipi, const int Lt,
-			const int traj_start, const int traj_inc, const int traj_lessthan,
-			const PiPiProjector proj_src = PiPiProjector::A1momSet111, const PiPiProjector proj_snk = PiPiProjector::A1momSet111, const int isospin = 0){
-  bubbleDataAllMomentaZ raw_bubble_data_Z;
-  readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
-	      traj_start, traj_inc, traj_lessthan, proj_src, proj_snk, isospin);
-  raw_bubble_data = reIm(raw_bubble_data_Z, 0);
-}
-
-
-
 void writeCheckpoint(const std::string &file, 
 		     const rawCorrelationFunction &pipi_raw,
 		     const rawCorrelationFunction &pipi_to_sigma_raw,

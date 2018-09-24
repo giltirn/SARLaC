@@ -7,6 +7,8 @@
 #include "mom_data_containers.h"
 #include "mom_project.h"
 #include "raw_data.h"
+#include "symm_data_multiplicities.h"
+#include "read_data_pipi.h"
 
 CPSFIT_START_NAMESPACE
 
@@ -86,7 +88,37 @@ void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMom
   std::cout << "Raw data " << extra_descr << ":\n" << pipi_raw << std::endl;
 }
 
+//Read zero total momentum pipi 2pt data 
+void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
+		 const std::string &data_dir, 
+		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
+		 const int tsep_pipi, const int tstep_pipi, const int Lt,
+		 const int traj_start, const int traj_inc, const int traj_lessthan, 
+		 const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111, const int isospin = 0){
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
+  PiPiSymmetrySubsetFigureFileMapping ffn(data_dir, figure_file_fmt, traj_start, tsep_pipi, getSrcSnkMomentumSet(*proj_src, *proj_snk), {0,0,0});
+  bubbleFilenamePolicyGeneric bfn_src(bubble_file_fmt, {0,0,0}, Source);
+  bubbleFilenamePolicyGeneric bfn_snk(bubble_file_fmt, {0,0,0}, Sink);
+  
+  figureDataAllMomenta raw_data;
+  readRawPiPi2ptData(raw_data, raw_bubble_data, ffn, bfn_src, bfn_snk, data_dir, traj_start, traj_inc, traj_lessthan, Lt, tstep_pipi, tsep_pipi, *proj_src, *proj_snk);
 
+  //Combine diagrams to construct raw correlator
+  getRawPiPiCorrFunc(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, 1, "", false);
+}
+
+inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
+			const std::string &data_dir, 
+			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
+			const int tsep_pipi, const int tstep_pipi, const int Lt,
+			const int traj_start, const int traj_inc, const int traj_lessthan,
+			const PiPiProjector proj_src = PiPiProjector::A1momSet111, const PiPiProjector proj_snk = PiPiProjector::A1momSet111, const int isospin = 0){
+  bubbleDataAllMomentaZ raw_bubble_data_Z;
+  readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
+	      traj_start, traj_inc, traj_lessthan, proj_src, proj_snk, isospin);
+  raw_bubble_data = reIm(raw_bubble_data_Z, 0);
+}
 
 
 CPSFIT_END_NAMESPACE
