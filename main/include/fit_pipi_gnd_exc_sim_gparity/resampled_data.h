@@ -49,20 +49,20 @@ void generateResampledData(doubleJackCorrelationFunction &dj_data_gnd_gnd, doubl
     read(rd, dj_data_exc_exc, "dj_data_exc_exc");
     read(rd, dj_data_gnd_exc, "dj_data_gnd_exc");
   }else{
-    dj_data_gnd_gnd = binDoubleJackResample(raw_data_gnd_gnd, bin_size);
-    dj_data_exc_exc = binDoubleJackResample(raw_data_exc_exc, bin_size);
-    dj_data_gnd_exc = binDoubleJackResample(raw_data_gnd_exc, bin_size);
+    dj_data_gnd_gnd = binDoubleJackknifeResample(raw_data_gnd_gnd, bin_size);
+    dj_data_exc_exc = binDoubleJackknifeResample(raw_data_exc_exc, bin_size);
+    dj_data_gnd_exc = binDoubleJackknifeResample(raw_data_gnd_exc, bin_size);
   
     //Compute vacuum subtractions
     if(do_vacuum_subtraction){
       std::cout << "Computing vacuum subtractions" << std::endl;
-      doubleJackCorrelationFunction vac_sub_dj = computePiPi2ptVacSub(raw_bubble_gnd_gnd, bin_size, tsep_pipi, pion_mom, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
+      doubleJackCorrelationFunction vac_sub_dj = computePiPi2ptVacSub(raw_bubble_gnd_gnd, bin_size, tsep_pipi, PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
       dj_data_gnd_gnd = dj_data_gnd_gnd - vac_sub_dj;
 
-      vac_sub_dj = computePiPi2ptVacSub(raw_bubble_exc_exc, bin_size, tsep_pipi, pion_mom, PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
+      vac_sub_dj = computePiPi2ptVacSub(raw_bubble_exc_exc, bin_size, tsep_pipi, PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
       dj_data_exc_exc = dj_data_exc_exc - vac_sub_dj;
 
-      vac_sub_dj = computePiPi2ptVacSub(raw_bubble_gnd_exc, bin_size, tsep_pipi, pion_mom, PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
+      vac_sub_dj = computePiPi2ptVacSub(raw_bubble_gnd_exc, bin_size, tsep_pipi, PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
       dj_data_gnd_exc = dj_data_gnd_exc - vac_sub_dj;
     }
 

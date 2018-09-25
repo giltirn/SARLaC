@@ -57,21 +57,36 @@ auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data
   return out;  
 }
 
-bubbleDataDoubleJackAllMomenta binDoubleJackknifeResampleBubble(const bubbleDataAllMomenta &bubbles, const int bin_size){
+doubleJackCorrelationFunction binDoubleJackknifeResample(const rawCorrelationFunction &raw, const int bin_size){
+  return doubleJackCorrelationFunction(raw.size(),
+				       [&](const int t){ 
+					 return typename doubleJackCorrelationFunction::ElementType(t, doubleJackknifeDistributionD(raw.value(t).bin(bin_size)));
+				       }
+				       );
+}
+
+bubbleDataDoubleJackAllMomenta binDoubleJackknifeResample(const bubbleDataAllMomenta &bubbles, const int bin_size){
   int Lt = bubbles.getLt();
   bubbleDataDoubleJackAllMomenta out(Lt, bubbles.getTsepPiPi(), bubbles.getNsample()/bin_size);
 
   for(auto it = bubbles.begin(); it != bubbles.end(); it++){
-    const auto & key = it->first;
-    const typename bubbleDataAllMomenta::ContainerType & raw = it->second;
     for(int t=0;t<Lt;t++)
-      out(key)(t).resample(raw(t).bin(bin_size));
+      out(it->first)(t).resample(it->second(t).bin(bin_size));
   }
   return out;
 }
 
 
+//Vacuum subtraction for p_tot = (0,0,0)
+doubleJackCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, 
+						   const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111){
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
 
+  bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResample(raw, bin_size);
+  doubleJackCorrelationFunction A2_realavg_V_dj = computePiPi2ptFigureVprojectSourceAvg(dj_bubble_data,tsep_pipi,*proj_src,*proj_snk);
+  return doubleJackCorrelationFunction(3. * A2_realavg_V_dj);
+}
 
 
 /*
@@ -134,17 +149,10 @@ doubleJackCorrelationFunction getResampledPiPi2ptData(const PiPiProjectorBase &p
 
   const int nsample = (traj_lessthan - traj_start)/traj_inc/bin_size;
   
-  doubleJackCorrelationFunction pipi_dj(Lt,
-					[&](const int t)
-					{
-					  typename doubleJackCorrelationFunction::ElementType out(t, doubleJackknifeDistributionD(nsample));
-					  out.second.resample(pipi_raw.value(t).bin(bin_size));
-					  return out;
-					}
-					);
-  
+  doubleJackCorrelationFunction pipi_dj = binDoubleJackknifeResample(pipi_raw, bin_size);
+
   if(isospin == 0 && do_vacuum_subtraction){
-    bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResampleBubble(raw_bubble_data, bin_size);
+    bubbleDataDoubleJackAllMomenta dj_bubble_data = binDoubleJackknifeResample(raw_bubble_data, bin_size);
     doubleJackCorrelationFunction A2_realavg_V_dj = computePiPi2ptFigureVprojectSourceAvg(dj_bubble_data,tsep_pipi,proj_src,proj_snk);
     pipi_dj = pipi_dj - 3*A2_realavg_V_dj;
   }

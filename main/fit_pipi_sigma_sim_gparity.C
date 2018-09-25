@@ -10,7 +10,6 @@ using namespace CPSfit;
 #include <fit_pipi_sigma_sim_gparity/args.h>
 #include <fit_pipi_sigma_sim_gparity/cmdline.h>
 #include <fit_pipi_sigma_sim_gparity/read_data.h>
-#include <fit_pipi_sigma_sim_gparity/resampled_correlator.h>
 
 
 int main(const int argc, const char* argv[]){
@@ -28,11 +27,6 @@ int main(const int argc, const char* argv[]){
   }
 
   PiPiSigmaSimCMDline cmdline(argc,argv,2);
-
-  std::vector<threeMomentum> pion_mom = { {1,1,1}, {-1,-1,-1},
-					  {-1,1,1}, {1,-1,-1},
-					  {1,-1,1}, {-1,1,-1},
-					  {1,1,-1}, {-1,-1,1} };
 
   rawCorrelationFunction pipi_raw, pipi_to_sigma_raw, sigma2pt_raw;
   bubbleDataAllMomenta pipi_self_data;
@@ -54,9 +48,9 @@ int main(const int argc, const char* argv[]){
   }
 
   //Get double-jack data
-  doubleJackCorrelationFunction pipi_to_sigma_dj = binDoubleJackResample(pipi_to_sigma_raw, args.bin_size);
-  doubleJackCorrelationFunction sigma2pt_dj = binDoubleJackResample(sigma2pt_raw, args.bin_size);
-  doubleJackCorrelationFunction pipi_dj = binDoubleJackResample(pipi_raw, args.bin_size);
+  doubleJackCorrelationFunction pipi_to_sigma_dj = binDoubleJackknifeResample(pipi_to_sigma_raw, args.bin_size);
+  doubleJackCorrelationFunction sigma2pt_dj = binDoubleJackknifeResample(sigma2pt_raw, args.bin_size);
+  doubleJackCorrelationFunction pipi_dj = binDoubleJackknifeResample(pipi_raw, args.bin_size);
   
   //Compute vacuum subtractions
   if(args.do_vacuum_subtraction){
@@ -71,7 +65,7 @@ int main(const int argc, const char* argv[]){
       sigma2pt_dj = sigma2pt_dj - vac_sub_dj;
     }
     { //Pipi->pipi
-      doubleJackCorrelationFunction vac_sub_dj = computePiPi2ptVacSub(pipi_self_data, args.bin_size, args.tsep_pipi, pion_mom);
+      doubleJackCorrelationFunction vac_sub_dj = computePiPi2ptVacSub(pipi_self_data, args.bin_size, args.tsep_pipi);
       pipi_dj = pipi_dj - vac_sub_dj;
     }
   }

@@ -1,7 +1,6 @@
-#include<pipi_common/simfit_generic.h>
+#include<pipi_common/pipi_common.h>
 
 #include <fit_pipi_sigma_sim_gparity/read_data.h>
-#include <fit_pipi_sigma_sim_gparity/resampled_correlator.h>
 using namespace CPSfit;
 
 #include<fit_pipi_gnd_exc_sim_gparity/args.h>
