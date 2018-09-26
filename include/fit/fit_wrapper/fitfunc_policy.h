@@ -68,7 +68,7 @@ public:
     fitFuncPolicyState(baseFitFunc const* ff, const std::vector<int> &freeze_params, const std::unique_ptr<FitParameterDistribution> &freeze_vals, const int s){
       assert(ff != NULL);
       ff_frz.reset(new fitFunc(*ff));
-      if(freeze_params.size() > 0){
+      if(freeze_params.size() > 0 || freeze_vals){ //latter is needed for when we call freeze with no frozen parameters to allow the fitter to have a properly-setup output parameter type to initialize with
 	assert(freeze_vals);
 	ff_frz->freeze(freeze_params, iterate<FitParameterDistribution>::at(s,*freeze_vals));
       }

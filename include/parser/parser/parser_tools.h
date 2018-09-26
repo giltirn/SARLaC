@@ -58,7 +58,7 @@ namespace parser_tools{
     return x3::error_handler_result::fail;
   }
 
-
+  //Tools for writing various types in the format used by the parser
   template<typename T>
   struct _parser_output_print: public OstreamHook{
     const T &val;
@@ -86,6 +86,7 @@ namespace parser_tools{
     os << (val ? "true" : "false");
   }
 
+  //std::vector
   template<typename T>
   struct _parser_output_print< std::vector<T> >: public OstreamHook{
     const std::vector<T> &val;
@@ -103,6 +104,7 @@ namespace parser_tools{
     }
   };
 
+  //std::array
   template<typename T, size_t N>
   struct _parser_output_print< std::array<T,N> >: public OstreamHook{
     const std::array<T,N> &val;
@@ -120,6 +122,7 @@ namespace parser_tools{
     }
   };
 
+  //std::pair
   template<typename T, typename U>
   struct _parser_output_print< std::pair<T,U> >: public OstreamHook{
     const std::pair<T,U> &val;
@@ -132,6 +135,27 @@ namespace parser_tools{
       os << "}";
     }
   };
+
+  //std::map
+  template<typename T, typename N>
+  struct _parser_output_print< std::map<T,N> >: public OstreamHook{
+    const std::map<T,N> &val;
+    bool in_line;
+    _parser_output_print(const std::map<T,N> &_val, const bool in_line = false): val(_val), in_line(in_line){}
+    void write(std::ostream &os) const{
+      auto last_it = std::next(val.begin(), val.size()-1);
+      os << "{"; if(!in_line) os << std::endl;
+      for(auto it = val.begin(); it != val.end(); it++){
+	parser_output_print(os, it->first);
+	os << " : ";
+	parser_output_print(os, it->second);
+	if(it != last_it) os << ",";
+	if(!in_line) os << std::endl;
+      }
+      os << "}";
+    }
+  };
+
 
   struct tabbing{
     static int & depth(){ static int d=0; return d; }

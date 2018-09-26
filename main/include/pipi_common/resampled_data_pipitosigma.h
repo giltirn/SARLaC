@@ -46,7 +46,14 @@ doubleJackCorrelationFunction computePiPiToSigmaVacSub(const sigmaSelfContractio
   }
   return computePiPiToSigmaVacSub(sigma_self_dj, pipi_self_dj);
 }
-
+inline doubleJackCorrelationFunction computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjectorBase &proj_pipi, const int bin_size){
+  auto proj_bubble = projectSourcePiPiBubble(pipi_self, proj_pipi);
+  return computePiPiToSigmaVacSub(sigma_self, proj_bubble , bin_size);
+}
+inline doubleJackCorrelationFunction computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjector proj_pipi, const int bin_size){
+  std::unique_ptr<PiPiProjectorBase> proj(getProjector(proj_pipi,{0,0,0}));
+  return computePiPiToSigmaVacSub(sigma_self, pipi_self, *proj, bin_size);
+}
 
 template<typename DistributionType>
 correlationFunction<double, DistributionType> foldPiPiToSigma(const correlationFunction<double, DistributionType> &data, const int Lt, const int tsep_pipi){

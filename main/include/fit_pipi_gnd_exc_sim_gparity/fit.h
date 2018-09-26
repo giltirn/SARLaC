@@ -26,6 +26,10 @@ void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDi
     
     if(opt.load_frozen_fit_params)
       readFrozenParams(fit, opt.load_frozen_fit_params_file, nsample, &params.sample(0));
+    else{
+      std::cout << "Inserting default param instance to frozen fitter" << std::endl;
+      fit.freeze({},params); //parameter type size is dynamic, thus for the internals to properly construct a full parameter vector it needs something to copy from even if no freezing is performed
+    }
 
     importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, corr_comb_dj);
 
@@ -45,6 +49,10 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
     return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
   }else if(ffunc == FitFuncType::FSimGenTwoState){
     typedef FitSimGenTwoState FitFunc;
+    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+  }else if(ffunc == FitFuncType::FSimGenThreeState){
+    typedef FitSimGenThreeState FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
     return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
   }else{

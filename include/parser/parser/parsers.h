@@ -206,10 +206,6 @@ namespace parsers{
     static auto const def_ = (inst.parse = parse_def);
     return def_.parse(first, last, context, unused, attr);
   }
-
-
-
-
 };
 
 
