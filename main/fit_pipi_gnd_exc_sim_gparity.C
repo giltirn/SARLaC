@@ -8,7 +8,7 @@ using namespace CPSfit;
 #include<fit_pipi_gnd_exc_sim_gparity/read_data.h>
 #include<fit_pipi_gnd_exc_sim_gparity/resampled_data.h>
 #include<fit_pipi_gnd_exc_sim_gparity/fit.h>
-
+#include<fit_pipi_gnd_exc_sim_gparity/fitfunc.h>
 
 
 int main(const int argc, const char* argv[]){
@@ -27,6 +27,17 @@ int main(const int argc, const char* argv[]){
 
   CMDline cmdline(argc,argv,2);
 
+  std::map< std::pair<std::string,std::string>, SubFitFuncParameterMap > subfit_pmaps;
+  ParamTagIdxMap param_map;
+  Params guess;
+
+  //Setup the fit parameter maps
+  setupParameterMaps(subfit_pmaps, param_map, guess, args.fitfunc, args.Ascale);
+
+  //Write guess template and exit if requested
+  if(cmdline.save_guess_template){ saveGuess(guess, "guess_template.dat"); exit(0); }
+
+  //Get raw data
   bubbleDataAllMomenta raw_bubble_gnd_gnd, raw_bubble_exc_exc, raw_bubble_gnd_exc;
   rawCorrelationFunction raw_data_gnd_gnd, raw_data_exc_exc, raw_data_gnd_exc;
   
@@ -60,57 +71,26 @@ int main(const int argc, const char* argv[]){
 
   int nsample = dj_data_gnd_gnd.value(0).size();
 
-
-  typedef std::unordered_map<std::string, std::string> SubFitFuncParameterMap;
-  typedef std::unordered_map<std::string,size_t> ParamTagIdxMap;
-
-  SubFitFuncParameterMap pipi2pt_gnd_gnd_oneexp_pmap, pipi2pt_exc_exc_oneexp_pmap, pipi2pt_gnd_exc_oneexp_pmap;
-  ParamTagIdxMap param_map;
-
-  typedef taggedValueContainer<double,std::string> Params;
-
-  if(args.fitfunc == FitFuncType::FSimGenOneState){
-    pipi2pt_gnd_gnd_oneexp_pmap = {  {"Asrc","Apipi_gnd"}, {"Asnk", "Apipi_gnd"}, {"E", "Epipi"}, {"Csys", "Cpipi_gnd_gnd"} };
-    pipi2pt_exc_exc_oneexp_pmap = {  {"Asrc","Apipi_exc"}, {"Asnk", "Apipi_exc"}, {"E", "Epipi"}, {"Csys", "Cpipi_exc_exc"} };
-    pipi2pt_gnd_exc_oneexp_pmap = {  {"Asrc","Apipi_gnd"}, {"Asnk", "Apipi_exc"}, {"E", "Epipi"}, {"Csys", "Cpipi_gnd_exc"} };
-    
-    param_map = { {"Apipi_gnd", 0}, {"Apipi_exc", 1},  {"Epipi",2}, {"Cpipi_gnd_gnd", 3}, {"Cpipi_exc_exc", 4},  {"Cpipi_gnd_exc", 5} };
-  }else if(args.fitfunc == FitFuncType::FSimGenTwoState){
-    pipi2pt_gnd_gnd_oneexp_pmap = {  {"Asrc0","Apipi_gnd_0"}, {"Asnk0", "Apipi_gnd_0"}, {"E0", "Epipi"},
-				     {"Asrc1","Apipi_gnd_1"}, {"Asnk1", "Apipi_gnd_1"}, {"E1", "Eexc"},
-				     {"Csys", "Cpipi_gnd_gnd"} };
-
-    pipi2pt_exc_exc_oneexp_pmap = {  {"Asrc0","Apipi_exc_0"}, {"Asnk0", "Apipi_exc_0"}, {"E0", "Epipi"},
-				     {"Asrc1","Apipi_exc_1"}, {"Asnk1", "Apipi_exc_1"}, {"E1", "Eexc"},
-				     {"Csys", "Cpipi_exc_exc"} };
-
-    pipi2pt_gnd_exc_oneexp_pmap = {  {"Asrc0","Apipi_gnd_0"}, {"Asnk0", "Apipi_exc_0"}, {"E0", "Epipi"},
-				     {"Asrc1","Apipi_gnd_1"}, {"Asnk1", "Apipi_exc_1"}, {"E1", "Eexc"},
-				     {"Csys", "Cpipi_gnd_exc"} };
-    
-    param_map = { {"Apipi_gnd_0", 0}, {"Apipi_exc_0", 1},  {"Epipi",2}, 
-		  {"Apipi_gnd_1", 3}, {"Apipi_exc_1", 4},  {"Eexc",5},
-		  {"Cpipi_gnd_gnd", 6}, {"Cpipi_exc_exc", 7},  {"Cpipi_gnd_exc", 8} };
-  }else{
-    assert(0);
-  }
-
-  std::unordered_map< SubFitFuncParameterMap const*, std::string > type_names = { {&pipi2pt_gnd_gnd_oneexp_pmap, "PiPi 2pt gnd/gnd"},
-										  {&pipi2pt_exc_exc_oneexp_pmap, "PiPi 2pt exc/exc"},
-										  {&pipi2pt_gnd_exc_oneexp_pmap, "PiPi 2pt gnd/exc"}  }; //just used for printing input data
-
+  //Put all the data in the same container with appropriate generalized coordinate
   std::cout << "Selecting data in fit range" << std::endl;
   correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
 
-  for(int t=args.t_min;t<=args.t_max;t++)
-    corr_comb_dj.push_back( SimFitCoordGen(t, &pipi2pt_gnd_gnd_oneexp_pmap, 2*args.tsep_pipi), dj_data_gnd_gnd.value(t) );
+  static const std::vector<std::string> op = { "gnd", "exc" };
+  doubleJackCorrelationFunction const* dptrs[] = { &dj_data_gnd_gnd, &dj_data_gnd_exc, &dj_data_exc_exc };
   
-  for(int t=args.t_min;t<=args.t_max;t++)
-    corr_comb_dj.push_back( SimFitCoordGen(t, &pipi2pt_exc_exc_oneexp_pmap, 2*args.tsep_pipi), dj_data_exc_exc.value(t) );
+  std::vector<std::string> vnm; //for printing
 
-  for(int t=args.t_min;t<=args.t_max;t++)
-    corr_comb_dj.push_back( SimFitCoordGen(t, &pipi2pt_gnd_exc_oneexp_pmap, 2*args.tsep_pipi), dj_data_gnd_exc.value(t) );
-
+  int d=0;
+  for(int i=0;i<2;i++){
+    for(int j=i; j<2; j++){
+      std::string nm = op[i] + "/" + op[j];
+      for(int t=args.t_min;t<=args.t_max;t++){
+	corr_comb_dj.push_back( SimFitCoordGen(t, &subfit_pmaps[{op[i],op[j]}], 2*args.tsep_pipi), dptrs[d]->value(t) );
+	vnm.push_back(nm);
+      }
+      d++;
+    }
+  }
 
   correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j(corr_comb_dj.size(), 
     [&](const int i){
@@ -119,41 +99,10 @@ int main(const int argc, const char* argv[]){
 
   std::cout << "Data in fit:" << std::endl;
   for(int i=0;i<corr_comb_j.size();i++){
-    std::cout << type_names[corr_comb_j.coord(i).param_map] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
+    std::cout << vnm[i] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
   }
 
-  std::cout << "Setting up guess" << std::endl;
-
-  Params guess(&param_map);
-  if(args.fitfunc == FitFuncType::FSimGenOneState){
-    guess("Apipi_gnd") = 0.2;
-    guess("Apipi_exc") = 0.2;
-    guess("Epipi") = 0.4;
-    guess("Cpipi_gnd_gnd") = 0;
-    guess("Cpipi_exc_exc") = 0;
-  }else if(args.fitfunc == FitFuncType::FSimGenTwoState){
-    guess("Apipi_gnd_0") = 0.2;
-    guess("Apipi_exc_0") = 0.2;
-    guess("Apipi_gnd_1") = 0.2;
-    guess("Apipi_exc_1") = 0.2;
-    guess("Epipi") = 0.4;
-    guess("Eexc") = 0.7;
-    guess("Cpipi_gnd_gnd") = 0;
-    guess("Cpipi_exc_exc") = 0;
-    guess("Cpipi_gnd_exc") = 0;
-  }
-
-  if(cmdline.load_guess){
-    std::map<std::string,double> gmap;
-    parse(gmap, cmdline.guess_file);
-    for(auto it = param_map.begin(); it != param_map.end(); it++){
-      const auto &tag = it->first;
-      auto git = gmap.find(tag);
-      if(git == gmap.end()) error_exit(std::cout << "In guess file " << cmdline.guess_file << " could not find tag " << tag << std::endl);
-      guess(tag) = git->second;
-    }
-    std::cout << "Loaded guess: " << guess << std::endl;
-  }
+  if(cmdline.load_guess) loadGuess(guess, cmdline.guess_file);
 
   std::cout << "Performing fit" << std::endl;
 
@@ -169,7 +118,15 @@ int main(const int argc, const char* argv[]){
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
       args.Lt, args.Ascale, args.Cscale, opt);
 
-  std::cout << "Params:\n" << params << std::endl;
+  std::cout << "Params:\n";
+  {
+    for(int p=0;p<params.sample(0).size();p++){
+      std::string tag = params.sample(0).tag(p);
+      jackknifeDistributionD tmp;
+      standardIOhelper<jackknifeDistributionD, jackknifeDistribution<Params> >::extractStructEntry(tmp, params, p);
+      std::cout << tag << " = " << tmp << std::endl;
+    }
+  }
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
   

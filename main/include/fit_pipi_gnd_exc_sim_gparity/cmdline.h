@@ -19,6 +19,8 @@ struct CMDline{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
 
+  bool save_guess_template;
+
   CMDline(){
     load_guess = false;
     load_hdf5_data_checkpoint = false;
@@ -26,6 +28,7 @@ struct CMDline{
     load_combined_data = false;
     save_combined_data = false;
     load_frozen_fit_params = false;
+    save_guess_template = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -42,6 +45,9 @@ struct CMDline{
 	load_guess = true;
 	guess_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-save_guess_template"){ //save template for guess file then exit
+	save_guess_template = true;
+	i++;
       }else if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));
 	i+=2;
