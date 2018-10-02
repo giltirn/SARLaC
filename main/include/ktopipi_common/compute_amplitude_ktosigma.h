@@ -8,6 +8,13 @@
 
 CPSFIT_START_NAMESPACE
 
+inline int getDindex(const int idx, const std::map<int,int> &idx_map){
+  auto it = idx_map.find(idx);
+  if(it == idx_map.end()) error_exit(std::cout << "getDindex couldn't find index " << idx << " in map\n");
+  return it->second;
+}
+
+
 template<typename Controls>
 typename Controls::outputType computeKtoSigmaAmplitudeType1_2(const typename Controls::inputType &in){
   Controls controls(in);
@@ -16,7 +23,7 @@ typename Controls::outputType computeKtoSigmaAmplitudeType1_2(const typename Con
 
   for(int t=0;t<controls.size();t++){
 #define A(I) controls.A(I-1,t)
-#define D(IDX,I,G1,J,G2) controls.C(idx_map[IDX],I,G1,J,G2,t)
+#define D(IDX,I,G1,J,G2) controls.C(getDindex(IDX,idx_map),I,G1,J,G2,t)
 
     A(1) = 0.5*D(6, 0, VmA, 1, VpA) -0.5*D(1, 0, VmA, 1, VpA);
     A(2) = 0.5*D(11, 0, VmA, 1, VpA) -0.5*D(8, 0, VmA, 1, VpA);
@@ -45,7 +52,7 @@ typename Controls::outputType computeKtoSigmaAmplitudeType3(const typename Contr
 
   for(int t=0;t<controls.size();t++){
 #define A(I) controls.A(I-1,t)
-#define D(IDX,I,G1,J,G2) controls.C(idx_map[IDX],I,G1,J,G2,t)
+#define D(IDX,I,G1,J,G2) controls.C(getDindex(IDX,idx_map),I,G1,J,G2,t)
 
     A(1) = 0.5*D(2, 0, VmA, 1, VpA) -0.5*D(3, 0, VmA, 1, VpA);
     A(2) = 0.5*D(10, 0, VmA, 1, VpA) -0.5*D(7, 0, VmA, 1, VpA);
@@ -78,11 +85,11 @@ template<typename Controls>
 typename Controls::outputType computeKtoSigmaAmplitudeType4(const typename Controls::inputType &in){
   Controls controls(in);
 
-  static std::map<int,int> idx_map {  {1,0}, {6,1}, {8,2}, {11,3}, {19,4}  };
-
+  static std::map<int,int> idx_map { {4,0}, {5,1}, {9,2}, {12,3}, {13,4}, {15,5}, {17,6}, {20,7}, {22,8} };
+  
   for(int t=0;t<controls.size();t++){
 #define A(I) controls.A(I-1,t)
-#define D(IDX,I,G1,J,G2) controls.C(idx_map[IDX],I,G1,J,G2,t)
+#define D(IDX,I,G1,J,G2) controls.C(getDindex(IDX,idx_map),I,G1,J,G2,t)
 
     A(1) = -0.5*D(5, 0, VmA, 1, VpA) + 0.5*D(4, 0, VmA, 1, VpA);
     A(2) = -0.5*D(12, 0, VmA, 1, VpA) + 0.5*D(9, 0, VmA, 1, VpA);

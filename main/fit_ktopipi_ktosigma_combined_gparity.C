@@ -5,6 +5,8 @@
 #include<fit_ktopipi_ktosigma_combined_gparity/cmdline.h>
 #include<fit_ktopipi_ktosigma_combined_gparity/projfit.h>
 #include<fit_ktopipi_ktosigma_combined_gparity/simfit.h>
+#include<fit_ktopipi_ktosigma_combined_gparity/tianle_compare.h>
+#include<fit_ktopipi_ktosigma_combined_gparity/load_frzparams.h>
 
 using namespace CPSfit;
 
@@ -24,35 +26,11 @@ int main(const int argc, const char* argv[]){
 
   CMDline cmdline(argc,argv,2); 
 
-  jackknifeDistributionD mK;
-  jackknifeDistributionD cK;
-  {
-    std::vector<jackknifeDistributionD> p;
-    readParamsStandard(p,  args.input_params.kaon2pt_fit_result);
-    mK = p[args.input_params.idx_mK];
-    cK = sqrt( p[args.input_params.idx_cK] );
-  }
-
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
-  jackknifeDistributionD E0, E1;
-  NumericSquareMatrix<jackknifeDistributionD> coeffs(2); //row = (0=pipi, 1=sigma)  col = (0=gnd state, 1=exc state)
-  {
-    double scale = sqrt(args.input_params.pipi_sigma_sim_fit_Ascale);
-    std::vector<jackknifeDistributionD> p;
-    readParamsStandard(p, args.input_params.pipi_sigma_sim_fit_result);
-    for(int i=0;i<p.size();i++) assert(p[i].size() == nsample);
-    coeffs(0,0) = p[args.input_params.idx_coeff_pipi_state0] * scale;
-    coeffs(0,1) = p[args.input_params.idx_coeff_pipi_state1] * scale;
-    coeffs(1,0) = p[args.input_params.idx_coeff_sigma_state0] * scale;
-    coeffs(1,1) = p[args.input_params.idx_coeff_sigma_state1] * scale;
-    E0 = p[args.input_params.idx_E0];
-    E1 = p[args.input_params.idx_E1];
-  }
 
-  std::cout << "cK = " << cK << std::endl;
-  std::cout << "mK = " << mK << std::endl;
-  std::cout << "E0 = " << E0 << std::endl;
-  std::cout << "E1 = " << E1 << std::endl;
+  jackknifeDistributionD mK, cK, E0, E1;
+  NumericSquareMatrix<jackknifeDistributionD> coeffs(2); //row = (0=pipi, 1=sigma)  col = (0=gnd state, 1=exc state)
+  if(!cmdline.skip_frzparam_load) loadFrozenParameters(mK, cK, E0, E1, coeffs, args);
 
   std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > ktopipi_A0_all_j(10);
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > ktopipi_A0_all_dj(10);
@@ -98,6 +76,10 @@ int main(const int argc, const char* argv[]){
 		  sigma_bub_quarkmom_proj, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, ks_opts);
 
 
+  if(cmdline.tianle_compare) compareTianle(ktosigma_A0_all_j, ktosigma_A0_all_dj, cmdline.tianle_compare_file);
+
+
+  if(cmdline.skip_frzparam_load) exit(0);
 
   if(!args.do_simfit){
     projectionFit(ktopipi_A0_all_j, ktopipi_A0_all_dj, ktosigma_A0_all_j, ktosigma_A0_all_dj,

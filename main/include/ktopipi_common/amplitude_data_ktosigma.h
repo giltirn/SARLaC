@@ -107,7 +107,7 @@ private:
       std::ostringstream file; file << opt.save_data_checkpoint_stub << "_ktosigma_tsepksigma" << tsep_k_sigma << ".hdf5";
       std::cout << "Saving checkpoint data for tsep_k_sigma = " << tsep_k_sigma << " to " << file.str() << std::endl;
       HDF5writer wr(file.str());
-      for(int i=1;i<=4;i++) write(wr,type_data(i),stringize("type%d",i));
+      for(int i=2;i<=4;i++) write(wr,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -129,7 +129,7 @@ private:
     std::cout << "Computing raw data diagrams prior to multiplying by bubble\n";
     for(int i=2;i<=3;i++) A0_alltK(i) = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(i,type_data(i)); //[Qidx][tK][t]
     A0_type4_alltK_nobub = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(4,type_data(4)); //[Qidx][tK][t]
-    
+
     mix_alltK(3) = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]
     mix4_alltK_nobub = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]
     for(int tK=0;tK<Lt;tK++)
@@ -138,6 +138,31 @@ private:
 	mix4_alltK_nobub({tK,t}) = type_data(4)(tK,t).mix();
       }
     
+    //Print raw data
+    for(int type=2; type<=4; type++){
+      std::cout << "Type " << type << " raw data (no bubble) with tsep_k_sigma=" << tsep_k_sigma << std::endl;
+      const auto &data = type == 4 ? A0_type4_alltK_nobub : A0_alltK(type);
+
+      for(int q=0;q<10;q++){
+	for(int tK=0;tK<Lt;tK++){
+	  for(int t=0;t<tsep_k_sigma;t++){
+	    std::cout << q << " " << tK << " " << t << " " << data({q,tK,t}) << std::endl;
+	  }
+	}
+      }
+    }
+    for(int type=3; type<=4; type++){
+      std::cout << "Mix " << type << " raw data (no bubble) with tsep_k_sigma=" << tsep_k_sigma << std::endl;
+      const auto &data = type == 4 ? mix4_alltK_nobub : mix_alltK(3);
+
+      for(int tK=0;tK<Lt;tK++){
+	for(int t=0;t<tsep_k_sigma;t++){
+	  std::cout << tK << " " << t << " " << data({tK,t}) << std::endl;
+	}
+      }      
+    }
+
+
     printMem("Pre typedata free");
     
     //Data is no longer needed, so free it

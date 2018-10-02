@@ -82,6 +82,61 @@ public:
   inline int Nparams() const{ return nparams; }
 };
 
+
+class FitSimGenThreeState{
+  int nparams;
+public:
+  typedef taggedValueContainer<double,std::string> Params;
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef SimFitCoordGen GeneralizedCoordinate;
+
+  inline const std::string &paramTag(const std::string &pname, const GeneralizedCoordinate &coord) const{ 
+    auto it = coord.param_map->find(pname);
+    if(it == coord.param_map->end()) error_exit(std::cout << "FitSimGenThreeState::paramTag could not find parameter name " << pname << std::endl);
+    return it->second;
+  }
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &x, const ParameterType &p, const Boost &b) const{
+    size_t idx; double v;
+
+#define BOOSTIT(NM)  v = p(idx, paramTag(#NM,x)); auto NM = b(v, idx)
+    BOOSTIT(AK);
+    BOOSTIT(mK);
+    BOOSTIT(Asnk0); //snk op with state 0
+    BOOSTIT(Asnk1); //snk op with state 1
+    BOOSTIT(Asnk2); //snk op with state 2
+    BOOSTIT(E0);
+    BOOSTIT(E1);
+    BOOSTIT(E2);
+    BOOSTIT(M0);
+    BOOSTIT(M1);
+    BOOSTIT(M2);
+#undef BOOSTIT
+    
+    return AK*Asnk0*M0*exp(-E0 * x.tsep_k_snk)*exp( -(mK - E0)*x.t )/sqrt(2.) +
+      AK*Asnk1*M1*exp(-E1 * x.tsep_k_snk)*exp( -(mK - E1)*x.t )/sqrt(2.) +
+      AK*Asnk2*M2*exp(-E2 * x.tsep_k_snk)*exp( -(mK - E2)*x.t )/sqrt(2.);
+  }
+
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double a, const int i){ return a; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d = p;
+    for(int i=0;i<nparams;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  FitSimGenThreeState(const int nparams): nparams(nparams){}
+
+  inline int Nparams() const{ return nparams; }
+};
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif
