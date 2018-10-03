@@ -26,7 +26,7 @@ public:
   typedef MatPlotLibScriptGenerateBase::kwargsType kwargsType;
 
   template<typename Accessor>
-  handleType plotWireframe(const Accessor &data, kwargsType &kwargs){
+  handleType plotWireframe(const Accessor &data, const kwargsType &kwargs){
     std::ostringstream os; os << "wireframe" << wireframe_sets.size();
     wireframe_sets.push_back(Python3DdataContainer());
     wireframe_sets.back().import(data, os.str());
@@ -40,7 +40,7 @@ public:
   }
 
   template<typename Accessor>
-  handleType plotScatter(const Accessor &data, kwargsType &kwargs){
+  handleType plotScatter(const Accessor &data, const kwargsType &kwargs){
     std::ostringstream os; os << "scatter" << scatter_sets.size();
     scatter_sets.push_back(Python3DdataContainer());
     scatter_sets.back().import(data, os.str());

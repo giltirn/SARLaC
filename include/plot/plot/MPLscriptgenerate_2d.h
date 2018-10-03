@@ -46,7 +46,7 @@ public:
   //double dyp(const int)
   //int size()
   template<typename Data>
-  handleType plotData(const Data &data, kwargsType &kwargs, const std::string &tag = ""){
+  handleType plotData(const Data &data, const kwargsType &kwargs, const std::string &tag = ""){
     plotdata_sets.push_back(PythonDataContainer());   
     if(tag == ""){
       std::ostringstream os; os << "dset" << plotdata_sets.size();
@@ -69,7 +69,7 @@ public:
   //double lower(const int i)
   //int size()
   template<typename Band>
-  handleType errorBand(const Band &band, kwargsType &kwargs, const std::string &tag = ""){
+  handleType errorBand(const Band &band, const kwargsType &kwargs, const std::string &tag = ""){
     ploterrorband_sets.push_back(PythonErrorBandContainer());
     if(tag == ""){
       std::ostringstream os; os << "band" << ploterrorband_sets.size();
@@ -91,7 +91,7 @@ public:
   //double y(const int)
   //int size()
   template<typename Data>
-  handleType histogram(const Data &data, kwargsType &kwargs, const std::string &tag = ""){
+  handleType histogram(const Data &data, const kwargsType &kwargs, const std::string &tag = ""){
     plothistogram_sets.push_back(PythonHistogramContainer());
     if(tag == ""){
       std::ostringstream os; os << "histogram" << plothistogram_sets.size();
@@ -159,7 +159,7 @@ public:
     createLegend(kwargs);
   }
   
-  void createLegend(kwargsType &kwargs){
+  void createLegend(kwargsType kwargs){
     if(legends.size() == 0) return;
     assert(leg_handles.size() == legends.size());
     std::vector<std::string> handles_str;

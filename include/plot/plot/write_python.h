@@ -15,7 +15,7 @@ public:
   KWargElem(){}
     
   template<typename T>
-  explicit KWargElem(const T& v){
+  KWargElem(const T& v){
     *this = v;
   }
 
