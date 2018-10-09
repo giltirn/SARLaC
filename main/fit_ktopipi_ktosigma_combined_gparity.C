@@ -86,8 +86,13 @@ int main(const int argc, const char* argv[]){
 		  mK, cK, E0, E1, coeffs, args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated);
 
   }else{
-    simultaneousFit(ktopipi_A0_all_j, ktopipi_A0_all_dj, ktosigma_A0_all_j, ktosigma_A0_all_dj,
-		    mK, cK, E0, E1, coeffs, args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated);
+    if(cmdline.bind_M1){
+      simultaneousFit2state(ktopipi_A0_all_j, ktopipi_A0_all_dj, ktosigma_A0_all_j, ktosigma_A0_all_dj,
+			    mK, cK, E0, E1, coeffs, args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated);
+    }else{
+      simultaneousFit2stateDiffM1(ktopipi_A0_all_j, ktopipi_A0_all_dj, ktosigma_A0_all_j, ktosigma_A0_all_dj,
+				  mK, cK, E0, E1, coeffs, args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated);
+    }
   }
 
   std::cout << "Done" << std::endl;

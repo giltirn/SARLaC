@@ -34,6 +34,8 @@ struct CMDline{
 
   bool skip_frzparam_load; //for testing, just read the data and exit without loading the frozen parameters from the 2pt fits
   
+  bool bind_M1; //for simultaneous fit, choose whether the M1 matrix element is shared "bound" between the two operators or allowed to differ
+
   CMDline(){
     load_ktopipi_data_checkpoint = false;
     save_ktopipi_data_checkpoint = false;
@@ -46,6 +48,7 @@ struct CMDline{
     save_ktosigma_amplitude_data = false;
     tianle_compare = false;
     skip_frzparam_load = false;
+    bind_M1 = true;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -106,6 +109,10 @@ struct CMDline{
 
       }else if(sargv[i] == "-skip_frzparam_load"){
 	skip_frzparam_load = true;
+	i++;
+
+      }else if(sargv[i] == "-unbind_M1"){
+	bind_M1 = false;
 	i++;
 
       }else{
