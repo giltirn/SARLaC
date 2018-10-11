@@ -137,31 +137,6 @@ private:
 	mix_alltK(3)({tK,t}) = type_data(3)(tK,t).mix();
 	mix4_alltK_nobub({tK,t}) = type_data(4)(tK,t).mix();
       }
-    
-    //Print raw data
-    for(int type=2; type<=4; type++){
-      std::cout << "Type " << type << " raw data (no bubble) with tsep_k_sigma=" << tsep_k_sigma << std::endl;
-      const auto &data = type == 4 ? A0_type4_alltK_nobub : A0_alltK(type);
-
-      for(int q=0;q<10;q++){
-	for(int tK=0;tK<Lt;tK++){
-	  for(int t=0;t<tsep_k_sigma;t++){
-	    std::cout << q << " " << tK << " " << t << " " << data({q,tK,t}) << std::endl;
-	  }
-	}
-      }
-    }
-    for(int type=3; type<=4; type++){
-      std::cout << "Mix " << type << " raw data (no bubble) with tsep_k_sigma=" << tsep_k_sigma << std::endl;
-      const auto &data = type == 4 ? mix4_alltK_nobub : mix_alltK(3);
-
-      for(int tK=0;tK<Lt;tK++){
-	for(int t=0;t<tsep_k_sigma;t++){
-	  std::cout << tK << " " << t << " " << data({tK,t}) << std::endl;
-	}
-      }      
-    }
-
 
     printMem("Pre typedata free");
     
