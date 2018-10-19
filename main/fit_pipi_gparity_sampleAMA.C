@@ -121,8 +121,8 @@ void generateData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFun
   resampleCombineData<jackknifeDistributionD>(pipi_j,proj_src,proj_snk, isospin, raw,args,cmdline);
   resampleCombineData<doubleJackknifeDistributionD>(pipi_dj,proj_src,proj_snk, isospin, raw,args,cmdline);
   
-  pipi_j = foldPiPi2pt(pipi_j, args.tsep_pipi);
-  pipi_dj = foldPiPi2pt(pipi_dj, args.tsep_pipi);
+  pipi_j = fold(pipi_j, 2*args.tsep_pipi);
+  pipi_dj = fold(pipi_dj, 2*args.tsep_pipi);
 }
 
 void getData(const PiPiProjectorBase &proj_src,  const PiPiProjectorBase &proj_snk, const int isospin, 

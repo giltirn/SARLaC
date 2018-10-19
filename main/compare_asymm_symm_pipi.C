@@ -43,6 +43,7 @@ int main(const int argc, const char* argv[]){
   CP(save_hdf5_data_checkpoint);    
 #undef CP
   //Get the double-jackknife resampled data
+  jackknifeCorrelationFunction pipi_j_asymm, pipi_j_symm;
   doubleJackCorrelationFunction pipi_dj_asymm, pipi_dj_symm;
   {
     readFigureStationaryPolicy ffn(false);
@@ -51,9 +52,10 @@ int main(const int argc, const char* argv[]){
     opts.load_hdf5_data_checkpoint_stub = cmdline.load_hdf5_data_checkpoint_asymm_stub;
     opts.save_hdf5_data_checkpoint_stub = cmdline.save_hdf5_data_checkpoint_asymm_stub;
 
-    pipi_dj_asymm = getResampledPiPi2ptData(*proj_src,*proj_snk, args.isospin, args.Lt, args.tsep_pipi, args.tstep_pipi, args.do_vacuum_subtraction,
-					    args.data_dir_asymm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
-					    ffn, bfn_src, bfn_snk, "", opts); 
+    getResampledPiPi2ptData(pipi_j_asymm, pipi_dj_asymm,
+			    *proj_src,*proj_snk, args.isospin, args.Lt, args.tsep_pipi, args.tstep_pipi, args.do_vacuum_subtraction,
+			    args.data_dir_asymm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
+			    ffn, bfn_src, bfn_snk, "", opts); 
   }
   {
     readFigureStationaryPolicy ffn(true);
@@ -62,21 +64,12 @@ int main(const int argc, const char* argv[]){
     opts.load_hdf5_data_checkpoint_stub = cmdline.load_hdf5_data_checkpoint_symm_stub;
     opts.save_hdf5_data_checkpoint_stub = cmdline.save_hdf5_data_checkpoint_symm_stub;
 
-    pipi_dj_symm = getResampledPiPi2ptData(*proj_src,*proj_snk, args.isospin, args.Lt, args.tsep_pipi, args.tstep_pipi, args.do_vacuum_subtraction,
-					    args.data_dir_symm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
-					    ffn, bfn_src, bfn_snk, "", opts); 
+    getResampledPiPi2ptData(pipi_j_symm, pipi_dj_symm,
+			    *proj_src,*proj_snk, args.isospin, args.Lt, args.tsep_pipi, args.tstep_pipi, args.do_vacuum_subtraction,
+			    args.data_dir_symm, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
+			    ffn, bfn_src, bfn_snk, "", opts); 
   }
-
-  //Convert to single-jackknife
-  jackknifeCorrelationFunction pipi_j_asymm(pipi_dj_asymm.size(),
-					    [&pipi_dj_asymm](const int i){
-					      return typename jackknifeCorrelationFunction::ElementType(double(pipi_dj_asymm.coord(i)), pipi_dj_asymm.value(i).toJackknife());					      
-					    });
-  jackknifeCorrelationFunction pipi_j_symm(pipi_dj_symm.size(),
-					   [&pipi_dj_symm](const int i){
-					     return typename jackknifeCorrelationFunction::ElementType(double(pipi_dj_symm.coord(i)), pipi_dj_symm.value(i).toJackknife());					      
-					   }); 
-  
+ 
   compareRelativeDifferences(pipi_j_asymm,pipi_j_symm);
   
   std::cout << "Done\n";

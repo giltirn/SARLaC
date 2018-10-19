@@ -48,46 +48,58 @@ int main(const int argc, const char* argv[]){
   }
 
   //Get double-jack data
-  doubleJackCorrelationFunction pipi_to_sigma_dj = binDoubleJackknifeResample(pipi_to_sigma_raw, args.bin_size);
-  doubleJackCorrelationFunction sigma2pt_dj = binDoubleJackknifeResample(sigma2pt_raw, args.bin_size);
-  doubleJackCorrelationFunction pipi_dj = binDoubleJackknifeResample(pipi_raw, args.bin_size);
+  auto pipi_to_sigma_j = binResample<jackknifeCorrelationFunction>(pipi_to_sigma_raw, args.bin_size);
+  auto pipi_to_sigma_dj = binResample<doubleJackCorrelationFunction>(pipi_to_sigma_raw, args.bin_size);
+
+  auto sigma2pt_j = binResample<jackknifeCorrelationFunction>(sigma2pt_raw, args.bin_size);
+  auto sigma2pt_dj = binResample<doubleJackCorrelationFunction>(sigma2pt_raw, args.bin_size);
+
+  auto pipi_j = binResample<jackknifeCorrelationFunction>(pipi_raw, args.bin_size);
+  auto pipi_dj = binResample<doubleJackCorrelationFunction>(pipi_raw, args.bin_size);
   
   //Compute vacuum subtractions
   if(args.do_vacuum_subtraction){
     { //Pipi->sigma
       PiPiProjectorA1Basis111 proj_pipi;
       bubbleData pipi_self_proj = projectSourcePiPiBubble(pipi_self_data, proj_pipi);
-      doubleJackCorrelationFunction vac_sub_dj = computePiPiToSigmaVacSub(sigma_self_data, pipi_self_proj, args.bin_size);
-      pipi_to_sigma_dj = pipi_to_sigma_dj - vac_sub_dj;
+      pipi_to_sigma_j = pipi_to_sigma_j - computePiPiToSigmaVacSub<jackknifeCorrelationFunction>(sigma_self_data, pipi_self_proj, args.bin_size);
+      pipi_to_sigma_dj = pipi_to_sigma_dj - computePiPiToSigmaVacSub<doubleJackCorrelationFunction>(sigma_self_data, pipi_self_proj, args.bin_size);
     }
     { //sigma->sigma
-      doubleJackCorrelationFunction vac_sub_dj = computeSigmaVacSub(sigma_self_data, args.bin_size);
-      sigma2pt_dj = sigma2pt_dj - vac_sub_dj;
+      sigma2pt_j = sigma2pt_j - computeSigmaVacSub<jackknifeCorrelationFunction>(sigma_self_data, args.bin_size);
+      sigma2pt_dj = sigma2pt_dj - computeSigmaVacSub<doubleJackCorrelationFunction>(sigma_self_data, args.bin_size);
     }
     { //Pipi->pipi
-      doubleJackCorrelationFunction vac_sub_dj = computePiPi2ptVacSub(pipi_self_data, args.bin_size, args.tsep_pipi);
-      pipi_dj = pipi_dj - vac_sub_dj;
+      pipi_j = pipi_j - computePiPi2ptVacSub<jackknifeCorrelationFunction>(pipi_self_data, args.bin_size, args.tsep_pipi);
+      pipi_dj = pipi_dj - computePiPi2ptVacSub<doubleJackCorrelationFunction>(pipi_self_data, args.bin_size, args.tsep_pipi);
     }
   }
   
-
   //Fold data
-  pipi_to_sigma_dj = foldPiPiToSigma(pipi_to_sigma_dj, args.Lt, args.tsep_pipi);
-  sigma2pt_dj = foldSigma(sigma2pt_dj, args.Lt);
-  pipi_dj = foldPiPi2pt(pipi_dj, args.tsep_pipi);
+  pipi_to_sigma_j = fold(pipi_to_sigma_j, args.tsep_pipi);
+  pipi_to_sigma_dj = fold(pipi_to_sigma_dj, args.tsep_pipi);
+
+  sigma2pt_j = fold(sigma2pt_j, 0);
+  sigma2pt_dj = fold(sigma2pt_dj, 0);
+
+  pipi_j = fold(pipi_j, 2*args.tsep_pipi);
+  pipi_dj = fold(pipi_dj, 2*args.tsep_pipi);
   
   //Build the combined data set
+  simFitCorrFuncJ corr_comb_j;
   simFitCorrFuncDJ corr_comb_dj;
-  doubleJackCorrelationFunction* dsets[3] = { &pipi_dj, &pipi_to_sigma_dj, &sigma2pt_dj };
+  jackknifeCorrelationFunction const* dsets_j[3] = { &pipi_j, &pipi_to_sigma_j, &sigma2pt_j };
+  doubleJackCorrelationFunction const* dsets_dj[3] = { &pipi_dj, &pipi_to_sigma_dj, &sigma2pt_dj };
+
   SimFitType dtype[3] = { SimFitType::PiPi2pt, SimFitType::PiPiToSigma, SimFitType::Sigma2pt };
   bool dincl[3] = { cmdline.include_pipi_2pt, cmdline.include_pipi_to_sigma, cmdline.include_sigma_2pt };
 
   for(int d=0;d<3;d++)
     if(dincl[d])
-      for(int t=args.t_min; t<=args.t_max; t++) 
-	corr_comb_dj.push_back( simFitCorrFuncDJ::ElementType(  SimFitCoord(dtype[d],t), dsets[d]->value(t) ) );
-  
-  simFitCorrFuncJ corr_comb_j(corr_comb_dj.size(), [&](const int i){ return simFitCorrFuncJ::ElementType(corr_comb_dj.coord(i), corr_comb_dj.value(i).toJackknife()); });
+      for(int t=args.t_min; t<=args.t_max; t++){ 
+	corr_comb_j.push_back(SimFitCoord(dtype[d],t), dsets_j[d]->value(t));
+	corr_comb_dj.push_back(SimFitCoord(dtype[d],t), dsets_dj[d]->value(t));
+      }
 
   std::cout << "Data in fit range:\n";
   for(int i=0;i<corr_comb_j.size();i++){

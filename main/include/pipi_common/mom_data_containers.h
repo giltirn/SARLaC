@@ -117,7 +117,22 @@ struct figureDataAllMomentaExtra{
 };
 
 typedef figureDataAllMomentaBase<figureData, figureDataAllMomentaExtra> figureDataAllMomenta;
+typedef figureDataAllMomentaBase<figureDataJack> figureDataJackAllMomenta;
 typedef figureDataAllMomentaBase<figureDataDoubleJack> figureDataDoubleJackAllMomenta;
+
+template<typename DistributionType>
+struct _figureDataAllMomentaTypeSelector{};
+template<>
+struct _figureDataAllMomentaTypeSelector<rawDataDistributionD>{ typedef figureDataAllMomenta type; };
+template<>
+struct _figureDataAllMomentaTypeSelector<jackknifeDistributionD>{ typedef figureDataJackAllMomenta type; };
+template<>
+struct _figureDataAllMomentaTypeSelector<doubleJackknifeDistributionD>{ typedef figureDataDoubleJackAllMomenta type; };
+
+template<typename DistributionType>
+using figureDataAllMomentaSelect = typename _figureDataAllMomentaTypeSelector<DistributionType>::type;
+
+
 
 
 template<typename _ContainerType,typename Extra=empty_t>
@@ -207,6 +222,23 @@ typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra<bubbleDat
 typedef bubbleDataAllMomentaBase<bubbleDataZ, bubbleDataAllMomentaExtra<bubbleDataZ> > bubbleDataAllMomentaZ;
 typedef bubbleDataAllMomentaBase<bubbleDataJack> bubbleDataJackAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
+
+
+template<typename DistributionType>
+struct _bubbleDataAllMomentaTypeSelector{};
+template<>
+struct _bubbleDataAllMomentaTypeSelector<rawDataDistributionD>{ typedef bubbleDataAllMomenta type; };
+template<>
+struct _bubbleDataAllMomentaTypeSelector<rawDataDistribution<std::complex<double> > >{ typedef bubbleDataAllMomentaZ type; };
+template<>
+struct _bubbleDataAllMomentaTypeSelector<jackknifeDistributionD>{ typedef bubbleDataJackAllMomenta type; };
+template<>
+struct _bubbleDataAllMomentaTypeSelector<doubleJackknifeDistributionD>{ typedef bubbleDataDoubleJackAllMomenta type; };
+
+template<typename DistributionType>
+using bubbleDataAllMomentaSelect = typename _bubbleDataAllMomentaTypeSelector<DistributionType>::type;
+
+
 
 void saveHDF5checkpoint(const figureDataAllMomenta &raw_data, const bubbleDataAllMomenta &raw_bubble_data, const std::string &file){
   (std::cout << "Saving HDF5 data checkpoint\n").flush(); boost::timer::auto_cpu_timer t("Report: Saved HDF5 data checkpoint in %w s\n");

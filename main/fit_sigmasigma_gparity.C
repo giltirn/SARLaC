@@ -31,26 +31,19 @@ int main(const int argc, const char* argv[]){
 
   rawCorrelationFunction correlator_raw = sourceAverage(raw_data);
 
-  doubleJackCorrelationFunction correlator_dj(args.Lt,
-					      [&](const int t){ 
-						return typename doubleJackCorrelationFunction::ElementType(t, doubleJackknifeDistributionD(correlator_raw.value(t).bin(args.bin_size)));
-					      }
-					      );
+  auto correlator_j = binResample<jackknifeCorrelationFunction>(correlator_raw, args.bin_size);
+  auto correlator_dj = binResample<doubleJackCorrelationFunction>(correlator_raw, args.bin_size);
 
   const int nsample = correlator_dj.value(0).size();
 
   if(args.do_vacuum_subtraction){
-    doubleJackCorrelationFunction vac_sub_dj = computeSigmaVacSub(raw_self, args.bin_size);
-    correlator_dj = correlator_dj - vac_sub_dj;
+    correlator_j = correlator_j - computeSigmaVacSub<jackknifeCorrelationFunction>(raw_self, args.bin_size);
+    correlator_dj = correlator_dj - computeSigmaVacSub<doubleJackCorrelationFunction>(raw_self, args.bin_size);
   }
   
-  //Convert to single-jackknife
-  jackknifeCorrelationFunction correlator_j(correlator_dj.size(),
-					    [&correlator_dj](const int i){
-					      return typename jackknifeCorrelationFunction::ElementType(double(correlator_dj.coord(i)), correlator_dj.value(i).toJackknife());
-					    });
-  
-  
+  correlator_j = fold(correlator_j, 0);
+  correlator_dj = fold(correlator_dj, 0);
+
   //Filter out the data that is to be fitted
   filterXrange<double> trange(args.t_min,args.t_max);
   

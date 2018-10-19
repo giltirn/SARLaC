@@ -16,15 +16,11 @@ int main(const int argc, const char* argv[]){
   
   CMDline cmdline(argc,argv,2);
 
-  //Get the double-jackknife resampled data
-  doubleJackCorrelationFunction pipi_dj = getData(args,cmdline);
+  //Resampled data
+  doubleJackCorrelationFunction pipi_dj;
+  jackknifeCorrelationFunction pipi_j;
 
-  //Convert to single-jackknife
-  jackknifeCorrelationFunction pipi_j(pipi_dj.size(),
-				      [&pipi_dj](const int i){
-					return typename jackknifeCorrelationFunction::ElementType(double(pipi_dj.coord(i)), pipi_dj.value(i).toJackknife());
-				      });
-  
+  getData(pipi_j, pipi_dj, args,cmdline);
   
   //Filter out the data that is to be fitted
   const int nsample = pipi_j.value(0).size();

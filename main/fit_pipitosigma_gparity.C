@@ -46,27 +46,18 @@ int main(const int argc, const char* argv[]){
 										       opt);
 
   //Resample data
-  doubleJackCorrelationFunction correlator_dj(args.Lt,
-  					      [&](const int t){ 
-  						return typename doubleJackCorrelationFunction::ElementType(t, doubleJackknifeDistributionD(correlator_raw.value(t).bin(args.bin_size)));
-  					      }
-  					      );
+  auto correlator_j = binResample<jackknifeCorrelationFunction>(correlator_raw, args.bin_size);
+  auto correlator_dj = binResample<doubleJackCorrelationFunction>(correlator_raw, args.bin_size);
 
   const int nsample = correlator_dj.value(0).size();
 
   if(args.do_vacuum_subtraction){
-    doubleJackCorrelationFunction vac_sub_dj = computePiPiToSigmaVacSub(sigma_self_data, pipi_self_data, args.bin_size);
-    correlator_dj = correlator_dj - vac_sub_dj;
+    correlator_j = correlator_j - computePiPiToSigmaVacSub<jackknifeCorrelationFunction>(sigma_self_data, pipi_self_data, args.bin_size);
+    correlator_dj = correlator_dj - computePiPiToSigmaVacSub<doubleJackCorrelationFunction>(sigma_self_data, pipi_self_data, args.bin_size);
   }
-  
-  //Convert to single-jackknife
-  jackknifeCorrelationFunction correlator_j(correlator_dj.size(),
-  					    [&correlator_dj](const int i){
-  					      return typename jackknifeCorrelationFunction::ElementType(double(correlator_dj.coord(i)), correlator_dj.value(i).toJackknife());
-  					    });
 
-  correlator_j = foldPiPiToSigma(correlator_j, args.Lt, args.tsep_pipi);
-  correlator_dj = foldPiPiToSigma(correlator_dj, args.Lt, args.tsep_pipi);
+  correlator_j = fold(correlator_j, args.tsep_pipi);
+  correlator_dj = fold(correlator_dj, args.tsep_pipi);
 
   std::cout << "Resampled data:\n";
   for(int t=0;t<args.Lt;t++) std::cout << t << " " << correlator_j.value(t) << std::endl;

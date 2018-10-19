@@ -137,6 +137,23 @@ typedef bubbleDataBase<rawDataDistribution<std::complex<double> >, bubbleDataPol
 typedef bubbleDataBase<jackknifeDistributionD > bubbleDataJack;
 typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
 
+
+template<typename DistributionType>
+struct _bubbleDataTypeSelector{};
+template<>
+struct _bubbleDataTypeSelector<rawDataDistributionD>{ typedef bubbleData type; };
+template<>
+struct _bubbleDataTypeSelector<rawDataDistribution<std::complex<double> > >{ typedef bubbleDataZ type; };
+template<>
+struct _bubbleDataTypeSelector<jackknifeDistributionD>{ typedef bubbleDataJack type; };
+template<>
+struct _bubbleDataTypeSelector<doubleJackknifeDistributionD>{ typedef bubbleDataDoubleJack type; };
+
+template<typename DistributionType>
+using bubbleDataSelect = typename _bubbleDataTypeSelector<DistributionType>::type;
+
+
+
 inline bubbleData reIm(const bubbleDataZ &in, const int reim){
   bubbleData out(in.getSrcSnk(), in.getLt(), in.getTsepPiPi(), in.getNsample());
   for(int t=0;t<in.getLt();t++)
@@ -329,8 +346,17 @@ typedef figureDataBase<rawDataDistributionD , figureDataPolicies> figureData;
 typedef figureDataBase<doubleJackknifeDistributionD, figureDataDistributionPolicies<doubleJackknifeDistributionD> > figureDataDoubleJack;
 typedef figureDataBase<jackknifeDistributionD, figureDataDistributionPolicies<jackknifeDistributionD> > figureDataJack;
 
+template<typename DistributionType>
+struct _figureDataTypeSelector{};
+template<>
+struct _figureDataTypeSelector<rawDataDistributionD>{ typedef figureData type; };
+template<>
+struct _figureDataTypeSelector<jackknifeDistributionD>{ typedef figureDataJack type; };
+template<>
+struct _figureDataTypeSelector<doubleJackknifeDistributionD>{ typedef figureDataDoubleJack type; };
 
-
+template<typename DistributionType>
+using figureDataSelect = typename _figureDataTypeSelector<DistributionType>::type;
 
 
 template<typename _DistributionType, typename Policies = empty_t>
@@ -419,6 +445,22 @@ typedef sigmaSelfContractionBase<rawDataDistributionD , sigmaSelfContractionPoli
 typedef sigmaSelfContractionBase<rawDataDistribution<std::complex<double> > , sigmaSelfContractionPolicies<std::complex<double>, setValueComplex> > sigmaSelfContractionZ;
 typedef sigmaSelfContractionBase<jackknifeDistributionD> sigmaSelfContractionJack;
 typedef sigmaSelfContractionBase<doubleJackknifeDistributionD> sigmaSelfContractionDoubleJack;
+
+template<typename DistributionType>
+struct _sigmaSelfContractionTypeSelector{};
+template<>
+struct _sigmaSelfContractionTypeSelector<rawDataDistributionD>{ typedef sigmaSelfContraction type; };
+template<>
+struct _sigmaSelfContractionTypeSelector<rawDataDistribution<std::complex<double> > >{ typedef sigmaSelfContractionZ type; };
+template<>
+struct _sigmaSelfContractionTypeSelector<jackknifeDistributionD>{ typedef sigmaSelfContractionJack type; };
+template<>
+struct _sigmaSelfContractionTypeSelector<doubleJackknifeDistributionD>{ typedef sigmaSelfContractionDoubleJack type; };
+
+template<typename DistributionType>
+using sigmaSelfContractionSelect = typename _sigmaSelfContractionTypeSelector<DistributionType>::type;
+
+
 
 
 inline sigmaSelfContraction reIm(const sigmaSelfContractionZ &in, const int reim){

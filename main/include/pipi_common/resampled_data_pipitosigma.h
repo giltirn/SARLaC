@@ -34,36 +34,35 @@ correlationFunction<double, DistributionType> computePiPiToSigmaVacSub(const sig
 }
 
 //Compute double-jackknife vacuum-subtraction from raw data
-doubleJackCorrelationFunction computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleData &pipi_self, const int bin_size){
+template<typename resampledCorrelationFunctionType>
+resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleData &pipi_self, const int bin_size){
   int Lt = sigma_self.getLt(); assert(pipi_self.getLt() == Lt);
   int nsample_raw = sigma_self(0).size(); assert(pipi_self(0).size() == nsample_raw);
   int nsample_binned = nsample_raw/bin_size;
-  sigmaSelfContractionDoubleJack sigma_self_dj(Lt, nsample_binned);
-  bubbleDataDoubleJack pipi_self_dj(Source, Lt, pipi_self.getTsepPiPi(), nsample_binned);
+
+  typedef typename resampledCorrelationFunctionType::DataType DistributionType;
+  typedef sigmaSelfContractionSelect<DistributionType> sigmaSelfContractionType;
+  typedef bubbleDataSelect<DistributionType> pipiSelfContractionType;
+
+  sigmaSelfContractionType sigma_self_r(Lt, nsample_binned);
+  pipiSelfContractionType pipi_self_r(Source, Lt, pipi_self.getTsepPiPi(), nsample_binned);
   for(int t=0;t<Lt;t++){
-    sigma_self_dj(t).resample(sigma_self(t).bin(bin_size));
-    pipi_self_dj(t).resample(pipi_self(t).bin(bin_size));
+    sigma_self_r(t).resample(sigma_self(t).bin(bin_size));
+    pipi_self_r(t).resample(pipi_self(t).bin(bin_size));
   }
-  return computePiPiToSigmaVacSub(sigma_self_dj, pipi_self_dj);
+  return computePiPiToSigmaVacSub(sigma_self_r, pipi_self_r);
 }
-inline doubleJackCorrelationFunction computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjectorBase &proj_pipi, const int bin_size){
+template<typename resampledCorrelationFunctionType>
+inline resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjectorBase &proj_pipi, const int bin_size){
   auto proj_bubble = projectSourcePiPiBubble(pipi_self, proj_pipi);
-  return computePiPiToSigmaVacSub(sigma_self, proj_bubble , bin_size);
+  return computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(sigma_self, proj_bubble , bin_size);
 }
-inline doubleJackCorrelationFunction computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjector proj_pipi, const int bin_size){
+template<typename resampledCorrelationFunctionType>
+inline resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjector proj_pipi, const int bin_size){
   std::unique_ptr<PiPiProjectorBase> proj(getProjector(proj_pipi,{0,0,0}));
-  return computePiPiToSigmaVacSub(sigma_self, pipi_self, *proj, bin_size);
+  return computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(sigma_self, pipi_self, *proj, bin_size);
 }
 
-template<typename DistributionType>
-correlationFunction<double, DistributionType> foldPiPiToSigma(const correlationFunction<double, DistributionType> &data, const int Lt, const int tsep_pipi){
-  correlationFunction<double, DistributionType> out(data);
-  for(int t=0;t<Lt;t++){
-    int tp = (Lt - tsep_pipi - t    + Lt) % Lt;
-    out.value(t) = 0.5*( data.value(t) + data.value(tp) );
-  }
-  return out;
-}
 
 CPSFIT_END_NAMESPACE
 

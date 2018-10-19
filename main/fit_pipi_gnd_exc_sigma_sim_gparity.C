@@ -44,15 +44,20 @@ int main(const int argc, const char* argv[]){
 						args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
 						args.sigma2pt_file_format, args.sigma_bubble_file_format);
 
-  ResampledData data;
-  if(cmdline.load_combined_data) data.loadCheckpoint(cmdline.load_combined_data_file);
-  else data.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction);
-  
-  if(cmdline.save_combined_data) data.saveCheckpoint(cmdline.save_combined_data_file);
+  ResampledData<jackknifeCorrelationFunction> data_j;
+  ResampledData<doubleJackCorrelationFunction> data_dj;
+  if(cmdline.load_combined_data) loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
+  else{
+    data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction);
+    data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction);
+  }  
+
+  if(cmdline.save_combined_data) saveCheckpoint(data_j, data_dj, cmdline.save_combined_data_file);
 
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
 
   //Add resampled data to full data set with generalized coordinate set appropriately
+  correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j;
   correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
   
   std::vector<std::string> vnm; //for printing
@@ -62,19 +67,13 @@ int main(const int argc, const char* argv[]){
     for(int j=i;j<3;j++){
       std::ostringstream nm; nm << ops[i] << " " << ops[j];
       for(int t=args.t_min;t<=args.t_max;t++){
-	corr_comb_dj.push_back( 
-			       SimFitCoordGen(t, &subfit_pmaps[{ops[i],ops[j]}] , foldOffsetMultiplier(ops[i],ops[j])*args.tsep_pipi),
-			       data.correlator(ops[i],ops[j]).value(t) 
-				);
+	SimFitCoordGen coord(t, &subfit_pmaps[{ops[i],ops[j]}] , foldOffsetMultiplier(ops[i],ops[j])*args.tsep_pipi);
+	corr_comb_j.push_back(coord, data_j.correlator(ops[i],ops[j]).value(t));
+	corr_comb_dj.push_back(coord, data_dj.correlator(ops[i],ops[j]).value(t));
 	vnm.push_back(nm.str());
       }
     }
   }
-  
-  correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j(corr_comb_dj.size(), 
-		[&](const int i){
-		     return correlationFunction<SimFitCoordGen,  jackknifeDistributionD>::ElementType( corr_comb_dj.coord(i), corr_comb_dj.value(i).toJackknife() );
-		});
 
   std::cout << "Data in fit:" << std::endl;
   for(int i=0;i<corr_comb_j.size();i++){

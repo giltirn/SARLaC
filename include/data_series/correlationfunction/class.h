@@ -8,11 +8,14 @@
 
 CPSFIT_START_NAMESPACE
 
-template<typename GeneralizedCoordinate, typename DistributionType, template<typename,typename> class PairType = CorrFuncTaggedPair>
-class correlationFunction: public dataSeries<GeneralizedCoordinate, DistributionType, PairType>{
-  typedef dataSeries<GeneralizedCoordinate, DistributionType, PairType> Parent;
+template<typename _GeneralizedCoordinate, typename DistributionType, template<typename,typename> class PairType = CorrFuncTaggedPair>
+class correlationFunction: public dataSeries<_GeneralizedCoordinate, DistributionType, PairType>{
+  typedef dataSeries<_GeneralizedCoordinate, DistributionType, PairType> Parent;
 public:
   typedef typename Parent::ElementType ElementType;
+  typedef _GeneralizedCoordinate GeneralizedCoordinate;
+  typedef DistributionType DataType;
+
   typedef correlationFunction<GeneralizedCoordinate,DistributionType,PairType> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,correlationFunction<GeneralizedCoordinate,DistributionType,PairType> >::value, int>::type = 0>
   correlationFunction(U&& expr) : Parent(expr.common_properties()){

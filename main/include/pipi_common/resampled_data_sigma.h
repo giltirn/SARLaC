@@ -29,24 +29,18 @@ correlationFunction<double, DistributionType> computeSigmaVacSub(const sigmaSelf
   return out;
 }
 
-doubleJackCorrelationFunction computeSigmaVacSub(const sigmaSelfContraction &raw, const int bin_size){
+template<typename resampledCorrelationFunctionType>
+resampledCorrelationFunctionType computeSigmaVacSub(const sigmaSelfContraction &raw, const int bin_size){
   int Lt = raw.getLt();
   int nsample_raw = raw(0).size();
   int nsample_binned = nsample_raw/bin_size;
-  sigmaSelfContractionDoubleJack sigma_self_dj(Lt, nsample_binned);
+  
+  typedef typename resampledCorrelationFunctionType::DataType DistributionType;
+  typedef sigmaSelfContractionSelect<DistributionType> sigmaSelfContractionType;
+  sigmaSelfContractionType sigma_self_r(Lt, nsample_binned);
   for(int t=0;t<Lt;t++)
-    sigma_self_dj(t).resample(raw(t).bin(bin_size));
-  return computeSigmaVacSub(sigma_self_dj);
-}
-
-template<typename DistributionType>
-correlationFunction<double, DistributionType> foldSigma(const correlationFunction<double, DistributionType> &data, const int Lt){
-  correlationFunction<double, DistributionType> out(data);
-  for(int t=0;t<Lt;t++){
-    int tp = (Lt - t    + Lt) % Lt;
-    out.value(t) = 0.5*( data.value(t) + data.value(tp) );
-  }
-  return out;
+    sigma_self_r(t).resample(raw(t).bin(bin_size));
+  return computeSigmaVacSub(sigma_self_r);
 }
 
 CPSFIT_END_NAMESPACE
