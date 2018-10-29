@@ -134,6 +134,9 @@ class DataSet:
                 self.dxp = None
                 self.dym = None
                 self.dyp = None
+        def shiftX(self, shift):
+            for i in range(len(self.x)):
+                self.x[i] = self.x[i] + shift
 
 class ErrorBand:
         def __init__(self):

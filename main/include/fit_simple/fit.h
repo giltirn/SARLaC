@@ -42,6 +42,74 @@ void plotEffectiveMass(const ArgsType &args, const FitFunc &fitfunc, const jackk
   plotter.write("effective_mass.py", "effective_mass.pdf");
 }
 
+
+template<typename TwoStateFitFunc, typename OneStateFitFunc, typename ArgsType>
+void plotTwoStateEffectiveMass(const ArgsType &args, 
+			       const jackknifeCorrelationFunctionD &data_j, 
+			       const jackknifeDistribution<typename TwoStateFitFunc::ParameterType> &params, 
+			       const OneStateFitFunc &fitfunc_1state, const TwoStateFitFunc &fitfunc_2state,
+			       const int fitfunc_1state_params_mass_idx){
+
+  //Generate the one-state effective mass from the data
+  StandardFitParams base(1.0,1.0);
+
+  int nsample = data_j.value(0).size();
+  jackknifeCorrelationFunctionD effmass_data = effectiveMass2pt<jackknifeCorrelationFunctionD,OneStateFitFunc>(data_j,fitfunc_1state,base, fitfunc_1state_params_mass_idx, args.Lt);
+  
+  //Generate the fit curve from the 2 state fit
+  jackknifeCorrelationFunctionD curve_2state(args.Lt);
+  for(int t=0;t<args.Lt;t++){
+    curve_2state.coord(t) = t;
+    curve_2state.value(t) = jackknifeDistributionD(nsample, [&](const int s){ return fitfunc_2state.value(t, params.sample(s)); });
+  }
+
+  //Generate one-state effective mass from fit curve
+  jackknifeCorrelationFunctionD effmass_curve = effectiveMass2pt<jackknifeCorrelationFunctionD,OneStateFitFunc>(curve_2state,fitfunc_1state,base, fitfunc_1state_params_mass_idx, args.Lt);
+
+ 
+  //Plot everything
+  MatPlotLibScriptGenerate plotter;
+  typedef MatPlotLibScriptGenerate::handleType Handle;
+  typename MatPlotLibScriptGenerate::kwargsType plot_args;
+    
+  typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > Accessor;
+  Accessor a(effmass_data);
+  Handle ah = plotter.plotData(a);
+  
+  //   Plot the fitted curve as error band 
+  std::vector<double> x(args.t_max - args.t_min + 1);
+  std::vector<double> upper(args.t_max - args.t_min + 1);
+  std::vector<double> lower(args.t_max - args.t_min + 1);
+
+  for(int t=args.t_min ; t <= args.t_max; t++){
+    x[t-args.t_min] = t;
+
+    double y = effmass_curve.value(t).best();
+    double dy = effmass_curve.value(t).standardError();
+
+    lower[t-args.t_min] = y-dy;
+    upper[t-args.t_min] = y+dy;
+  }
+  BandVectorAccessor band(x,upper,lower);
+  plot_args["alpha"] = 0.2;
+  ah = plotter.errorBand(band, plot_args);
+    
+  plotter.createLegend();
+  plotter.setXlabel("$t$");
+  plotter.setYlabel("$m_{\\rm eff}(t)$");
+  plotter.setXaxisBounds(-0.2,args.Lt+0.2);
+
+  const double yw = 20 * (upper.back() - lower.back())/2.;
+  const double ymid = (upper.back() + lower.back())/2;
+
+  plotter.setYaxisBounds(ymid-yw, ymid+yw);
+
+  std::cout << "Writing plot to 'effective_mass.py'\n";  
+  plotter.write("effective_mass.py", "effective_mass.pdf");
+}
+
+
+
 template<typename FitFunc, typename ArgsType>
 void plotRaw(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, 
 	     const jackknifeDistribution<typename FitFunc::ParameterType> &params){
@@ -119,9 +187,12 @@ struct FitFuncPolicy<FitTwoStateCosh,ArgsType>{
   static inline FitTwoStateCosh* get(const ArgsType &args){ return new FitTwoStateCosh(args.Lt); }
   static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){
     //Plot the one-state effective mass
-    jackknifeDistribution<StandardFitParams> p1exp(params.size(),[&](const int s){ return StandardFitParams(params.sample(s)(0), params.sample(s)(1)); });
+    //jackknifeDistribution<StandardFitParams> p1exp(params.size(),[&](const int s){ return StandardFitParams(params.sample(s)(0), params.sample(s)(1)); });
+    //FitCosh fcosh(args.Lt);
+    //plotEffectiveMass(args,fcosh,data_j,p1exp,1);
+
     FitCosh fcosh(args.Lt);
-    plotEffectiveMass(args,fcosh,data_j,p1exp,1);
+    plotTwoStateEffectiveMass<FitTwoStateCosh, FitCosh, ArgsType>(args, data_j, params, fcosh, fitfunc, 1); 
   }
 };
 
