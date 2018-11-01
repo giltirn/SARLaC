@@ -19,6 +19,16 @@
 
 CPSFIT_START_NAMESPACE
 
+//The choice of the dampening matrix can have an effect on the fit's stability. cf. section 2.2 of arXiv:1201.5885
+
+//Levenberg originally suggested using the unit matrix (Option: Unit). This option however is not invariant under rescaling of the parameters and as a result can converge slowly in a canyon
+
+//Using the diagonal elements of the (approximate) Hessian (Option: HessianDiag) makes the algorithm invariant under this rescaling but at the cost of increased susceptibility to parameter evaporation where the algorithm wanders off to a minimum at infinity
+
+//Minpack uses a compromise method (Option: MaxHessianDiag) where the damping matrix is chosen to be diagonal with entries corresponding to the maximum absolute values observed previously. This improves resistance to parameter evaporation but it still susceptible to poor guesses that do not provide enough damping. (https://hwbdocuments.env.nm.gov/Los%20Alamos%20National%20Labs/General/32166.pdf pg 112)
+
+GENERATE_ENUM_AND_PARSER(MLdampeningMatrix, (Unit)(HessianDiag)(MaxHessianDiag) );
+
 //Parameters of the minimizer
 template<typename CostType>
 struct MarquardtLevenbergParameters{
@@ -28,6 +38,8 @@ struct MarquardtLevenbergParameters{
   double lambda_start;
   CostType delta_cost_min;
   
+  MLdampeningMatrix dampening_matrix;
+
   int max_iter;
   bool verbose;
   std::ostream *output;
@@ -40,6 +52,7 @@ struct MarquardtLevenbergParameters{
     lambda_max = 1e6;
     lambda_start = 0.001;
     delta_cost_min = 1e-05;
+    dampening_matrix = MLdampeningMatrix::HessianDiag;
     max_iter = 10000;
     output = &std::cout;
     verbose = false;
@@ -100,6 +113,8 @@ private:
   CostDerivativeType c;
   std::unique_ptr<ParameterType> delta;
   
+  CostSecondDerivativeMatrixType D; //Dampening matrix
+
   void initialize(const ParameterType &init_parameters){
     parameters = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
     delta = std::unique_ptr<ParameterType>(new ParameterType(init_parameters));
@@ -205,16 +220,11 @@ private:
     
     for(int i=0;i<nparam;i++){
       c(i) = -0.5*c(i);
-      for(int j=0;j<nparam;j++){
+
+      for(int j=0;j<nparam;j++)
 	M(i,j) = 0.5*M(i,j);
 
-	if(i==j){
-	  //CK: This implementation uses the diagonal elements of the Hessian matrix as the damping matrix
-	  //    according to arXiv:1201.5585, this procedure is used to improve the scale invariance of the algorithm, but at the cost of increased susceptibility to parameter evaporation
-	  //    where there is a minimum at infinity. 
-	  M(i,i) = M(i,i) + lambda*M(i,i);  
-	}
-      }
+      M(i,i) = M(i,i) + 0.5 * lambda*D(i,i);
     }
 
     MINPRINT << "inverting update matrix\n";
@@ -237,6 +247,33 @@ private:
     MINPRINT << "Updated parameters: "<< parameters->print() << std::endl;
     ++iter;
   }
+
+  //Use current Hessian to update the dampening matrix
+  void updateDampeningMatrix(){
+    const int nparam = derivs.size();
+
+    if(iter == 0){
+      //Initialize the matrix to zero
+      D = second_derivs;
+      for(int i=0;i<nparam;i++)
+	for(int j=0;j<nparam;j++)
+	  D(i,j) = 0.;
+    }
+    if(mlparams.dampening_matrix == MLdampeningMatrix::Unit && iter == 0){
+      for(int i=0;i<nparam;i++) D(i,i) = 1.;
+    }else if(mlparams.dampening_matrix == MLdampeningMatrix::HessianDiag){
+      for(int i=0;i<nparam;i++) D(i,i) = second_derivs(i,i);
+    }else if(mlparams.dampening_matrix == MLdampeningMatrix::MaxHessianDiag){
+      if(iter == 0) for(int i=0;i<nparam;i++) D(i,i) = second_derivs(i,i);
+      else{
+	for(int i=0;i<nparam;i++){
+	  auto absii = fabs(second_derivs(i,i));
+	  D(i,i) = absii > D(i,i) ? absii : D(i,i);
+	}
+      }
+    }
+  }
+
 
   void iterate(){ //'params' is the running set of parameters
     MINPRINT << "----------------------------------------------\n";
@@ -264,6 +301,8 @@ private:
     }
     MINPRINT << "derivatives " << derivs.print() << std::endl;
     
+    updateDampeningMatrix();
+
     //Store cost function state as 'old' state prior to update
     *last_params = *parameters;  //input parameters to this cycle
     last_cost = cost; //cost with those inputs

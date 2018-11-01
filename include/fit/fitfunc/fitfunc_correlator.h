@@ -134,5 +134,32 @@ public:
   ParameterType guess(){ return ParameterType(1,0.5,1,1); }
 };
 
+
+class FitTwoStateExp{
+public:
+  typedef double ValueType;
+  typedef TwoStateFitParams ParameterType;
+  typedef TwoStateFitParams ValueDerivativeType; //derivative wrt parameters
+  typedef double GeneralizedCoordinate; //time coord
+
+  //Params are A, m  
+  ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    return p.A0 * ::exp(-p.E0*t) + p.A1 * ::exp(-p.E1*t);
+  }
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    ValueDerivativeType yderivs;
+    yderivs.A0 = ::exp(-p.E0*t);
+    yderivs.E0 = p.A0 * ( -t*::exp(-p.E0*t) );
+    yderivs.A1 = ::exp(-p.E1*t);
+    yderivs.E1 = p.A1 * ( -t*::exp(-p.E1*t) );
+    return yderivs;
+  }
+
+  inline int Nparams() const{ return 4; }
+
+  ParameterType guess(){ return ParameterType(1,0.5,1,1); }
+};
+
+
 CPSFIT_END_NAMESPACE
 #endif

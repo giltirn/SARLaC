@@ -92,7 +92,7 @@ public:
     return derivs_subset;
   }
   
-  int Nparams() const{ return fitfunc.Nparams()-n_frozen; }
+  inline int Nparams() const{ return fitfunc.Nparams()-n_frozen; }
 };
 
 CPSFIT_END_NAMESPACE

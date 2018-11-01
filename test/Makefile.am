@@ -1,7 +1,8 @@
 exampledir = $(prefix)/example
 testdir = $(prefix)/test
-test_PROGRAMS = benchmark test_ET test_expression_parse test_hdf5 test_parsers test_tensor
+test_PROGRAMS = benchmark test_boundedfit test_ET test_expression_parse test_hdf5 test_parsers test_tensor
 benchmark_SOURCES = benchmark.C
+test_boundedfit_SOURCES = test_boundedfit.C
 test_ET_SOURCES = test_ET.C
 test_expression_parse_SOURCES = test_expression_parse.C
 test_hdf5_SOURCES = test_hdf5.C
