@@ -32,6 +32,8 @@ int main(const int argc, const char* argv[]){
       i+=3;
       dof = chisq.best()/chisq_per_dof.best();
       std::cout << "Inferred dof = " << dof << std::endl;
+    }else{
+      error_exit(std::cout << "Unrecognized argument: " << arg << std::endl);
     }
   }
   jackknifeDistributionD chisq;
