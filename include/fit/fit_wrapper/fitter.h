@@ -42,7 +42,7 @@ public:
     chisq.resize(nsample);
     chisq_per_dof.resize(nsample);
     
-    std::cout << "Starting fit with guess " << params << std::endl;
+    if(min_params.verbose) std::cout << "Starting fit with guess " << params << std::endl;
 
     int nosample = iterate<DistributionType>::size(data.value(0)); //some distributions have extra 'samples', eg jackknifeCdistribution has a sample representing the central value
     
