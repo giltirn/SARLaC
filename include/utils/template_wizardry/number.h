@@ -36,5 +36,10 @@ struct is_scalar<std::complex<T> >{ enum{value = is_scalar<T>::value }; };
 template<typename T>
 struct is_floating_point_or_complex{ enum { value = std::is_floating_point<T>::value || is_std_complex<T>::value }; };
 
+//An enable-if directive for asserting a matrix-like class is a floating-point type
+#define ENABLE_IF_FLOATINGPT(Type)   typename std::enable_if< \
+	   std::is_floating_point<Type>::value \
+	   , int>::type = 0
+
 CPSFIT_END_NAMESPACE
 #endif

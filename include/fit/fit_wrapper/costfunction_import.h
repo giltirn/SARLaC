@@ -65,12 +65,17 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
     }
     
     inv_corr.resize(ndata, jackknifeDistribution<double>(nsample));
-    svd_inverse(inv_corr, corr);
+    jackknifeDistribution<double> condition_number;
+    svd_inverse(inv_corr, corr, condition_number);
 
     //Test the quality of the inverse
     NumericSquareMatrix<jackknifeDistribution<double> > test = corr * inv_corr;
     for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistribution<double>(nsample,1.0);    
-    std::cout << "|CorrMat * CorrMat^{-1} - 1|^2 = " << mod2(test) << std::endl;
+    jackknifeDistribution<double> resid = mod2(test);
+
+    //Output the mean and standard deviation of the distributions of residual and condition number 
+    std::cout << "Condition number = " << condition_number.mean() << " +- " << condition_number.standardError()/sqrt(nsample-1.) << std::endl;
+    std::cout << "|CorrMat * CorrMat^{-1} - 1|^2 = " << resid.mean() << " +- " << resid.standardError()/sqrt(nsample-1.) << std::endl;
 
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
@@ -84,6 +89,16 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
 	inv_corr(i,j) = corr(i,j) = jackknifeDistribution<double>(nsample, i==j ? 1. : 0.);
   }
 
+  void writeCovarianceMatrixHDF5(const std::string &file) const{
+#ifdef HAVE_HDF5
+    NumericSquareMatrix<jackknifeDistribution<double> > cov = corr;
+    for(int i=0;i<corr.size();i++)
+      for(int j=0;j<corr.size();j++)
+	cov(i,j) = cov(i,j) * sigma(i) * sigma(j);
+    HDF5writer wr(file);
+    write(wr, cov, "value");
+#endif
+  }
 };
 
 

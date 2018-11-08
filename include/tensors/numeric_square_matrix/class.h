@@ -22,6 +22,8 @@ class NumericSquareMatrix{ //square matrix
     ar & m;
   }
 public:
+  typedef Numeric ElementType;
+
   NumericSquareMatrix():m(){}
   explicit NumericSquareMatrix(const int n): m(n, std::vector<Numeric>(n)){}
   NumericSquareMatrix(const int n, const Numeric &init): m(n, std::vector<Numeric>(n,init)){}
