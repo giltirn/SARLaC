@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_COST_FUNCTION_CORRELATED_CHISQ_H_
-#define _CPSFIT_COST_FUNCTION_CORRELATED_CHISQ_H_
+#ifndef _CPSFIT_COST_FUNCTION_CORRELATED_COV_CHISQ_H_
+#define _CPSFIT_COST_FUNCTION_CORRELATED_COV_CHISQ_H_
 
 //The chi^2 cost function with a non-diagonal covariance matrix
 
@@ -11,22 +11,21 @@
 
 CPSFIT_START_NAMESPACE
 
-//This version uses the inverse of the correlation matrix and sigma
+//This version uses the inverse of the covariance matrix
 template<typename FitFunction, typename DataContainer,
-	 typename InvCorrMatrixType = NumericSquareMatrix<double>,
+	 typename InvCovMatrixType = NumericSquareMatrix<double>,
 	 typename _CostType = double,
 	 typename _CostDerivativeType = NumericVector<_CostType>,
 	 typename _CostSecondDerivativeMatrixType = NumericSquareMatrix<_CostType>,
 	 typename _CostSecondDerivativeInverseMatrixType = NumericSquareMatrix<_CostType>,
 	 typename MatrixInvertPolicy = CostFunctionSVDinvert<_CostType>,
 	 typename std::enable_if<std::is_floating_point<typename FitFunction::ValueType>::value, int>::type = 0>
-class CorrelatedChisqCostFunction: public MatrixInvertPolicy{
+class CorrelatedCovChisqCostFunction: public MatrixInvertPolicy{
   static_assert(std::is_same<typename FitFunction::ValueType, typename DataContainer::DataType>::value, "DataContainer and FitFunction must have same value type");
   static_assert(std::is_same<typename FitFunction::GeneralizedCoordinate, typename DataContainer::GeneralizedCoordinate>::value, "DataContainer and FitFunction must have same coordinate");
   const FitFunction &fitfunc;
   const DataContainer &data;
-  const std::vector<double> &sigma; //diagonal elements of covariance matrix
-  const InvCorrMatrixType &inv_corr; //inverse correlation matrix
+  const InvCovMatrixType &inv_cov; //inverse correlation matrix
 public:
   typedef _CostType CostType;
   typedef typename FitFunction::ValueType ValueType;
@@ -39,10 +38,9 @@ public:
   typedef _CostSecondDerivativeMatrixType CostSecondDerivativeMatrixType;
   typedef _CostSecondDerivativeInverseMatrixType CostSecondDerivativeInverseMatrixType;
 
-  CorrelatedChisqCostFunction(const FitFunction &ff, const DataContainer &dd, const std::vector<double> &_sigma, const InvCorrMatrixType &_inv_corr):
-    fitfunc(ff), data(dd), sigma(_sigma), inv_corr(_inv_corr){
-    assert(inv_corr.size() == data.size());
-    assert(sigma.size() == data.size());
+  CorrelatedCovChisqCostFunction(const FitFunction &ff, const DataContainer &dd, const InvCovMatrixType &_inv_cov):
+    fitfunc(ff), data(dd), inv_cov(_inv_cov){
+    assert(inv_cov.size() == data.size());
   }
   
   CostType cost(const ParameterType &params) const{
@@ -53,12 +51,12 @@ public:
 
     for(int a=0;a<ndata;a++){
       ValueType yfit_a = fitfunc.value(data.coord(a), params);
-      dfw[a] = ( data.value(a) - yfit_a ) / sigma[a];
+      dfw[a] = data.value(a) - yfit_a;
 
-      chisq += dfw[a] * dfw[a] * inv_corr(a,a);
+      chisq += dfw[a] * dfw[a] * inv_cov(a,a);
 
       for(int b=0;b<a;b++)
-	chisq += 2*dfw[a] * dfw[b] * inv_corr(a,b); //matrix is symmetric
+	chisq += 2*dfw[a] * dfw[b] * inv_cov(a,b); //matrix is symmetric
     }      
     return chisq;
   }
@@ -80,31 +78,31 @@ public:
     for(int a=0;a<ndata;a++){
       ValueType yfit_a = fitfunc.value(data.coord(a), params);
       yderivs[a] = std::unique_ptr<ValueDerivativeType>(new ValueDerivativeType(fitfunc.parameterDerivatives(data.coord(a), params) ) );
-      dfw[a] = ( data.value(a) - yfit_a ) / sigma[a];
+      dfw[a] = data.value(a) - yfit_a;
 
       const ValueDerivativeType & yderivs_a = *yderivs[a];
       
       //b==a
       for(int i=0;i<nparams;i++){
-	derivs(i) +=  -2.0 * inv_corr(a,a) * dfw[a] * yderivs_a(i)/sigma[a];
+	derivs(i) +=  -2.0 * inv_cov(a,a) * dfw[a] * yderivs_a(i);
 	
 	for(int j=0;j<=i;j++){
-	  ValueType change = 2.0 * inv_corr(a,a) * yderivs_a(i)/sigma[a] * yderivs_a(j)/sigma[a];
+	  ValueType change = 2.0 * inv_cov(a,a) * yderivs_a(i) * yderivs_a(j);
 	  second_derivs(i,j) += change;
 	  if(i!=j) second_derivs(j,i) += change;
 	}
       }
       //b<a
       for(int b=0;b<a;b++){	
-	if(inv_corr(a,b)==0.0) continue;
+	if(inv_cov(a,b)==0.0) continue;
 
 	const ValueDerivativeType & yderivs_b = *yderivs[b];
 	
 	for(int i=0;i<nparams;i++){
-	  derivs(i) +=  -2.0*inv_corr(a,b)*( yderivs_a(i)/sigma[a]*dfw[b] + dfw[a]* yderivs_b(i)/sigma[b] );
+	  derivs(i) +=  -2.0*inv_cov(a,b)*( yderivs_a(i)*dfw[b] + dfw[a]* yderivs_b(i) );
 	
 	  for(int j=0;j<=i;j++){
-	    ValueType change = 2.0*inv_corr(a,b)*( yderivs_a(i)/sigma[a]* yderivs_b(j)/sigma[b] + yderivs_a(j)/sigma[a]*yderivs_b(i)/sigma[b] );
+	    ValueType change = 2.0*inv_cov(a,b)*( yderivs_a(i)* yderivs_b(j) + yderivs_a(j)*yderivs_b(i) );
 	    second_derivs(i,j) += change;
 	    if(i!=j) second_derivs(j,i) += change;
 	  }

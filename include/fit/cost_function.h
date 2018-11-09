@@ -25,5 +25,6 @@
 #include<fit/cost_function/invert_policy.h>
 #include<fit/cost_function/uncorrelated_chisq.h>
 #include<fit/cost_function/correlated_chisq.h>
+#include<fit/cost_function/correlated_cov_chisq.h>
 
 #endif

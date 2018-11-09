@@ -41,5 +41,11 @@ struct is_floating_point_or_complex{ enum { value = std::is_floating_point<T>::v
 	   std::is_floating_point<Type>::value \
 	   , int>::type = 0
 
+#define ENABLE_IF_STDCOMPLEX(Type)   typename std::enable_if< \
+	   is_std_complex<Type>::value \
+	   , int>::type = 0
+
+
+
 CPSFIT_END_NAMESPACE
 #endif

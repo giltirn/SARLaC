@@ -47,6 +47,16 @@ struct hasZeroMethod<T, typename Void<decltype( ((T*)(NULL))->zero() )>::type>{
   enum{ value = 1 };
 };
 
+#define ENABLE_IF_HASSAMPLEMETHOD(Type)   typename std::enable_if< \
+	   hasSampleMethod<Type>::value \
+	   , int>::type = 0
+
+template<typename T, ENABLE_IF_HASSAMPLEMETHOD(T)>
+struct getSampleType{
+  typedef typename std::decay< decltype( ( (const T*)NULL )->sample(0) ) >::type type;
+};
+
+
 
 CPSFIT_END_NAMESPACE
 #endif

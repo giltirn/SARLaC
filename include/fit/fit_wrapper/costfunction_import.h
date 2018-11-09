@@ -29,6 +29,17 @@ struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
     
     fitter.importCostFunctionParameters(sigma);
   }
+
+  void writeCovarianceMatrixHDF5(const std::string &file) const{
+#ifdef HAVE_HDF5
+    int nsample = sigma(0).size();
+    NumericSquareMatrix<jackknifeDistribution<double> > cov(sigma.size(), jackknifeDistribution<double>(nsample,0.));
+    for(int i=0;i<sigma.size();i++) cov(i,i) = sigma(i) * sigma(i);      
+    HDF5writer wr(file);
+    write(wr, cov, "value");
+#endif
+  }
+
 };
 
 //For correlated fits
@@ -71,11 +82,11 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
     //Test the quality of the inverse
     NumericSquareMatrix<jackknifeDistribution<double> > test = corr * inv_corr;
     for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistribution<double>(nsample,1.0);    
-    jackknifeDistribution<double> resid = mod2(test);
+    jackknifeDistribution<double> resid = modE(test);
 
     //Output the mean and standard deviation of the distributions of residual and condition number 
     std::cout << "Condition number = " << condition_number.mean() << " +- " << condition_number.standardError()/sqrt(nsample-1.) << std::endl;
-    std::cout << "|CorrMat * CorrMat^{-1} - 1|^2 = " << resid.mean() << " +- " << resid.standardError()/sqrt(nsample-1.) << std::endl;
+    std::cout << "||CorrMat * CorrMat^{-1} - 1||_E = " << resid.mean() << " +- " << resid.standardError()/sqrt(nsample-1.) << std::endl;
 
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
@@ -100,6 +111,68 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
 #endif
   }
 };
+
+
+
+template<typename FitPolicies>
+struct importCostFunctionParameters<correlatedCovFitPolicy,FitPolicies>{
+  static_assert(std::is_same<typename FitPolicies::DistributionType,jackknifeDistribution<double> >::value, "Currently only support jackknifeDistribution<double>");
+  
+  NumericSquareMatrix<jackknifeDistribution<double> > cov;
+  NumericSquareMatrix<jackknifeDistribution<double> > inv_cov;
+
+  template<typename GeneralizedCoord, template<typename> class V>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data){
+
+    const int nsample = data.value(0).size();
+    const int ndata = data.size();   
+    cov = NumericSquareMatrix<jackknifeDistribution<double> >(ndata);
+    for(int i=0;i<ndata;i++){
+      cov(i,i) = doubleJackknifeDistribution<double,V>::covariance(data.value(i), data.value(i));
+      for(int j=i+1;j<ndata;j++)
+	cov(i,j) = cov(j,i) = doubleJackknifeDistribution<double,V>::covariance(data.value(i),data.value(j));
+    }
+    
+    inv_cov.resize(ndata, jackknifeDistribution<double>(nsample));
+    jackknifeDistribution<double> condition_number;
+    svd_inverse(inv_cov, cov, condition_number);
+
+    //Test the quality of the inverse
+    NumericSquareMatrix<jackknifeDistribution<double> > test = cov * inv_cov;
+    for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistribution<double>(nsample,1.0);    
+    jackknifeDistribution<double> resid = modE(test);
+
+    //Output the mean and standard deviation of the distributions of residual and condition number 
+    std::cout << "Condition number = " << condition_number.mean() << " +- " << condition_number.standardError()/sqrt(nsample-1.) << std::endl;
+    std::cout << "||CovMat * CovMat^{-1} - 1||_E = " << resid.mean() << " +- " << resid.standardError()/sqrt(nsample-1.) << std::endl;
+
+    //Import
+    fitter.importCostFunctionParameters(inv_cov);
+  }
+
+  void setUncorrelated(){ //because the fitter stores pointers we can modify the correlation matrix in place
+    std::cout << "Setting correlation matrix to unit matrix\n";
+    int nsample = cov(0,0).size();
+    for(int i=0;i<cov.size();i++){
+      for(int j=0;j<cov.size();j++){
+	if(i!=j){
+	  inv_cov(i,j) = cov(i,j) = jackknifeDistribution<double>(nsample, 0.);
+	}else{
+	  inv_cov(i,j) = jackknifeDistribution<double>(nsample, 1.)/cov(i,j);
+	}
+      }
+    }
+  }
+
+  void writeCovarianceMatrixHDF5(const std::string &file) const{
+#ifdef HAVE_HDF5
+    HDF5writer wr(file);
+    write(wr, cov, "value");
+#endif
+  }
+};
+
 
 
 CPSFIT_END_NAMESPACE
