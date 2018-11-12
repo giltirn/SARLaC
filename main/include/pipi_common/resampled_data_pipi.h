@@ -141,14 +141,15 @@ void getResampledPiPi2ptData(jackknifeCorrelationFunction &pipi_j, doubleJackCor
   rawCorrelationFunction pipi_raw;
   {
     figureDataAllMomenta raw_data;
-    if(opts.load_hdf5_data_checkpoint) loadRawDataCheckpoint(raw_data, raw_bubble_data, opts.load_hdf5_data_checkpoint_stub, extra_descr);
-
-    std::cout << "Reading raw data " << extra_descr << std::endl;
-
-    readRawPiPi2ptData(raw_data, raw_bubble_data, ffn, 
-		       bfn_src, bfn_snk, data_dir, traj_start, traj_inc, traj_lessthan, 
-		       Lt, tstep_pipi, tsep_pipi, proj_src, proj_snk);
-    
+    if(opts.load_hdf5_data_checkpoint){
+      loadRawDataCheckpoint(raw_data, raw_bubble_data, opts.load_hdf5_data_checkpoint_stub, extra_descr);
+    }else{
+      std::cout << "Reading raw data " << extra_descr << std::endl;
+      
+      readRawPiPi2ptData(raw_data, raw_bubble_data, ffn, 
+			 bfn_src, bfn_snk, data_dir, traj_start, traj_inc, traj_lessthan, 
+			 Lt, tstep_pipi, tsep_pipi, proj_src, proj_snk);
+    }
     if(opts.save_hdf5_data_checkpoint) saveRawDataCheckpoint(raw_data, raw_bubble_data, opts.save_hdf5_data_checkpoint_stub, extra_descr);
     getRawPiPiCorrFunc(pipi_raw, raw_data, proj_src, proj_snk, isospin, bin_size, extra_descr);
   }

@@ -9,7 +9,11 @@ CPSFIT_START_NAMESPACE
 struct fitOptions{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
-  fitOptions(): load_frozen_fit_params(false){}
+
+  bool write_covariance_matrix;
+  std::string write_covariance_matrix_file;
+
+  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false){}
 };
 
 
@@ -32,6 +36,8 @@ void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDi
     }
 
     importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, corr_comb_dj);
+
+    if(opt.write_covariance_matrix) import.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
 
     fit.fit(params, chisq, chisq_per_dof, corr_comb_j);
 }  

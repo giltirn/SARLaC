@@ -89,6 +89,9 @@ struct CMDline{
 	  exit(0);	 
 	}
 	i+=2;
+      }else if(sargv[i] == "-allow_bin_cropping"){ //when binning allow extra configs that don't fit a full bin to be cropped from the end of the ensemble
+	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

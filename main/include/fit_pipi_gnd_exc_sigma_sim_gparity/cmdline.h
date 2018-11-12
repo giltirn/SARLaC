@@ -14,6 +14,9 @@ struct CMDline{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
 
+  bool write_covariance_matrix;
+  std::string write_covariance_matrix_file;
+
   bool save_guess_template;
 
   CMDline(){
@@ -22,6 +25,7 @@ struct CMDline{
     save_combined_data = false;
     load_frozen_fit_params = false;
     save_guess_template = false;
+    write_covariance_matrix = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -53,6 +57,11 @@ struct CMDline{
 	save_combined_data = true;
 	save_combined_data_file = sargv[i+1];
 	std::cout << "Enabled saving combined data to " << save_combined_data_file << std::endl;
+	i+=2;
+      }else if(sargv[i] == "-write_covariance_matrix"){
+	write_covariance_matrix = true;
+	write_covariance_matrix_file = sargv[i+1];
+	std::cout << "Enabled saving covariance matrix to " << write_covariance_matrix_file << std::endl;
 	i+=2;
       }else if(sargv[i] == "-load_frozen_fit_params"){
 	load_frozen_fit_params = true;

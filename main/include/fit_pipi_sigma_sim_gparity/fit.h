@@ -19,7 +19,10 @@ struct SimFitArgs{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
 
-  SimFitArgs(): correlated(true), Lt(64), tsep_pipi(4), Ascale(1e13), Cscale(1e13), load_guess(false), load_frozen_fit_params(false){}
+  bool write_covariance_matrix;
+  std::string write_covariance_matrix_file;
+
+  SimFitArgs(): correlated(true), Lt(64), tsep_pipi(4), Ascale(1e13), Cscale(1e13), load_guess(false), load_frozen_fit_params(false), write_covariance_matrix(false){}
 };
 
 
@@ -46,6 +49,8 @@ void fit_corr_uncorr(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data
   
   importCostFunctionParameters<corrUncorrFitPolicy,FitPolicies> prepare(fitter, data_dj);
     
+  if(args.write_covariance_matrix) prepare.writeCovarianceMatrixHDF5(args.write_covariance_matrix_file);
+
   jackknifeDistribution<Params> params(nsample, guess);
   jackknifeDistributionD chisq;
   jackknifeDistributionD chisq_per_dof;

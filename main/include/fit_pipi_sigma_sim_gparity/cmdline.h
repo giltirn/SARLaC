@@ -20,6 +20,9 @@ struct PiPiSigmaSimCMDline{
   
   bool use_pipitosigma_disconn_complex_prod; //use Re( pipi_bubble * sigma_bubble )  [original strategy] for pipi->sigma disconnected piece rather than Re ( pipi_bubble ) * Re ( sigma_bubble )
 
+  bool write_covariance_matrix;
+  std::string write_covariance_matrix_file;
+
   PiPiSigmaSimCMDline(){
     load_guess = false;
     load_frozen_fit_params= false;
@@ -29,6 +32,7 @@ struct PiPiSigmaSimCMDline{
     save_checkpoint = false;
     load_checkpoint = false;
     use_pipitosigma_disconn_complex_prod = false;
+    write_covariance_matrix = false;
   }
   PiPiSigmaSimCMDline(const int argc, const char** argv, const int begin = 0): PiPiSigmaSimCMDline(){
     setup(argc,argv,begin);
@@ -81,6 +85,11 @@ struct PiPiSigmaSimCMDline{
       }else if(sargv[i] == "-use_pipitosigma_disconn_complex_prod"){
 	use_pipitosigma_disconn_complex_prod = true;
 	i++;
+      }else if(sargv[i] == "-write_covariance_matrix"){
+	write_covariance_matrix = true;
+	write_covariance_matrix_file = sargv[i+1];
+	std::cout << "Enabled saving covariance matrix to " << write_covariance_matrix_file << std::endl;
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
@@ -88,10 +97,14 @@ struct PiPiSigmaSimCMDline{
   }
 
   void transfer(SimFitArgs &fargs) const{
-    fargs.load_guess = load_guess;
-    fargs.guess_file = guess_file;
-    fargs.load_frozen_fit_params = load_frozen_fit_params;
-    fargs.load_frozen_fit_params_file = load_frozen_fit_params_file;
+#define COPYIT(A) fargs.A = A
+    COPYIT(load_guess);
+    COPYIT(guess_file);
+    COPYIT(load_frozen_fit_params);
+    COPYIT(load_frozen_fit_params_file);
+    COPYIT(write_covariance_matrix);
+    COPYIT(write_covariance_matrix_file);
+#undef COPYIT
   }
 };
 

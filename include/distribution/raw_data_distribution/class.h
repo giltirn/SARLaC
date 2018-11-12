@@ -6,6 +6,10 @@
 
 CPSFIT_START_NAMESPACE
 
+struct rawDataDistributionOptions{
+  static bool & binAllowCropByDefault(){ static bool allow_crop = false; return allow_crop; }
+};
+
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class rawDataDistribution: public distribution<_DataType, _VectorType>{
   friend class boost::serialization::access;
@@ -54,10 +58,12 @@ public:
   inline bool operator==(const rawDataDistribution<DataType,_VectorType> &r) const{ return this->baseType::operator==(r); }
   inline bool operator!=(const rawDataDistribution<DataType,_VectorType> &r) const{ return !( *this == r ); }
 
-  rawDataDistribution<DataType,_VectorType> bin(const int bin_size) const{
+  //Bin the data over bin_size consecutive samples. If number of samples is not an exact multiple of bin_size it will throw an error unless allow_crop = true,
+  //in which case it will ignore (crop) extra samples at the end of the ensemble
+  rawDataDistribution<DataType,_VectorType> bin(const int bin_size, bool allow_crop) const{
     const int nsample = this->size();
     const int nbins = nsample / bin_size;
-    if(nsample % bin_size != 0) 
+    if(!allow_crop && nsample % bin_size != 0) 
       error_exit(std::cout << "rawDataDistribution::bin(const int) distribution size " << nsample << " is not divisible by bin size " << bin_size << std::endl);
 
     DataType zro; zeroit(zro);
@@ -70,7 +76,10 @@ public:
     }
     return out;
   }
-
+  //Use cropping option from global rawDataDistributionOptions::binAllowCropByDefault()   defaults false
+  inline rawDataDistribution<DataType,_VectorType> bin(const int bin_size) const{
+    return bin(bin_size, rawDataDistributionOptions::binAllowCropByDefault());
+  }
 };
 
 template<typename T, template<typename> class _VectorType = basic_vector>
