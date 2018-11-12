@@ -67,6 +67,13 @@ public:
     return os;
   }
 
+  //For debugging, print the full state
+  std::ostream & report(std::ostream &os){
+    os << "dp="<<dp << " base_pow=" << base_pow << " sgn="<< sgn << " v={";
+    for(int i=0;i<v.size();i++){ os << v[i]; if(i==dp) os << '|'; }
+    os << "}";
+  }
+
   double value() const{
     std::stringstream ss;
     print(ss);
@@ -98,7 +105,7 @@ public:
     decimal out(*this);
     for(unsigned int i=0;i<n;i++){
       ++out.dp;
-      if(out.dp == out.v.size()-1)
+      if(out.dp == out.v.size())
 	out.v.push_back(0);
     }
     return out;
