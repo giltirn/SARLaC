@@ -7,6 +7,10 @@
 CPSFIT_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(SimFitType, (PiPiToSigma)(Sigma2pt)(PiPi2pt) );
+inline void write(CPSfit::HDF5writer &writer, const SimFitType d, const std::string &tag){ write(writer,(int)d,tag); } 
+inline void read(CPSfit::HDF5reader &reader, SimFitType &d, const std::string &tag){ int v; read(reader,v,tag); d = (SimFitType)v; }
+
+
 
 #define SIM_FIT_COORD_ARGS \
   (SimFitType, type)	   \
@@ -17,9 +21,11 @@ struct SimFitCoord{
 
   SimFitCoord() = default;
   SimFitCoord(const SimFitType type, const double t): type(type), t(t){}
+  GENERATE_HDF5_SERIALIZE_METHOD((type)(t));
 };
 
 GENERATE_PARSER(SimFitCoord, SIM_FIT_COORD_ARGS);
+GENERATE_HDF5_SERIALIZE_FUNC(SimFitCoord);
 
 typedef correlationFunction<SimFitCoord, doubleJackknifeDistributionD> simFitCorrFuncDJ;
 typedef correlationFunction<SimFitCoord, jackknifeDistributionD> simFitCorrFuncJ;

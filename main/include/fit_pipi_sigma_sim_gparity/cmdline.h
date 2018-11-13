@@ -18,6 +18,12 @@ struct PiPiSigmaSimCMDline{
   bool load_checkpoint;
   std::string load_checkpoint_file;
   
+  bool load_resampled_data;
+  std::string load_resampled_data_file;
+
+  bool save_resampled_data;
+  std::string save_resampled_data_file;
+  
   bool use_pipitosigma_disconn_complex_prod; //use Re( pipi_bubble * sigma_bubble )  [original strategy] for pipi->sigma disconnected piece rather than Re ( pipi_bubble ) * Re ( sigma_bubble )
 
   bool write_covariance_matrix;
@@ -31,6 +37,8 @@ struct PiPiSigmaSimCMDline{
     include_sigma_2pt = true;
     save_checkpoint = false;
     load_checkpoint = false;
+    load_resampled_data = false;
+    save_resampled_data = false;
     use_pipitosigma_disconn_complex_prod = false;
     write_covariance_matrix = false;
   }
@@ -82,6 +90,14 @@ struct PiPiSigmaSimCMDline{
 	load_checkpoint = true;
 	load_checkpoint_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-save_resampled_data"){
+	save_resampled_data = true;
+	save_resampled_data_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_resampled_data"){
+	load_resampled_data = true;
+	load_resampled_data_file = sargv[i+1];
+	i+=2;
       }else if(sargv[i] == "-use_pipitosigma_disconn_complex_prod"){
 	use_pipitosigma_disconn_complex_prod = true;
 	i++;
@@ -90,6 +106,9 @@ struct PiPiSigmaSimCMDline{
 	write_covariance_matrix_file = sargv[i+1];
 	std::cout << "Enabled saving covariance matrix to " << write_covariance_matrix_file << std::endl;
 	i+=2;
+      }else if(sargv[i] == "-allow_bin_cropping"){ //when binning allow extra configs that don't fit a full bin to be cropped from the end of the ensemble
+	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
