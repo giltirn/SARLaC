@@ -22,11 +22,13 @@ public:
   void initialize(const seedType seed){ if(rng==NULL) rng = new RNGtype(seed); }
   void initialize(){ if(rng == NULL) rng = new RNGtype(); }
   
-  RNGstore(const seedType seed){ initialize(seed); }
+ RNGstore(const seedType seed): rng(NULL){ initialize(seed); }
 
   bool isInitialized() const{ return rng != NULL; }
   
   RNGtype &operator()(){ return *rng; }
+
+  ~RNGstore(){ if(rng!=NULL) delete rng; }
 };
 
 RNGstore RNG; //static instance

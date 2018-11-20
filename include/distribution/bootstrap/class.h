@@ -8,6 +8,15 @@
 
 CPSFIT_START_NAMESPACE
 
+//To ensure we retain correlations when bootstrapping multiple raw distributions measured on the same ensemble we must use the same mapping of bootstrap sample
+//to the set of raw sample indices each time. This is accomplished by using a fixed seed for an RNG that is re-initialized each time. 
+//User should change the seed between ensembles to remove fictional correlations
+
+struct bootstrapDistributionOptions{
+  static int & defaultBoots(){ static int b = 1000; return b; }
+  static int & defaultSeed(){ static int s = 1234; return s; }
+};
+
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class bootstrapDistribution: public distribution<_DataType,_VectorType>{
   _DataType variance() const{ assert(0); }
@@ -42,7 +51,7 @@ public:
 
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in){
-    if(!RNG.isInitialized()) error_exit(std::cout << "bootstrapDistribution::resample RNG is not initialized" << std::endl);
+    RNGstore brng(bootstrapDistributionOptions::defaultSeed());
     
     this->avg = in.best();
     
@@ -58,7 +67,7 @@ public:
 
       //Draw N samples with replacement
       for(int i=0;i<nraw;i++)
-	this->sample(b) = this->sample(b) + in.sample(dis(RNG()));
+	this->sample(b) = this->sample(b) + in.sample(dis(brng()));
       
       this->sample(b) = this->sample(b)/nraw;
     }
@@ -97,7 +106,6 @@ public:
     return (bounds.second-bounds.first)/2.;
   }
  
-  bootstrapDistribution(): baseType(), avg(0.0), _confidence(68){}
   bootstrapDistribution(const bootstrapDistribution &r) = default;
   
   template<template<typename> class U>
@@ -113,17 +121,17 @@ public:
   };
   bootstrapDistribution(const initType &init): baseType(init.boots), _confidence(init.confidence){}
 
-  bootstrapDistribution(const int boots, const int confidence = 68): baseType(boots), _confidence(confidence){}
+  bootstrapDistribution(const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): baseType(boots), _confidence(confidence){}
 
-  bootstrapDistribution(const int boots, const DataType &init, const int confidence = 68): baseType(boots,init), _confidence(confidence){ avg = this->mean(); }
+  bootstrapDistribution(const DataType &init, const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): baseType(boots,init), _confidence(confidence){ avg = this->mean(); }
 
   template<typename Initializer>
-  bootstrapDistribution(const int boots, const Initializer &init, const int confidence = 68): baseType(boots,init), _confidence(confidence){ avg = this->mean(); }
+  bootstrapDistribution(const Initializer &init, const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): baseType(boots,init), _confidence(confidence){ avg = this->mean(); }
 
   bootstrapDistribution(bootstrapDistribution&& o) noexcept : baseType(std::forward<baseType>(o)), _confidence(o._confidence), avg(o.avg){}
 
   template< template<typename> class U >
-  bootstrapDistribution(const rawDataDistribution<DataType,U> &raw, const int boots, const int confidence = 68): bootstrapDistribution(boots,confidence){ this->resample(raw); }
+  bootstrapDistribution(const rawDataDistribution<DataType,U> &raw, const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): bootstrapDistribution(boots,confidence){ this->resample(raw); }
   
 
   typedef myType ET_tag;
