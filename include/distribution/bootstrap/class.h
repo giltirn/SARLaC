@@ -19,9 +19,6 @@ struct bootstrapDistributionOptions{
 
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class bootstrapDistribution: public distribution<_DataType,_VectorType>{
-  _DataType variance() const{ assert(0); }
-  _DataType standardDeviation() const{ assert(0); };
-
   typedef distribution<_DataType,_VectorType> baseType;
   typedef bootstrapDistribution<_DataType,_VectorType> myType;
 
@@ -48,6 +45,28 @@ public:
   
   inline const DataType & best() const{ return avg; } //"central value" of distribution used for printing/plotting
   inline DataType & best(){ return avg; }
+
+  //Compute the m'th standardized moment of the distribution
+  DataType standardizedMoment(const int m) const{
+    DataType sigma = this->standardDeviation();
+    DataType mean = this->mean();
+  
+    const int N = this->size() == 0 ? 1 : this->size();
+    const int nthread = omp_get_max_threads();
+
+    struct Op{
+      DataType avg;
+      const _VectorType<DataType> &data;
+      int m;
+      Op(const DataType&_avg, const _VectorType<DataType> &_data, const int m): data(_data), avg(_avg), m(m){}
+      inline int size() const{ return data.size(); }
+      inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return pow(tmp,m);  }
+    };
+    Op op(mean,this->sampleVector(),m);
+    
+    return threadedSum(op)/double(N)/pow(sigma,m);
+  }
+
 
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in){
