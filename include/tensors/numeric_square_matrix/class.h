@@ -29,17 +29,19 @@ public:
   NumericSquareMatrix(const int n, const Numeric &init): m(n, std::vector<Numeric>(n,init)){}
   NumericSquareMatrix(const NumericSquareMatrix &r) = default;
   NumericSquareMatrix(NumericSquareMatrix &&r) = default;
-
+  NumericSquareMatrix(std::initializer_list<Numeric> l): m(int(floor(sqrt(l.size())))){
+    assert(l.size() == this->size() * this->size());
+    auto it=l.begin();
+    for(int i=0;i<m.size();i++)
+      for(int j=0;j<m.size();j++)
+	m[i][j] = *it++;
+  }  
   template<typename Initializer> //Initializer is a lambda-type with operator()(const int, const int)
   inline NumericSquareMatrix(const int n, const Initializer &initializer): m(n, std::vector<Numeric>(n)){
     for(int i=0;i<n;i++)
       for(int j=0;j<n;j++)
 	m[i][j] = initializer(i,j);
   }
-  
-  NumericSquareMatrix & operator=(const NumericSquareMatrix &r) = default;
-  NumericSquareMatrix & operator=(NumericSquareMatrix &&r) = default;
-  
   typedef NumericSquareMatrix<Numeric> ET_tag;
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,NumericSquareMatrix<Numeric> >::value, int>::type = 0>
   NumericSquareMatrix(U&& expr): NumericSquareMatrix(expr.common_properties()){
@@ -47,7 +49,22 @@ public:
     for(int i=0;i<this->size()*this->size();i++)
       getElem<NumericSquareMatrix<Numeric> >::elem(*this, i) = expr[i];
   }
-  
+
+  NumericSquareMatrix & operator=(const NumericSquareMatrix &r) = default;
+  NumericSquareMatrix & operator=(NumericSquareMatrix &&r) = default;
+    
+  NumericSquareMatrix & operator=(std::initializer_list<Numeric> l){
+    int sz = int(floor(sqrt(l.size())));
+    assert(l.size() == sz*sz);
+    auto it=l.begin();
+    m.resize(sz);
+    for(int i=0;i<m.size();i++){
+      m[i].resize(sz);
+      for(int j=0;j<m.size();j++)
+	m[i][j] = *it++;
+    }
+  }  
+
   inline int size() const{ return m.size(); }
   
   void resize(const int n){

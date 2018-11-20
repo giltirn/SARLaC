@@ -27,6 +27,10 @@ typedef jackknifeCdistribution<float> jackknifeCdistributionF;
 typedef doubleJackknifeDistribution<double> doubleJackknifeDistributionD;
 typedef doubleJackknifeDistribution<float> doubleJackknifeDistributionF;
 
+typedef bootstrapDistribution<double> bootstrapDistributionD;
+typedef bootstrapDistribution<float> bootstrapDistributionF;
+
+
 //Series types
 typedef dataSeries<int, rawDataDistribution<double> > rawTimeSeriesD; //time, dist(value)
 typedef dataSeries<int, rawDataDistribution<float> > rawTimeSeriesF;

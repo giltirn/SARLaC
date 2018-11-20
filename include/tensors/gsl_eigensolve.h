@@ -59,6 +59,66 @@ struct GSLsymmEigenSolver{
     }
     return residuals;
   }
+
+
+  //GEVP for real, symmetric matrices A, B   solve  A v = lambda B v
+  //If there is an error it will throw (i.e. catch if you want to be able to deal with failures)
+  static std::vector<double> symmetricGEVPsolve(std::vector<VectorOutputType> &evecs, std::vector<double> &evals, const MatrixInputType &A, const MatrixInputType &B, bool sort = true){
+    typedef typename _get_elem_type<MatrixInputType>::type T;
+    const int size = A.size();
+    assert(B.size() == size);
+    assert(evecs.size() == size);
+    assert(evals.size() == size);
+    
+    gsl_vector *eval = gsl_vector_alloc(size);
+    gsl_matrix *evec = gsl_matrix_alloc(size, size);
+    gsl_matrix *Agsl  = gsl_matrix_alloc(size,size);
+    gsl_matrix *Bgsl  = gsl_matrix_alloc(size,size);
+    for(int i=0;i<size;i++){
+      for(int j=0;j<size;j++){
+	gsl_matrix_set(Agsl,i,j,A(i,j));
+	gsl_matrix_set(Bgsl,i,j,B(i,j));
+      }
+    }
+
+    gsl_error_handler_t *errh = gsl_set_error_handler_off();
+
+    gsl_eigen_gensymmv_workspace * w = gsl_eigen_gensymmv_alloc(size);
+    int err = gsl_eigen_gensymmv(Agsl, Bgsl, eval, evec, w);
+    gsl_eigen_gensymmv_free(w);
+
+    if(err !=0){
+      gsl_set_error_handler(errh); 
+      gsl_matrix_free(Agsl);
+      gsl_matrix_free(Bgsl);
+      gsl_vector_free(eval);
+      gsl_matrix_free(evec);
+      throw std::runtime_error(gsl_strerror(err));
+    }else{
+      gsl_set_error_handler (errh); 
+      
+      if(sort) gsl_eigen_symmv_sort(eval, evec, 
+				    GSL_EIGEN_SORT_VAL_DESC);
+      
+      for(int i=0;i<size;i++){
+	evals[i] = gsl_vector_get(eval,i);
+	for(int j=0;j<size;j++)
+	  evecs[i](j) = gsl_matrix_get(evec,j,i); //eigenvectors stored in columns, i.e. elements have fixed column index and changing row index
+      }
+      gsl_matrix_free(Agsl);
+      gsl_matrix_free(Bgsl);
+      gsl_vector_free(eval);
+      gsl_matrix_free(evec);
+      
+      std::vector<double> residuals(size);
+      for(int i=0;i<size;i++){
+	VectorOutputType Av_m_lBv = A * evecs[i] - evals[i] * B * evecs[i];
+	residuals[i] = sqrt(mod2(Av_m_lBv));
+      }
+      return residuals;
+    }
+  }
+
 };
 
 CPSFIT_END_NAMESPACE
