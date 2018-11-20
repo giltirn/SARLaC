@@ -13,6 +13,7 @@ CPSFIT_START_NAMESPACE
 //Make sure the compiler is able to find the defaults
 using ::sqrt;
 using ::exp;
+using ::log;
 
 template<template<typename> class Op, typename T>
 struct unaryHelper{
@@ -48,6 +49,7 @@ inline T negate(const T &a){ return -a; }
 ET_UNOP(ETnegate, negate, operator-);
 ET_UNOP(ETexp, exp, exp);
 ET_UNOP(ETsqrt, sqrt, sqrt);
+ET_UNOP(ETlog, log, log);
 
 CPSFIT_END_NAMESPACE
 

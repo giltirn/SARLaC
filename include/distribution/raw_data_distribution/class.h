@@ -29,6 +29,27 @@ public:
   inline DataType best() const{ return this->mean(); } //"central value" of distribution used for printing/plotting
   DataType standardError() const{ return this->standardDeviation()/sqrt(double(this->size()-1)); }
   
+  //Compute the m'th standardized moment of the distribution
+  DataType standardizedMoment(const int m) const{
+    DataType sigma = this->standardDeviation();
+    DataType mean = this->mean();
+  
+    const int N = this->size() == 0 ? 1 : this->size();
+    const int nthread = omp_get_max_threads();
+
+    struct Op{
+      DataType avg;
+      const _VectorType<DataType> &data;
+      int m;
+      Op(const DataType&_avg, const _VectorType<DataType> &_data, const int m): data(_data), avg(_avg), m(m){}
+      inline int size() const{ return data.size(); }
+      inline DataType operator()(const int i) const{ DataType tmp = data[i] - avg; return pow(tmp,m);  }
+    };
+    Op op(mean,this->sampleVector(),m);
+    
+    return threadedSum(op)/double(N)/pow(sigma,m);
+  }
+
   rawDataDistribution(): distribution<DataType>(){}
 
   rawDataDistribution(const rawDataDistribution &r): baseType(r){}
@@ -80,6 +101,7 @@ public:
   inline rawDataDistribution<DataType,_VectorType> bin(const int bin_size) const{
     return bin(bin_size, rawDataDistributionOptions::binAllowCropByDefault());
   }
+
 };
 
 template<typename T, template<typename> class _VectorType = basic_vector>
