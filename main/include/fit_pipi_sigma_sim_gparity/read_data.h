@@ -81,6 +81,39 @@ void readData(rawCorrelationFunction &pipi_raw,
 								   opt);
 }
 
+
+struct rawData{
+  rawCorrelationFunction pipi_raw, pipi_to_sigma_raw, sigma2pt_raw;
+  bubbleDataAllMomenta pipi_self_data;
+  sigmaSelfContraction sigma_self_data;
+
+  void readDataFromOrigFiles(const std::string &data_dir, 
+		const std::string &pipi2pt_figure_file_fmt, 
+		const std::string &sigma2pt_file_fmt, 
+		const std::string &pipitosigma_file_fmt, 
+		const std::string &pipi_bubble_file_fmt, 
+		const std::string &sigma_bubble_file_fmt,
+		const int tsep_pipi,
+		const int tstep_pipi2pt, int tstep_pipitosigma,
+		const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan,
+		bool compute_pipitosigma_disconn_ReRe){
+        readData(pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data,
+		 data_dir, 
+		 pipi2pt_figure_file_fmt, sigma2pt_file_fmt, pipitosigma_file_fmt,
+		 pipi_bubble_file_fmt, sigma_bubble_file_fmt,
+		 tsep_pipi, tstep_pipi2pt, tstep_pipitosigma,
+		 Lt, traj_start, traj_inc, traj_lessthan, compute_pipitosigma_disconn_ReRe);
+  }
+  void readDataFromCheckpoint(const std::string &file){
+    readCheckpoint(pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data,file);
+  }
+  void saveCheckpoint(const std::string &file) const{
+    writeCheckpoint(file,pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data);
+  }
+};
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

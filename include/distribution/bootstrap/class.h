@@ -15,6 +15,7 @@ CPSFIT_START_NAMESPACE
 struct bootstrapDistributionOptions{
   static int & defaultBoots(){ static int b = 1000; return b; }
   static int & defaultSeed(){ static int s = 1234; return s; }
+  static int & defaultConfidence(){ static int c=68; return c; }
 };
 
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
@@ -133,24 +134,22 @@ public:
   struct initType: public OstreamHook{
     int boots;
     int confidence;
-    initType(const int b, const int c): boots(b), confidence(c){}
+    initType(const int b = bootstrapDistributionOptions::defaultBoots(), const int c = bootstrapDistributionOptions::defaultConfidence()): boots(b), confidence(c){}
     inline bool operator==(const initType &r) const{ return boots==r.boots && confidence==r.confidence; }
     inline bool operator!=(const initType &r) const{ return !(*this == r); }
     void write(std::ostream &os) const{ os << "(boots=" << boots<< ", confidence=" << confidence <<")"; }
   };
-  bootstrapDistribution(const initType &init): baseType(init.boots), _confidence(init.confidence){}
+  bootstrapDistribution(const initType &init = initType()): baseType(init.boots), _confidence(init.confidence){}
 
-  bootstrapDistribution(const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): baseType(boots), _confidence(confidence){}
-
-  bootstrapDistribution(const DataType &init, const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): baseType(boots,init), _confidence(confidence){ avg = this->mean(); }
+  bootstrapDistribution(const DataType &initv, const initType &init = initType()): baseType(init.boots,initv), _confidence(init.confidence){ avg = this->mean(); }
 
   template<typename Initializer>
-  bootstrapDistribution(const Initializer &init, const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): baseType(boots,init), _confidence(confidence){ avg = this->mean(); }
+  bootstrapDistribution(const Initializer &initf, const initType &init = initType()): baseType(init.boots,initf), _confidence(init.confidence){ avg = this->mean(); }
 
   bootstrapDistribution(bootstrapDistribution&& o) noexcept : baseType(std::forward<baseType>(o)), _confidence(o._confidence), avg(o.avg){}
 
   template< template<typename> class U >
-  bootstrapDistribution(const rawDataDistribution<DataType,U> &raw, const int boots = bootstrapDistributionOptions::defaultBoots(), const int confidence = 68): bootstrapDistribution(boots,confidence){ this->resample(raw); }
+  bootstrapDistribution(const rawDataDistribution<DataType,U> &raw, const initType &init = initType()): bootstrapDistribution(init){ this->resample(raw); }
   
 
   typedef myType ET_tag;

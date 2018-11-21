@@ -3,6 +3,7 @@
 
 #include<config.h>
 #include<utils/macros.h>
+#include<pipi_common/analyze_chisq.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -24,7 +25,6 @@ struct SimFitArgs{
 
   SimFitArgs(): correlated(true), Lt(64), tsep_pipi(4), Ascale(1e13), Cscale(1e13), load_guess(false), load_frozen_fit_params(false), write_covariance_matrix(false){}
 };
-
 
 template<template<typename> class corrUncorrFitPolicy>
 void fit_corr_uncorr(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data_dj, const SimFitArgs &args){
@@ -74,8 +74,21 @@ void fit_corr_uncorr(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data
   writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
   writeParamsStandard(pvalue, "pvalue.hdf5");
 #endif
-}
 
+  struct PP{
+    inline static void print(std::ostream &os, const SimFitCoord &c){ os << "(" << c.type << "," << c.t << ")" ; }
+  };
+
+  AnalyzeChisq<FitFunc,PP> chisq_analyze(data_j, fitfunc, params);
+  chisq_analyze.printChisqContribs(Correlation);
+  //chisq_analyze.examineEigenvectors(Correlation);
+  //chisq_analyze.examineProjectedFitFuncContribs();
+  //chisq_analyze.examineProjectedDeviationContribs();
+  chisq_analyze.examineProjectedDeviationContribsEvalNorm(Correlation);
+  //chisq_analyze.examineProjectedDeviationDistributionEvalNorm();
+  chisq_analyze.printChisqContribs(Covariance);
+  chisq_analyze.examineProjectedDeviationContribsEvalNorm(Covariance);
+}
 
 void fit(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data_dj, const SimFitArgs &args){
   if(args.correlated){

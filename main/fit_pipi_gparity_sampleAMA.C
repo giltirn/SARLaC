@@ -71,7 +71,7 @@ bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > resampleCorrectBubbl
   const int nSb = nS/bin_size;
   const int nCb = nC/bin_size;
 
-  bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > out(Lt,tsep_pipi,nSb+nCb);
+  bubbleDataAllMomentaBase<bubbleDataBase<DistributionType> > out(Lt,tsep_pipi);
 
   for(auto it = raw.raw_bubble_data_sloppy_S.begin(); it != raw.raw_bubble_data_sloppy_S.end(); ++it){
     for(int t=0;t<Lt;t++){      

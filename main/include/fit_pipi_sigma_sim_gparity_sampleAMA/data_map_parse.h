@@ -77,7 +77,7 @@ struct PiPiToSigmaFileParseProject{
   
   OutputType initialize(const int nsample) const{
     figureData out; 
-    out.setup(Lt,nsample);
+    out.setup(Lt,rawDataDistributionD(nsample));
     return out;
   }
   
@@ -93,7 +93,7 @@ struct PiPiToSigmaFileParseProject{
 						   {2,-2,2}, {-2,2,-2},
 						   {2,2,-2}, {-2,-2,2} };
 
-    figureData accum_raw_data(Lt,1), tmp_raw_data(Lt,1); 
+    figureData accum_raw_data(Lt,rawDataDistributionD(1)), tmp_raw_data(Lt,rawDataDistributionD(1)); 
     accum_raw_data.zero();
 
     for(int ppiidx = 0 ; ppiidx < 8 ; ppiidx++){

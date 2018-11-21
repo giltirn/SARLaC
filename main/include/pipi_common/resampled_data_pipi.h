@@ -14,19 +14,21 @@ CPSFIT_START_NAMESPACE
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
 auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data, const int tsep_pipi, const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk)
-  ->correlationFunction<double,typename std::decay<decltype(raw_bubble_data(Source,*((threeMomentum*)NULL))(0))>::type>{
+  ->correlationFunction<double,typename BubbleDataType::DistributionType>{
 
   (std::cout << "Computing projected, src-averaged V diagrams with BubbleDataType = " << printType<BubbleDataType>() << " and " << omp_get_max_threads() << " threads\n").flush(); 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed projected, src-averaged V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
 
   const int Lt = raw_bubble_data.getLt();
-  const int Nsample = raw_bubble_data.getNsample();
 
-  typedef typename std::decay<decltype(raw_bubble_data(Source,*((threeMomentum*)NULL))(0))>::type  DistributionType;
+  typedef typename BubbleDataType::DistributionType DistributionType;
+
+  DistributionType zero(raw_bubble_data.begin()->second(0)); zeroit(zero);
+
   correlationFunction<double,DistributionType> out(Lt,
 					    [&](const int t)
 					    {
-					      return typename correlationFunction<double,DistributionType>::ElementType(double(t), DistributionType(Nsample,0.));
+					      return typename correlationFunction<double,DistributionType>::ElementType(double(t), zero);
 					    }
 					    );
   int nthr = omp_get_max_threads();
@@ -69,7 +71,8 @@ resampledCorrelationFunction binResample(const rawCorrelationFunction &raw, cons
 template<typename resampledBubbleDataAllMomentumType>
 resampledBubbleDataAllMomentumType binResample(const bubbleDataAllMomenta &bubbles, const int bin_size){
   int Lt = bubbles.getLt();
-  resampledBubbleDataAllMomentumType out(Lt, bubbles.getTsepPiPi(), bubbles.getNsample()/bin_size);
+
+  resampledBubbleDataAllMomentumType out(Lt, bubbles.getTsepPiPi());
 
   for(auto it = bubbles.begin(); it != bubbles.end(); it++){
     for(int t=0;t<Lt;t++)

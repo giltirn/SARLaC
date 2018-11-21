@@ -19,15 +19,16 @@ correlationFunction<double, DistributionType> computePiPiToSigmaVacSub(const sig
   int Lt = sigma_self.getLt(); assert(pipi_self.getLt() == Lt);
   int nsample = sigma_self(0).size(); assert(pipi_self(0).size() == nsample);
 
-  correlationFunction<double, DistributionType> out(Lt, [&](const int t){ return typename correlationFunction<double, DistributionType>::ElementType(t, DistributionType(nsample,0.)); } );
+  correlationFunction<double, DistributionType> out(Lt);
 
   double coeff = -sqrt(6.)/2./double(Lt);
 
-  for(int t0=0; t0<Lt; t0++){
-    for(int tsep=0;tsep<Lt; tsep++){
+  for(int tsep=0;tsep<Lt; tsep++){
+    out.coord(tsep) = tsep;
+    for(int t0=0; t0<Lt; t0++){
       int t1 = (t0 + tsep) % Lt;
-      
-      out.value(tsep) = out.value(tsep) + coeff*pipi_self(t0)*sigma_self(t1);
+      DistributionType tmp = coeff*pipi_self(t0)*sigma_self(t1);
+      out.value(tsep) = t0 == 0 ? tmp : out.value(tsep) + tmp;
     }
   }
   return out;
@@ -38,14 +39,13 @@ template<typename resampledCorrelationFunctionType>
 resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleData &pipi_self, const int bin_size){
   int Lt = sigma_self.getLt(); assert(pipi_self.getLt() == Lt);
   int nsample_raw = sigma_self(0).size(); assert(pipi_self(0).size() == nsample_raw);
-  int nsample_binned = nsample_raw/bin_size;
 
   typedef typename resampledCorrelationFunctionType::DataType DistributionType;
   typedef sigmaSelfContractionSelect<DistributionType> sigmaSelfContractionType;
   typedef bubbleDataSelect<DistributionType> pipiSelfContractionType;
 
-  sigmaSelfContractionType sigma_self_r(Lt, nsample_binned);
-  pipiSelfContractionType pipi_self_r(Source, Lt, pipi_self.getTsepPiPi(), nsample_binned);
+  sigmaSelfContractionType sigma_self_r(Lt);
+  pipiSelfContractionType pipi_self_r(Source, Lt, pipi_self.getTsepPiPi());
   for(int t=0;t<Lt;t++){
     sigma_self_r(t).resample(sigma_self(t).bin(bin_size));
     pipi_self_r(t).resample(pipi_self(t).bin(bin_size));

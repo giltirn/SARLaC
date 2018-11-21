@@ -118,7 +118,7 @@ NumericTensor<rawDataDistributionD,1> readProjectedSigmaBubble(const std::string
   subStringReplace repl(file_fmt, keys);
   
   for(int p=0;p<bubble_quarkmom_proj.size();p++){
-    sigmaSelfContraction self(Lt,nsample);
+    sigmaSelfContraction self(Lt,rawDataDistributionD(nsample));
 
 #pragma omp parallel for
     for(int sample=0; sample < nsample; sample++){

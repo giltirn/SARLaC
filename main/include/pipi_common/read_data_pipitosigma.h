@@ -43,7 +43,7 @@ void readPiPiToSigma(figureData &raw_data, const int Lt, const PiPiProjectorBase
   std::cout << "Reading pipi->sigma data\n"; boost::timer::auto_cpu_timer t("Read pipi->sigma in %w s\n");
   int nsample = rd.nsample();
 
-  raw_data.setup(Lt,nsample);
+  raw_data.setup(Lt,rawDataDistributionD(nsample));
   raw_data.zero();
 
   std::vector<threeMomentum> quark_mom = { {1,1,1}, {-1,-1,-1},
@@ -52,7 +52,7 @@ void readPiPiToSigma(figureData &raw_data, const int Lt, const PiPiProjectorBase
 					   {1,1,-3}, {-1,-1,3} };
 
   
-  figureData tmp_raw_data(Lt,nsample);
+  figureData tmp_raw_data(Lt,rawDataDistributionD(nsample));
 
   for(int ppiidx = 0 ; ppiidx < proj_pipi.nMomenta() ; ppiidx++){
     threeMomentum ppi = proj_pipi.momentum(ppiidx) * 2; //Tianle's conventions for the pion energy are in units of pi/2L     
@@ -88,17 +88,17 @@ void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleDataZ &
   const int Lt = pipi_self_data_Z.getLt();
   assert(sigma_self_data_Z.getLt() == Lt);
 
-  const int nsample = pipi_self_data_Z.getNsample();
-  assert( sigma_self_data_Z.getNsample() == nsample);
+  const int nsample = pipi_self_data_Z(0).size();
+  assert( sigma_self_data_Z(0).size() == nsample);
 
-  disconn.setup(Lt, nsample);
+  disconn.setup(Lt, rawDataDistributionD(nsample));
   for(int tsrc=0;tsrc<Lt;tsrc++){
     for(int tsep=0;tsep<Lt;tsep++){
       int tsnk = ( tsrc + tsep ) % Lt;
       //note the pipi bubble is computed online as 0.5 tr( mf(t) mf(t-tsep) ), and this is combined with the sigma bubble with a coeff sqrt(6)/2 in the parallel code to form the pipi->sigma disconnected part
       //However the correct formula for the pipi bubble is -0.5 tr( mf(t) mf(t-tsep) )   ; this is corrected for when the bubble is loaded in this analysis code. Hence the coeff here needs to be -sqrt(6)/2
       rawDataDistribution<std::complex<double> > valz = -sqrt(6.)/2 * pipi_self_data_Z(tsrc) * sigma_self_data_Z(tsnk); 
-      for(int s=0;s<valz.size();s++) disconn(tsrc,tsep).sample(s) = valz.sample(s).real();
+      for(int s=0;s<nsample;s++) disconn(tsrc,tsep).sample(s) = valz.sample(s).real();
     }
   }
 }
@@ -109,10 +109,10 @@ void reconstructPiPiToSigmaDisconnected(figureData &disconn, const bubbleData &p
   const int Lt = pipi_self_data.getLt();
   assert(sigma_self_data.getLt() == Lt);
 
-  const int nsample = pipi_self_data.getNsample();
-  assert( sigma_self_data.getNsample() == nsample);
+  const int nsample = pipi_self_data(0).size();
+  assert( sigma_self_data(0).size() == nsample);
 
-  disconn.setup(Lt, nsample);
+  disconn.setup(Lt);
   for(int tsrc=0;tsrc<Lt;tsrc++){
     for(int tsep=0;tsep<Lt;tsep++){
       int tsnk = ( tsrc + tsep ) % Lt;
@@ -130,11 +130,10 @@ void reconstructPiPiToSigmaConnected(figureData &conn, const figureData &full, c
   const int Lt = full.getLt();
   assert(disconn.getLt() == Lt);
 
-  const int nsample = full.getNsample();
-  assert( disconn.getNsample() == nsample);
+  const int nsample = full(0,0).size();
+  assert( disconn(0,0).size() == nsample);
 
-  conn.setup(Lt, nsample);
-  conn.zero();
+  conn.setup(Lt, rawDataDistributionD(nsample,0.));
   for(int tsrc=0; tsrc< Lt; tsrc += tstep_src_full)
     for(int tsep=0;tsep<Lt;tsep++)
       conn(tsrc, tsep) = full(tsrc, tsep) - disconn(tsrc, tsep);
@@ -235,16 +234,16 @@ struct projectSourcePiPiBubble_getCoeff{
 
 template<typename AllMomentaContainerType>
 typename AllMomentaContainerType::ContainerType projectSourcePiPiBubble(const AllMomentaContainerType &pipi_self_data, const PiPiProjectorBase &proj_pipi){
-  int nsample_raw = pipi_self_data.getNsample();
   int Lt = pipi_self_data.getLt();
   int tsep_pipi = pipi_self_data.getTsepPiPi();
   typedef typename AllMomentaContainerType::ContainerType OutType;
-  OutType out(Source,Lt,tsep_pipi,nsample_raw);
-  out.zero();
+  OutType out(Source,Lt,tsep_pipi);
 
   for(int t=0;t<Lt;t++)
-    for(int p=0;p<proj_pipi.nMomenta();p++)
-      out(t) = out(t) + projectSourcePiPiBubble_getCoeff<OutType>::getCoeff(proj_pipi.coefficient(p)) * pipi_self_data(Source,proj_pipi.momentum(p))(t);
+    for(int p=0;p<proj_pipi.nMomenta();p++){
+      typename AllMomentaContainerType::DistributionType tmp = projectSourcePiPiBubble_getCoeff<OutType>::getCoeff(proj_pipi.coefficient(p)) * pipi_self_data(Source,proj_pipi.momentum(p))(t);
+      out(t) = p == 0 ? tmp : out(t) + tmp;
+    }
   
   return out;
 }
@@ -268,13 +267,15 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::s
 //Read and project pipi bubble
 template<typename ContainerType, typename ReadPolicy>
 void getProjectedSourcePiPiBubble(ContainerType &out, const int Lt, const int tsep_pipi, const PiPiProjectorBase &proj_pipi, const ReadPolicy &rp){
-  out.setup(Source, Lt, tsep_pipi, rp.nsample());
-  out.zero();
+  out.setup(Source, Lt, tsep_pipi);
   
-  ContainerType temp(Source, Lt, tsep_pipi, rp.nsample());
+  ContainerType temp(Source, Lt, tsep_pipi);
   for(int p=0;p<proj_pipi.nMomenta();p++){
     readPiPiBubble(temp, Lt, proj_pipi.momentum(p), rp);
-    for(int t=0;t<Lt;t++) out(t) = out(t) + projectSourcePiPiBubble_getCoeff<ContainerType>::getCoeff(proj_pipi.coefficient(p)) * temp(t);
+    for(int t=0;t<Lt;t++){
+      typename ContainerType::DistributionType tmp =  projectSourcePiPiBubble_getCoeff<ContainerType>::getCoeff(proj_pipi.coefficient(p)) * temp(t);
+      out(t) = p==0 ? tmp : out(t) + tmp;
+    }
   }
 }
 

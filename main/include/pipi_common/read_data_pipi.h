@@ -155,7 +155,7 @@ void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int
   std::cout << "Reading figure " << fig << "\n"; boost::timer::auto_cpu_timer t(std::string("Report: Read figure ") + fig + " in %w s\n");
   int nsample = rp.nsample();
 
-  raw_data.setup(Lt,nsample);
+  raw_data.setup(Lt);
 
   for(int psnki=0; psnki<proj_snk.nMomenta();psnki++){
     threeMomentum psnk = proj_snk.momentum(psnki);
@@ -164,7 +164,8 @@ void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int
       threeMomentum psrc = proj_src.momentum(psrci);
 
       figureData &into = raw_data(fig, momComb(psnk, psrc));      
-      
+      into.initializeElements(rawDataDistributionD(nsample));
+
 #pragma omp parallel for
       for(int sample=0; sample < nsample; sample++){
 	std::string filename = rp.filename(sample, fig, psnk, psrc);
@@ -248,7 +249,11 @@ struct PiPiBubbleBasicReadPolicy{
 template<typename ContainerType, typename ReadPolicy>
 void readPiPiBubble(ContainerType &into, const int Lt, const threeMomentum &mom, const ReadPolicy &rp){    
   const int nsample = rp.nsample();
-    
+
+  typename ContainerType::DistributionType zero(nsample); zeroit(zero);
+
+  into.initializeElements(zero);
+
 #pragma omp parallel for
   for(int sample=0; sample < nsample; sample++){
     std::string filename = rp.filename(sample,mom);
@@ -283,7 +288,7 @@ void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int Lt, const int 
   int nsample = rp_src.nsample();
   assert(rp_snk.nsample() == nsample);
 
-  raw_data.setup(Lt,tsep_pipi,nsample);
+  raw_data.setup(Lt,tsep_pipi);
   
   //Filter data read into container according to those that pass the corr_select filter
   std::vector<threeMomentum> src_mom_need(proj_src.nMomenta());

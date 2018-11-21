@@ -35,10 +35,6 @@ template<typename sigmaSelfContractionType>
 void readSigmaSelf(sigmaSelfContractionType &into,
 		   const int Lt,
 		   const std::map<int, DataLocationInfo const*> &data_info_map){
-
-  int subens_size = data_info_map.size();
-  into.setup(Lt, subens_size);
-
   SigmaSelfMapReadPolicy rp(data_info_map);
   readSigmaSelf(into, Lt, rp);
 }
@@ -48,7 +44,7 @@ void superJackknifeResample(resampledBubbleDataType &out,
 			    const sigmaSelfContraction &in,
 			    const std::map<int, DataLocationInfo const*> &data_info_map, const int full_ens_size){
   
-  out.setup(in.getLt(), full_ens_size);
+  out.setup(in.getLt());
   std::vector<int> idxmap = getDataOuterConfigMap(data_info_map, full_ens_size); //mapping of outer to sample index, -1 for entries not present
   for(int t=0;t<in.getLt();t++)
     superJackknifeResample(out(t), in(t), idxmap, data_info_map.size(), full_ens_size);

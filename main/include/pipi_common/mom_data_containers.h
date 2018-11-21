@@ -22,7 +22,8 @@ class figureDataAllMomentaBase: public Extra{
 public:
   typedef _ContainerType ContainerType;
   typedef typename std::map<sinkSourceMomenta, ContainerType>::const_iterator const_iterator;  
-  typedef typename std::map<sinkSourceMomenta, ContainerType>::iterator iterator;  
+  typedef typename std::map<sinkSourceMomenta, ContainerType>::iterator iterator;
+  typedef typename ContainerType::DistributionType DistributionType;
 private:
   typedef std::map<sinkSourceMomenta, ContainerType> MapType;
   MapType C;
@@ -30,7 +31,6 @@ private:
   MapType R;
   MapType V;
   int Lt;
-  int Nsample;
 
   MapType* getMap(const char fig){
     switch(fig){
@@ -56,17 +56,17 @@ private:
       if(lock) error_exit(std::cout << "figureDataAllMomenta::get Could not find requested momentum\n");
 
       it = mp->insert(std::make_pair(mom, ContainerType())).first;
-      it->second.setup(Lt, Nsample);
+      it->second.setup(Lt);
     }
     return it->second;
   }
 
 public:
-  figureDataAllMomentaBase(const int _Lt, const int _Nsample): Lt(_Lt), Nsample(_Nsample){}
+  figureDataAllMomentaBase(const int _Lt): Lt(_Lt){}
   figureDataAllMomentaBase(){}
 
-  void setup(const int _Lt, const int _Nsample){
-    Lt = _Lt; Nsample = _Nsample;
+  void setup(const int _Lt){
+    Lt = _Lt;
   }
   
   const ContainerType &operator()(const char fig, const sinkSourceMomenta &mom) const{
@@ -77,7 +77,6 @@ public:
     return this->get(fig,mom,false);
   }
   inline int getLt() const{ return Lt; }
-  inline int getNsample() const{ return Nsample; }
 
   const_iterator begin(const char fig) const{
     return getMap(fig)->begin();
@@ -91,7 +90,7 @@ public:
   iterator end(const char fig){
     return getMap(fig)->end();
   }
-  GENERATE_HDF5_SERIALIZE_METHOD((C)(D)(R)(V)(Lt)(Nsample));
+  GENERATE_HDF5_SERIALIZE_METHOD((C)(D)(R)(V)(Lt));
 };
 
 #ifdef HAVE_HDF5
@@ -112,7 +111,6 @@ struct figureDataAllMomentaExtra{
     for(int f=0;f<4;f++)
       for(full_type::iterator it = me.begin(figs[f]); it != me.end(figs[f]); it++)
 	it->second.bin(bin_size);  
-    me.Nsample /= bin_size;
   }
 };
 
@@ -128,6 +126,8 @@ template<>
 struct _figureDataAllMomentaTypeSelector<jackknifeDistributionD>{ typedef figureDataJackAllMomenta type; };
 template<>
 struct _figureDataAllMomentaTypeSelector<doubleJackknifeDistributionD>{ typedef figureDataDoubleJackAllMomenta type; };
+template<>
+struct _figureDataAllMomentaTypeSelector<bootstrapDistributionD>{ typedef figureDataAllMomentaBase<figureDataBoot>  type; };
 
 template<typename DistributionType>
 using figureDataAllMomentaSelect = typename _figureDataAllMomentaTypeSelector<DistributionType>::type;
@@ -143,10 +143,10 @@ public:
   typedef std::pair<SourceOrSink, threeMomentum> keyType;
   typedef typename std::map<keyType, ContainerType>::iterator iterator;  
   typedef typename std::map<keyType, ContainerType>::const_iterator const_iterator;  
+  typedef typename ContainerType::DistributionType DistributionType;
 private:
   std::map<keyType, ContainerType> B;
   int Lt;
-  int Nsample;
   int tsep_pipi;
   
   ContainerType & get(const keyType &key, bool lock){
@@ -155,17 +155,17 @@ private:
       if(lock) error_exit(std::cout << "bubbleDataAllMomenta::get Could not find requested source/sink and momentum:" << (int)key.first << " " << key.second << std::endl );
 
       it = B.insert(std::make_pair(key, ContainerType())).first;
-      it->second.setup(key.first,Lt,tsep_pipi,Nsample);
+      it->second.setup(key.first,Lt,tsep_pipi);
     }
     return it->second;
   }
 
 public:
-  bubbleDataAllMomentaBase(const int _Lt, const int tsep_pipi, const int _Nsample): Lt(_Lt), tsep_pipi(tsep_pipi), Nsample(_Nsample){}
+  bubbleDataAllMomentaBase(const int _Lt, const int tsep_pipi): Lt(_Lt), tsep_pipi(tsep_pipi){}
   bubbleDataAllMomentaBase(){}
 
-  void setup(const int _Lt, const int _tsep_pipi, const int _Nsample){
-    Lt = _Lt; tsep_pipi = _tsep_pipi; Nsample = _Nsample;
+  void setup(const int _Lt, const int _tsep_pipi){
+    Lt = _Lt; tsep_pipi = _tsep_pipi;
   }
   
   const ContainerType &operator()(const SourceOrSink src_snk, const threeMomentum &mom) const{
@@ -184,7 +184,6 @@ public:
   }
 
   inline int getLt() const{ return Lt; }
-  inline int getNsample() const{ return Nsample; }
   inline int getTsepPiPi() const{ return tsep_pipi; }
 
   inline const_iterator begin() const{ return B.begin(); }
@@ -195,7 +194,7 @@ public:
 
   inline size_t getNmomenta() const{ return B.size(); }
 
-  GENERATE_HDF5_SERIALIZE_METHOD((B)(Lt)(Nsample)(tsep_pipi));
+  GENERATE_HDF5_SERIALIZE_METHOD((B)(Lt)(tsep_pipi));
 };
 #ifdef HAVE_HDF5
 template<typename C,typename E>
@@ -213,7 +212,6 @@ struct bubbleDataAllMomentaExtra{
     full_type & me = upcast();
     for(auto it = me.begin(); it != me.end(); it++)
 	it->second.bin(bin_size);  
-    me.Nsample /= bin_size;
   }
 };
 
@@ -222,7 +220,7 @@ typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra<bubbleDat
 typedef bubbleDataAllMomentaBase<bubbleDataZ, bubbleDataAllMomentaExtra<bubbleDataZ> > bubbleDataAllMomentaZ;
 typedef bubbleDataAllMomentaBase<bubbleDataJack> bubbleDataJackAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
-
+typedef bubbleDataAllMomentaBase<bubbleDataBoot> bubbleDataBootAllMomenta;
 
 template<typename DistributionType>
 struct _bubbleDataAllMomentaTypeSelector{};
@@ -234,6 +232,8 @@ template<>
 struct _bubbleDataAllMomentaTypeSelector<jackknifeDistributionD>{ typedef bubbleDataJackAllMomenta type; };
 template<>
 struct _bubbleDataAllMomentaTypeSelector<doubleJackknifeDistributionD>{ typedef bubbleDataDoubleJackAllMomenta type; };
+template<>
+struct _bubbleDataAllMomentaTypeSelector<bootstrapDistributionD>{ typedef bubbleDataBootAllMomenta type; };
 
 template<typename DistributionType>
 using bubbleDataAllMomentaSelect = typename _bubbleDataAllMomentaTypeSelector<DistributionType>::type;
@@ -254,7 +254,7 @@ void loadHDF5checkpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta &ra
 }
 
 inline bubbleDataAllMomenta reIm(const bubbleDataAllMomentaZ &in, const int reim){
-  bubbleDataAllMomenta out(in.getLt(), in.getTsepPiPi(), in.getNsample());
+  bubbleDataAllMomenta out(in.getLt(), in.getTsepPiPi());
   for(auto it = in.begin(); it != in.end(); ++it)
     out(it->first) = reIm(it->second, reim);
   return out;

@@ -14,28 +14,26 @@ CPSFIT_START_NAMESPACE
 
 //Generate a correlation function by source-averaging the raw data
 template<typename FigureDataType>
-auto sourceAverage(const FigureDataType & data)->correlationFunction<double,typename std::decay<decltype(data(0,0))>::type>{
-  typedef typename std::decay<decltype(data(0,0))>::type DistributionType;
+auto sourceAverage(const FigureDataType & data)->correlationFunction<double,typename FigureDataType::DistributionType>{
+  const int Lt = data.getLt();
 
-  int Lt = data.getLt();
-  int nsample = data.getNsample();
-  correlationFunction<double,DistributionType> into(data.getLt(),
-					     [nsample](int i) {  return typename correlationFunction<double,DistributionType>::ElementType(i, DistributionType(nsample,0.)); }
-					     );
   std::vector<int> tsrc_include;
   for(int tsrc=0;tsrc<Lt;tsrc++){
     bool is_nonzero = !data.isZero(tsrc);
     if(is_nonzero)
       tsrc_include.push_back(tsrc);
   }
-  double N(tsrc_include.size());
+  const double N(tsrc_include.size());
 
   std::cout << "sourceAverage detected " << N << " non-zero timeslices\n";
 
+  correlationFunction<double, typename FigureDataType::DistributionType> into(Lt);
+
   for(int tsep=0;tsep<Lt;tsep++){
+    into.coord(tsep) = tsep;
     auto & v = into.value(tsep);
-    v.zero();
-    for(int i=0;i<tsrc_include.size();i++)
+    v = data(tsrc_include[0],tsep);
+    for(int i=1;i<tsrc_include.size();i++)
       v = v + data(tsrc_include[i],tsep);
     v = v/N;
   }

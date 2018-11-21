@@ -36,20 +36,19 @@ public:
   bubbleDataBase() = default;
   bubbleDataBase(const bubbleDataBase &r) = default;
   bubbleDataBase(bubbleDataBase &&r) = default;
-  bubbleDataBase(const SourceOrSink _src_snk, const int _Lt, const int _tsep_pipi, const int _Nsample): src_snk(_src_snk), Lt(_Lt), tsep_pipi(_tsep_pipi), d(_Lt, DistributionType(_Nsample)){}
+  bubbleDataBase(const SourceOrSink _src_snk, const int _Lt, const int _tsep_pipi, const DistributionType &init = DistributionType()): src_snk(_src_snk), Lt(_Lt), tsep_pipi(_tsep_pipi), d(_Lt,init){}
 
   bubbleDataBase& operator=(const bubbleDataBase &r) = default;
   bubbleDataBase& operator=(bubbleDataBase &&r) = default;
 
-  void setup(const SourceOrSink _src_snk, const int _Lt, const int _tsep_pipi, const int _Nsample){ 
+  void setup(const SourceOrSink _src_snk, const int _Lt, const int _tsep_pipi, const DistributionType &init = DistributionType()){ 
     src_snk = _src_snk; 
     tsep_pipi = _tsep_pipi; 
     Lt = _Lt; 
-    d.resize(_Lt, DistributionType(_Nsample)); 
+    d.resize(Lt, init); 
   }
   
   inline int getLt() const{ return Lt; }
-  inline int getNsample() const{ return d[0].size(); }
   inline int getTsepPiPi() const{ return tsep_pipi; }
   inline SourceOrSink getSrcSnk() const{ return src_snk; }
 
@@ -63,6 +62,10 @@ public:
     for(int i=0;i<Lt;i++)
       zeroit(d[i]);
   }
+  void initializeElements(const DistributionType &init){ 
+    for(int i=0;i<Lt;i++)
+      d[i] = init;
+  }  
 
   GENERATE_HDF5_SERIALIZE_METHOD((Lt)(tsep_pipi)(d));
 };
@@ -136,7 +139,7 @@ typedef bubbleDataBase<rawDataDistributionD, bubbleDataPolicies<double, setValue
 typedef bubbleDataBase<rawDataDistribution<std::complex<double> >, bubbleDataPolicies<std::complex<double>, setValueComplex> > bubbleDataZ;
 typedef bubbleDataBase<jackknifeDistributionD > bubbleDataJack;
 typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
-
+typedef bubbleDataBase<bootstrapDistributionD > bubbleDataBoot;
 
 template<typename DistributionType>
 struct _bubbleDataTypeSelector{};
@@ -148,6 +151,9 @@ template<>
 struct _bubbleDataTypeSelector<jackknifeDistributionD>{ typedef bubbleDataJack type; };
 template<>
 struct _bubbleDataTypeSelector<doubleJackknifeDistributionD>{ typedef bubbleDataDoubleJack type; };
+template<>
+struct _bubbleDataTypeSelector<bootstrapDistributionD>{ typedef bubbleDataBoot type; };
+
 
 template<typename DistributionType>
 using bubbleDataSelect = typename _bubbleDataTypeSelector<DistributionType>::type;
@@ -155,10 +161,9 @@ using bubbleDataSelect = typename _bubbleDataTypeSelector<DistributionType>::typ
 
 
 inline bubbleData reIm(const bubbleDataZ &in, const int reim){
-  bubbleData out(in.getSrcSnk(), in.getLt(), in.getTsepPiPi(), in.getNsample());
+  bubbleData out(in.getSrcSnk(), in.getLt(), in.getTsepPiPi());
   for(int t=0;t<in.getLt();t++)
-    for(int s=0;s<in.getNsample();s++)
-      out(t).sample(s) = ( reim == 0 ? in(t).sample(s).real() : in(t).sample(s).imag() );
+    out(t) = rawDataDistributionD(in(t).size(), [&](const int s){ return reim == 0 ? in(t).sample(s).real() : in(t).sample(s).imag(); });
   return out;
 }
 
@@ -189,7 +194,7 @@ public:
   figureDataBase() = default;
   figureDataBase(const figureDataBase<DistributionType,Policies> &r) = default;
   figureDataBase(figureDataBase<DistributionType,Policies> &&r) = default;
-  figureDataBase(const int _Lt, const int _Nsample): Lt(_Lt), d(_Lt,DistributionType(_Nsample)){}
+  figureDataBase(const int _Lt, const DistributionType &init = DistributionType()): Lt(_Lt), d(_Lt,init){}
   
   figureDataBase<DistributionType,Policies> &operator=(const figureDataBase<DistributionType,Policies> &r) = default;
   figureDataBase<DistributionType,Policies> &operator=(figureDataBase<DistributionType,Policies> &&r) = default;
@@ -199,12 +204,15 @@ public:
       for(int j=0;j<Lt;j++)
 	zeroit(d(i,j));
   }
-    
+  void initializeElements(const DistributionType &init){ 
+    for(int i=0;i<Lt;i++)
+      for(int j=0;j<Lt;j++)
+	d(i,j) = init;
+  }  
   
-  void setup(const int _Lt, const int _Nsample){ Lt = _Lt; d.resize(_Lt, DistributionType(_Nsample)); }
+  void setup(const int _Lt, const DistributionType &init = DistributionType()){ Lt = _Lt; d.resize(_Lt,init); }
   
   inline int getLt() const{ return Lt; }
-  inline int getNsample() const{ return d(0,0).size(); }
   
   inline DistributionType & operator()(const int tsrc, const int tsep){ return d(tsrc,tsep); }
   inline const DistributionType & operator()(const int tsrc, const int tsep) const { return d(tsrc,tsep); }
@@ -303,7 +311,7 @@ public:
     auto &me = upcast();
     
     for(int tsep=0;tsep<me.getLt();tsep++)
-      for(int sample=0;sample<me.getNsample();sample++)
+      for(int sample=0;sample<me.at(tsrc,tsep).size();sample++)
 	if( me.at(tsrc,tsep).sample(sample) != 0.0 ) return false;
     return true;
   }
@@ -345,6 +353,7 @@ public:
 typedef figureDataBase<rawDataDistributionD , figureDataPolicies> figureData;
 typedef figureDataBase<doubleJackknifeDistributionD, figureDataDistributionPolicies<doubleJackknifeDistributionD> > figureDataDoubleJack;
 typedef figureDataBase<jackknifeDistributionD, figureDataDistributionPolicies<jackknifeDistributionD> > figureDataJack;
+typedef figureDataBase<bootstrapDistributionD, figureDataDistributionPolicies<bootstrapDistributionD> > figureDataBoot;
 
 template<typename DistributionType>
 struct _figureDataTypeSelector{};
@@ -354,6 +363,8 @@ template<>
 struct _figureDataTypeSelector<jackknifeDistributionD>{ typedef figureDataJack type; };
 template<>
 struct _figureDataTypeSelector<doubleJackknifeDistributionD>{ typedef figureDataDoubleJack type; };
+template<>
+struct _figureDataTypeSelector<bootstrapDistributionD>{ typedef figureDataBoot type; };
 
 template<typename DistributionType>
 using figureDataSelect = typename _figureDataTypeSelector<DistributionType>::type;
@@ -369,15 +380,14 @@ private:
 
 public:
   sigmaSelfContractionBase(){}
-  sigmaSelfContractionBase(const int _Lt, const int _Nsample): Lt(_Lt), d(_Lt, DistributionType(_Nsample)){}
+  sigmaSelfContractionBase(const int _Lt, const DistributionType &init = DistributionType()): Lt(_Lt), d(_Lt,init){}
 
-  void setup(const int _Lt, const int _Nsample){ 
+  void setup(const int _Lt, const DistributionType &init = DistributionType()){ 
     Lt = _Lt; 
-    d.resize(_Lt, DistributionType(_Nsample)); 
+    d.resize(_Lt,init); 
   }
   
   inline int getLt() const{ return Lt; }
-  inline int getNsample() const{ return d[0].size(); }
 
   inline DistributionType & operator()(const int t){ return d[t]; } //time coordinate is for pi1 (earlier pion for sink, later for src)
   inline const DistributionType & operator()(const int t) const { return d[t]; }
@@ -445,6 +455,7 @@ typedef sigmaSelfContractionBase<rawDataDistributionD , sigmaSelfContractionPoli
 typedef sigmaSelfContractionBase<rawDataDistribution<std::complex<double> > , sigmaSelfContractionPolicies<std::complex<double>, setValueComplex> > sigmaSelfContractionZ;
 typedef sigmaSelfContractionBase<jackknifeDistributionD> sigmaSelfContractionJack;
 typedef sigmaSelfContractionBase<doubleJackknifeDistributionD> sigmaSelfContractionDoubleJack;
+typedef sigmaSelfContractionBase<bootstrapDistributionD> sigmaSelfContractionBoot;
 
 template<typename DistributionType>
 struct _sigmaSelfContractionTypeSelector{};
@@ -456,6 +467,8 @@ template<>
 struct _sigmaSelfContractionTypeSelector<jackknifeDistributionD>{ typedef sigmaSelfContractionJack type; };
 template<>
 struct _sigmaSelfContractionTypeSelector<doubleJackknifeDistributionD>{ typedef sigmaSelfContractionDoubleJack type; };
+template<>
+struct _sigmaSelfContractionTypeSelector<bootstrapDistributionD>{ typedef sigmaSelfContractionBoot type; };
 
 template<typename DistributionType>
 using sigmaSelfContractionSelect = typename _sigmaSelfContractionTypeSelector<DistributionType>::type;
@@ -464,10 +477,9 @@ using sigmaSelfContractionSelect = typename _sigmaSelfContractionTypeSelector<Di
 
 
 inline sigmaSelfContraction reIm(const sigmaSelfContractionZ &in, const int reim){
-  sigmaSelfContraction out(in.getLt(), in.getNsample());
+  sigmaSelfContraction out(in.getLt());
   for(int t=0;t<in.getLt();t++)
-    for(int s=0;s<in.getNsample();s++)
-      out(t).sample(s) = ( reim == 0 ? in(t).sample(s).real() : in(t).sample(s).imag() );
+    out(t) = rawDataDistributionD(in(t).size(), [&](const int s){ return reim == 0 ? in(t).sample(s).real() : in(t).sample(s).imag(); });
   return out;
 }
 

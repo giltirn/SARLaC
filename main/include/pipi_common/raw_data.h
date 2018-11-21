@@ -27,8 +27,7 @@ void computePiPi2ptFigureV(DataAllMomentumType &raw_data, const BubbleDataType &
   boost::timer::auto_cpu_timer t(std::string("Report: Computed V diagrams with BubbleType = ") + printType<BubbleDataType>() + " in %w s\n");
 				 
   const int Lt = raw_bubble_data.getLt();
-  const int Nsample = raw_bubble_data.getNsample();
-  raw_data.setup(Lt,Nsample);
+  raw_data.setup(Lt);
 
   int npsrc = proj_src.nMomenta();
   int npsnk = proj_snk.nMomenta();
@@ -125,7 +124,7 @@ typename DataAllMomentumType::ContainerType project(const char fig, const DataAl
   std::cout << "Computing projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 
   boost::timer::auto_cpu_timer t(std::string("Report: Computed projection of figure ") + fig + " with DataAllMomentumType = " + printType<DataAllMomentumType>() + " in %w s\n");
 
-  typename DataAllMomentumType::ContainerType out(raw_data.getLt(), raw_data.getNsample()); out.zero();
+  typename DataAllMomentumType::ContainerType out, tmp;
 
   for(int psnki=0; psnki<proj_snk.nMomenta();psnki++){
     threeMomentum psnk = proj_snk.momentum(psnki);
@@ -133,7 +132,9 @@ typename DataAllMomentumType::ContainerType project(const char fig, const DataAl
     for(int psrci=0; psrci<proj_src.nMomenta();psrci++){
       threeMomentum psrc = proj_src.momentum(psrci);
 
-      out = out + std::real(proj_snk.coefficient(psnki)*proj_src.coefficient(psrci)) * raw_data(fig, momComb(psnk,psrc));
+      tmp = std::real(proj_snk.coefficient(psnki)*proj_src.coefficient(psrci)) * raw_data(fig, momComb(psnk,psrc));
+      if(psnki == 0 && psrci == 0) out = std::move(tmp);
+      else out = out + tmp;
     }
   }
 

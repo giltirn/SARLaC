@@ -12,95 +12,55 @@ using namespace CPSfit;
 #include <fit_pipi_sigma_sim_gparity/cmdline.h>
 #include <fit_pipi_sigma_sim_gparity/read_data.h>
 
-struct rawData{
-  rawCorrelationFunction pipi_raw, pipi_to_sigma_raw, sigma2pt_raw;
-  bubbleDataAllMomenta pipi_self_data;
-  sigmaSelfContraction sigma_self_data;
 
-  void readDataFromOrigFiles(const std::string &data_dir, 
-		const std::string &pipi2pt_figure_file_fmt, 
-		const std::string &sigma2pt_file_fmt, 
-		const std::string &pipitosigma_file_fmt, 
-		const std::string &pipi_bubble_file_fmt, 
-		const std::string &sigma_bubble_file_fmt,
-		const int tsep_pipi,
-		const int tstep_pipi2pt, int tstep_pipitosigma,
-		const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan,
-		bool compute_pipitosigma_disconn_ReRe){
-        readData(pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data,
-		 data_dir, 
-		 pipi2pt_figure_file_fmt, sigma2pt_file_fmt, pipitosigma_file_fmt,
-		 pipi_bubble_file_fmt, sigma_bubble_file_fmt,
-		 tsep_pipi, tstep_pipi2pt, tstep_pipitosigma,
-		 Lt, traj_start, traj_inc, traj_lessthan, compute_pipitosigma_disconn_ReRe);
-  }
-  void readDataFromCheckpoint(const std::string &file){
-    readCheckpoint(pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data,file);
-  }
-  void saveCheckpoint(const std::string &file) const{
-    writeCheckpoint(file,pipi_raw,pipi_to_sigma_raw,sigma2pt_raw,pipi_self_data,sigma_self_data);
-  }
-};
-
-void getResampledData(simFitCorrFuncJ &corr_comb_j, simFitCorrFuncDJ &corr_comb_dj, const rawData &raw_data,
+template<typename DistributionType>
+void getResampledData(correlationFunction<SimFitCoord, DistributionType> &corr_comb, const rawData &raw_data,
 		      const int Lt, const int tsep_pipi, const int bin_size, bool do_vacuum_subtraction,
 		      bool include_pipi_2pt, bool include_pipi_to_sigma, bool include_sigma_2pt){
+  typedef correlationFunction<double,DistributionType> CorrFuncType;
 
   //Get double-jack data
-  auto pipi_to_sigma_j = binResample<jackknifeCorrelationFunction>(raw_data.pipi_to_sigma_raw, bin_size);
-  auto pipi_to_sigma_dj = binResample<doubleJackCorrelationFunction>(raw_data.pipi_to_sigma_raw, bin_size);
-
-  auto sigma2pt_j = binResample<jackknifeCorrelationFunction>(raw_data.sigma2pt_raw, bin_size);
-  auto sigma2pt_dj = binResample<doubleJackCorrelationFunction>(raw_data.sigma2pt_raw, bin_size);
-
-  auto pipi_j = binResample<jackknifeCorrelationFunction>(raw_data.pipi_raw, bin_size);
-  auto pipi_dj = binResample<doubleJackCorrelationFunction>(raw_data.pipi_raw, bin_size);
+  auto pipi_to_sigma = binResample<CorrFuncType>(raw_data.pipi_to_sigma_raw, bin_size);
+  auto sigma2pt = binResample<CorrFuncType>(raw_data.sigma2pt_raw, bin_size);
+  auto pipi = binResample<CorrFuncType>(raw_data.pipi_raw, bin_size);
   
   //Compute vacuum subtractions
   if(do_vacuum_subtraction){
     { //Pipi->sigma
       PiPiProjectorA1Basis111 proj_pipi;
       bubbleData pipi_self_proj = projectSourcePiPiBubble(raw_data.pipi_self_data, proj_pipi);
-      pipi_to_sigma_j = pipi_to_sigma_j - computePiPiToSigmaVacSub<jackknifeCorrelationFunction>(raw_data.sigma_self_data, pipi_self_proj, bin_size);
-      pipi_to_sigma_dj = pipi_to_sigma_dj - computePiPiToSigmaVacSub<doubleJackCorrelationFunction>(raw_data.sigma_self_data, pipi_self_proj, bin_size);
+      pipi_to_sigma = pipi_to_sigma - computePiPiToSigmaVacSub<CorrFuncType>(raw_data.sigma_self_data, pipi_self_proj, bin_size);
     }
     { //sigma->sigma
-      sigma2pt_j = sigma2pt_j - computeSigmaVacSub<jackknifeCorrelationFunction>(raw_data.sigma_self_data, bin_size);
-      sigma2pt_dj = sigma2pt_dj - computeSigmaVacSub<doubleJackCorrelationFunction>(raw_data.sigma_self_data, bin_size);
+      sigma2pt = sigma2pt - computeSigmaVacSub<CorrFuncType>(raw_data.sigma_self_data, bin_size);
     }
     { //Pipi->pipi
-      pipi_j = pipi_j - computePiPi2ptVacSub<jackknifeCorrelationFunction>(raw_data.pipi_self_data, bin_size, tsep_pipi);
-      pipi_dj = pipi_dj - computePiPi2ptVacSub<doubleJackCorrelationFunction>(raw_data.pipi_self_data, bin_size, tsep_pipi);
+      pipi = pipi - computePiPi2ptVacSub<CorrFuncType>(raw_data.pipi_self_data, bin_size, tsep_pipi);
     }
   }
   
   //Fold data
-  pipi_to_sigma_j = fold(pipi_to_sigma_j, tsep_pipi);
-  pipi_to_sigma_dj = fold(pipi_to_sigma_dj, tsep_pipi);
+  pipi_to_sigma = fold(pipi_to_sigma, tsep_pipi);
 
-  sigma2pt_j = fold(sigma2pt_j, 0);
-  sigma2pt_dj = fold(sigma2pt_dj, 0);
+  sigma2pt = fold(sigma2pt, 0);
 
-  pipi_j = fold(pipi_j, 2*tsep_pipi);
-  pipi_dj = fold(pipi_dj, 2*tsep_pipi);
+  pipi = fold(pipi, 2*tsep_pipi);
   
   //Build the combined data set
-  jackknifeCorrelationFunction const* dsets_j[3] = { &pipi_j, &pipi_to_sigma_j, &sigma2pt_j };
-  doubleJackCorrelationFunction const* dsets_dj[3] = { &pipi_dj, &pipi_to_sigma_dj, &sigma2pt_dj };
+  CorrFuncType const* dsets[3] = { &pipi, &pipi_to_sigma, &sigma2pt };
 
-  SimFitType dtype[3] = { SimFitType::PiPi2pt, SimFitType::PiPiToSigma, SimFitType::Sigma2pt };
+  static const SimFitType dtype[3] = { SimFitType::PiPi2pt, SimFitType::PiPiToSigma, SimFitType::Sigma2pt };
   bool dincl[3] = { include_pipi_2pt, include_pipi_to_sigma, include_sigma_2pt };
 
   for(int d=0;d<3;d++)
     if(dincl[d])
       for(int t=0; t<Lt; t++){ 
-	corr_comb_j.push_back(SimFitCoord(dtype[d],t), dsets_j[d]->value(t));
-	corr_comb_dj.push_back(SimFitCoord(dtype[d],t), dsets_dj[d]->value(t));
+	corr_comb.push_back(SimFitCoord(dtype[d],t), dsets[d]->value(t));
       }
 }		      
 		      
-
-
+typedef bootstrapDistribution<double> bootstrapDistributionD;
+typedef correlationFunction<SimFitCoord,  bootstrapDistributionD> simFitCorrFuncB;
 
 int main(const int argc, const char* argv[]){
   PiPiSigmaSimArgs args;
@@ -117,6 +77,11 @@ int main(const int argc, const char* argv[]){
   }
 
   PiPiSigmaSimCMDline cmdline(argc,argv,2);
+
+  bool include_type[3] = {false,false,false};
+  include_type[(int)SimFitType::PiPi2pt] = cmdline.include_pipi_2pt;
+  include_type[(int)SimFitType::PiPiToSigma] = cmdline.include_pipi_to_sigma;
+  include_type[(int)SimFitType::Sigma2pt] = cmdline.include_sigma_2pt;
 
   simFitCorrFuncJ corr_comb_j_all;
   simFitCorrFuncDJ corr_comb_dj_all;
@@ -139,8 +104,32 @@ int main(const int argc, const char* argv[]){
     if(cmdline.save_checkpoint){
       raw_data.saveCheckpoint(cmdline.save_checkpoint_file);
     }
-    getResampledData(corr_comb_j_all, corr_comb_dj_all, raw_data, args.Lt, args.tsep_pipi, args.bin_size, args.do_vacuum_subtraction,
-		     cmdline.include_pipi_2pt, cmdline.include_pipi_to_sigma, cmdline.include_sigma_2pt);
+    getResampledData<jackknifeDistributionD>(corr_comb_j_all, raw_data, args.Lt, args.tsep_pipi, args.bin_size, args.do_vacuum_subtraction,
+					     cmdline.include_pipi_2pt, cmdline.include_pipi_to_sigma, cmdline.include_sigma_2pt);
+    getResampledData<doubleJackknifeDistributionD>(corr_comb_dj_all, raw_data, args.Lt, args.tsep_pipi, args.bin_size, args.do_vacuum_subtraction,
+						   cmdline.include_pipi_2pt, cmdline.include_pipi_to_sigma, cmdline.include_sigma_2pt);
+
+    if(cmdline.analyze_population_distribution){
+      bootstrapDistributionOptions::defaultBoots() = 2000;
+      simFitCorrFuncB corr_comb_b_all;      
+      getResampledData<bootstrapDistributionD>(corr_comb_b_all, raw_data, args.Lt, args.tsep_pipi, args.bin_size, args.do_vacuum_subtraction,
+					       cmdline.include_pipi_2pt, cmdline.include_pipi_to_sigma, cmdline.include_sigma_2pt);
+
+      for(int i=0;i<corr_comb_b_all.size();i++){
+	auto coord = corr_comb_b_all.coord(i);
+	if(include_type[(int)coord.type] && 
+	   coord.t >= args.t_min && 
+	   coord.t <= args.t_max){
+	  std::cout << coord.type << " " << coord.t 
+		    << " mean " << corr_comb_b_all.value(i).mean() 
+		    << " std.dev " << corr_comb_b_all.value(i).standardDeviation() 
+		    << " skewness " << corr_comb_b_all.value(i).standardizedMoment(3)
+	    	    << " excess kurtosis " << corr_comb_b_all.value(i).standardizedMoment(4) - 3. 
+		    << std::endl;
+	}
+      }
+    }
+
   }
   if(cmdline.save_resampled_data){
     HDF5writer wr(cmdline.save_resampled_data_file);
@@ -149,11 +138,7 @@ int main(const int argc, const char* argv[]){
   }
 
   //Get data in fit range
-  bool include_type[3] = {false,false,false};
-  include_type[(int)SimFitType::PiPi2pt] = cmdline.include_pipi_2pt;
-  include_type[(int)SimFitType::PiPiToSigma] = cmdline.include_pipi_to_sigma;
-  include_type[(int)SimFitType::Sigma2pt] = cmdline.include_sigma_2pt;
-  
+ 
   simFitCorrFuncJ corr_comb_j;
   simFitCorrFuncDJ corr_comb_dj;
   for(int tt=0;tt<corr_comb_j_all.size();tt++){

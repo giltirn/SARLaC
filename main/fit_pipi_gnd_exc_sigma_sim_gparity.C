@@ -1,6 +1,6 @@
 #include <utils.h>
 #include <pipi_common/pipi_common.h>
-
+#include <pipi_common/analyze_chisq.h>
 using namespace CPSfit;
 
 #include<fit_pipi_gnd_exc_sim_gparity/enums.h>
@@ -11,6 +11,46 @@ using namespace CPSfit;
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/cmdline.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/raw_data.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/resampled_data.h>
+
+template<typename FitFunc>
+void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
+		    const jackknifeDistribution<Params> &params, const FitFunc &fitfunc,
+		    const std::map<std::unordered_map<std::string, std::string> const*, std::string> &pmap_descr){
+  struct PP{
+    typedef std::map<std::unordered_map<std::string, std::string> const*, std::string> const* PtrType;
+    inline static PtrType & descr(){ static PtrType p; return p; }
+
+    inline static void print(std::ostream &os, const SimFitCoordGen &c){ os << "(" << descr()->find(c.param_map)->second << "," << c.t << ")" ; }
+  };
+  PP::descr() = &pmap_descr;
+  
+  AnalyzeChisq<FitFunc,PP> chisq_analyze(corr_comb_j, fitfunc, params);
+  chisq_analyze.printChisqContribs(Correlation);
+  chisq_analyze.examineProjectedDeviationContribsEvalNorm(Correlation);
+  chisq_analyze.printChisqContribs(Covariance);
+  chisq_analyze.examineProjectedDeviationContribsEvalNorm(Covariance);
+}
+
+void analyzeChisq(const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
+		  const jackknifeDistribution<Params> &params, FitFuncType ffunc, const int Lt, double Ascale, double Cscale,
+		  const std::map<std::unordered_map<std::string, std::string> const*, std::string> &pmap_descr){
+  if(ffunc == FitFuncType::FSimGenOneState){
+    typedef FitSimGenOneState FitFunc;
+    FitFunc fitfunc(Lt, params.size(), Ascale, Cscale);
+    return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
+  }else if(ffunc == FitFuncType::FSimGenTwoState){
+    typedef FitSimGenTwoState FitFunc;
+    FitFunc fitfunc(Lt, params.size(), Ascale, Cscale);
+    return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
+  }else if(ffunc == FitFuncType::FSimGenThreeState){
+    typedef FitSimGenThreeState FitFunc;
+    FitFunc fitfunc(Lt, params.size(), Ascale, Cscale);
+    return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
+  }else{
+    assert(0);
+  }
+}
+
 
 int main(const int argc, const char* argv[]){
   Args args;
@@ -63,9 +103,12 @@ int main(const int argc, const char* argv[]){
   std::vector<std::string> vnm; //for printing
   static const std::vector<Operator> ops = {PiPiGnd, PiPiExc, Sigma};
 
+  std::map<std::unordered_map<std::string, std::string> const*, std::string> pmap_descr;
   for(int i=0;i<3;i++){
     for(int j=i;j<3;j++){
       std::ostringstream nm; nm << ops[i] << " " << ops[j];
+      pmap_descr[&subfit_pmaps[{ops[i],ops[j]}]] = nm.str();
+
       for(int t=args.t_min;t<=args.t_max;t++){
 	SimFitCoordGen coord(t, &subfit_pmaps[{ops[i],ops[j]}] , foldOffsetMultiplier(ops[i],ops[j])*args.tsep_pipi);
 	corr_comb_j.push_back(coord, data_j.correlator(ops[i],ops[j]).value(t));
@@ -108,13 +151,23 @@ int main(const int argc, const char* argv[]){
       std::cout << tag << " = " << tmp << std::endl;
     }
   }
+
+  double dof = chisq.sample(0)/chisq_per_dof.sample(0);  
+  jackknifeDistributionD pvalue(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
+
   std::cout << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
-  
+  std::cout << "P-value: " << pvalue << std::endl;
+
+#ifdef HAVE_HDF5
   writeParamsStandard(params, "params.hdf5");
   writeParamsStandard(chisq, "chisq.hdf5");
   writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
+  writeParamsStandard(pvalue, "pvalue.hdf5");
+#endif
+
+  analyzeChisq(corr_comb_j, params, args.fitfunc, args.Lt, args.Ascale, args.Cscale, pmap_descr); 
 
   std::cout << "Done\n";
   return 0;

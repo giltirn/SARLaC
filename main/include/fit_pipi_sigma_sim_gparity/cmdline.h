@@ -29,6 +29,9 @@ struct PiPiSigmaSimCMDline{
   bool write_covariance_matrix;
   std::string write_covariance_matrix_file;
 
+  bool analyze_population_distribution; //analyze the population distribution using the bootstrap method to ensure gaussianity. Requires either reading original
+                                        //data files or loading the raw data checkpoint
+
   PiPiSigmaSimCMDline(){
     load_guess = false;
     load_frozen_fit_params= false;
@@ -41,6 +44,7 @@ struct PiPiSigmaSimCMDline{
     save_resampled_data = false;
     use_pipitosigma_disconn_complex_prod = false;
     write_covariance_matrix = false;
+    analyze_population_distribution = false;
   }
   PiPiSigmaSimCMDline(const int argc, const char** argv, const int begin = 0): PiPiSigmaSimCMDline(){
     setup(argc,argv,begin);
@@ -108,6 +112,9 @@ struct PiPiSigmaSimCMDline{
 	i+=2;
       }else if(sargv[i] == "-allow_bin_cropping"){ //when binning allow extra configs that don't fit a full bin to be cropped from the end of the ensemble
 	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
+      }else if(sargv[i] == "-analyze_population_distribution"){
+	analyze_population_distribution = true;
 	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

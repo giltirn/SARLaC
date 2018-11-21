@@ -44,14 +44,14 @@ void readSigmaSigma(figureData &raw_data, const int Lt, const ReadPolicy &rp){
   std::cout << "Reading sigma 2pt data\n"; boost::timer::auto_cpu_timer t("Read sigma 2pt in %w s\n");
   int nsample = rp.nsample();
 
-  raw_data.setup(Lt,nsample);
+  raw_data.setup(Lt,rawDataDistributionD(nsample));
   raw_data.zero();
 
   static std::vector<threeMomentum> quark_mom = { {1,1,1}, {-1,-1,-1},
 						  {-3,1,1}, {3,-1,-1},
 						  {1,-3,1}, {-1,3,-1},
 						  {1,1,-3}, {-1,-1,3} };
-  figureData tmp_raw_data(Lt,nsample);
+  figureData tmp_raw_data(Lt,rawDataDistributionD(nsample));
 
   const int nmom = quark_mom.size();
   
@@ -114,16 +114,19 @@ template<typename ContainerType, typename ReadPolicy>
 void readSigmaSelf(ContainerType &raw_data, const int Lt, const ReadPolicy &rp){
   const int nsample = rp.nsample();
 
+  typedef typename ContainerType::DistributionType DistributionType;
+
   std::vector<threeMomentum> quark_mom = { {1,1,1}, {-1,-1,-1},
 					   {-3,1,1}, {3,-1,-1},
 					   {1,-3,1}, {-1,3,-1},
 					   {1,1,-3}, {-1,-1,3} };
   const int nmom = quark_mom.size();
 
-  raw_data.setup(Lt,nsample);
-  raw_data.zero();
+  DistributionType zero(nsample); zeroit(zero);
 
-  ContainerType tmp_data(Lt,nsample);
+  raw_data.setup(Lt,zero);
+
+  ContainerType tmp_data(Lt,zero);
 
   for(int p=0;p<nmom;p++){    
 #pragma omp parallel for

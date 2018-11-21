@@ -54,7 +54,7 @@ void superJackknifeResample(resampledBubbleDataType &out,
 			    const bubbleData &in,
 			    const std::map<int, DataLocationInfo const*> &data_info_map, const int full_ens_size){
   
-  out.setup(Source, in.getLt(), in.getTsepPiPi(), full_ens_size);
+  out.setup(Source, in.getLt(), in.getTsepPiPi());
   std::vector<int> idxmap = getDataOuterConfigMap(data_info_map, full_ens_size); //mapping of outer to sample index, -1 for entries not present
   for(int t=0;t<in.getLt();t++)
     superJackknifeResample(out(t), in(t), idxmap, data_info_map.size(), full_ens_size);
@@ -148,7 +148,7 @@ void getPiPiBubble(resampledBubbleDataAllMomentaType &out,
     bubbleDataAllMomenta raw;
     readPiPiBubble(raw, tsep_pipi, Lt, subens, *proj_src, *proj_snk);
 
-    sjack[*dtag].setup(Lt,tsep_pipi,full_ens_size);
+    sjack[*dtag].setup(Lt,tsep_pipi);
     for(auto it = raw.begin(); it != raw.end(); it++)
       superJackknifeResample(sjack[*dtag](it->first), it->second, subens, full_ens_size);
   }

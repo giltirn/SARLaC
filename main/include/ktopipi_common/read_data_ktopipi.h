@@ -153,10 +153,7 @@ NumericTensor<rawDataDistributionD,1> readProjectedPiPiBubble(const std::string 
 							      const int traj_start, const int traj_inc, const int traj_lessthan, 
 							      const int Lt, const int tsep_pipi, 
 							      const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj){
-  bubbleDataAllMomenta raw_bubble_data;
-
-  int nsample = (traj_lessthan - traj_start)/traj_inc;
-  raw_bubble_data.setup(Lt,tsep_pipi,nsample);
+  bubbleDataAllMomenta raw_bubble_data(Lt, tsep_pipi);
   
   std::vector<threeMomentum> pion_momenta(bubble_pimom_proj.size());
   for(int i=0;i<bubble_pimom_proj.size();i++) 
@@ -165,11 +162,12 @@ NumericTensor<rawDataDistributionD,1> readProjectedPiPiBubble(const std::string 
   bubbleFilenamePolicyGeneric fn(file_fmt, {0,0,0}, Sink);
   readPiPiBubble(raw_bubble_data, data_dir, tsep_pipi, Lt, traj_start, traj_inc, traj_lessthan, fn, pion_momenta, Sink);
 
-  NumericTensor<rawDataDistributionD,1> out({Lt}, rawDataDistributionD(nsample,0.));
+  NumericTensor<rawDataDistributionD,1> out({Lt});
   for(int t=0;t<Lt;t++)
-    for(int p=0;p<bubble_pimom_proj.size();p++)
-      out({t}) = out({t}) + raw_bubble_data(Sink,bubble_pimom_proj[p].first)(t) * bubble_pimom_proj[p].second;
-
+    for(int p=0;p<bubble_pimom_proj.size();p++){
+      rawDataDistributionD tmp = raw_bubble_data(Sink,bubble_pimom_proj[p].first)(t) * bubble_pimom_proj[p].second; 
+      out({t}) = p == 0 ? tmp : out({t}) + tmp;
+    }
   return out;
 }
 
