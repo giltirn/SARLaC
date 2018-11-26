@@ -47,6 +47,10 @@ public:
   inline const DataType & best() const{ return avg; } //"central value" of distribution used for printing/plotting
   inline DataType & best(){ return avg; }
 
+  inline void zero(){
+    zeroit(avg); this->baseType::zero();
+  }
+
   //Compute the m'th standardized moment of the distribution
   DataType standardizedMoment(const int m) const{
     DataType sigma = this->standardDeviation();
