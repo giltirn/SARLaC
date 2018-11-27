@@ -6,8 +6,8 @@ using namespace CPSfit;
 #include<fit_pipi_gnd_exc_sim_gparity/enums.h>
 #include<fit_pipi_gnd_exc_sim_gparity/fit.h>
 
-#include<fit_pipi_gnd_exc_sigma_sim_gparity/fitfunc.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/args.h>
+#include<fit_pipi_gnd_exc_sigma_sim_gparity/fitfunc.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/cmdline.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/raw_data.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/resampled_data.h>
@@ -72,22 +72,30 @@ int main(const int argc, const char* argv[]){
   std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > subfit_pmaps;
   ParamTagIdxMap param_map;
   Params guess;
-  setupParameterMaps(subfit_pmaps, param_map, guess, args.fitfunc, args.Ascale);
+  setupParameterMaps(subfit_pmaps, param_map, guess, args.operators, args.fitfunc, args.Ascale);
 
   //Write guess template and exit if requested
   if(cmdline.save_guess_template){ saveGuess(guess, "guess_template.dat"); exit(0); }
   
+  const std::vector<Operator> &ops = args.operators;
+
   //Read data
   RawData raw_data;
   if(!cmdline.load_combined_data) raw_data.read(args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
 						args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
 						args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
-						args.sigma2pt_file_format, args.sigma_bubble_file_format);
+						args.sigma2pt_file_format, args.sigma_bubble_file_format,
+						ops);
 
   ResampledData<jackknifeCorrelationFunction> data_j;
   ResampledData<doubleJackCorrelationFunction> data_dj;
-  if(cmdline.load_combined_data) loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
-  else{
+  if(cmdline.load_combined_data){
+    loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
+    for(int i=0;i<ops.size();i++)
+      for(int j=i;j<ops.size();j++)
+	assert(data_j.haveData(ops[i],ops[j]));
+    
+  }else{
     data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction);
     data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction);
   }  
@@ -101,11 +109,10 @@ int main(const int argc, const char* argv[]){
   correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
   
   std::vector<std::string> vnm; //for printing
-  static const std::vector<Operator> ops = {PiPiGnd, PiPiExc, Sigma};
 
   std::map<std::unordered_map<std::string, std::string> const*, std::string> pmap_descr;
-  for(int i=0;i<3;i++){
-    for(int j=i;j<3;j++){
+  for(int i=0;i<ops.size();i++){
+    for(int j=i;j<ops.size();j++){
       std::ostringstream nm; nm << ops[i] << " " << ops[j];
       pmap_descr[&subfit_pmaps[{ops[i],ops[j]}]] = nm.str();
 

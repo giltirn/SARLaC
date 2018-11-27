@@ -6,75 +6,95 @@ typedef std::unordered_map<std::string, std::string> SubFitFuncParameterMap;
 typedef std::unordered_map<std::string,size_t> ParamTagIdxMap;
 typedef taggedValueContainer<double,std::string> Params;
 
-enum Operator { PiPiGnd, PiPiExc, Sigma };
-
-std::ostream & operator<<(std::ostream &os, Operator op){
+inline std::string getStub(const Operator op){
   switch(op){
-  case PiPiGnd:
-    os << "PiPiGnd"; return os;
-  case PiPiExc:
-    os << "PiPiExc"; return os;
-  case Sigma:
-    os << "Sigma"; return os;  
-  };
-  assert(0);
+  case Operator::PiPiGnd:
+    return "pipi_gnd";
+  case Operator::PiPiExc:
+    return "pipi_exc";
+  case Operator::Sigma:
+    return "sigma";
+  }
 }
+
 
 void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > &subfit_pmaps,
 			ParamTagIdxMap &param_map,
 			Params &guess,
-			FitFuncType fitfunc, const double Ascale){
+			const std::vector<Operator> &incl_ops,
+			const FitFuncType fitfunc, const double Ascale){
 #define DEF(NM, GUESS) { param_map[NM] = p++;  guesses.push_back(GUESS); }  
-  static const std::vector<std::string> op_stubs = { "pipi_gnd", "pipi_exc", "sigma" };
-  static const std::vector<Operator> ops = {PiPiGnd, PiPiExc, Sigma};
 
   std::vector<double> guesses;
-  
-  if(fitfunc == FitFuncType::FSimGenTwoState){ 
-    //Define the full set of parameters and default guesses
+  int nops = incl_ops.size();
 
+  //Define the full set of parameters and default guesses  
+  if(fitfunc == FitFuncType::FSimGenOneState){ 
     int p=0;
-    for(int i=0;i<3;i++) DEF("A" + op_stubs[i] + "_0", 1e6 / sqrt(Ascale)); 
-    DEF("Epipi",0.35);
-    for(int i=0;i<3;i++) DEF("A" + op_stubs[i] + "_1", 1e6 / sqrt(Ascale));
-    DEF("Eexc", 0.7);
-    for(int i=0;i<3;i++)
-      for(int j=i;j<3;j++)
-	DEF("C" + op_stubs[i] + "_" + op_stubs[j], 0.);
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_0", 1e6 / sqrt(Ascale)); 
+    DEF("E0",0.35);
+    for(int i=0;i<nops;i++)
+      for(int j=i;j<nops;j++)
+	DEF("C" + getStub(incl_ops[i]) + "_" + getStub(incl_ops[j]), 0.);
       
 
     //Map internal sub-fit parameters to outer params
-    for(int i=0;i<3;i++){
-      for(int j=i;j<3;j++){
-	subfit_pmaps[{ops[i],ops[j]}] =
-	  {  {"Asrc0","A" + op_stubs[i] + "_0"}, {"Asnk0", "A" + op_stubs[j] + "_0"}, {"E0", "Epipi"},
-	     {"Asrc1","A" + op_stubs[i] + "_1"}, {"Asnk1", "A" + op_stubs[j] + "_1"}, {"E1", "Eexc"},
-	     {"Csys", "C" + op_stubs[i] + "_" + op_stubs[j]} };
+    for(int i=0;i<nops;i++){
+      auto istub = getStub(incl_ops[i]);
+      for(int j=i;j<nops;j++){
+	auto jstub = getStub(incl_ops[j]);
+	subfit_pmaps[{incl_ops[i],incl_ops[j]}] =
+	  {  {"Asrc","A" + istub + "_0"}, {"Asnk", "A" + jstub + "_0"}, {"E", "E0"},	     
+	     {"Csys", "C" + istub + "_" + jstub} };
+      }
+    }
+
+
+  }else if(fitfunc == FitFuncType::FSimGenTwoState){ 
+    int p=0;
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_0", 1e6 / sqrt(Ascale)); 
+    DEF("E0",0.35);
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_1", 1e6 / sqrt(Ascale));
+    DEF("E1", 0.7);
+    for(int i=0;i<nops;i++)
+      for(int j=i;j<nops;j++)
+	DEF("C" + getStub(incl_ops[i]) + "_" + getStub(incl_ops[j]), 0.);
+      
+
+    //Map internal sub-fit parameters to outer params
+    for(int i=0;i<nops;i++){
+      auto istub = getStub(incl_ops[i]);
+      for(int j=i;j<nops;j++){
+	auto jstub = getStub(incl_ops[j]);
+	subfit_pmaps[{incl_ops[i],incl_ops[j]}] =
+	  {  {"Asrc0","A" + istub + "_0"}, {"Asnk0", "A" + jstub + "_0"}, {"E0", "E0"},
+	     {"Asrc1","A" + istub + "_1"}, {"Asnk1", "A" + jstub + "_1"}, {"E1", "E1"},
+	     {"Csys", "C" + istub + "_" + jstub} };
       }
     }
 
   }else if(fitfunc == FitFuncType::FSimGenThreeState){ 
-    //Define the full set of parameters and default guesses
-
     int p=0;
-    for(int i=0;i<3;i++) DEF("A" + op_stubs[i] + "_0", 1e6 / sqrt(Ascale)); 
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_0", 1e6 / sqrt(Ascale)); 
     DEF("E0",0.35);
-    for(int i=0;i<3;i++) DEF("A" + op_stubs[i] + "_1", 1e6 / sqrt(Ascale));
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_1", 1e6 / sqrt(Ascale));
     DEF("E1", 0.7);
-    for(int i=0;i<3;i++) DEF("A" + op_stubs[i] + "_2", 1e6 / sqrt(Ascale));
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_2", 1e6 / sqrt(Ascale));
     DEF("E2", 0.9);
-    for(int i=0;i<3;i++)
-      for(int j=i;j<3;j++)
-	DEF("C" + op_stubs[i] + "_" + op_stubs[j], 0.);
+    for(int i=0;i<nops;i++)
+      for(int j=i;j<nops;j++)
+	DEF("C" + getStub(incl_ops[i]) + "_" + getStub(incl_ops[j]), 0.);
       
     //Map internal sub-fit parameters to outer params
     for(int i=0;i<3;i++){
+      auto istub = getStub(incl_ops[i]);
       for(int j=i;j<3;j++){
-	subfit_pmaps[{ops[i],ops[j]}] =
-	  {  {"Asrc0","A" + op_stubs[i] + "_0"}, {"Asnk0", "A" + op_stubs[j] + "_0"}, {"E0", "E0"},
-	     {"Asrc1","A" + op_stubs[i] + "_1"}, {"Asnk1", "A" + op_stubs[j] + "_1"}, {"E1", "E1"},
-	     {"Asrc2","A" + op_stubs[i] + "_2"}, {"Asnk2", "A" + op_stubs[j] + "_2"}, {"E2", "E2"},
-	     {"Csys", "C" + op_stubs[i] + "_" + op_stubs[j]} };
+	auto jstub = getStub(incl_ops[j]);
+	subfit_pmaps[{incl_ops[i],incl_ops[j]}] =
+	  {  {"Asrc0","A" + istub + "_0"}, {"Asnk0", "A" + jstub + "_0"}, {"E0", "E0"},
+	     {"Asrc1","A" + istub + "_1"}, {"Asnk1", "A" + jstub + "_1"}, {"E1", "E1"},
+	     {"Asrc2","A" + istub + "_2"}, {"Asnk2", "A" + jstub + "_2"}, {"E2", "E2"},
+	     {"Csys", "C" + istub + "_" + jstub} };
       }
     }
 

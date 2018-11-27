@@ -6,6 +6,7 @@
 
 #ifdef HAVE_HDF5
 #include<map>
+#include<set>
 #include<serialize/hdf5_serialize/read_write_basic.h>
 
 CPSFIT_START_NAMESPACE
@@ -59,6 +60,42 @@ static void read(HDF5reader &reader, std::map<KeyT,DataT> &value, const std::str
   reader.leave();
   reader.leave();
 }
+
+
+//Set
+template<typename KeyT>
+static void write(HDF5writer &writer, const std::set<KeyT> &value, const std::string &tag){
+  writer.enter(tag);
+  int sz = value.size();
+  write(writer, sz, "sz");
+  writer.enter("entries");
+  int i=0;
+  for(auto it = value.begin(); it != value.end(); it++, i++){
+    const KeyT &e = *it;
+    std::ostringstream os; os << "entry_" << i;
+    write(writer,e,os.str());
+  }
+  writer.leave();
+  writer.leave();
+}
+template<typename KeyT>
+static void read(HDF5reader &reader, std::set<KeyT> &value, const std::string &tag){
+  value.clear();
+  reader.enter(tag);
+  int sz;
+  read(reader,sz,"sz");
+  reader.enter("entries");
+  for(int i=0;i<sz;i++){
+    KeyT e;
+    std::ostringstream os; os << "entry_" << i;
+    read(reader,e,os.str());
+    value.emplace(std::move(e));
+  }
+  assert(value.size() == sz);
+  reader.leave();
+  reader.leave();
+}
+
 
 CPSFIT_END_NAMESPACE
 

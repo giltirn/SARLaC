@@ -186,7 +186,7 @@ CPSFIT_START_NAMESPACE
   namespace BOOST_PP_CAT(enumname,_parser){	     \
     namespace ascii = boost::spirit::x3::ascii; \
     namespace x3 = boost::spirit::x3;\
-    auto const enumparse = x3::lexeme[+(x3::char_ - ascii::space)]; \
+    auto const enumparse = x3::lexeme[+x3::char_("a-zA-Z0-9_")]; \
     struct BOOST_PP_CAT(enumname,_tag) : CPSfit::parsers::error_handler{ }; \
     _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
     x3::rule<BOOST_PP_CAT(enumname,_tag), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
