@@ -23,8 +23,22 @@ struct SimFitArgs{
   bool write_covariance_matrix;
   std::string write_covariance_matrix_file;
 
-  SimFitArgs(): correlated(true), Lt(64), tsep_pipi(4), Ascale(1e13), Cscale(1e13), load_guess(false), load_frozen_fit_params(false), write_covariance_matrix(false){}
+  bool ledoit_wolf;
+
+  bool load_mlparams;
+  std::string mlparams_file;
+
+SimFitArgs(): correlated(true), Lt(64), tsep_pipi(4), Ascale(1e13), Cscale(1e13), load_guess(false), load_frozen_fit_params(false), write_covariance_matrix(false), ledoit_wolf(false), load_mlparams(false){}
 };
+
+
+template<typename importer>
+struct doLedoitWolf{ inline static double doit(importer &im){ return 0.; }  };
+template<typename FitPolicies>
+struct doLedoitWolf<importCostFunctionParameters<correlatedFitPolicy,FitPolicies> >{ 
+  inline static double doit(importCostFunctionParameters<correlatedFitPolicy,FitPolicies> &im){ return im.LedoitWolfShrinkage(); }
+};
+
 
 template<template<typename> class corrUncorrFitPolicy>
 void fit_corr_uncorr(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data_dj, const SimFitArgs &args){
@@ -42,12 +56,23 @@ void fit_corr_uncorr(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data
 
   typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, corrUncorrFitPolicy>::type FitPolicies;
   fitter<FitPolicies> fitter;
+
+  if(args.load_mlparams){
+    typename fitter<FitPolicies>::minimizerParamsType minparams;
+    parse(minparams, args.mlparams_file);
+    std::cout << "Loaded minimizer params: " << minparams << std::endl;
+    fitter.setMinimizerParams(minparams);
+  }
+
   fitter.importFitFunc(fitfunc);
 
   if(args.load_frozen_fit_params)
     readFrozenParams(fitter, args.load_frozen_fit_params_file, nsample);
   
   importCostFunctionParameters<corrUncorrFitPolicy,FitPolicies> prepare(fitter, data_dj);
+
+  double ledoit_wolf_lambda = 0.;
+  if(args.ledoit_wolf) ledoit_wolf_lambda = doLedoitWolf<decltype(prepare)>::doit(prepare);
     
   if(args.write_covariance_matrix) prepare.writeCovarianceMatrixHDF5(args.write_covariance_matrix_file);
 
@@ -79,13 +104,15 @@ void fit_corr_uncorr(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data
     inline static void print(std::ostream &os, const SimFitCoord &c){ os << "(" << c.type << "," << c.t << ")" ; }
   };
 
-  AnalyzeChisq<FitFunc,PP> chisq_analyze(data_j, fitfunc, params);
+  AnalyzeChisq<FitFunc,PP> chisq_analyze(data_j, fitfunc, params, ledoit_wolf_lambda);
+
+  if(args.ledoit_wolf){
+    chisq_analyze.printChisqContribs(CorrelationLedoitWolf);
+    chisq_analyze.examineProjectedDeviationContribsEvalNorm(CorrelationLedoitWolf);
+  }
   chisq_analyze.printChisqContribs(Correlation);
-  //chisq_analyze.examineEigenvectors(Correlation);
-  //chisq_analyze.examineProjectedFitFuncContribs();
-  //chisq_analyze.examineProjectedDeviationContribs();
   chisq_analyze.examineProjectedDeviationContribsEvalNorm(Correlation);
-  //chisq_analyze.examineProjectedDeviationDistributionEvalNorm();
+
   chisq_analyze.printChisqContribs(Covariance);
   chisq_analyze.examineProjectedDeviationContribsEvalNorm(Covariance);
 }

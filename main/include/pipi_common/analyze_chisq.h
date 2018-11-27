@@ -11,14 +11,14 @@ struct CoordPrintPolicyBasic{
   inline static void print(std::ostream &os, const CoordType &c){ os << c; }
 };
 
-enum WhichMatrix{ Covariance, Correlation };
+enum WhichMatrix{ Covariance, Correlation, CorrelationLedoitWolf };
 
 template<typename FitFunc, typename CoordPrintPolicy = CoordPrintPolicyBasic<typename FitFunc::GeneralizedCoordinate>  >
 class AnalyzeChisq{
   typedef typename FitFunc::GeneralizedCoordinate GeneralizedCoordinate;
   typedef typename FitFunc::ParameterType ParameterType;
   
-  NumericSquareMatrix<double> computeFrozenCovMat(const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange) const{
+  static NumericSquareMatrix<double> computeFrozenCovMat(const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange){
     NumericSquareMatrix<double> cov(data_inrange.size());
     for(int i=0;i<cov.size();i++)
       for(int j=0;j<cov.size();j++)
@@ -26,8 +26,8 @@ class AnalyzeChisq{
     return cov;
   }
   
-  void computeFrozenCorrSigma(NumericSquareMatrix<double> &corr, NumericVector<double> &sigma, 
-			      const NumericSquareMatrix<double> &cov) const{
+  static void computeFrozenCorrSigma(NumericSquareMatrix<double> &corr, NumericVector<double> &sigma, 
+				     const NumericSquareMatrix<double> &cov){
     int N = cov.size();
     sigma.resize(N);
     corr.resize(N);
@@ -38,12 +38,26 @@ class AnalyzeChisq{
     }
   }
 
-  void computeEvalsEvecs(std::vector<double> &evals, std::vector<NumericVector<double> > &evecs,
-			 const NumericSquareMatrix<double> &M) const{    
+  static void computeLedoitWolfCorr(NumericSquareMatrix<double> &corrlw, const NumericSquareMatrix<double> &corr,
+				    double ledoit_wolf_lambda){    
+    int N = corr.size();
+    corrlw = corr;
+    if(ledoit_wolf_lambda != 0.){
+      for(int i=0;i<N;i++){
+	for(int j=0;j<N;j++)
+	  if(i==j) corrlw(i,j) = ledoit_wolf_lambda + (1.-ledoit_wolf_lambda)*corrlw(i,j);
+	  else corrlw(i,j) = (1.-ledoit_wolf_lambda)*corrlw(i,j);
+      }
+    }
+  }
+
+
+  static void computeEvalsEvecs(std::vector<double> &evals, std::vector<NumericVector<double> > &evecs,
+			 const NumericSquareMatrix<double> &M){    
     symmetricMatrixEigensolve(evecs,evals,M);
   }
   
-  NumericVector<double> projectOntoEvecs(const NumericVector<double> &v, const std::vector<NumericVector<double> > &evecs) const{
+  static NumericVector<double> projectOntoEvecs(const NumericVector<double> &v, const std::vector<NumericVector<double> > &evecs){
     int Nevec = evecs.size();
     int Ndata = v.size();
     NumericVector<double> out(Nevec);
@@ -55,16 +69,16 @@ class AnalyzeChisq{
 
   //Evaluate the fit func across the data range using the input parameters
   //Need data only for the generalized coordinates
-  NumericVector<double> evalFitFunc(const FitFunc &fitfunc, const ParameterType &params, 
-				    const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange) const {
+  static NumericVector<double> evalFitFunc(const FitFunc &fitfunc, const ParameterType &params, 
+				    const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange){
     NumericVector<double> out(data_inrange.size());
     for(int i=0;i<data_inrange.size();i++)
       out(i) = fitfunc.value(data_inrange.coord(i), params);
     return out;
   }
   //Same as above but use central value of fit param jackknife
-  inline NumericVector<double> evalFitFunc(const FitFunc &fitfunc, const jackknifeDistribution<ParameterType> &params, 
-					   const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange) const{
+  static inline NumericVector<double> evalFitFunc(const FitFunc &fitfunc, const jackknifeDistribution<ParameterType> &params, 
+					   const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange){
     return evalFitFunc(fitfunc, params.best(), data_inrange);
   }
    
@@ -81,40 +95,115 @@ class AnalyzeChisq{
   std::vector<double> corr_evals;
   std::vector<NumericVector<double> > corr_evecs;
 
-  NumericVector<double> fitval_cen;
-  NumericVector<double> dataval_cen;
-  NumericVector<double> delta;
-  NumericVector<double> delta_covproj; //projected onto basis of cov mat evecs
-  NumericVector<double> delta_nrm;
-  NumericVector<double> delta_nrm_corrproj; //on basis of corr mat evecs
+  //Ledoit-Wolf correlation matrix (same as regular correlation matrix for lambda=0)
+  NumericSquareMatrix<double> corrlw;
+  std::vector<double> corrlw_evals;
+  std::vector<NumericVector<double> > corrlw_evecs;
 
-  inline std::string nm(const WhichMatrix m)const { return m == Correlation ? "correlation matrix" : "covariance matrix"; }
+  const std::vector<double> &getEvals(const WhichMatrix m) const{
+    switch(m){
+    case Covariance:
+      return cov_evals;
+    case Correlation:
+      return corr_evals;
+    case CorrelationLedoitWolf:
+      return corrlw_evals;
+    }
+  }
+  const std::vector<NumericVector<double> > &getEvecs(const WhichMatrix m) const{
+    switch(m){
+    case Covariance:
+      return cov_evecs;
+    case Correlation:
+      return corr_evecs;
+    case CorrelationLedoitWolf:
+      return corrlw_evecs;
+    }
+  }     
+
+  NumericVector<double> fitval_cen;
+  NumericVector<double> fitval_cen_nrm;
+  NumericVector<double> dataval_cen;
+  NumericVector<double> dataval_cen_nrm;
+  NumericVector<double> delta;
+  NumericVector<double> delta_nrm;
+
+  const NumericVector<double> &getFitVals(const WhichMatrix m) const{
+    switch(m){
+    case Covariance:
+      return fitval_cen;
+    case Correlation:
+    case CorrelationLedoitWolf:
+      return fitval_cen_nrm;
+    }
+  }     
+  const NumericVector<double> &getDataVals(const WhichMatrix m) const{
+    switch(m){
+    case Covariance:
+      return dataval_cen;
+    case Correlation:
+    case CorrelationLedoitWolf:
+      return dataval_cen_nrm;
+    }
+  }  
+  const NumericVector<double> &getDeltaVals(const WhichMatrix m) const{
+    switch(m){
+    case Covariance:
+       return delta;
+    case Correlation:
+    case CorrelationLedoitWolf:
+       return delta_nrm;
+    }
+  }  
+
+  inline std::string nm(const WhichMatrix m) const{ 
+    switch(m){
+    case Covariance:
+      return "covariance matrix";
+    case Correlation:
+      return "correlation matrix";
+    case CorrelationLedoitWolf:
+      return "Ledoit-Wolf correlation matrix";
+    }
+  }  
+
 public:
 
   AnalyzeChisq(const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange,
 	       const FitFunc &fitfunc,
-	       const jackknifeDistribution<ParameterType> &params): data_inrange(data_inrange), fitfunc(fitfunc), params(params){
+	       const jackknifeDistribution<ParameterType> &params,
+	       double ledoit_wolf_lambda = 0.): data_inrange(data_inrange), fitfunc(fitfunc), params(params){
+    //Covariance matrix
     cov = computeFrozenCovMat(data_inrange);
     computeEvalsEvecs(cov_evals, cov_evecs, cov);
+    
+    //Correlation matrix
     computeFrozenCorrSigma(corr, sigma, cov);
     computeEvalsEvecs(corr_evals, corr_evecs, corr);
 
-    fitval_cen = evalFitFunc(fitfunc, params, data_inrange);
-    dataval_cen = NumericVector<double>(data_inrange.size(), [&](const int i){ return data_inrange.value(i).best(); });
+    //Ledoit-Wolf correlation matrix
+    computeLedoitWolfCorr(corrlw, corr, ledoit_wolf_lambda);
+    computeEvalsEvecs(corrlw_evals, corrlw_evecs, corrlw);
 
-    delta = NumericVector<double>(data_inrange.size(), [&](const int i){ return (dataval_cen(i) - fitval_cen(i)); });
-    delta_covproj = projectOntoEvecs(delta, cov_evecs);
-    
+    //Fit and data
+    fitval_cen = evalFitFunc(fitfunc, params, data_inrange);
+    fitval_cen_nrm = NumericVector<double>(fitval_cen.size(), [&](const int i){ return fitval_cen(i)/sigma(i); });
+
+    dataval_cen = NumericVector<double>(data_inrange.size(), [&](const int i){ return data_inrange.value(i).best(); });
+    dataval_cen_nrm = NumericVector<double>(dataval_cen.size(), [&](const int i){ return dataval_cen(i)/sigma(i); });
+
+    delta = NumericVector<double>(data_inrange.size(), [&](const int i){ return (dataval_cen(i) - fitval_cen(i)); });  
     delta_nrm = NumericVector<double>(data_inrange.size(), [&](const int i){ return (dataval_cen(i) - fitval_cen(i))/sigma(i); });
-    delta_nrm_corrproj = projectOntoEvecs(delta_nrm, corr_evecs);
   }
   
   void printChisqContribs(const WhichMatrix mat, std::ostream &os = std::cout) const{
     os << "Examining contributions to chi^2 from eigenmodes of the " << nm(mat) << ":\n";
 
-    const std::vector<double> &evals = mat == Correlation ? corr_evals : cov_evals;
-    const NumericVector<double> &dproj = mat == Correlation ? delta_nrm_corrproj : delta_covproj;
-
+    const std::vector<double> &evals = getEvals(mat);
+    const std::vector<NumericVector<double> > &evecs = getEvecs(mat);
+    const NumericVector<double> &delta = getDeltaVals(mat);
+    NumericVector<double> dproj = projectOntoEvecs(delta,evecs);
+    
     double chisq_tot = 0.;
     for(int i=0;i<evals.size();i++){
       double chisq_contrib = dproj(i)*dproj(i)/evals[i];
@@ -127,7 +216,7 @@ public:
   void examineEigenvectors(const WhichMatrix mat, std::ostream &os = std::cout) const{
     os << "Examining eigenvectors of the " << nm(mat) << ":\n";
     
-    const std::vector<NumericVector<double> > &evecs = mat == Correlation ? corr_evecs : cov_evecs;
+    const std::vector<NumericVector<double> > &evecs = getEvecs(mat);
     for(int i=0;i<evecs.size();i++){
       os << "Mode " << i << ":\n";
       for(int tt=0;tt<fitval_cen.size();tt++){
@@ -139,14 +228,14 @@ public:
 
   void examineProjectedFitFuncContribs(const WhichMatrix mat, std::ostream &os = std::cout) const{
     os << "Examining data coordinate contributions to " << nm(mat) << " mode-projected fit function:\n";
-    const std::vector<NumericVector<double> > &evecs = mat == Correlation ? corr_evecs : cov_evecs;
+    const std::vector<NumericVector<double> > &evecs = getEvecs(mat);
+    const NumericVector<double> &fitval = getFitVals(mat);
 
     for(int i=0;i<evecs.size();i++){
       double tot = 0;
       os << "Mode " << i << ":\n";
-      for(int tt=0;tt<fitval_cen.size();tt++){
-	double contrib = evecs[i](tt) * fitval_cen(tt);
-	if(mat == Correlation) contrib /= sigma(tt);
+      for(int tt=0;tt<fitval.size();tt++){
+	double contrib = evecs[i](tt) * fitval(tt);
 	CoordPrintPolicy::print(os,data_inrange.coord(tt));
 	os << " " << contrib << "\n";
 	tot += contrib;
@@ -157,19 +246,17 @@ public:
 
   void examineProjectedDeviationContribs(const WhichMatrix mat, std::ostream &os = std::cout) const{
     os << "Examining data coordinate contributions of " << nm(mat) << " to mode-projected deviations:\n";
-    const std::vector<NumericVector<double> > &evecs = mat == Correlation ? corr_evecs : cov_evecs;
-    const std::vector<double> &evals = mat == Correlation ? corr_evals : cov_evals;
+    const std::vector<NumericVector<double> > &evecs = getEvecs(mat);
+    const std::vector<double> &evals = getEvals(mat);
+    const NumericVector<double> &fitval = getFitVals(mat);
+    const NumericVector<double> &dataval = getDataVals(mat);
 
     for(int i=0;i<evecs.size();i++){
       double tot = 0;
       os << "Mode " << i << ":\n";
-      for(int tt=0;tt<fitval_cen.size();tt++){
-	double data_contrib = evecs[i](tt) * dataval_cen(tt);
-	double fit_contrib = evecs[i](tt) * fitval_cen(tt);
-	if(mat == Correlation){
-	  data_contrib /= sigma(tt);
-	  fit_contrib /= sigma(tt);
-	}
+      for(int tt=0;tt<fitval.size();tt++){
+	double data_contrib = evecs[i](tt) * dataval(tt);
+	double fit_contrib = evecs[i](tt) * fitval(tt);
 	double contrib = data_contrib - fit_contrib;
 
 	CoordPrintPolicy::print(os, data_inrange.coord(tt));
@@ -183,22 +270,19 @@ public:
 
   void examineProjectedDeviationContribsEvalNorm(const WhichMatrix mat, std::ostream &os = std::cout) const{
     os << "Examining data coordinate contributions of " << nm(mat) << " to mode-projected deviations normalized by sqrt(eval):\n";
-    const std::vector<NumericVector<double> > &evecs = mat == Correlation ? corr_evecs : cov_evecs;
-    const std::vector<double> &evals = mat == Correlation ? corr_evals : cov_evals;
+    const std::vector<NumericVector<double> > &evecs = getEvecs(mat);
+    const std::vector<double> &evals = getEvals(mat);
+    const NumericVector<double> &fitval = getFitVals(mat);
+    const NumericVector<double> &dataval = getDataVals(mat);
 
     for(int i=0;i<evecs.size();i++){
       double tot = 0;
       os << "Mode " << i << ":\n";
-      for(int tt=0;tt<fitval_cen.size();tt++){
+      for(int tt=0;tt<fitval.size();tt++){
 	double evec_nrm_i_t = evecs[i](tt)/sqrt(evals[i]);
 
-	double data_contrib = evec_nrm_i_t *  dataval_cen(tt);
-	double fit_contrib = evec_nrm_i_t * fitval_cen(tt);
-	
-	if(mat == Correlation){
-	  data_contrib /= sigma(tt);
-	  fit_contrib /= sigma(tt);
-	}
+	double data_contrib = evec_nrm_i_t *  dataval(tt);
+	double fit_contrib = evec_nrm_i_t * fitval(tt);
 	double contrib = data_contrib - fit_contrib;
 
 	CoordPrintPolicy::print(os, data_inrange.coord(tt));
@@ -210,25 +294,6 @@ public:
     }
   }
 
-  // //Compute mean and std.dev of data-point projected deviations onto normalized evecs to see if certain timeslices are systematically giving large chi^2 contributions
-  // void examineProjectedDeviationDistributionEvalNorm(std::ostream &os = std::cout) const{
-  //   os << "Examining distribution of absolute data-point deviations over basis of normalized eigenvectors:\n";
-    
-  //   std::vector<rawDataDistributionD> dev_dist(fitval_cen.size(), rawDataDistributionD(corr_evals.size()));
-    
-  //   for(int i=0;i<corr_evals.size();i++){
-  //     for(int tt=0;tt<fitval_cen.size();tt++){
-  // 	double evec_nrm_i_t = corr_evecs[i](tt)/sqrt(corr_evals[i]);
-  // 	double contrib = evec_nrm_i_t * delta_nrm(tt);
-	
-  // 	dev_dist[tt].sample(i) = fabs(contrib);
-  //     }
-  //   }
-  //   for(int tt=0;tt<fitval_cen.size();tt++){
-  //     CoordPrintPolicy::print(os, data_inrange.coord(tt));
-  //     os << " " << dev_dist[tt].mean() << " +- " << dev_dist[tt].standardDeviation() << std::endl;
-  //   }
-  // }
 
 };
 

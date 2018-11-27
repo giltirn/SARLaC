@@ -32,6 +32,11 @@ struct PiPiSigmaSimCMDline{
   bool analyze_population_distribution; //analyze the population distribution using the bootstrap method to ensure gaussianity. Requires either reading original
                                         //data files or loading the raw data checkpoint
 
+  bool ledoit_wolf; //apply ledoit wolf procedure to correlation matrix
+
+  bool load_mlparams;
+  std::string mlparams_file;
+
   PiPiSigmaSimCMDline(){
     load_guess = false;
     load_frozen_fit_params= false;
@@ -45,6 +50,8 @@ struct PiPiSigmaSimCMDline{
     use_pipitosigma_disconn_complex_prod = false;
     write_covariance_matrix = false;
     analyze_population_distribution = false;
+    ledoit_wolf = false;
+    load_mlparams = false;
   }
   PiPiSigmaSimCMDline(const int argc, const char** argv, const int begin = 0): PiPiSigmaSimCMDline(){
     setup(argc,argv,begin);
@@ -116,6 +123,21 @@ struct PiPiSigmaSimCMDline{
       }else if(sargv[i] == "-analyze_population_distribution"){
 	analyze_population_distribution = true;
 	i++;
+      }else if(sargv[i] == "-ledoit_wolf"){
+	ledoit_wolf = true;
+	i++;
+      }else if(sargv[i] == "-load_mlparams"){
+	load_mlparams = true;
+	mlparams_file = sargv[i+1];
+	if(mlparams_file == "TEMPLATE"){
+	  MarquardtLevenbergParameters<double> templ;
+	  std::ofstream of("mlparams_template.args");
+	  of << templ;
+	  of.close();
+	  std::cout << "Wrote MLparams template to mlparams_template.args\n";
+	  exit(0);	 
+	}
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
@@ -130,6 +152,9 @@ struct PiPiSigmaSimCMDline{
     COPYIT(load_frozen_fit_params_file);
     COPYIT(write_covariance_matrix);
     COPYIT(write_covariance_matrix_file);
+    COPYIT(ledoit_wolf);
+    COPYIT(load_mlparams);
+    COPYIT(mlparams_file);
 #undef COPYIT
   }
 };

@@ -100,6 +100,49 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
 	inv_corr(i,j) = corr(i,j) = jackknifeDistribution<double>(nsample, i==j ? 1. : 0.);
   }
 
+  //Apply the Ledoit-Wolf procedure to stabilize the correlation matrix
+  //(https://rbc.phys.columbia.edu/rbc_ukqcd/individual_postings/chulwoo/notes/LedoitWolf/LedoitWolf.pdf)
+  //Returns lambda
+  double LedoitWolfShrinkage(){
+    double lambda_num = 0.;
+    double lambda_den = 0.;
+    for(int i=0;i<corr.size();i++){
+      for(int j=0;j<corr.size();j++){
+	if(i != j){ double s = corr(i,j).standardError(); lambda_num += s*s; } //var(C(i,j))
+	jackknifeDistribution<double> c2 = corr(i,j)*corr(i,j);
+	lambda_den += c2.mean();
+      }
+    }
+    double lambda = lambda_num/lambda_den;
+
+    std::cout << "Applying Ledoit-Wolf procedure with lambda = " << lambda << std::endl;
+    
+    int nsample = corr(0,0).size();
+    jackknifeDistribution<double> lambda_j(nsample, lambda);
+    jackknifeDistribution<double> _1mlambda_j(nsample, 1. - lambda);
+
+    for(int i=0;i<corr.size();i++){
+      for(int j=0;j<corr.size();j++){
+	if(i==j) corr(i,j) = lambda_j + _1mlambda_j * corr(i,j);
+	else corr(i,j) = _1mlambda_j * corr(i,j);
+      }
+    }
+    jackknifeDistribution<double> condition_number;
+    svd_inverse(inv_corr, corr, condition_number);
+
+    //Test the quality of the inverse
+    NumericSquareMatrix<jackknifeDistribution<double> > test = corr * inv_corr;
+    for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistribution<double>(nsample,1.0);    
+    jackknifeDistribution<double> resid = modE(test);
+
+    //Output the mean and standard deviation of the distributions of residual and condition number 
+    std::cout << "Condition number = " << condition_number.mean() << " +- " << condition_number.standardError()/sqrt(nsample-1.) << std::endl;
+    std::cout << "||CorrMat * CorrMat^{-1} - 1||_E = " << resid.mean() << " +- " << resid.standardError()/sqrt(nsample-1.) << std::endl;
+    return lambda;
+  }
+
+
+
   void writeCovarianceMatrixHDF5(const std::string &file) const{
 #ifdef HAVE_HDF5
     NumericSquareMatrix<jackknifeDistribution<double> > cov = corr;

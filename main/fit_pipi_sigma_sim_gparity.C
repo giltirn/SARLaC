@@ -115,6 +115,8 @@ int main(const int argc, const char* argv[]){
       getResampledData<bootstrapDistributionD>(corr_comb_b_all, raw_data, args.Lt, args.tsep_pipi, args.bin_size, args.do_vacuum_subtraction,
 					       cmdline.include_pipi_2pt, cmdline.include_pipi_to_sigma, cmdline.include_sigma_2pt);
 
+      simFitCorrFuncB corr_comb_b_inrange;
+
       for(int i=0;i<corr_comb_b_all.size();i++){
 	auto coord = corr_comb_b_all.coord(i);
 	if(include_type[(int)coord.type] && 
@@ -126,9 +128,71 @@ int main(const int argc, const char* argv[]){
 		    << " skewness " << corr_comb_b_all.value(i).standardizedMoment(3)
 	    	    << " excess kurtosis " << corr_comb_b_all.value(i).standardizedMoment(4) - 3. 
 		    << std::endl;
+	  corr_comb_b_inrange.push_back(corr_comb_b_all[i]);
 	}
       }
+
+      bootstrapDistributionD bzero(corr_comb_b_all.value(0)); zeroit(bzero);
+      
+      int nfit = corr_comb_b_inrange.size();
+      NumericSquareMatrix<double> cov(nfit);
+      NumericVector<double> sigma(nfit);
+      for(int i=0;i<nfit;i++){
+	for(int j=0;j<nfit;j++){
+	  cov(i,j) = bootstrapDistributionD::covariance(corr_comb_b_inrange.value(i), corr_comb_b_inrange.value(j));
+	}
+	sigma(i) = sqrt(cov(i,i));
+      }
+      NumericSquareMatrix<double> cor(nfit, [&](const int i, const int j){ return cov(i,j)/sigma(i)/sigma(j); });
+      
+      std::vector<NumericVector<double> > cov_evecs;
+      std::vector<double> cov_evals;
+      symmetricMatrixEigensolve(cov_evecs, cov_evals, cov);
+
+      //Each data point can be decomposed into the basis of these eigenvectors. We can then examine how important a given mode is in our data
+      //d_i = \sum_a  c^a v_i^a
+      //\sum_i v_i^b d_i = \sum_a,i  c^a v_i^a v_i^b = c^b
+ 
+      //Also enters in chi^2
+      //chi^2 =  \sum_ij  ( d_i - f_i ) C^{-1}_ij ( d_j - f_j )
+      //      =  \sum_a \sum_ij  ( d_i - f_i ) v_i^a 1/lambda^a v_j^a ( d_j - f_j )
+      //      =  \sum_a   ( \sum_i ( d_i - f_i ) v_i^a )^2/lambda^a
+      
+      //projected data    c^a = \sum_i d_i v_i^a
+      
+      std::vector<bootstrapDistributionD> corr_comb_b_inrange_projected(nfit);
+      for(int a=0;a<nfit;a++){
+	corr_comb_b_inrange_projected[a] = bzero;
+	for(int i=0;i<nfit;i++){
+	  corr_comb_b_inrange_projected[a] = corr_comb_b_inrange_projected[a] + cov_evecs[a](i) * corr_comb_b_inrange.value(i);
+	}
+	
+	std::cout << "Projected data mode " << a
+		  << " bs " << corr_comb_b_inrange_projected[a]
+		  << " mean " << corr_comb_b_inrange_projected[a].mean() 
+		  << " std.dev " << corr_comb_b_inrange_projected[a].standardDeviation() 
+		  << " skewness " << corr_comb_b_inrange_projected[a].standardizedMoment(3)
+		  << " excess kurtosis " << corr_comb_b_inrange_projected[a].standardizedMoment(4) - 3. 
+		  << std::endl;
+      }
+
+      //Compute probability of mode in data:  alpha^a =   |c^a|^2/( \sum_a |c^a|^2 ) cf https://arxiv.org/pdf/1101.2248.pdf eq 15 and below.
+      bootstrapDistributionD nrm = bzero;
+      for(int a=0;a<nfit;a++)
+	nrm = nrm + corr_comb_b_inrange_projected[a] * corr_comb_b_inrange_projected[a];
+      
+      std::cout << nrm << std::endl;
+
+      std::cout << "Probability of mode in data:\n";
+      for(int a=0;a<nfit;a++){
+	bootstrapDistributionD alpha = corr_comb_b_inrange_projected[a] * corr_comb_b_inrange_projected[a] / nrm;
+	std::cout << a  << " " << alpha << " (" << corr_comb_b_inrange_projected[a] << ")" << std::endl;
+      }
+
+
     }
+
+    
 
   }
   if(cmdline.save_resampled_data){
