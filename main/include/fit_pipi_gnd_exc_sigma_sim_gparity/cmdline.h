@@ -19,6 +19,9 @@ struct CMDline{
 
   bool save_guess_template;
 
+  bool load_priors;
+  std::string load_priors_file;
+
   CMDline(){
     load_guess = false;
     load_combined_data = false;
@@ -26,6 +29,7 @@ struct CMDline{
     load_frozen_fit_params = false;
     save_guess_template = false;
     write_covariance_matrix = false;
+    load_priors = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -75,6 +79,10 @@ struct CMDline{
 	  of.close();
 	  exit(0);
 	}else if(!fileExists(load_frozen_fit_params_file)) error_exit(std::cout << "CMDline freeze data file " << load_frozen_fit_params_file << " does not exist!\n");
+	i+=2;
+      }else if(sargv[i] == "-load_priors"){
+	load_priors = true;
+	load_priors_file = sargv[i+1];
 	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

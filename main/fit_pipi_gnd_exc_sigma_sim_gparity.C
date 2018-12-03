@@ -144,6 +144,8 @@ int main(const int argc, const char* argv[]){
   COPYIT(load_frozen_fit_params_file);
   COPYIT(write_covariance_matrix);
   COPYIT(write_covariance_matrix_file);
+  COPYIT(load_priors);
+  COPYIT(load_priors_file);
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,

@@ -23,7 +23,8 @@ class correlatedFitPolicy: public FitFuncPolicy{
 public:
   INHERIT_FITFUNC_POLICY_TYPEDEFS(FitFuncPolicy);
   typedef CorrelatedChisqCostFunction<fitFunc, sampleSeriesType, sampleInvCorrType> costFunctionType;
-  
+  typedef typename costFunctionType::ValueType ValueType;
+
   //To ensure each loop iteration independent we can't store global state, instead we have thread local state
   class costFunctionState: public fitFuncPolicyState{
   private:
@@ -33,20 +34,25 @@ public:
     std::unique_ptr<costFunctionType> cost_func;
 
   public:
-    costFunctionState(fitFuncPolicyState &&_fitfuncstate, const CorrelationFunctionDistribution &data, const MatrixDistribution &inv_corr, const VectorDistribution &sigma, const int s):
+    costFunctionState(fitFuncPolicyState &&_fitfuncstate, const CorrelationFunctionDistribution &data, const MatrixDistribution &inv_corr, const VectorDistribution &sigma, 
+		      const std::vector<typename costFunctionType::Prior> &priors, const int s):
       data_s(data,s), inv_corr_s(inv_corr,s), sigma_s(data.size()), fitFuncPolicyState(std::forward<fitFuncPolicyState>(_fitfuncstate)){
       for(int d=0;d<data.size();d++)
 	sigma_s[d] = iterate<DistributionType>::at(s,sigma[d]);
       cost_func.reset(new costFunctionType(this->getFitFunc(),data_s, sigma_s, inv_corr_s));
+      for(int p=0;p<priors.size();p++) cost_func->addPrior(priors[p]);
     }
     const costFunctionType &getCostFunction() const{ return *cost_func; }
 
-    int Ndof() const{ return data_s.size() - this->getFitFunc().Nparams(); }
+    int Ndof() const{ return cost_func->Ndof(); }
   };
 
 private:
   MatrixDistribution const* inv_corr;
   VectorDistribution const* sigma;
+  
+  std::vector<typename costFunctionType::Prior> priors;
+
 public:
   correlatedFitPolicy(): inv_corr(NULL), sigma(NULL){}
   
@@ -56,10 +62,17 @@ public:
     inv_corr = &_inv_corr;
     sigma = &_sigma;
   }
+
+  //Add a prior for constrained curve fitting (https://arxiv.org/pdf/hep-lat/0110175.pdf). This adds a term to chi^2 for the parameter p with index 'param_idx'
+  //of the form d\Chi^2 = ( p - value )^2/weight^2
+  void addPrior(ValueType value, ValueType weight, int param_idx){
+    priors.push_back(typename costFunctionType::Prior(value,weight,param_idx));
+  }
+
 protected:
   inline costFunctionState generateCostFunctionState(const CorrelationFunctionDistribution &data, const int s){
     assert(inv_corr != NULL && sigma != NULL);
-    return costFunctionState(this->generateFitFuncPolicyState(s),data,*inv_corr,*sigma,s);
+    return costFunctionState(this->generateFitFuncPolicyState(s),data,*inv_corr,*sigma,priors,s);
   }
 };
 

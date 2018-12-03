@@ -23,10 +23,7 @@ template<typename FitFunction, typename DataContainer,
 class CorrelatedChisqCostFunction: public MatrixInvertPolicy{
   static_assert(std::is_same<typename FitFunction::ValueType, typename DataContainer::DataType>::value, "DataContainer and FitFunction must have same value type");
   static_assert(std::is_same<typename FitFunction::GeneralizedCoordinate, typename DataContainer::GeneralizedCoordinate>::value, "DataContainer and FitFunction must have same coordinate");
-  const FitFunction &fitfunc;
-  const DataContainer &data;
-  const std::vector<double> &sigma; //diagonal elements of covariance matrix
-  const InvCorrMatrixType &inv_corr; //inverse correlation matrix
+
 public:
   typedef _CostType CostType;
   typedef typename FitFunction::ValueType ValueType;
@@ -39,12 +36,49 @@ public:
   typedef _CostSecondDerivativeMatrixType CostSecondDerivativeMatrixType;
   typedef _CostSecondDerivativeInverseMatrixType CostSecondDerivativeInverseMatrixType;
 
+  struct Prior{
+    ValueType value;
+    ValueType weight;
+    int param_idx;
+    
+    Prior(ValueType value, ValueType weight, int param_idx): value(value), weight(weight), param_idx(param_idx){}
+
+    inline CostType dcost(const ParameterType &params) const{ 
+      CostType d = params(param_idx) - value;
+      return d*d/weight/weight;
+    }
+    //Applies change directly to input derivs and second derivs
+    inline void dderivatives(CostDerivativeType &derivs, CostSecondDerivativeMatrixType &second_derivs, const ParameterType &params) const{ 
+      derivs(param_idx) = derivs(param_idx) + 2*(params(param_idx) - value)/weight/weight;
+      second_derivs(param_idx, param_idx) = second_derivs(param_idx, param_idx) + 2./weight/weight;
+    }
+  };
+private:
+  
+  const FitFunction &fitfunc;
+  const DataContainer &data;
+  const std::vector<double> &sigma; //diagonal elements of covariance matrix
+  const InvCorrMatrixType &inv_corr; //inverse correlation matrix
+  std::vector<Prior> priors;
+public:
+
+
   CorrelatedChisqCostFunction(const FitFunction &ff, const DataContainer &dd, const std::vector<double> &_sigma, const InvCorrMatrixType &_inv_corr):
     fitfunc(ff), data(dd), sigma(_sigma), inv_corr(_inv_corr){
     assert(inv_corr.size() == data.size());
     assert(sigma.size() == data.size());
   }
   
+  //Add a prior for constrained curve fitting (https://arxiv.org/pdf/hep-lat/0110175.pdf). This adds a term to chi^2 for the parameter p with index 'param_idx'
+  //of the form d\Chi^2 = ( p - value )^2/weight^2
+  void addPrior(ValueType value, ValueType weight, int param_idx){
+    priors.push_back(Prior(value,weight,param_idx));
+  }
+  void addPrior(const Prior &prior){
+    priors.push_back(prior);
+  }
+
+
   CostType cost(const ParameterType &params) const{
     CostType chisq = 0.;
     const int ndata = data.size();
@@ -59,7 +93,11 @@ public:
 
       for(int b=0;b<a;b++)
 	chisq += 2*dfw[a] * dfw[b] * inv_corr(a,b); //matrix is symmetric
-    }      
+    } 
+    
+    //Contribution from priors (if any)
+    for(int p=0; p<priors.size(); p++) chisq += priors[p].dcost(params);
+     
     return chisq;
   }
   
@@ -112,10 +150,14 @@ public:
 	}
       }
     }
+    
+    //Contribution from priors (if any)
+    for(int p=0; p<priors.size(); p++) priors[p].dderivatives(derivs, second_derivs, params);
+   
   }
 
   inline int Ndof() const{
-    return data.size() - fitfunc.Nparams();
+    return data.size() + priors.size() - fitfunc.Nparams();
   }
     
 
