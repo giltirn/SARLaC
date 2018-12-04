@@ -14,6 +14,7 @@ void read(HDF5reader &rd, Operator &op, const std::string &nm){
 
 
 //Note tstep_pipi is the separation between source timeslices that the C, D, R diagrams were measured upon (i.e. every 8 in the 32^3 job)
+//Note nstate applies only for "MultiState" fit func variants
 #define ARGS_MEMBERS \
   ( std::string, data_dir ) \
   ( std::string, pipi_figure_file_format )    \
@@ -28,6 +29,7 @@ void read(HDF5reader &rd, Operator &op, const std::string &nm){
   ( int, tstep_pipi_to_sigma ) \
   ( bool, do_vacuum_subtraction ) \
   ( FitFuncType, fitfunc) \
+  ( int, nstate)	  \
   ( int, t_min) \
   ( int, t_max) \
   ( int, bin_size) \
@@ -47,7 +49,7 @@ struct Args{
     sigma2pt_file_format("traj_<CONF>_sigmacorr_mompsrc<PSRC_QUARK>psnk<PSNK_QUARK>_v2"),
     operators({Operator::PiPiGnd, Operator::PiPiExc, Operator::Sigma}),
     Lt(64), tsep_pipi(4), tstep_pipi(8), tstep_pipi_to_sigma(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
-    fitfunc(FitFuncType::FSimGenTwoState), do_vacuum_subtraction(true), bin_size(1){}
+    fitfunc(FitFuncType::FSimGenTwoState), nstate(3), do_vacuum_subtraction(true), bin_size(1){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)
 

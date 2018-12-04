@@ -31,8 +31,9 @@ void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistribu
   chisq_analyze.examineProjectedDeviationContribsEvalNorm(Covariance);
 }
 
+//nstate is for MultiState variants
 void analyzeChisq(const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
-		  const jackknifeDistribution<Params> &params, FitFuncType ffunc, const int Lt, double Ascale, double Cscale,
+		  const jackknifeDistribution<Params> &params, FitFuncType ffunc, const int nstate, const int Lt, double Ascale, double Cscale,
 		  const std::map<std::unordered_map<std::string, std::string> const*, std::string> &pmap_descr){
   if(ffunc == FitFuncType::FSimGenOneState){
     typedef FitSimGenOneState FitFunc;
@@ -49,6 +50,10 @@ void analyzeChisq(const correlationFunction<SimFitCoordGen,  jackknifeDistributi
   }else if(ffunc == FitFuncType::FSimGenThreeStateLogEdiff){
     typedef FitSimGenThreeStateLogEdiff FitFunc;
     FitFunc fitfunc(Lt, params.size(), Ascale, Cscale);
+    return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
+  }else if(ffunc == FitFuncType::FSimGenMultiState){
+    typedef FitSimGenMultiState FitFunc;
+    FitFunc fitfunc(nstate, Lt, params.size(), Ascale, Cscale);
     return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
   }else{
     assert(0);
@@ -76,7 +81,7 @@ int main(const int argc, const char* argv[]){
   std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > subfit_pmaps;
   ParamTagIdxMap param_map;
   Params guess;
-  setupParameterMaps(subfit_pmaps, param_map, guess, args.operators, args.fitfunc, args.Ascale);
+  setupParameterMaps(subfit_pmaps, param_map, guess, args.operators, args.fitfunc, args.Ascale, args.nstate);
 
   //Write guess template and exit if requested
   if(cmdline.save_guess_template){ saveGuess(guess, "guess_template.dat"); exit(0); }
@@ -147,7 +152,7 @@ int main(const int argc, const char* argv[]){
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.Lt, args.Ascale, args.Cscale, opt);
+      args.nstate, args.Lt, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n";
   {
@@ -174,7 +179,7 @@ int main(const int argc, const char* argv[]){
   writeParamsStandard(pvalue, "pvalue.hdf5");
 #endif
 
-  analyzeChisq(corr_comb_j, params, args.fitfunc, args.Lt, args.Ascale, args.Cscale, pmap_descr); 
+  analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.Ascale, args.Cscale, pmap_descr); 
 
   std::cout << "Done\n";
   return 0;

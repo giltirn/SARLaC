@@ -17,12 +17,12 @@ inline std::string getStub(const Operator op){
   }
 }
 
-
+//nstate applies only to "MultiState" variants
 void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > &subfit_pmaps,
 			ParamTagIdxMap &param_map,
 			Params &guess,
 			const std::vector<Operator> &incl_ops,
-			const FitFuncType fitfunc, const double Ascale){
+			const FitFuncType fitfunc, const double Ascale, const int nstate){
 #define DEF(NM, GUESS) { param_map[NM] = p++;  guesses.push_back(GUESS); }  
 
   std::vector<double> guesses;
@@ -86,9 +86,9 @@ void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParame
 	DEF("C" + getStub(incl_ops[i]) + "_" + getStub(incl_ops[j]), 0.);
       
     //Map internal sub-fit parameters to outer params
-    for(int i=0;i<3;i++){
+    for(int i=0;i<nops;i++){
       auto istub = getStub(incl_ops[i]);
-      for(int j=i;j<3;j++){
+      for(int j=i;j<nops;j++){
 	auto jstub = getStub(incl_ops[j]);
 	subfit_pmaps[{incl_ops[i],incl_ops[j]}] =
 	  {  {"Asrc0","A" + istub + "_0"}, {"Asnk0", "A" + jstub + "_0"}, {"E0", "E0"},
@@ -110,9 +110,9 @@ void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParame
 	DEF("C" + getStub(incl_ops[i]) + "_" + getStub(incl_ops[j]), 0.);
       
     //Map internal sub-fit parameters to outer params
-    for(int i=0;i<3;i++){
+    for(int i=0;i<nops;i++){
       auto istub = getStub(incl_ops[i]);
-      for(int j=i;j<3;j++){
+      for(int j=i;j<nops;j++){
 	auto jstub = getStub(incl_ops[j]);
 	subfit_pmaps[{incl_ops[i],incl_ops[j]}] =
 	  {  {"Asrc0","A" + istub + "_0"}, {"Asnk0", "A" + jstub + "_0"}, {"logE0", "logE0"},
@@ -121,7 +121,32 @@ void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParame
 	     {"Csys", "C" + istub + "_" + jstub} };
       }
     }
-
+  }else if(fitfunc == FitFuncType::FSimGenMultiState){ 
+    //Define the full set of outer parameters
+    int p=0;
+    for(int state=0;state<nstate;state++){
+      std::string statestr = anyToStr(state);
+      for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_" + statestr, 1e6 / sqrt(Ascale)); 
+      DEF("E" + statestr,0.3 * (state+1));
+    }
+    for(int i=0;i<nops;i++)
+      for(int j=i;j<nops;j++)
+	DEF("C" + getStub(incl_ops[i]) + "_" + getStub(incl_ops[j]), 0.);
+      
+    //Map internal sub-fit parameters to outer params
+    for(int i=0;i<nops;i++){
+      auto istub = getStub(incl_ops[i]);
+      for(int j=i;j<nops;j++){
+	auto jstub = getStub(incl_ops[j]);
+	SubFitFuncParameterMap &op_params = subfit_pmaps[{incl_ops[i],incl_ops[j]}];
+	for(int state=0;state<nstate;state++){
+	  op_params[stringize("Asrc%d",state)] = stringize("A%s_%d",istub.c_str(),state);
+	  op_params[stringize("Asnk%d",state)] = stringize("A%s_%d",jstub.c_str(),state);
+	  op_params[stringize("E%d",state)] = stringize("E%d",state);
+	}
+	op_params["Csys"] = "C" + istub + "_" + jstub;
+      }
+    }
   }else{
     assert(0);
   }
