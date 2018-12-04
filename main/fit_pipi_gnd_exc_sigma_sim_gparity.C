@@ -46,6 +46,10 @@ void analyzeChisq(const correlationFunction<SimFitCoordGen,  jackknifeDistributi
     typedef FitSimGenThreeState FitFunc;
     FitFunc fitfunc(Lt, params.size(), Ascale, Cscale);
     return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
+  }else if(ffunc == FitFuncType::FSimGenThreeStateLogEdiff){
+    typedef FitSimGenThreeStateLogEdiff FitFunc;
+    FitFunc fitfunc(Lt, params.size(), Ascale, Cscale);
+    return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
   }else{
     assert(0);
   }
@@ -139,13 +143,7 @@ int main(const int argc, const char* argv[]){
 
 
   fitOptions opt;
-#define COPYIT(A) opt.A = cmdline.A
-  COPYIT(load_frozen_fit_params);
-  COPYIT(load_frozen_fit_params_file);
-  COPYIT(write_covariance_matrix);
-  COPYIT(write_covariance_matrix_file);
-  COPYIT(load_priors);
-  COPYIT(load_priors_file);
+  cmdline.exportOptions(opt);
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,

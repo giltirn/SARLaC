@@ -22,6 +22,9 @@ struct CMDline{
   bool load_priors;
   std::string load_priors_file;
 
+  bool load_mlparams;
+  std::string mlparams_file;
+
   CMDline(){
     load_guess = false;
     load_combined_data = false;
@@ -30,6 +33,7 @@ struct CMDline{
     save_guess_template = false;
     write_covariance_matrix = false;
     load_priors = false;
+    load_mlparams = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -84,11 +88,36 @@ struct CMDline{
 	load_priors = true;
 	load_priors_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-load_mlparams"){
+	load_mlparams = true;
+	mlparams_file = sargv[i+1];
+	if(mlparams_file == "TEMPLATE"){
+	  MarquardtLevenbergParameters<double> templ;
+	  std::ofstream of("mlparams_template.args");
+	  of << templ;
+	  of.close();
+	  std::cout << "Wrote MLparams template to mlparams_template.args\n";
+	  exit(0);	 
+	}
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
     }
   }
+  
+  void exportOptions(fitOptions &opt){
+#define COPYIT(A) opt.A = A
+    COPYIT(load_frozen_fit_params);
+    COPYIT(load_frozen_fit_params_file);
+    COPYIT(write_covariance_matrix);
+    COPYIT(write_covariance_matrix_file);
+    COPYIT(load_priors);
+    COPYIT(load_priors_file);
+    COPYIT(load_mlparams);
+    COPYIT(mlparams_file);
+  }
+
 };
 
 

@@ -16,7 +16,10 @@ struct fitOptions{
   bool load_priors;
   std::string load_priors_file;
 
-  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), load_priors(false){}
+  bool load_mlparams;
+  std::string mlparams_file;
+
+  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), load_priors(false), load_mlparams(false){}
 };
 
 #define PRIOR_T_MEMBERS ( double, value )( double, weight )( int, param_idx )
@@ -59,17 +62,72 @@ void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDi
 
     if(opt.write_covariance_matrix) import.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
 
+    int Nprior;
     if(opt.load_priors){
       PriorArgs pargs;  parse(pargs, opt.load_priors_file);
       for(int p=0;p<pargs.priors.size();p++){
 	std::cout << "Added prior value " << pargs.priors[p].value << " weight " <<  pargs.priors[p].weight << " param " << pargs.priors[p].param_idx << std::endl;
 	fit.addPrior(pargs.priors[p].value, pargs.priors[p].weight, pargs.priors[p].param_idx);
       }
+      Nprior = pargs.priors.size();
     }
+    if(opt.load_mlparams){
+      typename fitter<FitPolicies>::minimizerParamsType minparams;
+      parse(minparams, opt.mlparams_file);
+      std::cout << "Loaded minimizer params: " << minparams << std::endl;
+      fit.setMinimizerParams(minparams);
+    }
+
 
     std::cout << "Running fit routine\n";
     fit.fit(params, chisq, chisq_per_dof, corr_comb_j);
-}  
+
+    if(opt.load_priors){
+      //Compute chi^2 and chi^2/dof without priors
+      typedef correlationFunction<SimFitCoordGen, double> cenCorrFunc;
+      int N = corr_comb_j.size();
+
+      {
+	cenCorrFunc data_cen(N, [&](const int i){ return cenCorrFunc::ElementType(corr_comb_j.coord(i), corr_comb_j.value(i).best()); });
+      
+	NumericSquareMatrix<double> inv_corr(N);
+	std::vector<double> sigma(N);
+	for(int i=0;i<N;i++){
+	  sigma[i] = import.sigma[i].best();
+
+	  for(int j=0;j<N;j++)
+	    inv_corr(i,j) = import.inv_corr(i,j).best();
+	}
+	CorrelatedChisqCostFunction<FitFunc, cenCorrFunc> costfunc(fitfunc, data_cen, sigma, inv_corr);
+	double chisq_noprior = costfunc.cost(params.best());
+	double chisq_per_dof_noprior = chisq_noprior/(costfunc.Ndof() + Nprior);
+
+	std::cout << "Chi^2 (excl priors) = " << chisq_noprior << std::endl;
+	std::cout << "Chi^2/dof (excl priors) = " << chisq_per_dof_noprior << std::endl;
+      }
+
+
+      int nsample = params.size();
+      jackknifeDistributionD chisq_noprior_j(nsample);
+      for(int s=0;s<nsample;s++){	
+	cenCorrFunc data_j(N, [&](const int i){ return cenCorrFunc::ElementType(corr_comb_j.coord(i), corr_comb_j.value(i).sample(s)); });
+      
+	NumericSquareMatrix<double> inv_corr(N);
+	std::vector<double> sigma(N);
+	for(int i=0;i<N;i++){
+	  sigma[i] = import.sigma[i].sample(s);
+
+	  for(int j=0;j<N;j++)
+	    inv_corr(i,j) = import.inv_corr(i,j).sample(s);
+	}
+	CorrelatedChisqCostFunction<FitFunc, cenCorrFunc> costfunc(fitfunc, data_j, sigma, inv_corr);
+	chisq_noprior_j.sample(s) = costfunc.cost(params.sample(s));
+      }
+      std::cout << "Chi^2 (excl priors) from jackknife = " << chisq_noprior_j << std::endl;
+
+    }
+}
+
 
 void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
 	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
@@ -88,6 +146,10 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
     return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
   }else if(ffunc == FitFuncType::FSimGenThreeState){
     typedef FitSimGenThreeState FitFunc;
+    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+  }else if(ffunc == FitFuncType::FSimGenThreeStateLogEdiff){
+    typedef FitSimGenThreeStateLogEdiff FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
     return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
   }else{

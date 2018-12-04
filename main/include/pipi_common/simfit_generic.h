@@ -206,6 +206,70 @@ public:
 
 
 
+
+//We can stabilize the fit by enforcing that E2 > E1 > E0 > 0 by parameterizing in terms of log(E0)  ,  log(E1 - E0), log(E2 - E1)
+class FitSimGenThreeStateLogEdiff{
+  int Lt;
+  double Ascale;
+  double Cscale;
+  int nparams;
+public:
+  typedef taggedValueContainer<double,std::string> Params;
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef SimFitCoordGen GeneralizedCoordinate;
+
+  inline const std::string &paramTag(const std::string &pname, const GeneralizedCoordinate &coord) const{ 
+    auto it = coord.param_map->find(pname);
+    if(it == coord.param_map->end()) error_exit(std::cout << "FitSimGenThreeStateLogEdiff::paramTag could not find parameter name " << pname << std::endl);
+    return it->second;
+  }
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &x, const ParameterType &p, const Boost &b) const{
+    size_t idx; double v;
+#define BOOSTIT(NM) v = p(idx, paramTag(#NM,x)); auto NM = b(v, idx)
+    BOOSTIT(Asrc0); //src op with state 0
+    BOOSTIT(Asrc1);
+    BOOSTIT(Asrc2);
+    BOOSTIT(Asnk0);
+    BOOSTIT(Asnk1);
+    BOOSTIT(Asnk2);
+    BOOSTIT(logE0);
+    BOOSTIT(logE1mE0);
+    BOOSTIT(logE2mE1);
+    BOOSTIT(Csys);
+#undef BOOSTIT
+
+    T E0 = exp(logE0);
+    T E1 = exp(logE1mE0) + E0;
+    T E2 = exp(logE2mE1) + E1;    
+
+    return Asrc0 * Asnk0 * Ascale * ( exp(-E0*x.t) + exp(-E0*(Lt-x.fold_offset-x.t)) ) 
+      + Asrc1 * Asnk1 * Ascale * ( exp(-E1*x.t) + exp(-E1*(Lt-x.fold_offset-x.t)) ) 
+      + Asrc2 * Asnk2 * Ascale * ( exp(-E2*x.t) + exp(-E2*(Lt-x.fold_offset-x.t)) ) 
+      + Csys * Cscale;
+  }
+
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double a, const int i){ return a; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d = p;
+    for(int i=0;i<nparams;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  FitSimGenThreeStateLogEdiff(const int Lt, const int nparams, const double Ascale=1e13, const double Cscale=1e13): Lt(Lt), nparams(nparams), Ascale(Ascale), Cscale(Cscale){}
+
+  inline int Nparams() const{ return nparams; }
+};
+
+
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

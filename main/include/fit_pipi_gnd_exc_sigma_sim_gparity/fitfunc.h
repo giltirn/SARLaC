@@ -96,6 +96,30 @@ void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParame
 	     {"Asrc2","A" + istub + "_2"}, {"Asnk2", "A" + jstub + "_2"}, {"E2", "E2"},
 	     {"Csys", "C" + istub + "_" + jstub} };
       }
+    }  
+  }else if(fitfunc == FitFuncType::FSimGenThreeStateLogEdiff){ 
+    int p=0;
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_0", 1e6 / sqrt(Ascale)); 
+    DEF("logE0",-1.05);
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_1", 1e6 / sqrt(Ascale));
+    DEF("logE1mE0", -1.05);
+    for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_2", 1e6 / sqrt(Ascale));
+    DEF("logE2mE1", -1.6);
+    for(int i=0;i<nops;i++)
+      for(int j=i;j<nops;j++)
+	DEF("C" + getStub(incl_ops[i]) + "_" + getStub(incl_ops[j]), 0.);
+      
+    //Map internal sub-fit parameters to outer params
+    for(int i=0;i<3;i++){
+      auto istub = getStub(incl_ops[i]);
+      for(int j=i;j<3;j++){
+	auto jstub = getStub(incl_ops[j]);
+	subfit_pmaps[{incl_ops[i],incl_ops[j]}] =
+	  {  {"Asrc0","A" + istub + "_0"}, {"Asnk0", "A" + jstub + "_0"}, {"logE0", "logE0"},
+	     {"Asrc1","A" + istub + "_1"}, {"Asnk1", "A" + jstub + "_1"}, {"logE1mE0", "logE1mE0"},
+	     {"Asrc2","A" + istub + "_2"}, {"Asnk2", "A" + jstub + "_2"}, {"logE2mE1", "logE2mE1"},
+	     {"Csys", "C" + istub + "_" + jstub} };
+      }
     }
 
   }else{
