@@ -55,6 +55,10 @@ void analyzeChisq(const correlationFunction<SimFitCoordGen,  jackknifeDistributi
     typedef FitSimGenMultiState FitFunc;
     FitFunc fitfunc(nstate, Lt, params.size(), Ascale, Cscale);
     return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
+  }else if(ffunc == FitFuncType::FSimGenMultiStateLogEdiff){
+    typedef FitSimGenMultiStateLogEdiff FitFunc;
+    FitFunc fitfunc(nstate, Lt, params.size(), Ascale, Cscale);
+    return analyzeChisqFF<FitFunc>(corr_comb_j, params, fitfunc, pmap_descr);
   }else{
     assert(0);
   }
