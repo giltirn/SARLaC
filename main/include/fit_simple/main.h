@@ -35,14 +35,20 @@ void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJack
 
   fit.fit(params, chisq, chisq_per_dof, data_j_inrange);
 
+  double dof = chisq.sample(0)/chisq_per_dof.sample(0);
+  jackknifeDistributionD pvalue(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
+
   std::cout << "Params: " << params << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
+  std::cout << "Dof: " << dof << std::endl;
+  std::cout << "P-value: " << pvalue << std::endl;
   
 #ifdef HAVE_HDF5
   writeParamsStandard(chisq, "chisq.hdf5");
   writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
-  writeParamsStandard(params, "params.hdf5");
+  writeParamsStandard(params, "params.hdf5"); 
+  writeParamsStandard(pvalue, "pvalue.hdf5");
 #endif
 
   FitFuncPolicy<FitFunc,ArgsType>::plot(args,*fitfunc,data_j,params);

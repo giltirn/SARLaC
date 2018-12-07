@@ -11,11 +11,19 @@ struct CMDline{
   bool load_combined_data;
   std::string load_combined_data_file;
 
+  bool save_raw_data;
+  std::string save_raw_data_file;
+
+  bool load_raw_data;
+  std::string load_raw_data_file;
+
 
   CMDline(){
     load_guess = false;
     save_combined_data = false;
     load_combined_data = false;
+    save_raw_data = false;
+    load_raw_data = false;  
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -45,6 +53,17 @@ struct CMDline{
 	load_combined_data = true;
 	load_combined_data_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-save_raw_data"){ //save the raw, unbinned data
+	save_raw_data = true;
+	save_raw_data_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_raw_data"){ //load the raw, unbinned data
+	load_raw_data = true;
+	load_raw_data_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-allow_bin_cropping"){ //when #configs is not an exact multiple of bin size, allow discarding of excess configs
+	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

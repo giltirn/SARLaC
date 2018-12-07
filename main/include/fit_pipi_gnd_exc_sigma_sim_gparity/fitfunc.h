@@ -177,6 +177,32 @@ void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParame
 	op_params["Csys"] = "C" + istub + "_" + jstub;
       }
     }
+  }else if(fitfunc == FitFuncType::FSimGenMultiStateCparam){ 
+    //Define the full set of outer parameters
+    int p=0;
+    for(int state=0;state<nstate;state++){
+      std::string statestr = anyToStr(state);
+      for(int i=0;i<nops;i++) DEF("A" + getStub(incl_ops[i]) + "_" + statestr, 1e6 / sqrt(Ascale)); 
+      DEF("E" + statestr,0.3 * (state+1));
+    }
+    for(int i=0;i<nops;i++)
+      DEF("C" + getStub(incl_ops[i]), 0.);
+      
+    //Map internal sub-fit parameters to outer params
+    for(int i=0;i<nops;i++){
+      auto istub = getStub(incl_ops[i]);
+      for(int j=i;j<nops;j++){
+	auto jstub = getStub(incl_ops[j]);
+	SubFitFuncParameterMap &op_params = subfit_pmaps[{incl_ops[i],incl_ops[j]}];
+	for(int state=0;state<nstate;state++){
+	  op_params[stringize("Asrc%d",state)] = stringize("A%s_%d",istub.c_str(),state);
+	  op_params[stringize("Asnk%d",state)] = stringize("A%s_%d",jstub.c_str(),state);
+	  op_params[stringize("E%d",state)] = stringize("E%d",state);
+	}
+	op_params["Csrc"] = "C" + istub;
+	op_params["Csnk"] = "C" + jstub;
+      }
+    }
   }else{
     assert(0);
   }

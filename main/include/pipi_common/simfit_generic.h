@@ -398,6 +398,65 @@ public:
 
 
 
+//Arbitrary number of terms. Constant terms are parameterized in terms of  <pi|O_op|pi>  such that there are only N_op constant terms and not N_op(N_op+2)/2
+class FitSimGenMultiStateCparam{
+  int Lt;
+  double Ascale;
+  double Cscale;
+  int nparams;
+  int nstate;
+public:
+  typedef taggedValueContainer<double,std::string> Params;
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef SimFitCoordGen GeneralizedCoordinate;
+
+  inline const std::string &paramTag(const std::string &pname, const GeneralizedCoordinate &coord) const{ 
+    auto it = coord.param_map->find(pname);
+    if(it == coord.param_map->end()) error_exit(std::cout << "FitSimGenMultiState::paramTag could not find parameter name " << pname << std::endl);
+    return it->second;
+  }
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &x, const ParameterType &p, const Boost &b) const{
+
+    double v; size_t idx; 
+    v = p(idx, paramTag("Csrc",x)); 
+    T Csrc = b(v, idx);
+
+    v = p(idx, paramTag("Csnk",x)); 
+    T Csnk = b(v, idx);
+
+    T out= Csrc * Csnk * Cscale;
+
+    for(int i=0;i<nstate;i++){
+      v = p(idx, paramTag(stringize("Asrc%d",i),x)); 
+      T Asrc = b(v,idx); 
+      v = p(idx, paramTag(stringize("Asnk%d",i),x)); 
+      T Asnk = b(v,idx); 
+      v = p(idx, paramTag(stringize("E%d",i),x)); 
+      T E = b(v,idx); 
+      
+      out = out + Asrc * Asnk * Ascale * ( exp(-E*x.t) + exp(-E*(Lt-x.fold_offset-x.t)) );
+    }
+    return out;  
+  }
+
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double a, const int i){ return a; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d = p;
+    for(int i=0;i<nparams;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  FitSimGenMultiStateCparam(const int nstate, const int Lt, const int nparams, const double Ascale=1e13, const double Cscale=1e13): 
+    nstate(nstate), Lt(Lt), nparams(nparams), Ascale(Ascale), Cscale(Cscale){}
+
+  inline int Nparams() const{ return nparams; }
+};
 
 
 CPSFIT_END_NAMESPACE

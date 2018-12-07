@@ -39,11 +39,34 @@ int main(const int argc, const char** argv){
 #endif
   }else{
     const int nchannel = args.data.size();
+    std::vector<rawDataCorrelationFunctionD> channels_raw(nchannel);
+    if(cmdline.load_raw_data){ //Load from checkpoint if desired
+#ifdef HAVE_HDF5
+      std::cout << "Reading raw data from " << cmdline.load_raw_data_file << std::endl;
+      HDF5reader reader(cmdline.load_raw_data_file);
+      read(reader, channels_raw, "channels_raw");
+#else
+      error_exit("main: Loading raw data requires HDF5\n");
+#endif
+    }else{ //Load from original files
+      for(int i=0;i<nchannel;i++)
+	readData(channels_raw[i], args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    }
+    
+    if(cmdline.save_raw_data){
+#ifdef HAVE_HDF5
+      std::cout << "Writing raw data to " << cmdline.save_raw_data_file << std::endl;
+      HDF5writer writer(cmdline.save_raw_data_file);
+      write(writer, channels_raw, "channels_raw");
+#else
+      error_exit("main: Writing raw data requires HDF5\n");
+#endif
+    }
+
     std::vector<doubleJackknifeCorrelationFunctionD> channels_dj(nchannel);
     std::vector<jackknifeCorrelationFunctionD> channels_j(nchannel);
     for(int i=0;i<nchannel;i++){
-      rawDataCorrelationFunctionD channel_raw;
-      readData(channel_raw, args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+      rawDataCorrelationFunctionD channel_raw = channels_raw[i];
       bin(channel_raw, args.bin_size);    
 
       channels_dj[i] = doubleJackknifeCorrelationFunctionD(args.Lt, [&](const int t){
