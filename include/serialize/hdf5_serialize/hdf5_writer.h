@@ -7,6 +7,7 @@
 
 #ifdef HAVE_HDF5
 
+#include<complex>
 #include<serialize/hdf5_serialize/type_map.h>
 #include<utils/utils.h>
 
@@ -60,9 +61,15 @@ public:
     write(v.data(),Size,name);
   }
   //Write string
-  void write(const std::string &v, const std::string &name){
+  inline void write(const std::string &v, const std::string &name){
     return write(v.data(),v.size(),name);
   }
+  //Write complex
+  template<typename T>
+  inline void write(const std::complex<T> &v, const std::string &name){
+    return write(reinterpret_cast<T const*>(&v), 2, name);
+  }
+
   
   void enter(const std::string &nm){
     try{

@@ -96,7 +96,6 @@ static void read(HDF5reader &reader, std::set<KeyT> &value, const std::string &t
   reader.leave();
 }
 
-
 CPSFIT_END_NAMESPACE
 
 #endif

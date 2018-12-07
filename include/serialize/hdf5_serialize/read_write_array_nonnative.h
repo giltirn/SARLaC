@@ -117,6 +117,25 @@ inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value,
   reader.leave();
 }
 
+
+
+//Non-native complex
+template<typename T, typename std::enable_if<!H5typeMap<T>::is_native, int>::type = 0>
+inline static void write(HDF5writer &writer, const std::complex<T> &value, const std::string &tag){
+  writer.enter(tag); //enter a group
+  write(writer, value.real(), "real");
+  write(writer, value.imag(), "imag");
+  writer.leave();
+}
+template<typename T, typename std::enable_if<!H5typeMap<T>::is_native, int>::type = 0>
+inline static void read(HDF5reader &reader, std::complex<T> &value, const std::string &tag){
+  reader.enter(tag); //enter a group
+  read(reader,reinterpret_cast<T(&)[2]>(value)[0],"real");
+  read(reader,reinterpret_cast<T(&)[2]>(value)[1],"imag");
+  reader.leave();
+}
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

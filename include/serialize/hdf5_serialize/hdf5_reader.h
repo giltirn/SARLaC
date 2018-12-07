@@ -6,7 +6,7 @@
 //A class for reading from HDF5 files
 
 #ifdef HAVE_HDF5
-
+#include<complex>
 #include<serialize/hdf5_serialize/type_map.h>
 #include<utils/utils.h>
 CPSFIT_START_NAMESPACE
@@ -14,26 +14,32 @@ CPSFIT_START_NAMESPACE
  
 class HDF5reader{
   template<typename T>
-    struct HDF5readerVectorPolicy{
-      typedef std::vector<T> ArrayType;
-      typedef T ElementType;
-      inline static void resize(ArrayType &v, const int sz){ v.resize(sz); }
-      inline static ElementType* pointer(ArrayType &v){ return v.data(); }
-    };
+  struct HDF5readerVectorPolicy{
+    typedef std::vector<T> ArrayType;
+    typedef T ElementType;
+    inline static void resize(ArrayType &v, const int sz){ v.resize(sz); }
+    inline static ElementType* pointer(ArrayType &v){ return v.data(); }
+  };
   template<typename T, std::size_t Size>
-    struct HDF5readerArrayPolicy{
-      typedef std::array<T,Size> ArrayType;
-      typedef T ElementType;
-      inline static void resize(ArrayType &v, const int sz){ assert(sz == Size); }
-      inline static ElementType* pointer(ArrayType &v){ return v.data(); }
-    };
+  struct HDF5readerArrayPolicy{
+    typedef std::array<T,Size> ArrayType;
+    typedef T ElementType;
+    inline static void resize(ArrayType &v, const int sz){ assert(sz == Size); }
+    inline static ElementType* pointer(ArrayType &v){ return v.data(); }
+  };
   struct HDF5readerStringPolicy{
     typedef std::string ArrayType;
     typedef char ElementType;
     inline static void resize(ArrayType &v, const int sz){ v.resize(sz); }
     inline static ElementType* pointer(ArrayType &v){ return &v[0]; }
   };
-
+  template<typename T>
+  struct HDF5readerComplexPolicy{
+    typedef std::complex<T> ArrayType;
+    typedef T ElementType;
+    inline static void resize(ArrayType &v, const int sz){ assert(sz == 2); }
+    inline static ElementType* pointer(ArrayType &v){ return reinterpret_cast<T*>(&v); }
+  };
   H5::H5File file;
   std::vector<H5::Group> group;
 
@@ -92,10 +98,14 @@ public:
   void read(std::array<T,Size> &v, const std::string &name){
     read<HDF5readerArrayPolicy<T,Size> >(v,name);
   }  
-  void read(std::string &v, const std::string &name){
+  inline void read(std::string &v, const std::string &name){
     read<HDF5readerStringPolicy>(v,name);
   }
-  
+  template<typename T>
+  inline void read(std::complex<T> &v, const std::string &name){
+    read<HDF5readerComplexPolicy<T> >(v,name);
+  }
+
   void enter(const std::string &nm){
     try{
       group.push_back(group.back().openGroup(nm.c_str()));

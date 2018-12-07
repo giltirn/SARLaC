@@ -36,7 +36,14 @@ template<typename T, std::size_t Size,typename std::enable_if<H5typeMap<T>::is_n
 inline static void read(HDF5reader &reader, std::array<T,Size> &value, const std::string &tag){
   reader.read(value,tag);
 }
-
+template<typename T, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
+inline static void write(HDF5writer &writer, const std::complex<T> &value, const std::string &tag){
+  writer.write(value,tag);
+}
+template<typename T, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
+inline static void read(HDF5reader &reader, std::complex<T> &value, const std::string &tag){
+  reader.read(value,tag);
+}
 
 //Strings
 inline void write(HDF5writer &writer, const std::string &value, const std::string &tag){

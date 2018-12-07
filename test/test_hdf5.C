@@ -130,6 +130,9 @@ struct S{
   double a;
   double b;
 
+  S(){}
+  S(const double a, const double b): a(a), b(b){}
+
   inline int size() const{ return 2; }
   inline double & operator()(const int i){ return i==0 ? a : b; }
   inline const double & operator()(const int i) const{ return i==0 ? a : b; }
@@ -203,6 +206,35 @@ int main(void){
     }
     std::cout << "Test passed\n";
   }
+  {//test std::complex
+    std::cout << "Testing IO for std::complex<double>" << std::endl;
+    std::complex<double> v(3.14,-9.22);
+    {
+      HDF5writer writer("test.hdf5");
+      write(writer,v,"value");
+    }
+    std::complex<double> u;
+    {
+      HDF5reader reader("test.hdf5");
+      read(reader,u,"value");
+    }
+    assert(v == u);
+
+    std::cout << "Testing IO for std::complex<S>" << std::endl;
+    std::complex<S> s(  S(12.66, 0.354), S(-0.76, 1234) );
+    {
+      HDF5writer writer("test.hdf5");
+      write(writer,s,"value");
+    }
+    std::complex<S> t;
+    {
+      HDF5reader reader("test.hdf5");
+      read(reader,t,"value");
+    }
+    assert(s == t);
+  }
+  
+
 
 #else
   std::cout << "HDF5 not being used\n";
