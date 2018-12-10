@@ -237,7 +237,9 @@ struct PiPiSymmetrySubset{
   PtotMapType corrs_avail;
 
   void findAvailableCorrs(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
-			  const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot){
+			  const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot, const MomentumUnit fn_mom_unit = MomentumUnit::PiOverL){
+    int pmult = fn_mom_unit == MomentumUnit::PiOverTwoL ? 2 : 1; //allow for pi/L (default) or pi/2L basis in file names. For these pmult = 1 and 2, respectively
+
     subStringReplace repl(file_fmt, pipiFileFormatKeys());
     //<TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
 
@@ -249,12 +251,12 @@ struct PiPiSymmetrySubset{
 
     for(int pt=0; pt< p_tot.size(); pt++){
       for(int psrcidx=0; psrcidx < p_pi.size(); psrcidx++){
-	p1src_s = momStr(p_pi[psrcidx]);
-	p2src_s = momStr(p_tot[pt] - p_pi[psrcidx]);
+	p1src_s = momStr(p_pi[psrcidx]*pmult);
+	p2src_s = momStr((p_tot[pt] - p_pi[psrcidx])*pmult);
 
 	for(int psnkidx=0; psnkidx < p_pi.size(); psnkidx++){
-	  p1snk_s = momStr(p_pi[psnkidx]);
-	  p2snk_s = momStr(-p_tot[pt] - p_pi[psnkidx]);
+	  p1snk_s = momStr(p_pi[psnkidx]*pmult);
+	  p2snk_s = momStr((-p_tot[pt] - p_pi[psnkidx])*pmult);
 
 	  std::ostringstream fn; fn << dir << "/";
 	  repl.replace(fn, wc);
@@ -301,8 +303,9 @@ struct PiPiSymmetrySubset{
   PiPiSymmetrySubset(){}
 
   PiPiSymmetrySubset(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
-		     const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot){
-    findAvailableCorrs(dir,file_fmt,traj_start,tsep_pipi,p_pi,p_tot);
+		     const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot, 
+		     const MomentumUnit fn_mom_unit = MomentumUnit::PiOverL){
+    findAvailableCorrs(dir,file_fmt,traj_start,tsep_pipi,p_pi,p_tot,fn_mom_unit);
   }
 };
 
@@ -313,9 +316,13 @@ struct PiPiSymmetrySubset{
 class PiPiSymmetrySubsetFigureFileMapping: public PiPiSymmetrySubset{
   subStringReplace repl; //expect substrings  <TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
   const threeMomentum p_tot;
-
+  int pmult; //allow for pi/L (default) or pi/2L basis in file names. For these pmult = 1 and 2, respectively
+  
   inline std::string filename(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi) const{ 
-    std::vector<std::string> with = { anyToStr(traj), std::string(1,fig), anyToStr(tsep_pipi), momStr(psrc), momStr(psnk), momStr(p_tot - psrc), momStr(-p_tot-psnk) };
+    std::vector<std::string> with = { anyToStr(traj), std::string(1,fig), anyToStr(tsep_pipi), 
+				      momStr(psrc*pmult), momStr(psnk*pmult), 
+				      momStr((p_tot - psrc)*pmult), momStr((-p_tot-psnk)*pmult) 
+    };
     std::ostringstream os;
     os << data_dir << '/';
     repl.replace(os,with);
@@ -324,8 +331,8 @@ class PiPiSymmetrySubsetFigureFileMapping: public PiPiSymmetrySubset{
 public:  
   
   PiPiSymmetrySubsetFigureFileMapping(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
-				      const std::vector<threeMomentum> &p_pi, const threeMomentum &p_tot): 
-    PiPiSymmetrySubset(dir, file_fmt, traj_start, tsep_pipi, p_pi, {p_tot}), p_tot(p_tot){
+				      const std::vector<threeMomentum> &p_pi, const threeMomentum &p_tot, const MomentumUnit fn_mom_unit = MomentumUnit::PiOverL): 
+    PiPiSymmetrySubset(dir, file_fmt, traj_start, tsep_pipi, p_pi, {p_tot}, fn_mom_unit), p_tot(p_tot), pmult(fn_mom_unit == MomentumUnit::PiOverTwoL ? 2 : 1){
 #define F(STR) subStringSpecify(STR)
 #define FO(STR) subStringSpecify(STR,true)
 

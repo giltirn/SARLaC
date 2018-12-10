@@ -35,6 +35,26 @@ public:
     return contains.find({opa,opb}) != contains.end();
   }
 
+  void write(HDF5writer &wr, const std::string &nm) const{
+    wr.enter(nm);
+    CPSfit::write(wr, pipi_bubble, "pipi_bubble");
+    CPSfit::write(wr, pipi_bubble_Z, "pipi_bubble_Z");
+    CPSfit::write(wr, correlators, "correlators");
+    CPSfit::write(wr, sigma_self, "sigma_self");
+    CPSfit::write(wr, sigma_self_Z, "sigma_self_Z");
+    CPSfit::write(wr, contains, "contains");
+    wr.leave();
+  }
+  void read(HDF5reader &rd, const std::string &nm){
+    rd.enter(nm);
+    CPSfit::read(rd, pipi_bubble, "pipi_bubble");
+    CPSfit::read(rd, pipi_bubble_Z, "pipi_bubble_Z");
+    CPSfit::read(rd, correlators, "correlators");
+    CPSfit::read(rd, sigma_self, "sigma_self");
+    CPSfit::read(rd, sigma_self_Z, "sigma_self_Z");
+    CPSfit::read(rd, contains, "contains");
+    rd.leave();
+  }
 
   void read(const int Lt, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan,
 	    const std::string &pipi_fig_file_fmt, const std::string &pipi_bubble_file_fmt, const int tsep_pipi, const int tstep_pipi,

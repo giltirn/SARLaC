@@ -43,14 +43,95 @@ struct PiPiProjectorA1Basis311: public PiPiProjectorBase{
   std::complex<double> coefficient(const int i) const{ return 1./24; }
 };
 
+//Average over all p1 in the 111 basis for which  ptot - p1 is also in the 111 basis   energy  ~2*E_0
+struct PiPiProjectorMovingSwaveGround: public PiPiProjectorBase{
+  std::vector<threeMomentum> mom;
+
+  PiPiProjectorMovingSwaveGround(const threeMomentum &ptot){
+    static std::vector<threeMomentum> basis111({  {1,1,1}, {-1,1,1}, {1,-1,1}, {1,1,-1},
+					       {-1,-1,-1}, {1,-1,-1}, {-1,1,-1}, {-1,-1,1} });
+    for(int p1i=0; p1i<8; p1i++){
+      threeMomentum p2 = ptot - basis111[p1i];
+      if(std::find(basis111.begin(), basis111.end(), p2) != basis111.end()) 
+	mom.push_back(basis111[p1i]);
+    }
+  }
+  int nMomenta() const{ return mom.size(); }
+  inline threeMomentum momentum(const int i) const{ 
+    return mom[i];
+  }
+  std::complex<double> coefficient(const int i) const{ return 1./mom.size(); }
+};
+
+//Average over all p1 in the 311/111 basis for which  ptot - p1 is in the 111/311 basis   energy ~E_0 + E_1
+struct PiPiProjectorMovingSwaveExc1: public PiPiProjectorBase{
+  std::vector<threeMomentum> mom;
+
+  PiPiProjectorMovingSwaveExc1(const threeMomentum &ptot){
+    static std::vector<threeMomentum> basis111({  {1,1,1}, {-1,1,1}, {1,-1,1}, {1,1,-1},
+					       {-1,-1,-1}, {1,-1,-1}, {-1,1,-1}, {-1,-1,1} });
+    static std::vector<threeMomentum> basis311({
+	{3,1,1}, {-3,1,1}, {3,-1,1}, {3,1,-1}, {-3,-1,-1}, {3,-1,-1}, {-3,1,-1}, {-3,-1,1}, 
+	{1,3,1}, {1,-3,1}, {1,3,-1}, {-1,3,1}, {-1,-3,-1}, {-1,3,-1}, {-1,-3,1}, {1,-3,-1}, 
+	{1,1,3}, {1,1,-3}, {-1,1,3}, {1,-1,3}, {-1,-1,-3}, {-1,-1,3}, {1,-1,-3}, {-1,1,-3} });
+
+    for(int p1i=0; p1i<8; p1i++){
+      threeMomentum p2 = ptot - basis111[p1i];
+      if(std::find(basis311.begin(), basis311.end(), p2) != basis311.end()) 
+	mom.push_back(basis111[p1i]);
+    }
+    for(int p1i=0; p1i<24; p1i++){
+      threeMomentum p2 = ptot - basis311[p1i];
+      if(std::find(basis111.begin(), basis111.end(), p2) != basis111.end()) 
+	mom.push_back(basis311[p1i]);
+    }
+  }
+  int nMomenta() const{ return mom.size(); }
+  inline threeMomentum momentum(const int i) const{ 
+    return mom[i];
+  }
+  std::complex<double> coefficient(const int i) const{ return 1./mom.size(); }
+};
+
+//Average over all p1 in the 311 basis for which  ptot - p1 is also in the 311 basis   energy ~2*E_1
+struct PiPiProjectorMovingSwaveExc2: public PiPiProjectorBase{
+  std::vector<threeMomentum> mom;
+
+  PiPiProjectorMovingSwaveExc2(const threeMomentum &ptot){
+    static std::vector<threeMomentum> basis311({
+	{3,1,1}, {-3,1,1}, {3,-1,1}, {3,1,-1}, {-3,-1,-1}, {3,-1,-1}, {-3,1,-1}, {-3,-1,1}, 
+	{1,3,1}, {1,-3,1}, {1,3,-1}, {-1,3,1}, {-1,-3,-1}, {-1,3,-1}, {-1,-3,1}, {1,-3,-1}, 
+	{1,1,3}, {1,1,-3}, {-1,1,3}, {1,-1,3}, {-1,-1,-3}, {-1,-1,3}, {1,-1,-3}, {-1,1,-3} });
+
+    for(int p1i=0; p1i<24; p1i++){
+      threeMomentum p2 = ptot - basis311[p1i];
+      if(std::find(basis311.begin(), basis311.end(), p2) != basis311.end()) 
+	mom.push_back(basis311[p1i]);
+    }
+  }
+  int nMomenta() const{ return mom.size(); }
+  inline threeMomentum momentum(const int i) const{ 
+    return mom[i];
+  }
+  std::complex<double> coefficient(const int i) const{ return 1./mom.size(); }
+};
+
 
 
 PiPiProjectorBase* getProjector(const PiPiProjector proj, const threeMomentum &ptot){
   switch(proj){
   case PiPiProjector::A1momSet111:
+    if(ptot != threeMomentum({0,0,0})) error_exit(std::cout << "getProjector projector " << proj << " does not apply to moving pipi states\n");
     return new PiPiProjectorA1Basis111;
   case PiPiProjector::A1momSet311:
+    if(ptot != threeMomentum({0,0,0})) error_exit(std::cout << "getProjector projector " << proj << " does not apply to moving pipi states\n");
     return new PiPiProjectorA1Basis311;
+  case PiPiProjector::MovingSwaveGround:
+    return new PiPiProjectorMovingSwaveGround(ptot);
+  case PiPiProjector::MovingSwaveExc1:
+    return new PiPiProjectorMovingSwaveExc1(ptot);
+  case PiPiProjector::MovingSwaveExc2:
+    return new PiPiProjectorMovingSwaveExc2(ptot);
   default:
     error_exit(std::cout << "getProjector unknown projector " << proj << std::endl);
   }

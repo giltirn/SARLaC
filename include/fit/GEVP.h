@@ -22,12 +22,13 @@ public:
   //Get the eigenvalues iff the element with t0,t is available, else return NULL
   std::vector<T> const* evals(const int t0, const int t) const{ 
     auto it = evals_t0_t.find({t0,t});
-    return it == evals_t0_t.end() ? NULL : it->second;
+    return it == evals_t0_t.end() ? NULL : &it->second;
   }
   //Get the eigenvectors iff the element with t0,t is available, else return NULL
+  //Eigenvector index is equivalent to the state index, and the coordinates are *operator* indices
   std::vector<NumericVector<T> > const* evecs(const int t0, const int t) const{ 
     auto it = evecs_t0_t.find({t0,t});
-    return it == evecs_t0_t.end() ? NULL : it->second;
+    return it == evecs_t0_t.end() ? NULL : &it->second;
   }
 
   //Solve for a general time series of real symmetric positive-definite matrices for t0 in {0..tmax-1} and with t={t0+1..tmax}. Results that are solvable are added to the map
@@ -75,13 +76,62 @@ public:
       return std::vector<T>();
     }
   }
-  // template<typename MatrixSeriesType, typename Accessor>
-  // std::vector<T> effectiveAmplitude(const int t0, const int t, const MatrixSeriesType &matrix_series, const Accessor &acc){) const{
-  //   //\sum_j C_ij(t)u^n_j = e^{-E_n t}\psi_i^n     where \psi_i^n = A_ni  is the amplitude of operator i with state n
-  //   //u^n_j \propto v(t,t0)^n_j  i.e.   u^n_j = \alpha^n(t,t0)v_j^n(t,t0)
-  //   //Thus   \sum_j \alpha^n(t,t0) C_ij(t)v_j^n(t,t0) = e^{-E_n t}\psi_i^n 
-  //   //Define \chi_i^n(t,t0) = \psi_i^n / \alpha^n(t,t0) = e^{E_n t}\sum_j C_ij(t)v_j^n(t,t0)
-  //   //We also have C_ij(t) = \sum_n e^{-E_n t} \psi_i^n \psi_j^n = \sum_n e^{-E_n t} [\alpha^n(t,t0)]^2 \chi_i^n(t,t0) \chi_j^n(t,t0)
+
+  //Indexing of output matrix is [operator index][state index]
+  //Note: Requires evecs at (t0,t) and evals at  (t0+t/2,t0)  (t0+t,t0)  - returns empty output if these are not available 
+  template<typename MatrixSeriesType, typename Accessor>
+  std::vector<std::vector<T> > effectiveAmplitude(const int t0, const int t, const MatrixSeriesType &matrix_series, const Accessor &acc) const{
+    //This is the operator A_eff from Eq. 2.17 of http://arxiv.org/pdf/0902.1265.pdf    between state <n| and |0>
+    std::vector<NumericVector<T> > const* evecs_t0_t = evecs(t0,t);
+    std::vector<T> const* evals_t0_t0ptd2 = evals(t0,t0+t/2);
+    std::vector<T> const* evals_t0_t0pt = evals(t0,t0+t);
+    std::vector<T> Eeff = effectiveEnergy(t0,t); //indexed in state
+
+    std::vector<std::vector<T> > out;
+    if(evecs_t0_t == NULL || evals_t0_t0ptd2 == NULL || evals_t0_t0pt == NULL || Eeff.size() == 0) return out; //return empty vector if not possible
+
+    T zero = Eeff[0]; zeroit(zero);
+
+    int nstate = evecs_t0_t->size();
+    int nop = nstate;
+    
+    //Construct a matrix from the eigenvector with row index the state and column index the operator
+    NumericSquareMatrix<T> v_n_i(nstate);
+    for(int n=0;n<nstate;n++)
+      for(int i=0;i<nop;i++)
+	v_n_i(n,i) = (*evecs_t0_t)[n](i);
+    NumericSquareMatrix<T> v_n_i_inv(v_n_i);
+
+    svd_inverse(v_n_i_inv, v_n_i); //inverse has row idx = operator index and column idx = state index
+    
+    out.resize(nop, std::vector<T>(nstate));
+
+    for(int n=0;n<nstate;n++){ //loop over state index
+      //Construct inner product
+      //( v_n,  C(t)v_n )
+      
+      std::vector<T> Ctvn(nop, zero); 
+      for(int i=0;i<nop;i++)
+	for(int j=0;j<nop;j++)
+	  Ctvn[i] = Ctvn[i] + acc(matrix_series,t)(i,j) *  (*evecs_t0_t)[n](j);
+      
+      T v_dot_Ctvn(zero);
+      for(int i=0;i<nop;i++)
+	v_dot_Ctvn = v_dot_Ctvn + (*evecs_t0_t)[n](i) * Ctvn[i];
+	
+      T Rn = (*evals_t0_t0ptd2)[n]/(*evals_t0_t0pt)[n]/sqrt(v_dot_Ctvn);
+      
+      for(int i=0;i<nop;i++){
+	out[i][n] = v_n_i_inv(i,n) * exp(Eeff[n] * t) / Rn;
+      }
+    }
+    return out;
+  }
+
+  template<typename _GeneralizedCoordinate, typename _MatrixType, template<typename,typename> class _PairType = std::pair>
+  std::vector<std::vector<T> > effectiveAmplitude(const int t0, const int t, const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &matrix_series) const{
+    return effectiveAmplitude(t0,t, matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); });
+  }
 
   GEVPsolver(bool verbose = false): tmax(0), verbose(verbose){}
 };

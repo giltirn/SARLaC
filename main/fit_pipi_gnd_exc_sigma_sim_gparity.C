@@ -98,11 +98,25 @@ int main(const int argc, const char* argv[]){
 
   //Read data
   RawData raw_data;
-  if(!cmdline.load_combined_data) raw_data.read(args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
-						args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
-						args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
-						args.sigma2pt_file_format, args.sigma_bubble_file_format,
-						ops);
+  if(!cmdline.load_combined_data){
+    if(cmdline.load_raw_data){
+      std::cout << "Reading raw data from " << cmdline.load_raw_data_file << std::endl;
+      HDF5reader rd(cmdline.load_raw_data_file);  raw_data.read(rd, "raw_data");
+      for(int i=0;i<ops.size();i++)
+	for(int j=i;j<ops.size();j++)
+	  assert(raw_data.haveData(ops[i],ops[j]));
+    }else{
+      raw_data.read(args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
+		    args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
+		    args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
+		    args.sigma2pt_file_format, args.sigma_bubble_file_format,
+		    ops);
+    }
+    if(cmdline.save_raw_data){
+      std::cout << "Saving raw data to " << cmdline.save_raw_data_file << std::endl;
+      HDF5writer wr(cmdline.save_raw_data_file);  raw_data.write(wr, "raw_data");
+    }
+  }
 
   ResampledData<jackknifeCorrelationFunction> data_j;
   ResampledData<doubleJackCorrelationFunction> data_dj;

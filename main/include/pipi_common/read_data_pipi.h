@@ -43,9 +43,10 @@ class bubbleFilenamePolicyGeneric{
   subStringReplace repl; //expect <TRAJ> <TSEP_PIPI> <PB> and optional <PA>.  Here the pions A and B are the earlier and later pions, respectively
   SourceOrSink src_snk; //whether a source or sink pipi  
   const threeMomentum p_tot;
-
+  int pmult; //allow for pi/L (default) or pi/2L basis in file names. For these pmult = 1 and 2, respectively
 public:
-  bubbleFilenamePolicyGeneric(const std::string &fmt, const threeMomentum &p_tot, const SourceOrSink src_snk): p_tot(p_tot), src_snk(src_snk){
+  bubbleFilenamePolicyGeneric(const std::string &fmt, const threeMomentum &p_tot, const SourceOrSink src_snk,
+			      const MomentumUnit fn_mom_unit = MomentumUnit::PiOverL): p_tot(p_tot), src_snk(src_snk), pmult(fn_mom_unit == MomentumUnit::PiOverTwoL ? 2 : 1){
 #define F(STR) subStringSpecify(STR)
 #define FO(STR) subStringSpecify(STR,true)
 
@@ -68,7 +69,7 @@ public:
       pA = p1;
       pB = -p_tot - p1;
     }
-    std::vector<std::string> with =   { anyToStr(traj), anyToStr(tsep_pipi), momStr(pB), momStr(pA) };
+    std::vector<std::string> with =   { anyToStr(traj), anyToStr(tsep_pipi), momStr(pB*pmult), momStr(pA*pmult) };
 
     std::ostringstream os;
     os << data_dir << '/';

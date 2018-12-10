@@ -111,8 +111,26 @@ int main(const int argc, const char* argv[]){
   }
   
   writeParamsStandard(E_all,"effective_energies.hdf5");
+  
+  std::cout << "Amplitudes:\n";
+  for(int t0=0; t0<args.t_max; t0++){
+    for(int t=t0+1; t<args.t_max; t++){
+      std::vector<std::vector<jackknifeDistributionD> > Coeffs_all = gevp. effectiveAmplitude(t0,t,C);     
+      std::cout << t0 << " " << t << std::endl;
+      for(int op=0;op<2;op++){
+	for(int state=0;state<2;state++)
+	  if(Coeffs_all.size() != 0){
+	    Coeffs_all[op][state] = Coeffs_all[op][state]/sqrt(args.Ascale);
+	    std::cout << Coeffs_all[op][state] << " ";
+	  }
+	  else std::cout << "- ";
+	std::cout << std::endl;
+      }
+    }
+  }
 
   std::cout << "Done\n";
   return 0;
 }
+
 

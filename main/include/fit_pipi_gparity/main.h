@@ -24,10 +24,12 @@ void generateData(jackknifeCorrelationFunction &pipi_j,
     std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(args.proj_src, args.total_mom[p]) );
     std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(args.proj_snk, -args.total_mom[p]) );
 
-    PiPiSymmetrySubsetFigureFileMapping ffn(args.data_dir, args.figure_file_format, args.traj_start, args.tsep_pipi, getSrcSnkMomentumSet(*proj_src, *proj_snk), args.total_mom[p]);
+    PiPiSymmetrySubsetFigureFileMapping ffn(args.data_dir, args.figure_file_format, args.traj_start, args.tsep_pipi, 
+					    getSrcSnkMomentumSet(*proj_src, *proj_snk), args.total_mom[p],
+					    args.filename_momunit);
 
-    bubbleFilenamePolicyGeneric bfn_src(args.bubble_file_format, args.total_mom[p], Source);
-    bubbleFilenamePolicyGeneric bfn_snk(args.bubble_file_format, args.total_mom[p], Sink);
+    bubbleFilenamePolicyGeneric bfn_src(args.bubble_file_format, args.total_mom[p], Source, args.filename_momunit);
+    bubbleFilenamePolicyGeneric bfn_snk(args.bubble_file_format, args.total_mom[p], Sink, args.filename_momunit);
 
     jackknifeCorrelationFunction tmp_pipi_j; 
     doubleJackCorrelationFunction tmp_pipi_dj;

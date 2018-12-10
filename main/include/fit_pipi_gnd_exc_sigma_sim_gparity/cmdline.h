@@ -11,6 +11,12 @@ struct CMDline{
   bool save_combined_data;
   std::string save_combined_data_file;
 
+  bool load_raw_data;
+  std::string load_raw_data_file;
+
+  bool save_raw_data;
+  std::string save_raw_data_file;
+
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
 
@@ -27,6 +33,8 @@ struct CMDline{
 
   CMDline(){
     load_guess = false;
+    load_raw_data = false;
+    save_raw_data = false;
     load_combined_data = false;
     save_combined_data = false;
     load_frozen_fit_params = false;
@@ -56,10 +64,20 @@ struct CMDline{
       }else if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));
 	i+=2;
+      }else if(sargv[i] == "-load_raw_data"){ //load the raw data pre vacuum subtraction/binning
+	load_raw_data = true;
+	load_raw_data_file = sargv[i+1];
+	std::cout << "Enabled reading raw data from " << load_raw_data_file << std::endl;
+	i+=2;
+      }else if(sargv[i] == "-save_raw_data"){ //save the raw data pre vacuum subtraction/binning
+	save_raw_data = true;
+	save_raw_data_file = sargv[i+1];
+	std::cout << "Enabled saving raw data to " << save_raw_data_file << std::endl;
+	i+=2;
       }else if(sargv[i] == "-load_combined_data"){ //load the double-jackknife data set previously generated
 	load_combined_data = true;
 	load_combined_data_file = sargv[i+1];
-	std::cout << "Enabled reading combined data to " << load_combined_data_file << std::endl;
+	std::cout << "Enabled reading combined data from " << load_combined_data_file << std::endl;
 	i+=2;
       }else if(sargv[i] == "-save_combined_data"){ //save the double-jackknife data set previously generated
 	save_combined_data = true;
@@ -100,6 +118,9 @@ struct CMDline{
 	  exit(0);	 
 	}
 	i+=2;
+      }else if(sargv[i] == "-allow_bin_cropping"){ //when #configs is not an exact multiple of bin size, allow discarding of excess configs
+	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

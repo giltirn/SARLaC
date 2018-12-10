@@ -10,6 +10,7 @@ typedef std::array<int,3> int_array_3;
   ( std::string, data_dir ) \
   ( std::string, figure_file_format )    \
   ( std::string, bubble_file_format )    \
+  ( MomentumUnit, filename_momunit )	 \
   ( int, Lt) \
   ( int, tsep_pipi) \
   ( int, tstep_pipi) \
@@ -35,6 +36,7 @@ struct Args{
   Args(): data_dir("data"), 
     figure_file_format("traj_<TRAJ>_Figure<FIG>_sep<TSEP_PIPI>_mom<P1SRC>_mom<P1SNK>"), 
     bubble_file_format("traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_mom<PB>"),
+    filename_momunit(MomentumUnit::PiOverL),
     Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
     fitfunc(PiPiFitFunction::FCoshPlusConstant), correlated(true), do_vacuum_subtraction(true), bin_size(1), 
     proj_src(PiPiProjector::A1momSet111), proj_snk(PiPiProjector::A1momSet111), isospin(0),  
