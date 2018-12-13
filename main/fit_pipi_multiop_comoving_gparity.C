@@ -6,11 +6,12 @@ using namespace CPSfit;
 #include<fit_pipi_gnd_exc_sim_gparity/enums.h>
 #include<fit_pipi_gnd_exc_sim_gparity/fit.h>
 
-#include<fit_pipi_gnd_exc_sigma_sim_gparity/args.h>
-#include<fit_pipi_gnd_exc_sigma_sim_gparity/fitfunc.h>
-#include<fit_pipi_gnd_exc_sigma_sim_gparity/cmdline.h>
-#include<fit_pipi_gnd_exc_sigma_sim_gparity/raw_data.h>
-#include<fit_pipi_gnd_exc_sigma_sim_gparity/resampled_data.h>
+#include<fit_pipi_multiop_comoving_gparity/args.h>
+#include<fit_pipi_multiop_comoving_gparity/cmdline.h>
+#include<fit_pipi_multiop_comoving_gparity/fitfunc.h>
+#include<fit_pipi_multiop_comoving_gparity/raw_data.h>
+#include<fit_pipi_multiop_comoving_gparity/resampled_data.h>
+
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/fit.h>
 
 int main(const int argc, const char* argv[]){
@@ -41,44 +42,61 @@ int main(const int argc, const char* argv[]){
   const std::vector<Operator> &ops = args.operators;
 
   //Read data
-  RawData raw_data;
+  std::map<threeMomentum, RawData> raw_data;
   if(!cmdline.load_combined_data){
     if(cmdline.load_raw_data){
       std::cout << "Reading raw data from " << cmdline.load_raw_data_file << std::endl;
-      HDF5reader rd(cmdline.load_raw_data_file);  raw_data.read(rd, "raw_data");
-      for(int i=0;i<ops.size();i++)
-	for(int j=i;j<ops.size();j++)
-	  assert(raw_data.haveData(ops[i],ops[j]));
+      HDF5reader rd(cmdline.load_raw_data_file);  read(rd, raw_data, "raw_data");
+      
+      for(int p=0;p<args.p_tot.size();p++){
+	auto it = raw_data.find(args.p_tot[p]);
+	assert(it!=raw_data.end());
+	for(int i=0;i<ops.size();i++)
+	  for(int j=i;j<ops.size();j++)
+	    assert(it->second.haveData(ops[i],ops[j]));
+      }
     }else{
-      raw_data.read(args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
-		    args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
-		    args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
-		    args.sigma2pt_file_format, args.sigma_bubble_file_format,
-		    ops);
+      for(int p=0;p<args.p_tot.size();p++){
+	RawData &raw = raw_data[args.p_tot[p]];
+
+	raw.read(args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
+		 args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
+		 args.p_tot[p],
+		 ops, cmdline.filemap_allow_ptot_parity);
+      }
     }
     if(cmdline.save_raw_data){
       std::cout << "Saving raw data to " << cmdline.save_raw_data_file << std::endl;
-      HDF5writer wr(cmdline.save_raw_data_file);  raw_data.write(wr, "raw_data");
+      HDF5writer wr(cmdline.save_raw_data_file);  write(wr, raw_data, "raw_data");
     }
   }
 
-  ResampledData<jackknifeCorrelationFunction> data_j;
-  ResampledData<doubleJackCorrelationFunction> data_dj;
+      
+    
+  std::map<threeMomentum, ResampledData<jackknifeCorrelationFunction> > data_j;
+  std::map<threeMomentum, ResampledData<doubleJackCorrelationFunction> > data_dj;
   if(cmdline.load_combined_data){
     loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
-    for(int i=0;i<ops.size();i++)
-      for(int j=i;j<ops.size();j++)
-	assert(data_j.haveData(ops[i],ops[j]));
-    
-  }else{
-    data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction);
-    data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction);
-  }  
+    for(int p=0;p<args.p_tot.size();p++){
+      auto it = data_j.find(args.p_tot[p]);
+      assert(it!=data_j.end());
+      for(int i=0;i<ops.size();i++)
+	for(int j=i;j<ops.size();j++)
+	  assert(it->second.haveData(ops[i],ops[j]));
+    }    
 
+  }else{
+    for(int p=0;p<args.p_tot.size();p++){
+      auto ptot = args.p_tot[p];
+      data_j[ptot].generatedResampledData(raw_data[ptot], args.bin_size, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
+      data_dj[ptot].generatedResampledData(raw_data[ptot], args.bin_size, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
+    }
+  }  
+  
   if(cmdline.save_combined_data) saveCheckpoint(data_j, data_dj, cmdline.save_combined_data_file);
 
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
-
+  
   //Add resampled data to full data set with generalized coordinate set appropriately
   correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j;
   correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
@@ -92,9 +110,21 @@ int main(const int argc, const char* argv[]){
       pmap_descr[&subfit_pmaps[{ops[i],ops[j]}]] = nm.str();
 
       for(int t=args.t_min;t<=args.t_max;t++){
-	SimFitCoordGen coord(t, &subfit_pmaps[{ops[i],ops[j]}] , foldOffsetMultiplier(ops[i],ops[j])*args.tsep_pipi);
-	corr_comb_j.push_back(coord, data_j.correlator(ops[i],ops[j]).value(t));
-	corr_comb_dj.push_back(coord, data_dj.correlator(ops[i],ops[j]).value(t));
+	SimFitCoordGen coord(t, &subfit_pmaps[{ops[i],ops[j]}] , 2*args.tsep_pipi);
+
+	//Average over the total momentum values (it is assumed these are equivalent)
+	jackknifeDistributionD value_j(nsample,0.);
+	doubleJackknifeDistributionD value_dj(nsample,0.);
+	for(int p=0;p<args.p_tot.size();p++){
+	  auto ptot = args.p_tot[p];
+	  value_j = value_j + data_j[ptot].correlator(ops[i],ops[j]).value(t);
+	  value_dj = value_dj + data_dj[ptot].correlator(ops[i],ops[j]).value(t);
+	}
+	value_j = value_j / double(args.p_tot.size());
+	value_dj = value_dj / double(args.p_tot.size());
+	
+	corr_comb_j.push_back(coord, value_j);
+	corr_comb_dj.push_back(coord, value_dj);
 	vnm.push_back(nm.str());
       }
     }
@@ -106,13 +136,13 @@ int main(const int argc, const char* argv[]){
   }
   
   if(cmdline.load_guess) loadGuess(guess, cmdline.guess_file);
-
+    
   std::cout << "Performing fit" << std::endl;
-
+  
   jackknifeDistribution<Params> params(nsample, guess);
   jackknifeDistributionD chisq(nsample), chisq_per_dof(nsample);
-
-
+  
+  
   fitOptions opt;
   cmdline.exportOptions(opt);
 
@@ -150,5 +180,3 @@ int main(const int argc, const char* argv[]){
   std::cout << "Done\n";
   return 0;
 }
-
-

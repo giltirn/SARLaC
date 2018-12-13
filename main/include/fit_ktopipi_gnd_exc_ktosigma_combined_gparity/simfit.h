@@ -5,30 +5,50 @@
 #include<utils/macros.h>
 
 #include "args.h"
+#include<pipi_common/analyze_chisq.h>
 
 CPSFIT_START_NAMESPACE
+
+template<typename FitFunc>
+void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
+		    const jackknifeDistribution<typename FitFunc::ParameterType> &params, const FitFunc &fitfunc,
+		    const std::map<std::unordered_map<std::string, std::string> const*, std::string> &pmap_descr){
+  struct PP{
+    typedef std::map<std::unordered_map<std::string, std::string> const*, std::string> const* PtrType;
+    inline static PtrType & descr(){ static PtrType p; return p; }
+
+    inline static void print(std::ostream &os, const SimFitCoordGen &c){ os << "(" << descr()->find(c.param_map)->second << ", t=" << c.t << " tsep_K_snk=" << c.tsep_k_snk << ")" ; }
+  };
+  PP::descr() = &pmap_descr;
+  
+  AnalyzeChisq<FitFunc,PP> chisq_analyze(corr_comb_j, fitfunc, params);
+  chisq_analyze.printChisqContribs(Correlation);
+  chisq_analyze.examineProjectedDeviationContribsEvalNorm(Correlation);
+  chisq_analyze.printChisqContribs(Covariance);
+  chisq_analyze.examineProjectedDeviationContribsEvalNorm(Covariance);
+}
 
 struct simultaneousFitBase{
   typedef correlationFunction<amplitudeDataCoord, jackknifeDistributionD> CorrFuncJack;
   typedef correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> CorrFuncDJack;
-
+  
   typedef std::vector<CorrFuncJack> CorrFuncJackAllQ;
   typedef std::vector<CorrFuncDJack> CorrFuncDJackAllQ;
-
+  
   typedef correlationFunction<SimFitCoordGen, jackknifeDistributionD> SimFitCorrFuncJack;
   typedef correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> SimFitCorrFuncDJack;
-
+  
   typedef std::unordered_map<std::string, std::string> InnerParamMap;
-
-  #define COPY_BASE_TYPEDEFS \
-    typedef simultaneousFitBase::CorrFuncJack CorrFuncJack; \
-    typedef simultaneousFitBase::CorrFuncDJack CorrFuncDJack; \
-    typedef simultaneousFitBase::CorrFuncJackAllQ CorrFuncJackAllQ; \
-    typedef simultaneousFitBase::CorrFuncDJackAllQ CorrFuncDJackAllQ; \
-    typedef simultaneousFitBase::SimFitCorrFuncJack SimFitCorrFuncJack; \
-    typedef simultaneousFitBase::SimFitCorrFuncDJack SimFitCorrFuncDJack; \
-    typedef simultaneousFitBase::InnerParamMap InnerParamMap
-
+  
+#define COPY_BASE_TYPEDEFS				    \
+  typedef simultaneousFitBase::CorrFuncJack CorrFuncJack;     \
+  typedef simultaneousFitBase::CorrFuncDJack CorrFuncDJack;	    \
+  typedef simultaneousFitBase::CorrFuncJackAllQ CorrFuncJackAllQ;     \
+  typedef simultaneousFitBase::CorrFuncDJackAllQ CorrFuncDJackAllQ;	\
+  typedef simultaneousFitBase::SimFitCorrFuncJack SimFitCorrFuncJack;	\
+  typedef simultaneousFitBase::SimFitCorrFuncDJack SimFitCorrFuncDJack; \
+  typedef simultaneousFitBase::InnerParamMap InnerParamMap
+  
   virtual void load2ptFitParams(const InputParamArgs &iargs, const int nsample) = 0;
   virtual void fit(const CorrFuncJackAllQ &ktopipi_A0_all_j,
 		   const CorrFuncDJackAllQ &ktopipi_A0_all_dj,
@@ -67,9 +87,66 @@ struct simultaneousFitBase{
     }
   }
 
+  template<typename FitPolicies>
+  void runfit(std::vector<typename FitPolicies::FitParameterDistribution> &params,
+	      const std::vector<SimFitCorrFuncJack> &A0_sim_j,
+	      const std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
+	      const std::map<InnerParamMap const*, std::string> &pmap_descr,
+	      const typename FitPolicies::baseFitFunc &fitfunc,
+	      const std::vector<int> &freeze_params,
+	      const typename FitPolicies::FitParameterDistribution &freeze_vals,
+	      const typename FitPolicies::baseFitFunc::ParameterType &guess,
+	      const int nsample, const bool correlated){
+    typedef typename FitPolicies::baseFitFunc::ParameterType Params;
+
+    params.resize(10);
+
+    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample)), 
+      chisq_per_dof(10, jackknifeDistributionD(nsample)), 
+      pvalue(10, jackknifeDistributionD(nsample));
+
+    for(int q=0;q<10;q++){
+      params[q] = jackknifeDistribution<Params>(nsample, guess);
+
+      std::cout << "Performing " << q+1 << " fit" << std::endl;
+      fitter<FitPolicies> fit;
+      fit.importFitFunc(fitfunc);
+      fit.freeze(freeze_params, freeze_vals);
+      
+      importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
+      if(!correlated) import.setUncorrelated();
+          
+      int ndof;
+      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, A0_sim_j[q]);
+
+      pvalue[q] = jackknifeDistributionD(nsample, [&](const int s){ return chiSquareDistribution::pvalue(ndof, chisq[q].sample(s)); });
+
+      std::cout << "Q" << q+1 << std::endl;
+      std::cout << "Params:\n" << params[q] << std::endl;
+      std::cout << "Chisq: " << chisq[q] << std::endl;
+      std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
+      std::cout << "p-value: " << pvalue[q] << std::endl;
+
+      std::cout << "Analysis of contributions to chi^2" << std::endl;
+      
+      analyzeChisqFF<typename FitPolicies::baseFitFunc>(A0_sim_j[q],params[q],fitfunc,pmap_descr);
+    }  
+    for(int q=0;q<10;q++){
+      std::cout << "Q" << q+1 << std::endl;
+      std::cout << "Params:\n" << params[q] << std::endl;
+      std::cout << "Chisq: " << chisq[q] << std::endl;
+      std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
+      std::cout << "p-value: " << pvalue[q] << std::endl;
+    }
+    writeParamsStandard(params, "params.hdf5");
+    writeParamsStandard(chisq, "chisq.hdf5");
+    writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
+    writeParamsStandard(pvalue, "pvalue.hdf5");
+  }
+
+
   virtual ~simultaneousFitBase(){}
 };
-
 
 class simultaneousFit2state: public simultaneousFitBase{
 public:
@@ -129,8 +206,9 @@ public:
 
     int nsample = mK.size();
 
-    std::unordered_map<std::string,size_t> param_idx_map;
-    int idx = 0;
+  //
+  std::unordered_map<std::string,size_t> param_idx_map;
+  int idx = 0;
 #define DEFMAP(NM) param_idx_map[#NM] = idx++
     DEFMAP(AK);
     DEFMAP(mK);
@@ -162,6 +240,10 @@ public:
     for(auto it = dcp.begin(); it != dcp.end(); it++)
       inner_param_map_ktopipi[*it] = inner_param_map_ktopipi_exc[*it] = inner_param_map_ktosigma[*it] = *it;
     
+    std::map< InnerParamMap const*, std::string> pmap_descr = { {&inner_param_map_ktopipi, "K->pipi(111)"},
+								{&inner_param_map_ktopipi_exc, "K->pipi(311)"},
+								{&inner_param_map_ktosigma, "K->sigma"} };    
+
     std::vector<SimFitCorrFuncJack> A0_sim_j(10);
     std::vector<SimFitCorrFuncDJack> A0_sim_dj(10);
     
@@ -182,12 +264,7 @@ public:
     FitFunc fitfunc(param_idx_map.size());
 
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-    
-    std::vector<jackknifeDistribution<Params> > params(10, jackknifeDistribution<Params>(nsample, guess));
-    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample)), 
-      chisq_per_dof(10, jackknifeDistributionD(nsample)),
-      pvalue(10, jackknifeDistributionD(nsample));
-      
+       
     std::vector<int> freeze_params = { 0,1,2,3,4,5,6,7,8,9 };
     jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
     int opidx_ktopipi = 0;
@@ -207,33 +284,9 @@ public:
       freeze_vals.sample(s)("E1") = E1.sample(s);
     }
 
-    for(int q=0;q<10;q++){
-      std::cout << "Performing " << q+1 << " fit" << std::endl;
-      fitter<FitPolicies> fit;
-      fit.importFitFunc(fitfunc);
-      fit.freeze(freeze_params, freeze_vals);
-      
-      importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
-      if(!correlated) import.setUncorrelated();
-          
-      int ndof;
-      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, A0_sim_j[q]);
-
-      pvalue[q] = jackknifeDistributionD(nsample, [&](const int s){ return chiSquareDistribution::pvalue(ndof, chisq[q].sample(s)); });
-    }
-
-    for(int q=0;q<10;q++){
-      std::cout << "Q" << q+1 << std::endl;
-      std::cout << "Params:\n" << params[q] << std::endl;
-      std::cout << "Chisq: " << chisq[q] << std::endl;
-      std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
-      std::cout << "p-value: " << pvalue[q] << std::endl;
-    }
-    writeParamsStandard(params, "params.hdf5");
-    writeParamsStandard(chisq, "chisq.hdf5");
-    writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
-    writeParamsStandard(pvalue, "pvalue.hdf5");
-
+    std::vector<jackknifeDistribution<Params> > params;    
+    runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
+ 
     plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
   }
 };
@@ -286,7 +339,7 @@ public:
     std::cout << "E2 = " << E2 << std::endl;
 
     std::cout << "Coeffs:\n" << coeffs << std::endl;
-
+    
     loaded_frzparams = true;
   }
   
@@ -344,6 +397,10 @@ public:
     for(auto it = dcp.begin(); it != dcp.end(); it++)
       inner_param_map_ktopipi[*it] = inner_param_map_ktopipi_exc[*it] = inner_param_map_ktosigma[*it] = *it;
     
+    std::map< InnerParamMap const*, std::string> pmap_descr = { {&inner_param_map_ktopipi, "K->pipi(111)"},
+								{&inner_param_map_ktopipi_exc, "K->pipi(311)"},
+								{&inner_param_map_ktosigma, "K->sigma"} };
+
     std::vector<SimFitCorrFuncJack> A0_sim_j(10);
     std::vector<SimFitCorrFuncDJack> A0_sim_dj(10);
     
@@ -365,11 +422,6 @@ public:
     FitFunc fitfunc(param_idx_map.size());
 
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-    
-    std::vector<jackknifeDistribution<Params> > params(10, jackknifeDistribution<Params>(nsample, guess));
-    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample)), 
-      chisq_per_dof(10, jackknifeDistributionD(nsample)), 
-      pvalue(10, jackknifeDistributionD(nsample));
 
     std::vector<int> freeze_params = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13 };
     jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
@@ -393,33 +445,8 @@ public:
       freeze_vals.sample(s)("E1") = E1.sample(s);
       freeze_vals.sample(s)("E2") = E2.sample(s);
     }
-
-    for(int q=0;q<10;q++){
-      std::cout << "Performing " << q+1 << " fit" << std::endl;
-      fitter<FitPolicies> fit;
-      fit.importFitFunc(fitfunc);
-      fit.freeze(freeze_params, freeze_vals);
-      
-      importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
-      if(!correlated) import.setUncorrelated();
-          
-      int ndof;
-      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, A0_sim_j[q]);
-
-      pvalue[q] = jackknifeDistributionD(nsample, [&](const int s){ return chiSquareDistribution::pvalue(ndof, chisq[q].sample(s)); });
-    }
-
-    for(int q=0;q<10;q++){
-      std::cout << "Q" << q+1 << std::endl;
-      std::cout << "Params:\n" << params[q] << std::endl;
-      std::cout << "Chisq: " << chisq[q] << std::endl;
-      std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
-      std::cout << "p-value: " << pvalue[q] << std::endl;
-    }
-    writeParamsStandard(params, "params.hdf5");
-    writeParamsStandard(chisq, "chisq.hdf5");
-    writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
-    writeParamsStandard(pvalue, "pvalue.hdf5");
+    std::vector<jackknifeDistribution<Params> > params;    
+    runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
 
     plotErrorWeightedData3expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
   }

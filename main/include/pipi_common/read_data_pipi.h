@@ -42,7 +42,7 @@ public:
 class bubbleFilenamePolicyGeneric{
   subStringReplace repl; //expect <TRAJ> <TSEP_PIPI> <PB> and optional <PA>.  Here the pions A and B are the earlier and later pions, respectively
   SourceOrSink src_snk; //whether a source or sink pipi  
-  const threeMomentum p_tot;
+  const threeMomentum p_tot; //total momentum of operator at source or sink (depending on value of src_snk)
   int pmult; //allow for pi/L (default) or pi/2L basis in file names. For these pmult = 1 and 2, respectively
 public:
   bubbleFilenamePolicyGeneric(const std::string &fmt, const threeMomentum &p_tot, const SourceOrSink src_snk,
@@ -67,7 +67,7 @@ public:
     }else{ //Sink
       //pB = p2   pA = p1
       pA = p1;
-      pB = -p_tot - p1;
+      pB = p_tot - p1;
     }
     std::vector<std::string> with =   { anyToStr(traj), anyToStr(tsep_pipi), momStr(pB*pmult), momStr(pA*pmult) };
 
@@ -298,7 +298,9 @@ void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const int Lt, const int 
   std::vector<threeMomentum> snk_mom_need(proj_snk.nMomenta());
   for(int i=0;i<proj_snk.nMomenta();i++) snk_mom_need[i] = proj_snk.momentum(i);
 
+  std::cout << "Reading source bubble with p1 in set " << src_mom_need << std::endl;
   readPiPiBubble(raw_data, Lt, rp_src, src_mom_need, Source);
+  std::cout << "Reading sink bubble with p1 in set " << snk_mom_need << std::endl;
   readPiPiBubble(raw_data, Lt, rp_snk, snk_mom_need, Sink);
 }
 

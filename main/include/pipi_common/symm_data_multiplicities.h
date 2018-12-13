@@ -240,6 +240,10 @@ struct PiPiSymmetrySubset{
 			  const std::vector<threeMomentum> &p_pi, const std::vector<threeMomentum> &p_tot, const MomentumUnit fn_mom_unit = MomentumUnit::PiOverL){
     int pmult = fn_mom_unit == MomentumUnit::PiOverTwoL ? 2 : 1; //allow for pi/L (default) or pi/2L basis in file names. For these pmult = 1 and 2, respectively
 
+    std::cout << "Finding available corrs in directory " << dir << std::endl;
+    std::cout << "Searching for total momenta in set " << p_tot << std::endl;
+    std::cout << "p1 momentum set is size " << p_pi.size() << " and has contents " << p_pi << std::endl;
+    
     subStringReplace repl(file_fmt, pipiFileFormatKeys());
     //<TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
 
@@ -249,21 +253,39 @@ struct PiPiSymmetrySubset{
     std::string &p2src_s = wc[5];
     std::string &p2snk_s = wc[6];
 
+    //Allow for parity and axis permutation that maintains the same total momentum
+    std::set<threeMomentum> p_pi_trans; 
+    for(int p=0;p<p_pi.size();p++){
+      for(int par=0;par<2;par++){
+	threeMomentum mom = par == 0 ? p_pi[p] : -p_pi[p];
+	for(int perm=0; perm<6; perm++){
+	  p_pi_trans.insert( axisPerm(perm, mom) );
+	}
+      }
+    }
+
     for(int pt=0; pt< p_tot.size(); pt++){
-      for(int psrcidx=0; psrcidx < p_pi.size(); psrcidx++){
-	p1src_s = momStr(p_pi[psrcidx]*pmult);
-	p2src_s = momStr((p_tot[pt] - p_pi[psrcidx])*pmult);
+      std::cout << "Looking for p_tot = " << p_tot[pt] << std::endl;
 
-	for(int psnkidx=0; psnkidx < p_pi.size(); psnkidx++){
-	  p1snk_s = momStr(p_pi[psnkidx]*pmult);
-	  p2snk_s = momStr((-p_tot[pt] - p_pi[psnkidx])*pmult);
+      for(auto psrc = p_pi_trans.begin(); psrc != p_pi_trans.end(); psrc++){	  
+	p1src_s = momStr( (*psrc)*pmult );
+	p2src_s = momStr( (p_tot[pt] - (*psrc) )*pmult );
 
+	for(auto psnk = p_pi_trans.begin(); psnk != p_pi_trans.end(); psnk++){	  
+	  p1snk_s = momStr( (*psnk)*pmult );
+	  p2snk_s = momStr( (-p_tot[pt] - (*psnk) )*pmult );
+	      
 	  std::ostringstream fn; fn << dir << "/";
 	  repl.replace(fn, wc);
 	  
+	  std::cout << "Checking for " << fn.str();
+	      
 	  if(fileExists(fn.str())){
-	    ConMomentum momentum(p_pi[psrcidx], p_pi[psnkidx], p_tot[pt]);
+	    std::cout << "... found" << std::endl;
+	    ConMomentum momentum(*psrc, *psnk, p_tot[pt]);
 	    corrs_avail[p_tot[pt]].insert(momentum);
+	  }else{
+	    std::cout << "... not found" << std::endl;
 	  }
 	}
       }
@@ -275,12 +297,16 @@ struct PiPiSymmetrySubset{
 
   }
 
-  //Find a partner for the momentum p that exists in the set of data available. We do not allow transformations that change the overall total momentum
-  AvailCorr findPartnerInAvailableCorrs(const ConMomentum &cmom) const{
+  //Find a partner for the momentum p that exists in the set of data available.
+  //We do not allow transformations that change the overall total momentum unless allow_ptot_parity=true whereby it allows transformations that flip the overall momentum
+  AvailCorr findPartnerInAvailableCorrs(const ConMomentum &cmom, bool allow_ptot_parity = false) const{
     typename PtotMapType::const_iterator ptot_it = corrs_avail.find(cmom.p_tot);
-    if(ptot_it == corrs_avail.end()) error_exit(std::cout << "PiPiSymmetrySubset::findPartnerInAvailableCorrs could not find total momentum " << cmom.p_tot << " in list\n");
-
-    assert(ptot_it != corrs_avail.end());
+    if(ptot_it == corrs_avail.end()){
+      if(allow_ptot_parity){
+	ptot_it = corrs_avail.find(-cmom.p_tot);
+	if(ptot_it == corrs_avail.end()) error_exit(std::cout << "PiPiSymmetrySubset::findPartnerInAvailableCorrs could not find total momentum " << cmom.p_tot << " or its parity partner in list\n");
+      }else error_exit(std::cout << "PiPiSymmetrySubset::findPartnerInAvailableCorrs could not find total momentum " << cmom.p_tot << " in list\n");
+    }
 
     for(int par = 0; par < 2*2*6; par++){
       int rem = par;
@@ -315,13 +341,17 @@ struct PiPiSymmetrySubset{
 
 class PiPiSymmetrySubsetFigureFileMapping: public PiPiSymmetrySubset{
   subStringReplace repl; //expect substrings  <TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
-  const threeMomentum p_tot;
+  threeMomentum p_tot;
   int pmult; //allow for pi/L (default) or pi/2L basis in file names. For these pmult = 1 and 2, respectively
-  
-  inline std::string filename(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi) const{ 
+  bool allow_ptot_parity;
+
+  inline std::string filename(const std::string &data_dir, const char fig, const int traj, 
+			      const threeMomentum &p1src, const threeMomentum &p2src, 
+			      const threeMomentum &p1snk, const threeMomentum &p2snk, 
+			      const int tsep_pipi) const{ 
     std::vector<std::string> with = { anyToStr(traj), std::string(1,fig), anyToStr(tsep_pipi), 
-				      momStr(psrc*pmult), momStr(psnk*pmult), 
-				      momStr((p_tot - psrc)*pmult), momStr((-p_tot-psnk)*pmult) 
+				      momStr(p1src*pmult), momStr(p1snk*pmult), 
+				      momStr(p2src*pmult), momStr(p2snk*pmult) 
     };
     std::ostringstream os;
     os << data_dir << '/';
@@ -330,9 +360,19 @@ class PiPiSymmetrySubsetFigureFileMapping: public PiPiSymmetrySubset{
   }
 public:  
   
+  //Auxiliary diagram and parity flip source total momentum
+  static inline std::vector<threeMomentum> getFileSearchMomenta(const threeMomentum &ptot, bool allow_ptot_parity){
+    if(!allow_ptot_parity || ptot == threeMomentum({0,0,0})) return std::vector<threeMomentum>({ptot});
+    else return std::vector<threeMomentum>({ptot, -ptot});
+  }
+  
   PiPiSymmetrySubsetFigureFileMapping(const std::string &dir, const std::string &file_fmt, const int traj_start, const int tsep_pipi,
-				      const std::vector<threeMomentum> &p_pi, const threeMomentum &p_tot, const MomentumUnit fn_mom_unit = MomentumUnit::PiOverL): 
-    PiPiSymmetrySubset(dir, file_fmt, traj_start, tsep_pipi, p_pi, {p_tot}, fn_mom_unit), p_tot(p_tot), pmult(fn_mom_unit == MomentumUnit::PiOverTwoL ? 2 : 1){
+				      const std::vector<threeMomentum> &p_pi, const threeMomentum &p_tot, 
+				      const MomentumUnit fn_mom_unit = MomentumUnit::PiOverL, bool allow_ptot_parity = false): 
+    PiPiSymmetrySubset(dir, file_fmt, traj_start, tsep_pipi, p_pi, 
+		       getFileSearchMomenta(p_tot, allow_ptot_parity), fn_mom_unit), pmult(fn_mom_unit == MomentumUnit::PiOverTwoL ? 2 : 1),
+    p_tot(p_tot), allow_ptot_parity(allow_ptot_parity){
+
 #define F(STR) subStringSpecify(STR)
 #define FO(STR) subStringSpecify(STR,true)
 
@@ -346,10 +386,10 @@ public:
 																	   
   inline std::string operator()(const std::string &data_dir, const char fig, const int traj, const threeMomentum &psnk, const threeMomentum &psrc, const int tsep_pipi) const{ 
     ConMomentum want(psrc,  psnk, p_tot);
-    AvailCorr avail = findPartnerInAvailableCorrs(want);
+    AvailCorr avail = findPartnerInAvailableCorrs(want, allow_ptot_parity);
     const ConMomentum &found = *avail.it;
     std::cout << "Found match to " << want << " : " << found << " by symms p=" << avail.p << " a=" << avail.a << " r=" << avail.r << std::endl;
-    return filename(data_dir, fig, traj, found.pi1_snk, found.pi1_src, tsep_pipi);
+    return filename(data_dir, fig, traj, found.pi1_src, found.pi2_src, found.pi1_snk, found.pi2_snk, tsep_pipi);
   }
 
 };

@@ -103,6 +103,16 @@ inline resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMome
   return computePiPi2ptVacSub<resampledCorrelationFunction>(raw, bin_size, tsep_pipi, *proj_src, *proj_snk);
 }
 
+//Non-zero p_tot
+template<typename resampledCorrelationFunction>
+inline resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, const threeMomentum &p_tot,
+						   const PiPiProjector proj_src_t = PiPiProjector::MovingSwaveGround, const PiPiProjector proj_snk_t = PiPiProjector::MovingSwaveGround){
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, p_tot) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, -p_tot) );
+  return computePiPi2ptVacSub<resampledCorrelationFunction>(raw, bin_size, tsep_pipi, *proj_src, *proj_snk);
+}
+
+
 
 /*
 Generic fold routine. 
