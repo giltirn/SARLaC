@@ -87,6 +87,7 @@ public:
     assert(a.size() == b.size());
     const int nouter = a.size();
     jackknifeDistribution<BaseDataType,U> out(nouter);
+#pragma omp parallel for
     for(int i=0;i<nouter;i++)
       out.sample(i) = DataType::covariance(a.sample(i),b.sample(i));
     return out;

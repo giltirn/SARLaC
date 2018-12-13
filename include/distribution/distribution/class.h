@@ -72,13 +72,21 @@ public:
 
   DataType mean() const{ 
     const int N = _data.size() == 0 ? 1 : _data.size();
+
+#ifdef DISTRIBUTION_THREADED_SUMS
     return threadedSum(_data)/double(N); 
+#else
+    DataType v = _data[0];
+    for(int i=1;i<_data.size();i++) v = v+_data[i];
+    return v/double(N);
+#endif
   }
   
   DataType variance() const{
     const int N = _data.size() == 0 ? 1 : _data.size();
     const DataType avg = mean();
 
+#ifdef DISTRIBUTION_THREADED_SUMS
     const int nthread = omp_get_max_threads();
 
     struct Op{
@@ -91,6 +99,11 @@ public:
     Op op(avg,_data);
     
     return threadedSum(op)/double(N);
+#else
+    DataType v = _data[0]*_data[0];
+    for(int i=1;i<_data.size();i++) v = v+ _data[i]*_data[i];
+    return v/double(N) - avg*avg;
+#endif
   }
   DataType standardDeviation() const{
     return sqrt(variance()); //need sqrt defined, obviously
@@ -102,6 +115,7 @@ public:
     DataType avg_a = a.mean();
     DataType avg_b = b.mean();
 
+#ifdef DISTRIBUTION_THREADED_SUMS
     struct Op{
       DataType avg_a, avg_b;
       const VectorType<DataType> &data_a, &data_b;
@@ -111,6 +125,14 @@ public:
     };
     Op op(avg_a,avg_b,a.sampleVector(),b.sampleVector());
     return threadedSum(op)/double(N);
+#else
+    auto const &data_a = a.sampleVector();
+    auto const &data_b = b.sampleVector();
+
+    DataType v = data_a[0]*data_b[0];
+    for(int i=1;i<N;i++) v = v+ data_a[i]*data_b[i];
+    return v/double(N) - avg_a*avg_b;
+#endif
   }
 
   inline void zero(){

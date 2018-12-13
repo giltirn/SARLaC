@@ -184,9 +184,10 @@ public:
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
     
     std::vector<jackknifeDistribution<Params> > params(10, jackknifeDistribution<Params>(nsample, guess));
-    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample));
-    std::vector<jackknifeDistributionD> chisq_per_dof(10, jackknifeDistributionD(nsample));
-
+    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample)), 
+      chisq_per_dof(10, jackknifeDistributionD(nsample)),
+      pvalue(10, jackknifeDistributionD(nsample));
+      
     std::vector<int> freeze_params = { 0,1,2,3,4,5,6,7,8,9 };
     jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
     int opidx_ktopipi = 0;
@@ -215,7 +216,10 @@ public:
       importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
       if(!correlated) import.setUncorrelated();
           
-      fit.fit(params[q], chisq[q], chisq_per_dof[q], A0_sim_j[q]);
+      int ndof;
+      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, A0_sim_j[q]);
+
+      pvalue[q] = jackknifeDistributionD(nsample, [&](const int s){ return chiSquareDistribution::pvalue(ndof, chisq[q].sample(s)); });
     }
 
     for(int q=0;q<10;q++){
@@ -223,17 +227,16 @@ public:
       std::cout << "Params:\n" << params[q] << std::endl;
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
+      std::cout << "p-value: " << pvalue[q] << std::endl;
     }
     writeParamsStandard(params, "params.hdf5");
     writeParamsStandard(chisq, "chisq.hdf5");
     writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
+    writeParamsStandard(pvalue, "pvalue.hdf5");
 
     plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
   }
 };
-
-
-
 
 class simultaneousFit3state: public simultaneousFitBase{
 public:
@@ -364,8 +367,9 @@ public:
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
     
     std::vector<jackknifeDistribution<Params> > params(10, jackknifeDistribution<Params>(nsample, guess));
-    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample));
-    std::vector<jackknifeDistributionD> chisq_per_dof(10, jackknifeDistributionD(nsample));
+    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample)), 
+      chisq_per_dof(10, jackknifeDistributionD(nsample)), 
+      pvalue(10, jackknifeDistributionD(nsample));
 
     std::vector<int> freeze_params = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13 };
     jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
@@ -399,7 +403,10 @@ public:
       importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
       if(!correlated) import.setUncorrelated();
           
-      fit.fit(params[q], chisq[q], chisq_per_dof[q], A0_sim_j[q]);
+      int ndof;
+      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, A0_sim_j[q]);
+
+      pvalue[q] = jackknifeDistributionD(nsample, [&](const int s){ return chiSquareDistribution::pvalue(ndof, chisq[q].sample(s)); });
     }
 
     for(int q=0;q<10;q++){
@@ -407,10 +414,12 @@ public:
       std::cout << "Params:\n" << params[q] << std::endl;
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
+      std::cout << "p-value: " << pvalue[q] << std::endl;
     }
     writeParamsStandard(params, "params.hdf5");
     writeParamsStandard(chisq, "chisq.hdf5");
     writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
+    writeParamsStandard(pvalue, "pvalue.hdf5");
 
     plotErrorWeightedData3expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
   }

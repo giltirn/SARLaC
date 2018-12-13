@@ -47,6 +47,7 @@ int main(const int argc, const char* argv[]){
   readKtoPiPiAllDataOptions read_opts;
   COPYOPTS(read_opts, ktopipi);
 
+  std::cout << "Reading K->pipi(111) data" << std::endl;
   getData(ktopipi_A0_all_j, ktopipi_A0_all_dj, args.tsep_k_pi, args.data_dir, 
 	  args.ktopipi_type_file_fmt, args.ktopipi_type1_pimom_proj, 
 	  args.pipi_bubble_file_fmt, args.pipi_bubble_pimom_proj,
@@ -57,7 +58,8 @@ int main(const int argc, const char* argv[]){
   std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > ktopipi_exc_A0_all_dj(10);
 
   COPYOPTS(read_opts, ktopipi_exc);
-    
+
+  std::cout << "Reading K->pipi(311) data" << std::endl;
   getData(ktopipi_exc_A0_all_j, ktopipi_exc_A0_all_dj, args.tsep_k_pi, args.data_dir, 
 	  args.ktopipi_exc_type_file_fmt, args.ktopipi_exc_type1_pimom_proj, 
 	  args.pipi_bubble_file_fmt, args.pipi_exc_bubble_pimom_proj,
@@ -74,10 +76,11 @@ int main(const int argc, const char* argv[]){
 
   COPYOPTS(read_opts, ktosigma);
 
+  std::cout << "Reading K->sigma data" << std::endl;
   getKtoSigmaData(ktosigma_A0_all_j, ktosigma_A0_all_dj, args.tsep_k_sigma, args.data_dir, args.ktosigma_type_file_fmt,  args.sigma_bubble_file_fmt, 
 		  sigma_bub_quarkmom_proj, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, read_opts);
 
-
+  std::cout << "Starting fits" << std::endl;
   fitter->fit(ktopipi_A0_all_j, ktopipi_A0_all_dj, 
 	     ktopipi_exc_A0_all_j, ktopipi_exc_A0_all_dj, 
 	     ktosigma_A0_all_j, ktosigma_A0_all_dj,

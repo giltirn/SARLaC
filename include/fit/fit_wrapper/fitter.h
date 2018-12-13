@@ -32,6 +32,7 @@ public:
   void fit(FitParameterDistribution &params,
 	   DistributionType &chisq,
 	   DistributionType &chisq_per_dof,
+	   int &dof,
 	   const CorrelationFunctionDistribution &data){
 
     const int ndata_fit = data.size();
@@ -59,7 +60,16 @@ public:
       
       iterate<DistributionType>::at(s,chisq_per_dof) = iterate<DistributionType>::at(s,chisq)/state.Ndof();
       assert(minimizer.hasConverged());
+      if(s==0) dof = state.Ndof();
     }
+  }
+
+  inline void fit(FitParameterDistribution &params,
+		  DistributionType &chisq,
+		  DistributionType &chisq_per_dof,
+		  const CorrelationFunctionDistribution &data){
+    int dof;
+    fit(params,chisq,chisq_per_dof,dof,data);
   }
 };
 
