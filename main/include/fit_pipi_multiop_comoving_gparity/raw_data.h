@@ -58,13 +58,11 @@ public:
       auto o1 = op_pairs[i].first; auto o2 = op_pairs[i].second;
 
       if(doOp(o1, incl_ops) && doOp(o2, incl_ops)){
-	figureData::useFileCache() = true;
 	readPiPi2pt(correlator(o1,o2), PiPiBubble(o1,o2), data_dir, 
 		    pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		    traj_start, traj_inc, traj_lessthan, 
 		    p_tot, op_proj.find(o1)->second, op_proj.find(o2)->second,
 		    0, filemap_allow_ptot_parity);
-	figureData::getFileCache().clear();
 	contains.insert({o1,o2});
       }
     }

@@ -49,22 +49,19 @@ struct simultaneousFitBase{
   typedef simultaneousFitBase::SimFitCorrFuncDJack SimFitCorrFuncDJack; \
   typedef simultaneousFitBase::InnerParamMap InnerParamMap
   
-  virtual void load2ptFitParams(const InputParamArgs &iargs, const int nsample) = 0;
-  virtual void fit(const CorrFuncJackAllQ &ktopipi_A0_all_j,
-		   const CorrFuncDJackAllQ &ktopipi_A0_all_dj,
-		   const CorrFuncJackAllQ &ktopipi_exc_A0_all_j,
-		   const CorrFuncDJackAllQ &ktopipi_exc_A0_all_dj,
-		   const CorrFuncJackAllQ &ktosigma_A0_all_j,
-		   const CorrFuncDJackAllQ &ktosigma_A0_all_dj,
+  virtual void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int nsample) = 0;
+  virtual void fit(const ResampledData<jackknifeDistributionD> &data_j,
+		   const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+		   const std::vector<PiPiOperator> &operators,
 		   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated) = 0;
 
 
-  void generateSimData(std::vector<SimFitCorrFuncJack> &A0_sim_j,
-		       std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
-		       const std::vector<CorrFuncJackAllQ const* > &jacks,
-		       const std::vector<CorrFuncDJackAllQ const* > &djacks,
-		       const std::vector<InnerParamMap const *> &pmaps,
-		       const int tmin_k_op, const int tmin_op_snk){
+  static void generateSimData(std::vector<SimFitCorrFuncJack> &A0_sim_j,
+			      std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
+			      const std::vector<CorrFuncJackAllQ const* > &jacks,
+			      const std::vector<CorrFuncDJackAllQ const* > &djacks,
+			      const std::vector<InnerParamMap const *> &pmaps,
+			      const int tmin_k_op, const int tmin_op_snk){
     int nops = jacks.size();
     assert(djacks.size() == nops && pmaps.size() == nops);
 
@@ -88,15 +85,15 @@ struct simultaneousFitBase{
   }
 
   template<typename FitPolicies>
-  void runfit(std::vector<typename FitPolicies::FitParameterDistribution> &params,
-	      const std::vector<SimFitCorrFuncJack> &A0_sim_j,
-	      const std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
-	      const std::map<InnerParamMap const*, std::string> &pmap_descr,
-	      const typename FitPolicies::baseFitFunc &fitfunc,
-	      const std::vector<int> &freeze_params,
-	      const typename FitPolicies::FitParameterDistribution &freeze_vals,
-	      const typename FitPolicies::baseFitFunc::ParameterType &guess,
-	      const int nsample, const bool correlated){
+  static void runfit(std::vector<typename FitPolicies::FitParameterDistribution> &params,
+		     const std::vector<SimFitCorrFuncJack> &A0_sim_j,
+		     const std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
+		     const std::map<InnerParamMap const*, std::string> &pmap_descr,
+		     const typename FitPolicies::baseFitFunc &fitfunc,
+		     const std::vector<int> &freeze_params,
+		     const typename FitPolicies::FitParameterDistribution &freeze_vals,
+		     const typename FitPolicies::baseFitFunc::ParameterType &guess,
+		     const int nsample, const bool correlated){
     typedef typename FitPolicies::baseFitFunc::ParameterType Params;
 
     params.resize(10);
@@ -144,315 +141,216 @@ struct simultaneousFitBase{
     writeParamsStandard(pvalue, "pvalue.hdf5");
   }
 
+  static void freeze(std::vector<int> &freeze_params,
+	      jackknifeDistribution<taggedValueContainer<double,std::string> > &freeze_vals,
+	      const std::string &pname, const jackknifeDistributionD &pval, const std::unordered_map<std::string,size_t> &param_idx_map){
+    auto it = param_idx_map.find(pname); assert(it != param_idx_map.end()); 
+    freeze_params.push_back(it->second);
+    int nsample = pval.size();
+    for(int s=0;s<nsample;s++) freeze_vals.sample(s)(pname) = pval.sample(s);
+  }
 
   virtual ~simultaneousFitBase(){}
 };
 
-class simultaneousFit2state: public simultaneousFitBase{
+class simultaneousFitMultiState: public simultaneousFitBase{
 public:
   COPY_BASE_TYPEDEFS;    
     
 private:
+  int nstate;
+
+  //Values for freezing
   bool loaded_frzparams;
   jackknifeDistributionD mK;
   jackknifeDistributionD cK;
-  
-  jackknifeDistributionD E0, E1;
-  //row = (0=pipi, 1=pipi_exc 2=sigma)  col = (0=gnd state, 1=exc state)
-  NumericTensor<jackknifeDistributionD,2> coeffs;  
+  std::vector<jackknifeDistributionD> E;
+  std::map<PiPiOperator, std::vector<jackknifeDistributionD> > coeffs; //for each operator, the frozen amplitudes (0=gnd state, 1=exc state, ...)
 public:
 
-  void load2ptFitParams(const InputParamArgs &iargs, const int nsample){
-    {
+  void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int nsample){
+    { //Load kaon parameters
       std::vector<jackknifeDistributionD> p;
       readParamsStandard(p,  iargs.kaon2pt_fit_result);
       mK = p[iargs.idx_mK];
       cK = sqrt( p[iargs.idx_cK] );
     }
 
-    //row = (0=pipi, 1=pipi_exc 2=sigma)  col = (0=gnd state, 1=exc state)
-    {
-      double scale = sqrt(iargs.pipi_sigma_sim_fit_Ascale);
+    const std::vector<int> pipi_gnd_indices = { iargs.idx_coeff_pipi_state0, iargs.idx_coeff_pipi_state1, iargs.idx_coeff_pipi_state2 };
+    const std::vector<int> pipi_exc_indices = { iargs.idx_coeff_pipi_exc_state0, iargs.idx_coeff_pipi_exc_state1, iargs.idx_coeff_pipi_exc_state2 };
+    const std::vector<int> sigma_indices = { iargs.idx_coeff_sigma_state0, iargs.idx_coeff_sigma_state1, iargs.idx_coeff_sigma_state2 };    
+    const std::vector<int> E_indices = { iargs.idx_E0, iargs.idx_E1, iargs.idx_E2 };
+
+    { //Load coefficients and energies
+      const double scale = sqrt(iargs.pipi_sigma_sim_fit_Ascale);
       std::vector<jackknifeDistributionD> p;
       readParamsStandard(p, iargs.pipi_sigma_sim_fit_result);
       for(int i=0;i<p.size();i++) assert(p[i].size() == nsample);
-      coeffs({0,0}) = p[iargs.idx_coeff_pipi_state0] * scale;
-      coeffs({0,1}) = p[iargs.idx_coeff_pipi_state1] * scale;
-      coeffs({1,0}) = p[iargs.idx_coeff_pipi_exc_state0] * scale;
-      coeffs({1,1}) = p[iargs.idx_coeff_pipi_exc_state1] * scale;
-      coeffs({2,0}) = p[iargs.idx_coeff_sigma_state0] * scale;
-      coeffs({2,1}) = p[iargs.idx_coeff_sigma_state1] * scale;
-      E0 = p[iargs.idx_E0];
-      E1 = p[iargs.idx_E1];
+
+      //(0=gnd state, 1=exc state, ...)
+      if(doOp(PiPiOperator::PiPiGnd, operators)){
+	for(int s=0;s<nstate;s++) coeffs[PiPiOperator::PiPiGnd].push_back( p[pipi_gnd_indices[s]] * scale );
+      }
+      if(doOp(PiPiOperator::PiPiExc, operators)){
+	for(int s=0;s<nstate;s++) coeffs[PiPiOperator::PiPiExc].push_back( p[pipi_exc_indices[s]] * scale );
+      }
+      if(doOp(PiPiOperator::Sigma, operators)){
+	for(int s=0;s<nstate;s++) coeffs[PiPiOperator::Sigma].push_back( p[sigma_indices[s]] * scale );
+      }
+      
+      //Energies
+      for(int s=0;s<nstate;s++)
+	E.push_back( p[E_indices[s]] );
     }
 
     std::cout << "cK = " << cK << std::endl;
     std::cout << "mK = " << mK << std::endl;
-    std::cout << "E0 = " << E0 << std::endl;
-    std::cout << "E1 = " << E1 << std::endl;
+    for(int s=0;s<nstate;s++)
+      std::cout << "E" << s <<" = " << E[s] << std::endl;
     loaded_frzparams = true;
   }
   
-  simultaneousFit2state(): loaded_frzparams(false), coeffs({3,2}){}
-
-  void fit(const CorrFuncJackAllQ &ktopipi_A0_all_j,
-	   const CorrFuncDJackAllQ &ktopipi_A0_all_dj,
-	   const CorrFuncJackAllQ &ktopipi_exc_A0_all_j,
-	   const CorrFuncDJackAllQ &ktopipi_exc_A0_all_dj,
-	   const CorrFuncJackAllQ &ktosigma_A0_all_j,
-	   const CorrFuncDJackAllQ &ktosigma_A0_all_dj,
-	   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated){
-    assert(loaded_frzparams);
-
-    int nsample = mK.size();
-
-  //
-  std::unordered_map<std::string,size_t> param_idx_map;
-  int idx = 0;
-#define DEFMAP(NM) param_idx_map[#NM] = idx++
-    DEFMAP(AK);
-    DEFMAP(mK);
-    DEFMAP(Apipi0);
-    DEFMAP(Apipi1);
-    DEFMAP(Apipi_exc_0);
-    DEFMAP(Apipi_exc_1);
-    DEFMAP(Asigma0);
-    DEFMAP(Asigma1);
-    DEFMAP(E0);
-    DEFMAP(E1);
-    DEFMAP(M0);
-    DEFMAP(M1);
-#undef DEFMAP
-
-    InnerParamMap inner_param_map_ktopipi;
-    inner_param_map_ktopipi["Asnk0"] = "Apipi0";
-    inner_param_map_ktopipi["Asnk1"] = "Apipi1";
-
-    InnerParamMap inner_param_map_ktopipi_exc;
-    inner_param_map_ktopipi_exc["Asnk0"] = "Apipi_exc_0";
-    inner_param_map_ktopipi_exc["Asnk1"] = "Apipi_exc_1";
-
-    InnerParamMap inner_param_map_ktosigma;
-    inner_param_map_ktosigma["Asnk0"] = "Asigma0";
-    inner_param_map_ktosigma["Asnk1"] = "Asigma1";
-
-    std::vector<std::string> dcp = { "AK", "mK", "E0", "E1", "M0", "M1" };
-    for(auto it = dcp.begin(); it != dcp.end(); it++)
-      inner_param_map_ktopipi[*it] = inner_param_map_ktopipi_exc[*it] = inner_param_map_ktosigma[*it] = *it;
-    
-    std::map< InnerParamMap const*, std::string> pmap_descr = { {&inner_param_map_ktopipi, "K->pipi(111)"},
-								{&inner_param_map_ktopipi_exc, "K->pipi(311)"},
-								{&inner_param_map_ktosigma, "K->sigma"} };    
-
-    std::vector<SimFitCorrFuncJack> A0_sim_j(10);
-    std::vector<SimFitCorrFuncDJack> A0_sim_dj(10);
-    
-    generateSimData(A0_sim_j,A0_sim_dj,
-		    {&ktopipi_A0_all_j, &ktopipi_exc_A0_all_j, &ktosigma_A0_all_j},
-		    {&ktopipi_A0_all_dj, &ktopipi_exc_A0_all_dj, &ktosigma_A0_all_dj},
-		    {&inner_param_map_ktopipi, &inner_param_map_ktopipi_exc, &inner_param_map_ktosigma},
-		    tmin_k_op, tmin_op_snk);
-  
-    typedef taggedValueContainer<double,std::string> Params;
-    Params guess(&param_idx_map);
-    for(int i=0;i<guess.size();i++) guess(i) = 1.;
-    guess("M0") = 0.5;
-    guess("M1") = 0.5;
-
-    typedef FitSimGenTwoState FitFunc;
-
-    FitFunc fitfunc(param_idx_map.size());
-
-    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-       
-    std::vector<int> freeze_params = { 0,1,2,3,4,5,6,7,8,9 };
-    jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
-    int opidx_ktopipi = 0;
-    int opidx_ktopipi_exc = 1;
-    int opidx_ktosigma = 2;
-
-    for(int s=0;s<nsample;s++){
-      freeze_vals.sample(s)("AK") = cK.sample(s);
-      freeze_vals.sample(s)("mK") = mK.sample(s);
-      freeze_vals.sample(s)("Apipi0") = coeffs({opidx_ktopipi,0}).sample(s);
-      freeze_vals.sample(s)("Apipi1") = coeffs({opidx_ktopipi,1}).sample(s);
-      freeze_vals.sample(s)("Apipi_exc_0") = coeffs({opidx_ktopipi_exc,0}).sample(s);
-      freeze_vals.sample(s)("Apipi_exc_1") = coeffs({opidx_ktopipi_exc,1}).sample(s);
-      freeze_vals.sample(s)("Asigma0") = coeffs({opidx_ktosigma,0}).sample(s);
-      freeze_vals.sample(s)("Asigma1") = coeffs({opidx_ktosigma,1}).sample(s);
-      freeze_vals.sample(s)("E0") = E0.sample(s);
-      freeze_vals.sample(s)("E1") = E1.sample(s);
-    }
-
-    std::vector<jackknifeDistribution<Params> > params;    
-    runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
- 
-    plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
+  simultaneousFitMultiState(const int nstate): loaded_frzparams(false), nstate(nstate){
+    assert(nstate <= 3);
   }
-};
 
-class simultaneousFit3state: public simultaneousFitBase{
-public:
-  COPY_BASE_TYPEDEFS;    
-    
-private:
-  bool loaded_frzparams;
-  jackknifeDistributionD mK;
-  jackknifeDistributionD cK;
-  
-  jackknifeDistributionD E0, E1, E2;
-  //row = (0=pipi, 1=pipi_exc 2=sigma)  col = (0=gnd state, 1=exc state 1, 2=exc state 2)
-  NumericTensor<jackknifeDistributionD,2> coeffs;  
-public:
-
-  void load2ptFitParams(const InputParamArgs &iargs, const int nsample){
-    {
-      std::vector<jackknifeDistributionD> p;
-      readParamsStandard(p,  iargs.kaon2pt_fit_result);
-      mK = p[iargs.idx_mK];
-      cK = sqrt( p[iargs.idx_cK] );
-    }
-
-    {
-      double scale = sqrt(iargs.pipi_sigma_sim_fit_Ascale);
-      std::vector<jackknifeDistributionD> p;
-      readParamsStandard(p, iargs.pipi_sigma_sim_fit_result);
-      for(int i=0;i<p.size();i++) assert(p[i].size() == nsample);
-      coeffs({0,0}) = p[iargs.idx_coeff_pipi_state0] * scale;
-      coeffs({0,1}) = p[iargs.idx_coeff_pipi_state1] * scale;
-      coeffs({0,2}) = p[iargs.idx_coeff_pipi_state2] * scale;
-      coeffs({1,0}) = p[iargs.idx_coeff_pipi_exc_state0] * scale;
-      coeffs({1,1}) = p[iargs.idx_coeff_pipi_exc_state1] * scale;
-      coeffs({1,2}) = p[iargs.idx_coeff_pipi_exc_state2] * scale;
-      coeffs({2,0}) = p[iargs.idx_coeff_sigma_state0] * scale;
-      coeffs({2,1}) = p[iargs.idx_coeff_sigma_state1] * scale;
-      coeffs({2,2}) = p[iargs.idx_coeff_sigma_state2] * scale;
-      E0 = p[iargs.idx_E0];
-      E1 = p[iargs.idx_E1];
-      E2 = p[iargs.idx_E2];
-    }
-
-    std::cout << "cK = " << cK << std::endl;
-    std::cout << "mK = " << mK << std::endl;
-    std::cout << "E0 = " << E0 << std::endl;
-    std::cout << "E1 = " << E1 << std::endl;
-    std::cout << "E2 = " << E2 << std::endl;
-
-    std::cout << "Coeffs:\n" << coeffs << std::endl;
-    
-    loaded_frzparams = true;
-  }
-  
-  simultaneousFit3state(): loaded_frzparams(false), coeffs({3,3}){}
-
-  void fit(const CorrFuncJackAllQ &ktopipi_A0_all_j,
-	   const CorrFuncDJackAllQ &ktopipi_A0_all_dj,
-	   const CorrFuncJackAllQ &ktopipi_exc_A0_all_j,
-	   const CorrFuncDJackAllQ &ktopipi_exc_A0_all_dj,
-	   const CorrFuncJackAllQ &ktosigma_A0_all_j,
-	   const CorrFuncDJackAllQ &ktosigma_A0_all_dj,
+  void fit(const ResampledData<jackknifeDistributionD> &data_j,
+	   const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+	   const std::vector<PiPiOperator> &operators,
 	   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated){
+
     assert(loaded_frzparams);
+    
+    const int nsample = mK.size();
+    
+    std::vector<std::string> dcp = { "AK", "mK" };
+    for(int s=0;s<nstate;s++) dcp.push_back(stringize("E%d",s));
+    for(int s=0;s<nstate;s++) dcp.push_back(stringize("M%d",s));
 
-    int nsample = mK.size();
-
+    //Parameter maps
+    std::map< InnerParamMap const*, std::string> pmap_descr;  
+    std::map<PiPiOperator, InnerParamMap> op_param_maps;
     std::unordered_map<std::string,size_t> param_idx_map;
+
+    //Data to be included
+    std::vector<CorrFuncJackAllQ const* > incl_jacks;
+    std::vector<CorrFuncDJackAllQ const* > incl_djacks;
+    std::vector<InnerParamMap const *> incl_pmaps;
+
+    //Set up the parameter maps
     int idx = 0;
 #define DEFMAP(NM) param_idx_map[#NM] = idx++
     DEFMAP(AK);
     DEFMAP(mK);
-    DEFMAP(Apipi0);
-    DEFMAP(Apipi1);
-    DEFMAP(Apipi2);
-    DEFMAP(Apipi_exc_0);
-    DEFMAP(Apipi_exc_1);
-    DEFMAP(Apipi_exc_2);
-    DEFMAP(Asigma0);
-    DEFMAP(Asigma1);
-    DEFMAP(Asigma2);
-    DEFMAP(E0);
-    DEFMAP(E1);
-    DEFMAP(E2);
-    DEFMAP(M0);
-    DEFMAP(M1);
-    DEFMAP(M2);
 #undef DEFMAP
 
-    InnerParamMap inner_param_map_ktopipi;
-    inner_param_map_ktopipi["Asnk0"] = "Apipi0";
-    inner_param_map_ktopipi["Asnk1"] = "Apipi1";
-    inner_param_map_ktopipi["Asnk2"] = "Apipi2";
+    if(doOp(PiPiOperator::PiPiGnd, operators)){
+      auto & pmap = op_param_maps[PiPiOperator::PiPiGnd];
+      for(int s=0;s<nstate;s++){
+	std::string pnm = stringize("Apipi%d",s);
+	param_idx_map[pnm] = idx++; //define outer parameter to index map
+	pmap[stringize("Asnk%d",s)] = pnm; //map inner parameter to outer parameter
+      }
+      for(auto it = dcp.begin(); it != dcp.end(); it++) pmap[*it] = *it;
+      pmap_descr[&pmap] = "K->pipi(111)";
+      assert(data_j.contains(PiPiOperator::PiPiGnd));
+      incl_jacks.push_back(&data_j(PiPiOperator::PiPiGnd));
+      incl_djacks.push_back(&data_dj(PiPiOperator::PiPiGnd));
+      incl_pmaps.push_back(&pmap);
+    }
+    if(doOp(PiPiOperator::PiPiExc, operators)){
+      auto & pmap = op_param_maps[PiPiOperator::PiPiExc];
+      for(int s=0;s<nstate;s++){
+	std::string pnm = stringize("Apipi_exc_%d",s);
+	param_idx_map[pnm] = idx++;
+	pmap[stringize("Asnk%d",s)] = pnm;
+      }
+      for(auto it = dcp.begin(); it != dcp.end(); it++) pmap[*it] = *it;
+      pmap_descr[&pmap] = "K->pipi(311)";
+      assert(data_j.contains(PiPiOperator::PiPiExc));
+      incl_jacks.push_back(&data_j(PiPiOperator::PiPiExc));
+      incl_djacks.push_back(&data_dj(PiPiOperator::PiPiExc));
+      incl_pmaps.push_back(&pmap);
+    }
+    if(doOp(PiPiOperator::Sigma, operators)){
+      auto & pmap = op_param_maps[PiPiOperator::Sigma];
+      for(int s=0;s<nstate;s++){
+	std::string pnm = stringize("Asigma%d",s);
+	param_idx_map[pnm] = idx++;
+	pmap[stringize("Asnk%d",s)] = pnm;
+      }
+      for(auto it = dcp.begin(); it != dcp.end(); it++) pmap[*it] = *it;
+      pmap_descr[&pmap] = "K->sigma";
+      assert(data_j.contains(PiPiOperator::Sigma));
+      incl_jacks.push_back(&data_j(PiPiOperator::Sigma));
+      incl_djacks.push_back(&data_dj(PiPiOperator::Sigma));
+      incl_pmaps.push_back(&pmap);
+    }
 
-    InnerParamMap inner_param_map_ktopipi_exc;
-    inner_param_map_ktopipi_exc["Asnk0"] = "Apipi_exc_0";
-    inner_param_map_ktopipi_exc["Asnk1"] = "Apipi_exc_1";
-    inner_param_map_ktopipi_exc["Asnk2"] = "Apipi_exc_2";
-
-    InnerParamMap inner_param_map_ktosigma;
-    inner_param_map_ktosigma["Asnk0"] = "Asigma0";
-    inner_param_map_ktosigma["Asnk1"] = "Asigma1";
-    inner_param_map_ktosigma["Asnk2"] = "Asigma2";
-
-    std::vector<std::string> dcp = { "AK", "mK", "E0", "E1", "E2", "M0", "M1", "M2" };
-    for(auto it = dcp.begin(); it != dcp.end(); it++)
-      inner_param_map_ktopipi[*it] = inner_param_map_ktopipi_exc[*it] = inner_param_map_ktosigma[*it] = *it;
+    for(int s=0;s<nstate;s++)
+      param_idx_map[stringize("E%d",s)] = idx++;
+    for(int s=0;s<nstate;s++)
+      param_idx_map[stringize("M%d",s)] = idx++;
     
-    std::map< InnerParamMap const*, std::string> pmap_descr = { {&inner_param_map_ktopipi, "K->pipi(111)"},
-								{&inner_param_map_ktopipi_exc, "K->pipi(311)"},
-								{&inner_param_map_ktosigma, "K->sigma"} };
-
+    //Get the data in the fit range and put in sim fit data containers
     std::vector<SimFitCorrFuncJack> A0_sim_j(10);
     std::vector<SimFitCorrFuncDJack> A0_sim_dj(10);
     
     generateSimData(A0_sim_j,A0_sim_dj,
-		    {&ktopipi_A0_all_j, &ktopipi_exc_A0_all_j, &ktosigma_A0_all_j},
-		    {&ktopipi_A0_all_dj, &ktopipi_exc_A0_all_dj, &ktosigma_A0_all_dj},
-		    {&inner_param_map_ktopipi, &inner_param_map_ktopipi_exc, &inner_param_map_ktosigma},
+		    incl_jacks, incl_djacks, incl_pmaps,
 		    tmin_k_op, tmin_op_snk);
   
+    //Setup guess
     typedef taggedValueContainer<double,std::string> Params;
     Params guess(&param_idx_map);
     for(int i=0;i<guess.size();i++) guess(i) = 1.;
-    guess("M0") = 0.5;
-    guess("M1") = 0.5;
-    guess("M2") = 0.5;
+    for(int s=0;s<nstate;s++)
+      guess(stringize("M%d",s)) = 0.5;
 
-    typedef FitSimGenThreeState FitFunc;
+    typedef FitSimGenMultiState FitFunc;
 
-    FitFunc fitfunc(param_idx_map.size());
-
+    //Setup fitfunc
+    FitFunc fitfunc(param_idx_map.size(), nstate);
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-
-    std::vector<int> freeze_params = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13 };
+       
+    //Setup frozen fit params
+    std::vector<int> freeze_params;
     jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
-    int opidx_ktopipi = 0;
-    int opidx_ktopipi_exc = 1;
-    int opidx_ktosigma = 2;
+  
+    freeze(freeze_params, freeze_vals, "AK", cK, param_idx_map);
+    freeze(freeze_params, freeze_vals, "mK", mK, param_idx_map);
+    for(int s=0; s<nstate; s++) 
+      freeze(freeze_params, freeze_vals, stringize("E%d",s), E[s], param_idx_map);
 
-    for(int s=0;s<nsample;s++){
-      freeze_vals.sample(s)("AK") = cK.sample(s);
-      freeze_vals.sample(s)("mK") = mK.sample(s);
-      freeze_vals.sample(s)("Apipi0") = coeffs({opidx_ktopipi,0}).sample(s);
-      freeze_vals.sample(s)("Apipi1") = coeffs({opidx_ktopipi,1}).sample(s);
-      freeze_vals.sample(s)("Apipi2") = coeffs({opidx_ktopipi,2}).sample(s);
-      freeze_vals.sample(s)("Apipi_exc_0") = coeffs({opidx_ktopipi_exc,0}).sample(s);
-      freeze_vals.sample(s)("Apipi_exc_1") = coeffs({opidx_ktopipi_exc,1}).sample(s);
-      freeze_vals.sample(s)("Apipi_exc_2") = coeffs({opidx_ktopipi_exc,2}).sample(s);
-      freeze_vals.sample(s)("Asigma0") = coeffs({opidx_ktosigma,0}).sample(s);
-      freeze_vals.sample(s)("Asigma1") = coeffs({opidx_ktosigma,1}).sample(s);
-      freeze_vals.sample(s)("Asigma2") = coeffs({opidx_ktosigma,2}).sample(s);
-      freeze_vals.sample(s)("E0") = E0.sample(s);
-      freeze_vals.sample(s)("E1") = E1.sample(s);
-      freeze_vals.sample(s)("E2") = E2.sample(s);
+    if(doOp(PiPiOperator::PiPiGnd, operators)){
+      for(int s=0; s<nstate; s++) 
+	freeze(freeze_params, freeze_vals, stringize("Apipi%d",s), coeffs[PiPiOperator::PiPiGnd][s], param_idx_map);
     }
+    if(doOp(PiPiOperator::PiPiExc, operators)){
+      for(int s=0; s<nstate; s++) 
+	freeze(freeze_params, freeze_vals, stringize("Apipi_exc_%d",s), coeffs[PiPiOperator::PiPiExc][s], param_idx_map);   
+    }
+    if(doOp(PiPiOperator::Sigma, operators)){
+      for(int s=0; s<nstate; s++) 
+	freeze(freeze_params, freeze_vals, stringize("Asigma%d",s), coeffs[PiPiOperator::Sigma][s], param_idx_map);   
+    }
+    
+    //Run the actual fit
     std::vector<jackknifeDistribution<Params> > params;    
     runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
-
-    plotErrorWeightedData3expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
+ 
+    //plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
   }
 };
 
-
+simultaneousFitBase* getFitter(const SimFitFunction ff, const int nstate){
+  switch(ff){
+  case SimFitFunction::MultiState:
+    return new simultaneousFitMultiState(nstate);
+  default:
+    assert(0);
+  }
+};
 
 
 #undef COPY_BASE_TYPEDEFS

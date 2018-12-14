@@ -81,6 +81,17 @@ struct CMDline{
 };
 
 
+#define COPYOPTS(INTO, NM) \
+  INTO.load_amplitude_data = cmdline.load_##NM##_amplitude_data; \
+  INTO.load_amplitude_data_file = cmdline.load_##NM##_amplitude_data_file; \
+  INTO.save_amplitude_data = cmdline.save_##NM##_amplitude_data; \
+  INTO.save_amplitude_data_file = cmdline.save_##NM##_amplitude_data_file; \
+  INTO.read_opts.load_data_checkpoint = cmdline.load_##NM##_data_checkpoint; \
+  INTO.read_opts.load_data_checkpoint_stub = cmdline.load_##NM##_data_checkpoint_stub; \
+  INTO.read_opts.save_data_checkpoint = cmdline.save_##NM##_data_checkpoint; \
+  INTO.read_opts.save_data_checkpoint_stub = cmdline.save_##NM##_data_checkpoint_stub
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

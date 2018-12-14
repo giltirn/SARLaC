@@ -63,14 +63,11 @@ public:
 	    const std::vector<Operator> &incl_ops){
 
     //PiPi 2pt and PiPi bubble
-    figureData::useFileCache() = true;
-
     if(doOp(Operator::PiPiGnd, incl_ops)){
       readPiPi2pt(correlator(Operator::PiPiGnd,Operator::PiPiGnd), PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd), data_dir, 
 		  pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		  traj_start, traj_inc, traj_lessthan, 
 		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
-      figureData::getFileCache().clear();
       PiPiBubble(Operator::PiPiGnd,Operator::PiPiGnd) = reIm(PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd),0);
       contains.insert({Operator::PiPiGnd,Operator::PiPiGnd});
     }    
@@ -80,7 +77,6 @@ public:
 		  traj_start, traj_inc, traj_lessthan, 
 		  PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
       
-      figureData::getFileCache().clear();
       PiPiBubble(Operator::PiPiExc,Operator::PiPiExc) = reIm(PiPiBubbleZ(Operator::PiPiExc,Operator::PiPiExc),0);
       contains.insert({Operator::PiPiExc,Operator::PiPiExc});
     }
@@ -90,7 +86,6 @@ public:
 		  traj_start, traj_inc, traj_lessthan, 
 		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
     
-      figureData::getFileCache().clear();
       PiPiBubble(Operator::PiPiGnd,Operator::PiPiExc) = reIm(PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiExc),0);
       contains.insert({Operator::PiPiGnd,Operator::PiPiExc});
     }

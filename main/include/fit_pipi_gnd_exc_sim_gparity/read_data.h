@@ -12,21 +12,15 @@ void readRawPiPiGndExcData(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataA
 		const int Lt, const int tsep_pipi, const int tstep_pipi,
 		const int traj_start, const int traj_inc, const int traj_lessthan){
   
-  figureData::useFileCache() = true;
   readPiPi2pt(raw_data_gnd_gnd, raw_bubble_gnd_gnd, data_dir, figure_file_format, bubble_file_format, tsep_pipi, tstep_pipi, Lt, traj_start, traj_inc, traj_lessthan, 
 	      PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
-  
-  figureData::getFileCache().clear();
   
   readPiPi2pt(raw_data_exc_exc, raw_bubble_exc_exc, data_dir, figure_file_format, bubble_file_format, tsep_pipi, tstep_pipi, Lt, traj_start, traj_inc, traj_lessthan, 
 	      PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
   
-  figureData::getFileCache().clear();
-  
   readPiPi2pt(raw_data_gnd_exc, raw_bubble_gnd_exc, data_dir, figure_file_format, bubble_file_format, tsep_pipi, tstep_pipi, Lt, traj_start, traj_inc, traj_lessthan, 
 	      PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
   
-  figureData::getFileCache().clear();
 }
 
 void loadPiPiGndExcCheckPoint(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataAllMomenta &raw_bubble_exc_exc, bubbleDataAllMomenta &raw_bubble_gnd_exc,

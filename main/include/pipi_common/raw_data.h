@@ -85,16 +85,13 @@ void readRawPiPi2ptData(figureDataAllMomenta &raw_data, bubbleDataAllMomentaType
 			const FigureReadPolicy &frp, const BubbleReadPolicy &brp_src, const BubbleReadPolicy &brp_snk,
 			const int Lt, const int tstep_pipi, const int tsep_pipi, 
 			const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk){
-  figureDataPolicies::useFileCache() = true;
   const char figs[3] = {'C','D','R'};
   for(int f=0;f<3;f++){
     readPiPi2ptFigure(raw_data, figs[f],  Lt,  proj_src, proj_snk, frp);
 
     //Some of Daiqian's old data was measured on every source timeslice while the majority was measured every 8. To fix this discrepancy we explicitly zero the abnormal data  
     zeroUnmeasuredSourceTimeslices(raw_data, figs[f], tstep_pipi);
-    figureDataPolicies::getFileCache().clear();
   }
-  figureDataPolicies::useFileCache() = false;
 
   readPiPiBubble(raw_bubble_data, Lt, tsep_pipi, brp_src, brp_snk, proj_src, proj_snk);
 

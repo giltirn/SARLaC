@@ -275,7 +275,11 @@ public:
     const NumericVector<double> &fitval = getFitVals(mat);
     const NumericVector<double> &dataval = getDataVals(mat);
 
+    std::vector< std::vector<double> > fraction_worse( fitval.size(),  std::vector<double>(evecs.size()) );
+
     for(int i=0;i<evecs.size();i++){
+      std::vector<std::pair<int,double> > contribs(fitval.size());
+
       double tot = 0;
       os << "Mode " << i << ":\n";
       for(int tt=0;tt<fitval.size();tt++){
@@ -288,9 +292,36 @@ public:
 	CoordPrintPolicy::print(os, data_inrange.coord(tt));
 	os << " (" << evec_nrm_i_t << ") : " << data_contrib << " - " << fit_contrib << " = " << contrib << "\n";
 	tot += contrib;
+
+	contribs[tt] = {tt, contrib};
       }
       os << "Projected eval-normalized mode total: " << tot << std::endl;
       os << "Contrib to chi^2: (" << tot << ")^2" << " = " << tot*tot << std::endl; 
+
+      std::sort( contribs.begin(), contribs.end(), [&](const std::pair<int,double> &a, const std::pair<int,double> &b){ return fabs(a.second) < fabs(b.second); });
+      os << "Contributions sorted by absolute value:\n";
+      for(int tt=0;tt<fitval.size();tt++){
+	int didx =  contribs[tt].first;
+	CoordPrintPolicy::print(os, data_inrange.coord(didx));
+	os << " " << contribs[tt].second << std::endl;
+
+	fraction_worse[didx][i] = double(fitval.size()-tt-1)/fitval.size();	
+      }
+    }
+    
+    os << "For each data point and mode, the fraction of data points with a larger contribution than that of this point (sorted):\n";    
+    
+    for(int tt=0;tt<fitval.size();tt++){
+      std::sort(fraction_worse[tt].begin(), fraction_worse[tt].end());
+      CoordPrintPolicy::print(os, data_inrange.coord(tt));
+      os << " :";
+      
+      double avg = 0.;
+      for(int i=0;i<evecs.size();i++){
+	avg += fraction_worse[tt][i];
+	os << " " << fraction_worse[tt][i];
+      }
+      os << "  Average " << avg/evecs.size() << std::endl;
     }
   }
 

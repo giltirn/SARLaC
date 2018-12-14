@@ -8,7 +8,8 @@
 
 CPSFIT_START_NAMESPACE
 
-GENERATE_ENUM_AND_PARSER(SimFitFunction, (TwoState)(ThreeState) );
+GENERATE_ENUM_AND_PARSER(PiPiOperator, (PiPiGnd)(PiPiExc)(Sigma) );
+GENERATE_ENUM_AND_PARSER(SimFitFunction, (MultiState) );
 
 typedef std::pair<threeMomentum, double> momMultiplicityPair;
 typedef std::vector<std::string> typeFileFormat;
@@ -59,12 +60,14 @@ GENERATE_PARSER(InputParamArgs, INPUT_PARAM_ARGS_MEMBERS);
   ( std::vector<momMultiplicityPair>, pipi_exc_bubble_pimom_proj )	\
   ( typeFileFormat, ktosigma_type_file_fmt )				\
   ( std::string, sigma_bubble_file_fmt )				\
+  ( std::vector<PiPiOperator>, operators )				\
   ( int, Lt)								\
   ( int, tsep_pipi)							\
   ( std::vector<int>, tsep_k_pi)					\
   ( std::vector<int>, tsep_k_sigma)					\
   ( InputParamArgs, input_params )					\
   ( SimFitFunction, fitfunc )						\
+  ( int, nstate )							\
   ( bool, correlated )							\
   ( int, tmin_k_op)							\
   ( int, tmin_op_snk)							\
@@ -114,8 +117,14 @@ struct Args{
 	  ktosigma_type_file_fmt({"traj_<TRAJ>_ktosigma_type12_deltat_<TSEP_K_SIGMA>", "traj_<TRAJ>_ktosigma_type3_deltat_<TSEP_K_SIGMA>", "traj_<TRAJ>_ktosigma_type4"}),
     
           sigma_bubble_file_fmt("traj_<TRAJ>_sigmaself_mom<MOM>_v2"),
+    
+    operators({PiPiOperator::PiPiGnd, PiPiOperator::PiPiExc, PiPiOperator::Sigma}),
 
-    fitfunc(SimFitFunction::ThreeState), correlated(false), Lt(64), tsep_pipi(4), tsep_k_pi({10,12,14,16,18}), tsep_k_sigma({10,12,14,16,18}),  tmin_k_op(6), tmin_op_snk(4), traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1){}
+    fitfunc(SimFitFunction::MultiState),
+    
+    nstate(3),
+
+    correlated(false), Lt(64), tsep_pipi(4), tsep_k_pi({10,12,14,16,18}), tsep_k_sigma({10,12,14,16,18}),  tmin_k_op(6), tmin_op_snk(4), traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1){}
 
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);

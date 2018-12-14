@@ -137,6 +137,63 @@ public:
 
 
 
+
+class FitSimGenMultiState{
+  int nparams;
+  int nstate;
+public:
+  typedef taggedValueContainer<double,std::string> Params;
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef SimFitCoordGen GeneralizedCoordinate;
+
+  static inline const std::string &paramTag(const std::string &pname, const GeneralizedCoordinate &coord){ 
+    auto it = coord.param_map->find(pname);
+    if(it == coord.param_map->end()) error_exit(std::cout << "FitSimGenMultiState::paramTag could not find parameter name " << pname << std::endl);
+    return it->second;
+  }
+  template<typename T, typename Boost>
+  static inline T boostit(const std::string &pname, const GeneralizedCoordinate &x, const ParameterType &p, const Boost &b){
+    double v; size_t idx; 
+    v = p(idx, paramTag(pname,x)); //get idx and value
+    return b(v,idx);
+  }
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &x, const ParameterType &p, const Boost &b) const{
+    size_t idx; double v;
+
+    auto AK = boostit<T,Boost>("AK", x,p,b);
+    auto mK = boostit<T,Boost>("mK", x,p,b);
+    
+    T out(0.);
+    
+    for(int s=0;s<nstate;s++){
+      auto Asnk = boostit<T,Boost>(stringize("Asnk%d",s), x,p,b);
+      auto E = boostit<T,Boost>(stringize("E%d",s), x,p,b);
+      auto M = boostit<T,Boost>(stringize("M%d",s), x,p,b);
+	
+      out = out + AK*Asnk*M*exp(-E * x.tsep_k_snk)*exp( -(mK - E)*x.t )/sqrt(2.);
+    }
+    return out;
+  }
+
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double a, const int i){ return a; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d = p;
+    for(int i=0;i<nparams;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  FitSimGenMultiState(const int nparams, const int nstate): nparams(nparams), nstate(nstate){}
+
+  inline int Nparams() const{ return nparams; }
+};
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

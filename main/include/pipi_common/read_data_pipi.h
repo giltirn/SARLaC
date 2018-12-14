@@ -158,6 +158,14 @@ void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int
 
   raw_data.setup(Lt);
 
+  typedef std::map< std::string, std::vector<double> > CacheType;
+
+  int nmompairs = proj_snk.nMomenta() * proj_src.nMomenta();
+  figureData* dest_ptrs[nmompairs];
+  std::pair<threeMomentum,threeMomentum> dest_mom[nmompairs];
+  
+  //Initialize containers
+  int i=0;
   for(int psnki=0; psnki<proj_snk.nMomenta();psnki++){
     threeMomentum psnk = proj_snk.momentum(psnki);
 
@@ -166,13 +174,20 @@ void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int
 
       figureData &into = raw_data(fig, momComb(psnk, psrc));      
       into.initializeElements(rawDataDistributionD(nsample));
+      dest_ptrs[i] = &into;
+      dest_mom[i] = { psnk, psrc };
+      i++;
+    }
+  }
 
+  //Read in parallel
 #pragma omp parallel for
-      for(int sample=0; sample < nsample; sample++){
-	std::string filename = rp.filename(sample, fig, psnk, psrc);
-	std::cout << "Parsing " << filename << std::endl;
-	into.parseCDR(filename, sample);
-      }
+  for(int sample=0; sample < nsample; sample++){
+    CacheType sample_cache; //cache data over different momentum combinations as for mapping policy this can be reused
+    for(int mp=0; mp<nmompairs; mp++){
+      std::string filename = rp.filename(sample, fig, dest_mom[mp].first, dest_mom[mp].second);
+      std::cout << "Parsing " << filename << std::endl;
+      dest_ptrs[mp]->parseCDR(filename, sample, &sample_cache);
     }
   }
 }

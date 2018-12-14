@@ -272,16 +272,14 @@ public:
     }
   }
   
-  //Optional cache for read data for if the files will be read multiple
-  typedef std::map< std::pair<std::string, int>, std::vector<double> > CacheType;
-  static bool & useFileCache(){ static bool use = false; return use; }
-  static CacheType & getFileCache(){ static CacheType cache; return cache; }
+  //Optional cache passed in of previously read data on this configuration
+  typedef std::map< std::string, std::vector<double> > CacheType;
 
-  void parseCDR(const std::string &filename, const int sample){
+  void parseCDR(const std::string &filename, const int sample, CacheType* sample_cache = NULL){
     auto & me = upcast();
 
     CacheType::const_iterator it;
-    if(useFileCache() && ( it = getFileCache().find(std::pair<std::string, int>(filename,sample)) ) != getFileCache().end() ){
+    if(sample_cache != NULL && ( (it = sample_cache->find(filename)) != sample_cache->end() )){
       int i = 0;
       for(int tsrc=0;tsrc<me.getLt();tsrc++) 
 	for(int t=0;t<me.getLt();t++) 
@@ -296,13 +294,13 @@ public:
     if(is.fail() || is.bad()){ std::cout << "Error reading file \"" << filename << "\"\n"; std::cout.flush(); exit(-1); }
     is.close();
 
-    if(useFileCache()){
+    if(sample_cache != NULL){
       std::vector<double> v(me.getLt() * me.getLt());
       int i = 0;
       for(int tsrc=0;tsrc<me.getLt();tsrc++) 
 	for(int t=0;t<me.getLt();t++) 
 	  v[i++] = me.at(tsrc, t).sample(sample);
-      getFileCache()[ std::pair<std::string, int>(filename,sample) ] = std::move(v);
+      (*sample_cache)[filename] = std::move(v);
     }
   }    
 
