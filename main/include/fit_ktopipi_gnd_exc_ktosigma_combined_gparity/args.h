@@ -10,6 +10,7 @@ CPSFIT_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(PiPiOperator, (PiPiGnd)(PiPiExc)(Sigma) );
 GENERATE_ENUM_AND_PARSER(SimFitFunction, (MultiState) );
+GENERATE_ENUM_AND_PARSER(Basis, (Basis10)(Basis7) ); //choose the basis for the operators of the Weak Hamiltonian
 
 typedef std::pair<threeMomentum, double> momMultiplicityPair;
 typedef std::vector<std::string> typeFileFormat;
@@ -68,6 +69,7 @@ GENERATE_PARSER(InputParamArgs, INPUT_PARAM_ARGS_MEMBERS);
   ( InputParamArgs, input_params )					\
   ( SimFitFunction, fitfunc )						\
   ( int, nstate )							\
+  ( Basis, basis )							\
   ( bool, correlated )							\
   ( int, tmin_k_op)							\
   ( int, tmin_op_snk)							\
@@ -123,6 +125,8 @@ struct Args{
     fitfunc(SimFitFunction::MultiState),
     
     nstate(3),
+
+    basis(Basis::Basis10),
 
     correlated(false), Lt(64), tsep_pipi(4), tsep_k_pi({10,12,14,16,18}), tsep_k_sigma({10,12,14,16,18}),  tmin_k_op(6), tmin_op_snk(4), traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1){}
 

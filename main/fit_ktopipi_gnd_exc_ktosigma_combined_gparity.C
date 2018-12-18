@@ -66,9 +66,64 @@ int main(const int argc, const char* argv[]){
 		    sigma_bub_quarkmom_proj, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, read_opts);
   }
 
+  if(args.basis == Basis::Basis7){
+    std::cout << "Converting to 7-basis" << std::endl;
+    data_j.convertBasis10to7(); data_dj.convertBasis10to7();
+  }
+
   std::cout << "Starting fits" << std::endl;
-  fitter->fit(data_j, data_dj, args.operators,
-	      args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated);
+  typedef taggedValueContainer<double,std::string> Params;
+
+  std::vector<jackknifeDistribution<Params> > params = fitter->fit(data_j, data_dj, args.operators,
+								   args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated);
+
+  if(args.basis == Basis::Basis7){
+    std::cout << "Converting 7 basis results to 10 basis" << std::endl;
+    std::vector<std::vector<jackknifeDistributionD> > params_10(10, std::vector<jackknifeDistributionD>(args.nstate, jackknifeDistributionD(nsample)));    
+    
+    struct InContainer{
+      size_t s;
+      size_t idx;
+      const std::vector<jackknifeDistribution<Params> > &d;
+      double operator[](const int q) const{ return d[q].sample(s)(idx); }
+      InContainer(size_t s, size_t idx, const std::vector<jackknifeDistribution<Params> > &d): s(s), idx(idx), d(d){}
+    };
+    struct OutContainer{
+      size_t s;
+      size_t state;
+      std::vector<std::vector<jackknifeDistributionD> > &d;
+      double & operator[](const int q){ return d[q][state].sample(s); }
+      OutContainer(size_t s, size_t state, std::vector<std::vector<jackknifeDistributionD> > &d): s(s), state(state), d(d){}
+    };
+
+    std::cout << "params[0].sample(0) " <<  params[0].sample(0) << std::endl;
+
+    auto const* tag_map = params[0].sample(0).getTagMap();
+    assert(tag_map != NULL);
+
+    for(int i=0;i<args.nstate;i++){
+      auto it = tag_map->find(stringize("M%d",i));
+      assert(it != tag_map->end());
+      int Midx = it->second;
+      std::cout << "State " << i << std::endl;
+      
+      for(int s=0;s<nsample;s++){
+	std::cout << "Sample " << s << std::endl;
+	InContainer in(s, Midx, params);
+	OutContainer out(s, i, params_10);
+	convert7to10(out,in);
+      }
+    }
+
+    std::cout << "Writing to disk" << std::endl;
+    writeParamsStandard(params_10, "matrix_elems_10basis.hdf5");
+
+    for(int q=0;q<10;q++){
+      std::cout << "Q" << q+1 << std::endl;
+      for(int m=0;m<args.nstate;m++)
+	std::cout << "M" << m << " = " << params_10[q][m] << std::endl;
+    }    
+  }
 
   std::cout << "Done" << std::endl;
   

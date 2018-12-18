@@ -38,6 +38,7 @@ struct simultaneousFitBase{
   typedef correlationFunction<SimFitCoordGen, jackknifeDistributionD> SimFitCorrFuncJack;
   typedef correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> SimFitCorrFuncDJack;
   
+  typedef taggedValueContainer<double,std::string> Params;
   typedef std::unordered_map<std::string, std::string> InnerParamMap;
   
 #define COPY_BASE_TYPEDEFS				    \
@@ -47,15 +48,16 @@ struct simultaneousFitBase{
   typedef simultaneousFitBase::CorrFuncDJackAllQ CorrFuncDJackAllQ;	\
   typedef simultaneousFitBase::SimFitCorrFuncJack SimFitCorrFuncJack;	\
   typedef simultaneousFitBase::SimFitCorrFuncDJack SimFitCorrFuncDJack; \
-  typedef simultaneousFitBase::InnerParamMap InnerParamMap
+  typedef simultaneousFitBase::InnerParamMap InnerParamMap;		\
+  typedef simultaneousFitBase::Params Params
   
   virtual void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int nsample) = 0;
-  virtual void fit(const ResampledData<jackknifeDistributionD> &data_j,
-		   const ResampledData<doubleJackknifeA0StorageType> &data_dj,
-		   const std::vector<PiPiOperator> &operators,
-		   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated) = 0;
+  virtual std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
+							  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+							  const std::vector<PiPiOperator> &operators,
+							  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated) = 0;
 
-
+  //Output vectors should be resized to number of matrix elements 
   static void generateSimData(std::vector<SimFitCorrFuncJack> &A0_sim_j,
 			      std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
 			      const std::vector<CorrFuncJackAllQ const* > &jacks,
@@ -66,12 +68,14 @@ struct simultaneousFitBase{
     int nops = jacks.size();
     assert(djacks.size() == nops && pmaps.size() == nops);
 
-    std::vector<std::vector<jackknifeDistributionD> > data_in_fit(10);
+    const int nQ = A0_sim_j.size(); assert(A0_sim_dj.size() == nQ);
+
+    std::vector<std::vector<jackknifeDistributionD> > data_in_fit(nQ);
     std::ofstream data_in_fit_key("data_in_fit.key");
 
     std::cout << "Data in fit:\n";
 
-    for(int q=0;q<10;q++){
+    for(int q=0;q<nQ;q++){
       int eidx = 0;
       std::cout << "Q" << q+1 << std::endl;
 
@@ -110,15 +114,15 @@ struct simultaneousFitBase{
 		     const typename FitPolicies::FitParameterDistribution &freeze_vals,
 		     const typename FitPolicies::baseFitFunc::ParameterType &guess,
 		     const int nsample, const bool correlated){
-    typedef typename FitPolicies::baseFitFunc::ParameterType Params;
+    const int nQ = A0_sim_j.size(); assert(A0_sim_dj.size() == nQ);
 
-    params.resize(10);
+    params.resize(nQ);
 
-    std::vector<jackknifeDistributionD> chisq(10, jackknifeDistributionD(nsample)), 
-      chisq_per_dof(10, jackknifeDistributionD(nsample)), 
-      pvalue(10, jackknifeDistributionD(nsample));
+    std::vector<jackknifeDistributionD> chisq(nQ, jackknifeDistributionD(nsample)), 
+      chisq_per_dof(nQ, jackknifeDistributionD(nsample)), 
+      pvalue(nQ, jackknifeDistributionD(nsample));
 
-    for(int q=0;q<10;q++){
+    for(int q=0;q<nQ;q++){
       params[q] = jackknifeDistribution<Params>(nsample, guess);
 
       std::cout << "Performing " << q+1 << " fit" << std::endl;
@@ -144,7 +148,7 @@ struct simultaneousFitBase{
       
       analyzeChisqFF<typename FitPolicies::baseFitFunc>(A0_sim_j[q],params[q],fitfunc,pmap_descr);
     }  
-    for(int q=0;q<10;q++){
+    for(int q=0;q<nQ;q++){
       std::cout << "Q" << q+1 << std::endl;
       std::cout << "Params:\n" << params[q] << std::endl;
       std::cout << "Chisq: " << chisq[q] << std::endl;
@@ -230,11 +234,11 @@ public:
     assert(nstate <= 3);
   }
 
-  void fit(const ResampledData<jackknifeDistributionD> &data_j,
-	   const ResampledData<doubleJackknifeA0StorageType> &data_dj,
-	   const std::vector<PiPiOperator> &operators,
-	   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated){
-
+  std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
+						  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+						  const std::vector<PiPiOperator> &operators,
+						  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated){
+    
     assert(loaded_frzparams);
     
     const int nsample = mK.size();
@@ -246,7 +250,9 @@ public:
     //Parameter maps
     std::map< InnerParamMap const*, std::string> pmap_descr;  
     std::map<PiPiOperator, InnerParamMap> op_param_maps;
-    std::unordered_map<std::string,size_t> param_idx_map;
+    
+    std::unordered_map<std::string,size_t> *param_idx_map_ptr = new std::unordered_map<std::string,size_t>; //ensure it sticks around until end of execution
+    std::unordered_map<std::string,size_t> &param_idx_map = *param_idx_map_ptr;
 
     //Data to be included
     std::vector<CorrFuncJackAllQ const* > incl_jacks;
@@ -308,9 +314,16 @@ public:
     for(int s=0;s<nstate;s++)
       param_idx_map[stringize("M%d",s)] = idx++;
     
+    //Determine number of matrix elements from input data
+    const int nQ = incl_jacks[0]->size();
+    for(int i=0;i<incl_jacks.size();i++){ 
+      assert(incl_jacks[i]->size() == nQ); 
+      assert(incl_djacks[i]->size() == nQ); 
+    }
+
     //Get the data in the fit range and put in sim fit data containers
-    std::vector<SimFitCorrFuncJack> A0_sim_j(10);
-    std::vector<SimFitCorrFuncDJack> A0_sim_dj(10);
+    std::vector<SimFitCorrFuncJack> A0_sim_j(nQ);
+    std::vector<SimFitCorrFuncDJack> A0_sim_dj(nQ);
     
     generateSimData(A0_sim_j,A0_sim_dj,
 		    incl_jacks, incl_djacks, incl_pmaps,
@@ -318,7 +331,6 @@ public:
 		    pmap_descr);
   
     //Setup guess
-    typedef taggedValueContainer<double,std::string> Params;
     Params guess(&param_idx_map);
     for(int i=0;i<guess.size();i++) guess(i) = 1.;
     for(int s=0;s<nstate;s++)
@@ -357,6 +369,8 @@ public:
     runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
  
     //plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
+
+    return params;
   }
 };
 
