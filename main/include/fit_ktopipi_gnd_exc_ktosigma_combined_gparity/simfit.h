@@ -177,7 +177,7 @@ class simultaneousFitMultiState: public simultaneousFitBase{
 public:
   COPY_BASE_TYPEDEFS;    
     
-private:
+protected:
   int nstate;
 
   //Values for freezing
@@ -252,7 +252,7 @@ public:
     std::map<PiPiOperator, InnerParamMap> op_param_maps;
     
     std::unordered_map<std::string,size_t> *param_idx_map_ptr = new std::unordered_map<std::string,size_t>; //ensure it sticks around until end of execution
-    std::unordered_map<std::string,size_t> &param_idx_map = *param_idx_map_ptr;
+    auto &param_idx_map = *param_idx_map_ptr;
 
     //Data to be included
     std::vector<CorrFuncJackAllQ const* > incl_jacks;
@@ -266,49 +266,35 @@ public:
     DEFMAP(mK);
 #undef DEFMAP
 
-    if(doOp(PiPiOperator::PiPiGnd, operators)){
-      auto & pmap = op_param_maps[PiPiOperator::PiPiGnd];
-      for(int s=0;s<nstate;s++){
-	std::string pnm = stringize("Apipi%d",s);
-	param_idx_map[pnm] = idx++; //define outer parameter to index map
-	pmap[stringize("Asnk%d",s)] = pnm; //map inner parameter to outer parameter
-      }
-      for(auto it = dcp.begin(); it != dcp.end(); it++) pmap[*it] = *it;
-      pmap_descr[&pmap] = "K->pipi(111)";
-      assert(data_j.contains(PiPiOperator::PiPiGnd));
-      incl_jacks.push_back(&data_j(PiPiOperator::PiPiGnd));
-      incl_djacks.push_back(&data_dj(PiPiOperator::PiPiGnd));
-      incl_pmaps.push_back(&pmap);
-    }
-    if(doOp(PiPiOperator::PiPiExc, operators)){
-      auto & pmap = op_param_maps[PiPiOperator::PiPiExc];
-      for(int s=0;s<nstate;s++){
-	std::string pnm = stringize("Apipi_exc_%d",s);
-	param_idx_map[pnm] = idx++;
-	pmap[stringize("Asnk%d",s)] = pnm;
-      }
-      for(auto it = dcp.begin(); it != dcp.end(); it++) pmap[*it] = *it;
-      pmap_descr[&pmap] = "K->pipi(311)";
-      assert(data_j.contains(PiPiOperator::PiPiExc));
-      incl_jacks.push_back(&data_j(PiPiOperator::PiPiExc));
-      incl_djacks.push_back(&data_dj(PiPiOperator::PiPiExc));
-      incl_pmaps.push_back(&pmap);
-    }
-    if(doOp(PiPiOperator::Sigma, operators)){
-      auto & pmap = op_param_maps[PiPiOperator::Sigma];
-      for(int s=0;s<nstate;s++){
-	std::string pnm = stringize("Asigma%d",s);
-	param_idx_map[pnm] = idx++;
-	pmap[stringize("Asnk%d",s)] = pnm;
-      }
-      for(auto it = dcp.begin(); it != dcp.end(); it++) pmap[*it] = *it;
-      pmap_descr[&pmap] = "K->sigma";
-      assert(data_j.contains(PiPiOperator::Sigma));
-      incl_jacks.push_back(&data_j(PiPiOperator::Sigma));
-      incl_djacks.push_back(&data_dj(PiPiOperator::Sigma));
-      incl_pmaps.push_back(&pmap);
-    }
+    static const std::vector<PiPiOperator> all_ops = {PiPiOperator::PiPiGnd, PiPiOperator::PiPiExc, PiPiOperator::Sigma};
+    static const std::vector<std::string> all_ops_pfmt = {"Apipi%d", "Apipi_exc_%d", "Asigma%d"};
+    static const std::vector<std::string> all_ops_descr = {"K->pipi(111)", "K->pipi(311)", "K->sigma"};
 
+    for(int opidx = 0; opidx < all_ops.size(); opidx++){
+      auto op = all_ops[opidx];
+
+      if(doOp(op, operators)){
+	//Setup outer parameters and mapping to inner parameters
+	auto & pmap = op_param_maps[op];
+	for(int s=0;s<nstate;s++){
+	  std::string pnm = stringize(all_ops_pfmt[opidx].c_str(),s);
+	  param_idx_map[pnm] = idx++; //define outer parameter to index map
+	  pmap[stringize("Asnk%d",s)] = pnm; //map inner parameter to outer parameter
+	}
+	for(auto it = dcp.begin(); it != dcp.end(); it++) pmap[*it] = *it; //those in dcp map one-to-one and are shared over all operators
+
+	//Description of mapping
+	pmap_descr[&pmap] = all_ops_descr[opidx];
+
+	//Associate with the data
+	assert(data_j.contains(op));
+	incl_jacks.push_back(&data_j(op));
+	incl_djacks.push_back(&data_dj(op));
+	incl_pmaps.push_back(&pmap);
+      }
+    }
+  
+    //Add energies and matrix elements to end of list of outer parameters, also shared over all operators
     for(int s=0;s<nstate;s++)
       param_idx_map[stringize("E%d",s)] = idx++;
     for(int s=0;s<nstate;s++)
@@ -351,19 +337,14 @@ public:
     for(int s=0; s<nstate; s++) 
       freeze(freeze_params, freeze_vals, stringize("E%d",s), E[s], param_idx_map);
 
-    if(doOp(PiPiOperator::PiPiGnd, operators)){
-      for(int s=0; s<nstate; s++) 
-	freeze(freeze_params, freeze_vals, stringize("Apipi%d",s), coeffs[PiPiOperator::PiPiGnd][s], param_idx_map);
+    for(int opidx = 0; opidx < all_ops.size(); opidx++){
+      auto op = all_ops[opidx];
+
+      if(doOp(op, operators))
+	for(int s=0; s<nstate; s++) 
+	  freeze(freeze_params, freeze_vals, stringize(all_ops_pfmt[opidx].c_str(),s), coeffs[op][s], param_idx_map);
     }
-    if(doOp(PiPiOperator::PiPiExc, operators)){
-      for(int s=0; s<nstate; s++) 
-	freeze(freeze_params, freeze_vals, stringize("Apipi_exc_%d",s), coeffs[PiPiOperator::PiPiExc][s], param_idx_map);   
-    }
-    if(doOp(PiPiOperator::Sigma, operators)){
-      for(int s=0; s<nstate; s++) 
-	freeze(freeze_params, freeze_vals, stringize("Asigma%d",s), coeffs[PiPiOperator::Sigma][s], param_idx_map);   
-    }
-    
+
     //Run the actual fit
     std::vector<jackknifeDistribution<Params> > params;    
     runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
