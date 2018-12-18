@@ -61,11 +61,20 @@ struct simultaneousFitBase{
 			      const std::vector<CorrFuncJackAllQ const* > &jacks,
 			      const std::vector<CorrFuncDJackAllQ const* > &djacks,
 			      const std::vector<InnerParamMap const *> &pmaps,
-			      const int tmin_k_op, const int tmin_op_snk){
+			      const int tmin_k_op, const int tmin_op_snk,
+			      const std::map< InnerParamMap const*, std::string> &pmap_descr){
     int nops = jacks.size();
     assert(djacks.size() == nops && pmaps.size() == nops);
 
+    std::vector<std::vector<jackknifeDistributionD> > data_in_fit(10);
+    std::ofstream data_in_fit_key("data_in_fit.key");
+
+    std::cout << "Data in fit:\n";
+
     for(int q=0;q<10;q++){
+      int eidx = 0;
+      std::cout << "Q" << q+1 << std::endl;
+
       for(int o=0;o<nops;o++){
 	const auto &jack = (*jacks[o])[q];
 	const auto &djack = (*djacks[o])[q];
@@ -78,10 +87,17 @@ struct simultaneousFitBase{
 	    SimFitCoordGen c(t, tsep_k_snk, pmaps[o]);
 	    A0_sim_j[q].push_back(c, jack.value(d));
 	    A0_sim_dj[q].push_back(c, djack.value(d));
+
+	    std::cout << "(" << pmap_descr.find(c.param_map)->second << ", t=" << c.t << " tsep_K_snk=" << c.tsep_k_snk << ") " << jack.value(d) << std::endl;
+	    data_in_fit_key << "Q" << q+1 << " elem " << eidx << " " << pmap_descr.find(c.param_map)->second << " t=" << c.t << " tsep_K_snk=" << c.tsep_k_snk << std::endl;
+	    data_in_fit[q].push_back(jack.value(d));
+	    eidx++;
 	  }
 	}
       }
     }
+
+    writeParamsStandard(data_in_fit,"data_in_fit.hdf5");
   }
 
   template<typename FitPolicies>
@@ -298,7 +314,8 @@ public:
     
     generateSimData(A0_sim_j,A0_sim_dj,
 		    incl_jacks, incl_djacks, incl_pmaps,
-		    tmin_k_op, tmin_op_snk);
+		    tmin_k_op, tmin_op_snk,
+		    pmap_descr);
   
     //Setup guess
     typedef taggedValueContainer<double,std::string> Params;

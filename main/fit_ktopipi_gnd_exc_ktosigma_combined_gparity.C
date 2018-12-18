@@ -66,7 +66,6 @@ int main(const int argc, const char* argv[]){
 		    sigma_bub_quarkmom_proj, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, read_opts);
   }
 
-
   std::cout << "Starting fits" << std::endl;
   fitter->fit(data_j, data_dj, args.operators,
 	      args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated);

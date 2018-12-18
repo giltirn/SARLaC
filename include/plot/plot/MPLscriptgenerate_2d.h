@@ -146,6 +146,7 @@ public:
   }
   void write(const std::string &filename, const std::string &script_gen_filename = "plot.pdf"){
     std::ofstream of(filename.c_str());
+    of.precision(16);
     write(of,script_gen_filename);
     of.close();
   }
