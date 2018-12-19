@@ -9,7 +9,7 @@
 CPSFIT_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(PiPiOperator, (PiPiGnd)(PiPiExc)(Sigma) );
-GENERATE_ENUM_AND_PARSER(SimFitFunction, (MultiState) );
+GENERATE_ENUM_AND_PARSER(SimFitFunction, (MultiState)(MultiStateWavg) );
 GENERATE_ENUM_AND_PARSER(Basis, (Basis10)(Basis7) ); //choose the basis for the operators of the Weak Hamiltonian
 
 typedef std::pair<threeMomentum, double> momMultiplicityPair;

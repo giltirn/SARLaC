@@ -96,8 +96,6 @@ int main(const int argc, const char* argv[]){
       OutContainer(size_t s, size_t state, std::vector<std::vector<jackknifeDistributionD> > &d): s(s), state(state), d(d){}
     };
 
-    std::cout << "params[0].sample(0) " <<  params[0].sample(0) << std::endl;
-
     auto const* tag_map = params[0].sample(0).getTagMap();
     assert(tag_map != NULL);
 
@@ -105,17 +103,14 @@ int main(const int argc, const char* argv[]){
       auto it = tag_map->find(stringize("M%d",i));
       assert(it != tag_map->end());
       int Midx = it->second;
-      std::cout << "State " << i << std::endl;
       
       for(int s=0;s<nsample;s++){
-	std::cout << "Sample " << s << std::endl;
 	InContainer in(s, Midx, params);
 	OutContainer out(s, i, params_10);
 	convert7to10(out,in);
       }
     }
 
-    std::cout << "Writing to disk" << std::endl;
     writeParamsStandard(params_10, "matrix_elems_10basis.hdf5");
 
     for(int q=0;q<10;q++){
