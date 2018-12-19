@@ -164,10 +164,17 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
     typedef FitSimGenMultiStateCparam FitFunc;
     FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
     return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+  }else if(ffunc == FitFuncType::FSimGenMultiStateSub){
+    typedef FitSimGenMultiStateSub FitFunc;
+    FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
   }else{
     assert(0);
   }
 }
+
+
+
 void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
 	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
 	 const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj,
