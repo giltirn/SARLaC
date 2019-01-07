@@ -84,8 +84,6 @@ public:
 
     int boots = this->size();
 
-    assert(!omp_in_parallel());
-
     for(int b=0;b<boots;b++){
       zeroit(this->sample(b));
 

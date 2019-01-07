@@ -39,14 +39,15 @@ struct rawData{ //raw, unbinned data
       bool load_checkpoint = cmdline.load_checkpoint(checkpoint_filename,se[i],ens[i]);
 
       if(load_checkpoint) loadRawDataCheckpoint(raw_data, *raw_bubble_data[i], checkpoint_filename, descr[i]);
-
-      std::cout << "Reading raw data " << descr[i] << std::endl;
-
-      readRawPiPi2ptData(raw_data, *raw_bubble_data[i], 
-			 ffn, bfn_src, bfn_snk, 
-			 args.data_dir(ens[i]), traj_start, traj_inc, traj_lessthan, 
-			 args.Lt, args.tstep_pipi, 
-			 args.tsep_pipi, proj_src, proj_snk);
+      else{
+	std::cout << "Reading raw data " << descr[i] << std::endl;
+	
+	readRawPiPi2ptData(raw_data, *raw_bubble_data[i], 
+			   ffn, bfn_src, bfn_snk, 
+			   args.data_dir(ens[i]), traj_start, traj_inc, traj_lessthan, 
+			   args.Lt, args.tstep_pipi, 
+			   args.tsep_pipi, proj_src, proj_snk);
+      }	
 
       bool save_checkpoint = cmdline.save_checkpoint(checkpoint_filename,se[i],ens[i]);
 

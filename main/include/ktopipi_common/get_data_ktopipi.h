@@ -80,15 +80,13 @@ NumericTensor<DistributionType,1> resampleAverageMixDiagram(const NumericTensor<
   return out;
 }
 
-
-
 template<typename DistributionType, typename Resampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const ProjectedBubbleData &bubble_data, const int Lt, const std::string &descr, const Resampler &resampler){
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const Resampler &resampler){
   //Compute alpha and type4/mix4 vacuum subtractions
   std::cout << "Computing " << descr << " alpha and vacuum subtractions\n";
   NumericTensor<DistributionType,1> alpha_r({Lt}), A0_type4_srcavg_vacsub_r({Lt}), mix4_srcavg_vacsub_r({Lt}); //[t]
   computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
-				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, getResampledBubble<DistributionType>::get(bubble_data),q, raw.nonzerotK(4),tsep_k_pi,Lt,resampler);
+				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, resampled_bubble,q, raw.nonzerotK(4),tsep_k_pi,Lt,resampler);
 
   //Compute tK-averages type4 and mix4 diagrams from data including bubble-------------//
   std::cout << "Computing " << descr << " tK averages and mix diagrams\n";
@@ -108,12 +106,18 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   std::cout << "Performing type-4 vacuum subtraction\n";
   A0_srcavg_r(4) = A0_srcavg_r(4) - A0_type4_srcavg_vacsub_r;
 
-  //Get the full double-jackknife amplitude
+  //Get the full resampled amplitude
   std::cout << "Computing full amplitudes\n";
   NumericTensor<DistributionType,1> A0_full_srcavg_r = A0_srcavg_r(1) + A0_srcavg_r(2) + A0_srcavg_r(3) + A0_srcavg_r(4);
 
   return A0_full_srcavg_r;
 }
+template<typename DistributionType, typename Resampler>
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const ProjectedBubbleData &bubble_data, const int Lt, const std::string &descr, const Resampler &resampler){
+  const NumericTensor<DistributionType,1> &resampled_bubble = getResampledBubble<DistributionType>::get(bubble_data);
+  return computeQamplitude(q, tsep_k_pi, raw, resampled_bubble, Lt, descr, resampler);
+}
+
 
 //Read and prepare the data for a particular tsep_k_pi_idx
 template<typename Resampler>

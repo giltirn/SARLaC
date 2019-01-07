@@ -135,6 +135,9 @@ int main(const int argc, const char* argv[]){
     std::cout << vnm[i] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
   }
   
+  std::cout << "Performing any data transformations required by the fit func" << std::endl;
+  transformData(corr_comb_j, corr_comb_dj, args.fitfunc);
+
   if(cmdline.load_guess) loadGuess(guess, cmdline.guess_file);
     
   std::cout << "Performing fit" << std::endl;

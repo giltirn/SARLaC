@@ -121,7 +121,7 @@ void setupParameterMaps(std::map< std::pair<Operator,Operator>, SubFitFuncParame
 	     {"Csys", "C" + istub + "_" + jstub} };
       }
     }
-  }else if(fitfunc == FitFuncType::FSimGenMultiState){ 
+  }else if(fitfunc == FitFuncType::FSimGenMultiState || fitfunc == FitFuncType::FSimGenMultiStateSub){ 
     //Define the full set of outer parameters
     int p=0;
     for(int state=0;state<nstate;state++){

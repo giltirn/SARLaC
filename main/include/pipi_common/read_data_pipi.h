@@ -186,7 +186,7 @@ void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, const int
     CacheType sample_cache; //cache data over different momentum combinations as for mapping policy this can be reused
     for(int mp=0; mp<nmompairs; mp++){
       std::string filename = rp.filename(sample, fig, dest_mom[mp].first, dest_mom[mp].second);
-      std::cout << "Parsing " << filename << std::endl;
+      std::cout << "Thread " << omp_get_thread_num() << " parsing " << filename << std::endl;
       dest_ptrs[mp]->parseCDR(filename, sample, &sample_cache);
     }
   }

@@ -262,13 +262,15 @@ public:
       int tsep_expect = e % Lt;
       int tsrc_expect = e / Lt;
 
-      if(!(in >> tsrc >> tsep)) error_exit(std::cout << "FigureData::parseCDR failed to read tsrc, tsep for config " << sample << "\n");
+      if(!(in >> tsrc >> tsep)) error_exit(std::cout << "FigureData::parseCDR (thread " << omp_get_thread_num() << " failed to read tsrc, tsep for config " << sample 
+					   << ". Expected tsrc " << tsrc_expect << " tsnk " << tsep_expect <<". Badbit=" << in.bad() << "\n");
       if(tsep != tsep_expect || tsrc != tsrc_expect) error_exit(std::cout << "FigureData tsrc tsep don't match expectations: "
 								<< tsrc << ":" << tsrc_expect << " " << tsep << ":" << tsep_expect
 								<< " for config " << sample << "\n");
       double &re = me.at(tsrc,tsep).sample(sample);
       double im; //discard because it averages to zero
-      if(!(in >> re >> im)) error_exit(std::cout << "FigureData::parseCDR failed to read values for config " << sample << "\n");
+      if(!(in >> re >> im)) error_exit(std::cout << "FigureData::parseCDR failed to read values for config " << sample 
+				       << " tsrc " << tsrc_expect << " tsnk " << tsep_expect << ". Badbit=" << in.bad() << "\n");
     }
   }
   
