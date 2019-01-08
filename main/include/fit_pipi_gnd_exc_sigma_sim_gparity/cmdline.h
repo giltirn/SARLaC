@@ -31,6 +31,12 @@ struct CMDline{
   bool load_mlparams;
   std::string mlparams_file;
 
+  bool remove_samples_in_range;
+  int remove_samples_in_range_start; //units are sample index, not trajectories!
+  int remove_samples_in_range_lessthan;
+
+  bool write_fit_data;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -42,6 +48,8 @@ struct CMDline{
     write_covariance_matrix = false;
     load_priors = false;
     load_mlparams = false;
+    remove_samples_in_range = false;
+    write_fit_data = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -120,6 +128,14 @@ struct CMDline{
 	i+=2;
       }else if(sargv[i] == "-allow_bin_cropping"){ //when #configs is not an exact multiple of bin size, allow discarding of excess configs
 	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
+      }else if(sargv[i] == "-remove_samples_in_range"){ //drop data from raw data being read. Only works if reading raw data from original files or checkpoint
+	remove_samples_in_range = true;
+	remove_samples_in_range_start = strToAny<int>(sargv[i+1]);
+	remove_samples_in_range_lessthan = strToAny<int>(sargv[i+2]);
+	i+=3;
+      }else if(sargv[i] == "-write_fit_data"){
+	write_fit_data=true;
 	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

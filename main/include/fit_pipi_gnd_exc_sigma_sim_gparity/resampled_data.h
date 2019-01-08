@@ -23,6 +23,10 @@ public:
   bool haveData(const Operator opa, const Operator opb) const{ 
     return contains.find({opa,opb}) != contains.end();
   }
+  int getNsample() const{
+    auto it = contains.begin();
+    return correlator(it->first, it->second).value(0).size();
+  }
 
   void generatedResampledData(const RawData &raw_data, const int bin_size, const int Lt, const int tsep_pipi, const bool do_vacuum_subtraction = true){
     const static std::vector<std::pair<Operator,Operator> > rp = {  {Operator::PiPiGnd, Operator::PiPiGnd}, {Operator::PiPiGnd,Operator::PiPiExc}, {Operator::PiPiExc,Operator::PiPiExc}, {Operator::PiPiGnd,Operator::Sigma}, {Operator::PiPiExc,Operator::Sigma}, {Operator::Sigma,Operator::Sigma} };

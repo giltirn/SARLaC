@@ -35,6 +35,62 @@ public:
     return contains.find({opa,opb}) != contains.end();
   }
 
+  template<typename DistributionType>
+  inline static DistributionType removeSamplesInRange(const DistributionType &raw, const int start, const int lessthan){
+    int remove_num_samples = lessthan - start;
+    assert(remove_num_samples < raw.size());
+    DistributionType out(raw.size() - remove_num_samples);
+    int s=0;
+    for(int p=0;p<start;p++)
+      out.sample(s++) = raw.sample(p);
+    for(int p=lessthan;p<raw.size();p++)
+      out.sample(s++) = raw.sample(p);
+    return out;
+  }
+
+  void removeSamplesInRange(const int start, const int lessthan){
+    std::cout << "RawData removing samples in range [" << start << ", " << lessthan << ")" << std::endl;
+
+    for(auto it=contains.begin(); it != contains.end(); it++){
+      {//correlator      
+	rawCorrelationFunction &raw = correlator(it->first, it->second);
+	for(int i=0;i<raw.size();i++)
+	  raw.value(i) = removeSamplesInRange(raw.value(i),start,lessthan);
+      }
+      if( (it->first == Operator::PiPiGnd || it->first == Operator::PiPiExc) &&
+	  (it->second == Operator::PiPiGnd || it->second == Operator::PiPiExc) ){
+	{//bubble
+	  bubbleDataAllMomenta &bub = PiPiBubble(it->first, it->second);
+	  for(auto p=bub.begin();p!=bub.end();p++)
+	    for(int t=0;t<p->second.getLt();t++)
+	      p->second.at(t) = removeSamplesInRange(p->second.at(t),start,lessthan);
+	}
+	{//bubbleZ
+	  bubbleDataAllMomentaZ &bub = PiPiBubbleZ(it->first, it->second);
+	  for(auto p=bub.begin();p!=bub.end();p++)
+	    for(int t=0;t<p->second.getLt();t++)
+	      p->second.at(t) = removeSamplesInRange(p->second.at(t),start,lessthan);
+	}
+      }
+    }
+    if(haveData(Operator::PiPiGnd,Operator::Sigma) || 
+       haveData(Operator::PiPiExc,Operator::Sigma) ||
+       haveData(Operator::Sigma,Operator::Sigma)
+       ){
+      {//sigma
+	sigmaSelfContraction &bub = SigmaBubble();
+	for(int t=0;t<bub.getLt();t++)
+	  bub.at(t) = removeSamplesInRange(bub.at(t),start,lessthan);
+      }
+      {//sigma Z
+	sigmaSelfContractionZ &bub = SigmaBubbleZ();
+	for(int t=0;t<bub.getLt();t++)
+	  bub.at(t) = removeSamplesInRange(bub.at(t),start,lessthan);
+      }
+    }
+    std::cout << "RawData samples removed" << std::endl;
+  }
+  
   void write(HDF5writer &wr, const std::string &nm) const{
     wr.enter(nm);
     CPSfit::write(wr, pipi_bubble, "pipi_bubble");

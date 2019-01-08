@@ -60,6 +60,9 @@ int main(const int argc, const char* argv[]){
       std::cout << "Saving raw data to " << cmdline.save_raw_data_file << std::endl;
       HDF5writer wr(cmdline.save_raw_data_file);  raw_data.write(wr, "raw_data");
     }
+
+    if(cmdline.remove_samples_in_range)
+      raw_data.removeSamplesInRange(cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
   }
 
   ResampledData<jackknifeCorrelationFunction> data_j;
@@ -77,7 +80,8 @@ int main(const int argc, const char* argv[]){
 
   if(cmdline.save_combined_data) saveCheckpoint(data_j, data_dj, cmdline.save_combined_data_file);
 
-  int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
+  const int nsample = data_j.getNsample();
+  std::cout << "Number of binned samples is " << nsample << std::endl;
 
   //Add resampled data to full data set with generalized coordinate set appropriately
   correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j;
@@ -103,6 +107,16 @@ int main(const int argc, const char* argv[]){
   std::cout << "Data in fit:" << std::endl;
   for(int i=0;i<corr_comb_j.size();i++){
     std::cout << vnm[i] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
+  }
+  if(cmdline.write_fit_data){
+    std::cout << "Writing fit data to data_in_fit.hdf5 (and key data_in_fit.key)" << std::endl;
+    std::vector<jackknifeDistributionD> fd(corr_comb_j.size());
+    std::ofstream of("data_in_fit.key");
+    for(int i=0;i<corr_comb_j.size();i++){
+      of << i << " " << vnm[i] << " " << (int)corr_comb_j.coord(i).t << std::endl;
+      fd[i] = corr_comb_j.value(i);
+    }
+    writeParamsStandard(fd, "data_in_fit.hdf5");
   }
  
   std::cout << "Performing any data transformations required by the fit func" << std::endl;
