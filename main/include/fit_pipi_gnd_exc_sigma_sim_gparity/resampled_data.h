@@ -28,53 +28,59 @@ public:
     return correlator(it->first, it->second).value(0).size();
   }
 
-  void generatedResampledData(const RawData &raw_data, const int bin_size, const int Lt, const int tsep_pipi, const bool do_vacuum_subtraction = true){
+  static inline resampledCorrelationFunctionType timesliceAvg(const resampledCorrelationFunctionType &in){
+    resampledCorrelationFunctionType out(in);
+    auto v = in.value(0);
+    for(int i=1;i<in.size();i++) v = v + in.value(i);
+    v = v / double(in.size());
+    for(int i=0;i<out.size();i++) out.value(i) = v;
+    return out;
+  }
+  resampledCorrelationFunctionType computeVacSub(const RawData &raw_data, 
+						 const Operator op1, const Operator op2,
+						 const int bin_size, const int tsep_pipi,
+						 const bool timeslice_avg_vac_sub = false){
+    resampledCorrelationFunctionType v;
+    if( (op1 == Operator::PiPiGnd || op1 == Operator::PiPiExc) &&
+	(op2 == Operator::PiPiGnd || op2 == Operator::PiPiExc) ){
+      PiPiProjector proj_src = op1 == Operator::PiPiGnd ?  PiPiProjector::A1momSet111 :  PiPiProjector::A1momSet311;
+      PiPiProjector proj_snk = op2 == Operator::PiPiGnd ?  PiPiProjector::A1momSet111 :  PiPiProjector::A1momSet311;
+      v = computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(op1,op2), bin_size, tsep_pipi, proj_src, proj_snk);
+    }else if( (op1 == Operator::PiPiGnd || op1 == Operator::PiPiExc) &&
+	      op2 == Operator::Sigma ){
+      PiPiProjector proj_src = op1 == Operator::PiPiGnd ?  PiPiProjector::A1momSet111 :  PiPiProjector::A1momSet311;
+      v = computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), raw_data.PiPiBubble(op1,op1), proj_src, bin_size);
+    }else if( op1 == Operator::Sigma && op2 == Operator::Sigma ){
+      v = computeSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), bin_size);
+    }else assert(0);
+    
+    if(timeslice_avg_vac_sub) v = timesliceAvg(v);
+    return v;
+  }
+
+  void generatedResampledData(const RawData &raw_data, const int bin_size, const int Lt, const int tsep_pipi, const bool do_vacuum_subtraction = true, const bool timeslice_avg_vac_sub = false){
     const static std::vector<std::pair<Operator,Operator> > rp = {  {Operator::PiPiGnd, Operator::PiPiGnd}, {Operator::PiPiGnd,Operator::PiPiExc}, {Operator::PiPiExc,Operator::PiPiExc}, {Operator::PiPiGnd,Operator::Sigma}, {Operator::PiPiExc,Operator::Sigma}, {Operator::Sigma,Operator::Sigma} };
 
     for(auto it=rp.begin();it!=rp.end();it++)
-      if(raw_data.haveData(it->first, it->second))
+      if(raw_data.haveData(it->first, it->second)){
 	contains.insert({it->first, it->second});
-    
-    //Resample
-    for(auto it=rp.begin();it!=rp.end();it++)
-      if(raw_data.haveData(it->first, it->second))
-	correlator(it->first, it->second) = binResample<resampledCorrelationFunctionType>(raw_data.correlator(it->first,it->second), bin_size);
 
-    //Compute vacuum subtractions
-    if(do_vacuum_subtraction){
-      if(raw_data.haveData(Operator::PiPiGnd, Operator::PiPiGnd))
-	correlator(Operator::PiPiGnd, Operator::PiPiGnd) = correlator(Operator::PiPiGnd, Operator::PiPiGnd) - 
-	  computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(Operator::PiPiGnd, Operator::PiPiGnd), bin_size, tsep_pipi, 
-								 PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
-      
-      if(raw_data.haveData(Operator::PiPiGnd, Operator::PiPiExc))
-	correlator(Operator::PiPiGnd, Operator::PiPiExc) = correlator(Operator::PiPiGnd, Operator::PiPiExc) - 
-	  computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(Operator::PiPiGnd, Operator::PiPiExc), bin_size, tsep_pipi, PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
+	auto &corr = correlator(it->first, it->second);
 
-      if(raw_data.haveData(Operator::PiPiExc, Operator::PiPiExc))
-	correlator(Operator::PiPiExc, Operator::PiPiExc) = correlator(Operator::PiPiExc, Operator::PiPiExc) - 
-	  computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(Operator::PiPiExc, Operator::PiPiExc), bin_size, tsep_pipi, PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
+	//Resample	
+	corr = binResample<resampledCorrelationFunctionType>(raw_data.correlator(it->first,it->second), bin_size);
 
-      if(raw_data.haveData(Operator::PiPiGnd, Operator::Sigma))
-	correlator(Operator::PiPiGnd, Operator::Sigma) = correlator(Operator::PiPiGnd, Operator::Sigma) -
-	  computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), raw_data.PiPiBubble(Operator::PiPiGnd,Operator::PiPiGnd), PiPiProjector::A1momSet111, bin_size);
+	//Vacuum subtract
+	if(do_vacuum_subtraction) corr = corr - 
+				    computeVacSub(raw_data, it->first, it->second, bin_size, tsep_pipi, timeslice_avg_vac_sub);
 
-      if(raw_data.haveData(Operator::PiPiExc, Operator::Sigma))
-	correlator(Operator::PiPiExc, Operator::Sigma) = correlator(Operator::PiPiExc, Operator::Sigma) -
-	  computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), raw_data.PiPiBubble(Operator::PiPiExc,Operator::PiPiExc), PiPiProjector::A1momSet311, bin_size);
+	//Fold
+	corr = fold( 
+		    corr, 
+		    foldOffsetMultiplier(it->first,it->second) * tsep_pipi
+		     );
 
-      if(raw_data.haveData(Operator::Sigma, Operator::Sigma))
-	correlator(Operator::Sigma,Operator::Sigma) = correlator(Operator::Sigma,Operator::Sigma) -
-	  computeSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), bin_size);
-    }
- 
-    //Fold data
-    for(auto it=rp.begin();it!=rp.end();it++)
-      if(raw_data.haveData(it->first, it->second))
-	correlator(it->first, it->second) = fold( 
-						 correlator(it->first, it->second), 
-						 foldOffsetMultiplier(it->first,it->second) * tsep_pipi
-						  );
+      } 
   }
 
   void write(HDF5writer &wr, const std::string &nm) const{
