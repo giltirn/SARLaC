@@ -39,5 +39,10 @@ std::vector<std::string> listFiles(const std::string &dir, const std::string &re
   return out;
 }
 
+//returns true if a new directory was created
+bool createDirectory(const std::string &dir){
+  return boost::filesystem::create_directories(dir);
+}
+
 CPSFIT_END_NAMESPACE
 #endif

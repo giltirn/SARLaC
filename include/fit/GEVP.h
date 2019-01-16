@@ -36,8 +36,8 @@ public:
   template<typename MatrixSeriesType, typename Accessor>
   void solve(const MatrixSeriesType &matrix_series, const Accessor &acc, const int _tmax){
     tmax = _tmax;
-    for(int t0=0; t0<_tmax-1;t0++){
-      for(int t=t0+1; t<_tmax; t++){
+    for(int t0=0; t0<=_tmax-1;t0++){
+      for(int t=t0+1; t<=_tmax; t++){
 	bool fail = false;
 	std::vector<NumericVector<T> > evecs_t;
 	std::vector<T> evals_t;
@@ -81,7 +81,24 @@ public:
   //Note: Requires evecs at (t0,t) and evals at  (t0+t/2,t0)  (t0+t,t0)  - returns empty output if these are not available 
   template<typename MatrixSeriesType, typename Accessor>
   std::vector<std::vector<T> > effectiveAmplitude(const int t0, const int t, const MatrixSeriesType &matrix_series, const Accessor &acc) const{
-    //This is the operator A_eff from Eq. 2.17 of http://arxiv.org/pdf/0902.1265.pdf    between state <n| and |0>
+    //This is the operator A_eff from Eq. 2.15-2.17 of http://arxiv.org/pdf/0902.1265.pdf    between state <n| and |0>
+    //Note that this paper put the later time (t as opposed to t0) as the row index whereas in this code it is the column index
+    //As we have only values at integer times we must make a small adjustment to 2.17:
+    //Given that 
+    //          v(t0,t) is independent of t (iff no excited state contamination)
+    //          C(t) ~ exp(-Et)   [2.5]    
+    //          lambda(t0,t) ~ exp(-E(t-t0))
+    //Thus for even t=2k   (v(t0,2k), C(2k)v(t0,2k))^{-1/2}  ~ ( exp(-2Ek) )^{-1/2} ~  exp(Ek)
+    //lambda(t0, t0+(2k)/2)/lambda(t0,t0+2k) ~ exp(-Ek)/exp(-2Ek) ~  exp(Ek)
+    //and the time dependence of Rn ~ exp(2Ek)
+    
+    //However consider odd times  t=2k+1   and use integer division
+    //(v(t0,2k+1), C(2k+1)v(t0,2k+1))^{-1/2}  ~ ( exp(-E (2k+1) ) )^{-1/2} ~ sqrt( exp(E (2k+1) ) )  ~ exp(Ek)sqrt(exp(E)) ~ exp(E (k+1))
+    //lambda(t0, t0+(2k+1)/2)/lambda(t0,t0+2k+1) = lambda(t0, t0+k)/lambda(t0,t0+2k+1) ~ exp(-Ek)/exp(-E(2k+1)) ~ exp(Ek)exp(E)
+    //and the time dependence of Rn ~ exp(2Ek) exp(E)^{3/2} ~ exp(E (2k+1)) exp(E)^{1/2}
+
+    //Thus for odd timeslices we must remove an additional factor of exp(E)^{1/2}
+
     std::vector<NumericVector<T> > const* evecs_t0_t = evecs(t0,t);
     std::vector<T> const* evals_t0_t0ptd2 = evals(t0,t0+t/2);
     std::vector<T> const* evals_t0_t0pt = evals(t0,t0+t);
@@ -121,6 +138,10 @@ public:
 	
       T Rn = (*evals_t0_t0ptd2)[n]/(*evals_t0_t0pt)[n]/sqrt(v_dot_Ctvn);
       
+      //Apply correction for odd t
+      if(t % 2 == 1){
+	Rn = Rn / sqrt(exp(Eeff[n]));
+      }
       for(int i=0;i<nop;i++){
 	out[i][n] = v_n_i_inv(i,n) * exp(Eeff[n] * t) / Rn;
       }

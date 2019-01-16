@@ -1,4 +1,5 @@
 #include <utils.h>
+#include <random.h>
 #include <pipi_common/pipi_common.h>
 #include <pipi_common/analyze_chisq.h>
 using namespace CPSfit;
@@ -136,7 +137,12 @@ int main(const int argc, const char* argv[]){
   }
   
   std::cout << "Performing any data transformations required by the fit func" << std::endl;
-  transformData(corr_comb_j, corr_comb_dj, args.fitfunc);
+  transformData(corr_comb_j, corr_comb_dj,  args.t_min, args.t_max, args.fitfunc);
+
+  std::cout << "Data post-transformation:" << std::endl;
+  for(int i=0;i<corr_comb_j.size();i++){
+    std::cout << pmap_descr[corr_comb_j.coord(i).param_map] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
+  }
 
   if(cmdline.load_guess) loadGuess(guess, cmdline.guess_file);
     
@@ -151,7 +157,7 @@ int main(const int argc, const char* argv[]){
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.nstate, args.Lt, args.Ascale, args.Cscale, opt);
+      args.nstate, args.Lt, args.t_min, args.t_max, args.correlated, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n";
   {
@@ -178,7 +184,7 @@ int main(const int argc, const char* argv[]){
   writeParamsStandard(pvalue, "pvalue.hdf5");
 #endif
 
-  analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.Ascale, args.Cscale, pmap_descr); 
+  if(args.correlated) analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.t_min, args.t_max, args.Ascale, args.Cscale, pmap_descr); 
 
   std::cout << "Done\n";
   return 0;

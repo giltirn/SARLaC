@@ -42,7 +42,7 @@ template<typename FitFunc>
 void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
 	    const correlationFunction<SimFitCoordGen, jackknifeDistributionD> &corr_comb_j,
 	    const correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> &corr_comb_dj,
-	    const FitFunc &fitfunc, const fitOptions &opt = fitOptions()){
+	    const FitFunc &fitfunc, const bool correlated, const fitOptions &opt = fitOptions()){
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
     const int nsample = corr_comb_j.value(0).size();
 
@@ -59,6 +59,7 @@ void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDi
 
     std::cout << "Generating and importing covariance matrix\n";
     importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, corr_comb_dj);
+    if(!correlated) import.setUncorrelated();
 
     if(opt.write_covariance_matrix) import.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
 
@@ -128,46 +129,54 @@ void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDi
     }
 }
 
+
 //Note: nstate applies only for "MultiState" variants
 void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
 	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
 	 const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj,
 	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
-	 const int nstate, const int Lt, const double Ascale, const double Cscale,
+	 const int nstate, const int Lt, 
+	 const int t_min, const int t_max,
+	 const bool correlated,
+	 const double Ascale, const double Cscale,
 	 const fitOptions &opt = fitOptions()){
 
   if(ffunc == FitFuncType::FSimGenOneState){
     typedef FitSimGenOneState FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else if(ffunc == FitFuncType::FSimGenTwoState){
     typedef FitSimGenTwoState FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else if(ffunc == FitFuncType::FSimGenThreeState){
     typedef FitSimGenThreeState FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else if(ffunc == FitFuncType::FSimGenThreeStateLogEdiff){
     typedef FitSimGenThreeStateLogEdiff FitFunc;
     FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else if(ffunc == FitFuncType::FSimGenMultiState){
     typedef FitSimGenMultiState FitFunc;
     FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else if(ffunc == FitFuncType::FSimGenMultiStateLogEdiff){
     typedef FitSimGenMultiStateLogEdiff FitFunc;
     FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else if(ffunc == FitFuncType::FSimGenMultiStateCparam){
     typedef FitSimGenMultiStateCparam FitFunc;
     FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else if(ffunc == FitFuncType::FSimGenMultiStateSub){
     typedef FitSimGenMultiStateSub FitFunc;
     FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, opt);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
+  }else if(ffunc == FitFuncType::FSimGenMultiStateTminSub || ffunc == FitFuncType::FSimGenMultiStateTminSubForceZero){
+    typedef FitSimGenMultiStateTminSub FitFunc;
+    FitFunc fitfunc(nstate, Lt, param_map.size(), t_min, Ascale, Cscale);
+    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
   }else{
     assert(0);
   }
@@ -179,10 +188,13 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
 	 const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj,
 	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
-	 const int Lt, const double Ascale, const double Cscale,
+	 const int Lt, 
+	 const int t_min, const int t_max,
+	 const bool correlated, 
+	 const double Ascale, const double Cscale,
 	 const fitOptions &opt = fitOptions()){
   assert(ffunc != FitFuncType::FSimGenMultiState);
-  fit(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, ffunc, param_map, 0, Lt, Ascale, Cscale, opt);
+  fit(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, ffunc, param_map, 0, Lt, t_min, t_max, correlated, Ascale, Cscale, opt);
 }
 
 CPSFIT_END_NAMESPACE

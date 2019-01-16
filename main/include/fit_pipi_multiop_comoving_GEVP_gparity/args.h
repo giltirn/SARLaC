@@ -1,7 +1,5 @@
-#ifndef _FIT_PIPI_COMOVING_GPARITY_ARGS_H
-#define _FIT_PIPI_COMOVING_GPARITY_ARGS_H
-
-#include "enums.h"
+#ifndef _FIT_PIPI_COMOVING_GEVP_GPARITY_ARGS_H
+#define _FIT_PIPI_COMOVING_GEVP_GPARITY_ARGS_H
 
 typedef std::array<int,3> int_array_3;
 
@@ -17,17 +15,12 @@ typedef std::array<int,3> int_array_3;
   ( int, tsep_pipi) \
   ( int, tstep_pipi) \
   ( bool, do_vacuum_subtraction ) \
-  ( FitFuncType, fitfunc) \
-  ( int, nstate)	  \
-  ( int, t_min) \
   ( int, t_max) \
-  ( bool, correlated )				\
   ( int, bin_size) \
   ( int, traj_start ) \
   ( int, traj_inc ) \
   ( int, traj_lessthan ) \
-  ( double, Ascale) \
-  ( double, Cscale)
+  ( double, Ascale)
 
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS)
@@ -36,8 +29,7 @@ struct Args{
     pipi_bubble_file_format("traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_pi1mom<PB>_pi2mom<PA>_symm"),
     operators({Operator::PiPiComoveGnd, Operator::PiPiComoveExc1, Operator::PiPiComoveExc2}),
     p_tot({{2,0,0}}), do_vacuum_subtraction(false),
-    Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), correlated(true), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
-    fitfunc(FitFuncType::FSimGenMultiState), nstate(3), bin_size(1){}
+    Lt(64), tsep_pipi(4), tstep_pipi(8), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), bin_size(1){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)
 

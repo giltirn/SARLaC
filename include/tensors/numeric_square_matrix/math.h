@@ -7,7 +7,7 @@ CPSFIT_START_NAMESPACE
 
 //We use the notation in http://www.math.hawaii.edu/~jb/math411/nation1  pg 41
 
-//||m||_E  modulus operator for matrices
+//||m||_E  modulus operator for matrices. Note other literature also refer to this as the "Frobenius norm" ||m||_F
 //Requires a definition of modulus-square |v|^2 of type T  as a lambda or class with T operator()(const T&)
 template<typename T, typename mod2func>
 T modE(const NumericSquareMatrix<T> &m, const mod2func &md2){

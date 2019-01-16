@@ -479,7 +479,7 @@ public:
 
   inline const std::string &paramTag(const std::string &pname, const GeneralizedCoordinate &coord) const{ 
     auto it = coord.param_map->find(pname);
-    if(it == coord.param_map->end()) error_exit(std::cout << "FitSimGenMultiState::paramTag could not find parameter name " << pname << std::endl);
+    if(it == coord.param_map->end()) error_exit(std::cout << "FitSimGenMultiStateSub::paramTag could not find parameter name " << pname << std::endl);
     return it->second;
   }
 
@@ -519,6 +519,68 @@ public:
 
   FitSimGenMultiStateSub(const int nstate, const int Lt, const int nparams, const double Ascale=1e13, const double Cscale=1e13): 
     nstate(nstate), Lt(Lt), nparams(nparams), Ascale(Ascale), Cscale(Cscale){}
+
+  inline int Nparams() const{ return nparams; }
+};
+
+//Fit subtracted data C(t) - C(t_min). Although this should not have a constant term we allow for its existence as an experiment - it can be fixed to zero if desired
+class FitSimGenMultiStateTminSub{
+  int Lt;
+  int t_min;
+  double Ascale;
+  double Cscale;
+  int nparams;
+  int nstate;  
+public:
+  typedef taggedValueContainer<double,std::string> Params;
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef SimFitCoordGen GeneralizedCoordinate;
+
+  inline const std::string &paramTag(const std::string &pname, const GeneralizedCoordinate &coord) const{ 
+    auto it = coord.param_map->find(pname);
+    if(it == coord.param_map->end()) error_exit(std::cout << "FitSimGenMultiStateTminSub::paramTag could not find parameter name " << pname << std::endl);
+    return it->second;
+  }
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &x, const ParameterType &p, const Boost &b) const{
+
+    double v; size_t idx; 
+    v = p(idx, paramTag("Csys",x)); 
+    T Csys = b(v, idx);
+    T out= (int)x.t == t_min ? Csys * 0. : Csys * Cscale;
+
+    for(int i=0;i<nstate;i++){
+      v = p(idx, paramTag(stringize("Asrc%d",i),x)); 
+      T Asrc = b(v,idx); 
+      v = p(idx, paramTag(stringize("Asnk%d",i),x)); 
+      T Asnk = b(v,idx); 
+      v = p(idx, paramTag(stringize("E%d",i),x)); 
+      T E = b(v,idx); 
+
+      T exp_tmin = exp(-E*t_min) + exp(-E*(Lt-x.fold_offset-t_min));
+        
+      out = out + Asrc * Asnk * Ascale * ( 
+					  exp(-E*x.t) + exp(-E*(Lt-x.fold_offset-x.t)) 
+					  -exp_tmin
+					   );
+    }
+    return out;  
+  }
+
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double a, const int i){ return a; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d = p;
+    for(int i=0;i<nparams;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  FitSimGenMultiStateTminSub(const int nstate, const int Lt, const int nparams, const int t_min, const double Ascale=1e13, const double Cscale=1e13): 
+    nstate(nstate), Lt(Lt), nparams(nparams), t_min(t_min), Ascale(Ascale), Cscale(Cscale){}
 
   inline int Nparams() const{ return nparams; }
 };

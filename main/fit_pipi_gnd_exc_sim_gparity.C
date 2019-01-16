@@ -116,9 +116,10 @@ int main(const int argc, const char* argv[]){
   opt.load_frozen_fit_params = cmdline.load_frozen_fit_params;
   opt.load_frozen_fit_params_file = cmdline.load_frozen_fit_params_file;
 
+  const bool correlated = true;
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.Lt, args.Ascale, args.Cscale, opt);
+      args.Lt, args.t_min, args.t_max, correlated, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n";
   {
