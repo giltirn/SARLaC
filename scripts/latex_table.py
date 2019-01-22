@@ -10,7 +10,7 @@ import re
 # 1) Import script:   from latex_table import *      (Make sure the directory of this script is in your PYTHONPATH)
 # 2) Generate a 'format array' with table entries:
 #     Basic options include strings such as latex commands, and integers
-#     Special latex commands '\hline' for a horizontal line, '\multicolumn{ncols}{entry}' for multi-column entries are treated appropriately
+#     Special latex commands '\hline' for a horizontal line, '\multicolumn{ncols}{colfmt}{entry}' for multi-column entries are treated appropriately
 #     Interface with hdf5_print is performed using an entry in the form of an array with the first entry the filename, the second the element index 
 #     (for multi-dimensional arrays use a string with comma-separated indices), and finally a hash with any extra commands passed to the program (use {} for default)
 #     Extra commands are the usual command line args but without the leading -, eg "pub_rounding"
@@ -30,10 +30,12 @@ import re
 #--------------------------------------------------------------------------------------------------------------------------------------
 
 def hdf5_print(filename, **kwargs):
+    if(os.path.isfile(filename) == False):
+        return "ERR"
+
     arg_str = ""
     for a in kwargs.keys():
         arg_str = arg_str+(" -%s %s" % (a,kwargs[a]))
-
     out = os.popen("hdf5_print %s %s" % (filename,arg_str)).read()
     out = out.rstrip('\r\n')
     return out
@@ -62,6 +64,9 @@ def tabulate(cols,args,**kwargs):
     else:
         for i in range(cols):
             colstr=colstr+'c'
+
+    if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
+        print r'\resizebox{\textwidth}{!}{'
     
     print "\\begin{tabular}{%s}" % colstr
     print r'\hline\hline'
@@ -103,6 +108,10 @@ def tabulate(cols,args,**kwargs):
             ii=0
     
     print "\\end{tabular}"
+
+    if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
+        print r'}'
+
     print "\\end{table}"
     print "\\FloatBarrier"
 

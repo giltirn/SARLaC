@@ -137,13 +137,12 @@ int main(const int argc, const char* argv[]){
   jackknifeDistribution<Params> params(nsample, guess);
   jackknifeDistributionD chisq(nsample), chisq_per_dof(nsample);
 
-
   fitOptions opt;
   cmdline.exportOptions(opt);
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.nstate, args.Lt, args.t_min, args.t_max, args.Ascale, args.Cscale, opt);
+      args.nstate, args.Lt, args.t_min, args.t_max, args.correlated, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n";
   {
@@ -170,7 +169,7 @@ int main(const int argc, const char* argv[]){
   writeParamsStandard(pvalue, "pvalue.hdf5");
 #endif
 
-  analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.t_min, args.t_max, args.Ascale, args.Cscale, pmap_descr); 
+  if(args.correlated) analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.t_min, args.t_max, args.Ascale, args.Cscale, pmap_descr); 
 
   std::cout << "Done\n";
   return 0;
