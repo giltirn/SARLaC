@@ -10,7 +10,7 @@
 
 CPSFIT_START_NAMESPACE
 
-enum SetType{ DataSetType, ErrorBandType, HistogramType };
+enum SetType{ DataSetType, ErrorBandType, HistogramType, ErrorLineType, ErrorCurveType };
 
 //Contain and write data for a series of data points with errors
 class PythonDataContainer{
@@ -110,6 +110,76 @@ public:
 
   const std::string &tag() const{ return set_tag; }  
 };
+
+
+class PythonErrorLineContainer{
+  typedef PythonTuple<double> TupleD;
+
+  std::vector<TupleD> start; //array of tuples giving the start coordinates of each line
+  std::vector<TupleD> end; //array of tuples giving the end coordinates of each line
+  std::string set_tag;
+
+public:
+  
+  template<typename Data>
+  void import(const Data &data, const std::string &tag){
+    set_tag = tag;
+    
+    int sz = data.size();
+    for(int i=0;i<sz;i++){
+      start.push_back(data.start(i));
+      end.push_back(data.end(i));
+    }
+  }
+
+  void write(std::ostream &os) const{
+    os << set_tag << "= pyplot.ErrorLine()\n";
+    os << set_tag << ".start = " << ListPrint<TupleD>(start) << '\n';
+    os << set_tag << ".end = " << ListPrint<TupleD>(end) << '\n';
+  }
+
+  const std::string &tag() const{ return set_tag; }  
+};
+
+class PythonErrorCurveContainer{
+  typedef PythonTuple<double> TupleD;
+
+  std::vector<std::vector<TupleD> > curves; //an array of tuples for each curve describing several points along the curve
+  std::vector<TupleD> markers; //array of tuples giving the coordinates of markers (optional)
+  std::string set_tag;
+
+public:
+  
+  template<typename Data>
+  void import(const Data &data, const std::string &tag){
+    set_tag = tag;
+   
+    for(int i=0;i<data.ncurves();i++)
+      curves.push_back(data.curves(i));
+    
+    for(int i=0;i<data.nmarkers();i++)
+      markers.push_back(data.markers(i));
+  }
+
+  void write(std::ostream &os) const{
+    os << set_tag << "= pyplot.ErrorCurve()\n";
+    os << set_tag << ".curves = [";
+    for(int c=0;c<curves.size();c++){
+      os << ListPrint<TupleD>(curves[c]);
+      if(c != curves.size()-1) os << ", ";
+    }
+    os << "]\n";
+    if(markers.size() != 0){   
+      os << set_tag << ".markers = " << ListPrint<TupleD>(markers) << '\n';
+    }else{
+      os << set_tag << ".markers = None\n";
+    }
+
+  }
+
+  const std::string &tag() const{ return set_tag; }  
+};
+
 
 CPSFIT_END_NAMESPACE
 #endif

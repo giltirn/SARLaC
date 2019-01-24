@@ -15,7 +15,7 @@ import math
 import numpy
 import scipy
 import scipy.integrate
-
+from scipy.interpolate import splrep, splev
 
 class ColourPallete:
     @staticmethod
@@ -154,7 +154,144 @@ class DataSet3D:
                 self.y = None
                 self.z = None
 
-                
+class ErrorLine:
+    def __init__(self):
+        self.start = None   #array of tuples of coords of line start
+        self.end = None #array of tuples of coords of line end
+
+#For data sets where the x and y coordinates are correlated but in a non-linear fashion, we can draw a curve through successive x,y points
+class ErrorCurve:
+    def __init__(self):
+        self.curves = None   #array of arrays of tuples  [ [(x0,y0),(x1,y1)... ],   [(x0,y0),(x1,y1)... ] ... ]
+        self.markers = None  #Optional locations of markers (eg at middle of curve) as array of tuples
+
+#ecurve should be an instance of ErrorCurve
+def plotErrorCurves(axes, ecurve, **kwargs):
+    marker = "o"
+    if 'marker' in kwargs.keys():
+        marker = kwargs['marker']
+        del kwargs['marker']
+
+    if 'color' not in kwargs.keys():
+        kwargs['color'] = "r"    
+    if 'mec' not in kwargs.keys():
+        kwargs['mec'] = 'black'
+    if 'ms' not in kwargs.keys():
+        kwargs["ms"] = 5 #marker size
+
+    plot_linestyle = ''
+    lines_linestyle = '-'
+    if 'plot_linestyle' in kwargs.keys():
+        plot_linestyle = kwargs['plot_linestyle']
+        del kwargs['plot_linestyle']
+    if 'lines_linestyle' in kwargs.keys():
+        lines_linestyle = kwargs['lines_linestyle']
+        del kwargs['lines_linestyle']
+
+
+    smooth = False
+    if 'smooth' in kwargs.keys():
+        smooth = kwargs['smooth']
+        del kwargs['smooth']
+    smooth_k = 3  #Choose the order of the spline interpolation. Note: if the amount of data is <= to this number, k will be reduced to ndata-1
+    if 'smooth_k' in kwargs.keys():
+        smooth_k = kwargs['smooth_k']
+        del kwargs['smooth_k']
+    
+    kwargs['linestyle'] = lines_linestyle
+
+    lineset = []
+    centerx = []
+    centery = []
+
+    for curve in ecurve.curves:
+        xdata = []
+        ydata = []
+        for c in curve:
+            xdata.append(c[0])
+            ydata.append(c[1])
+
+        if smooth == True:
+            k=3
+            if len(ydata) <= k:
+                k = len(ydata)-1
+
+            tck = splrep(xdata, ydata, k=k)
+            xnew = numpy.linspace(xdata[0], xdata[-1])
+            ynew = splev(xnew, tck)
+            xdata = xnew
+            ydata = ynew
+
+        line = lines.Line2D(xdata,ydata,**kwargs)
+        lineset.append(line)
+        axes.add_line(line)
+
+    kwargs['marker'] = marker
+    kwargs['linestyle'] = plot_linestyle
+
+    markers = None
+    if ecurve.markers != None:
+        xdata = []
+        ydata = []
+        for m in ecurve.markers:
+            xdata.append(m[0])
+            ydata.append(m[1])
+        markers = axes.plot(xdata,ydata,**kwargs)
+    return (lineset,markers)
+
+
+
+
+
+#eline should be an instance of ErrorLine
+def plotErrorLines(axes, eline, **kwargs):
+    npt = len(eline.start)
+    if(len(eline.end) != npt):
+        print "plotErrorLines Error: start and end must be arrays of same length"
+        exit
+
+    marker = "o"
+    if 'marker' in kwargs.keys():
+        marker = kwargs['marker']
+        del kwargs['marker']
+
+    if 'color' not in kwargs.keys():
+        kwargs['color'] = "r"    
+    if 'mec' not in kwargs.keys():
+        kwargs['mec'] = 'black'
+    if 'ms' not in kwargs.keys():
+        kwargs["ms"] = 5 #marker size
+
+    plot_linestyle = ''
+    lines_linestyle = '-'
+    if 'plot_linestyle' in kwargs.keys():
+        plot_linestyle = kwargs['plot_linestyle']
+        del kwargs['plot_linestyle']
+    if 'lines_linestyle' in kwargs.keys():
+        lines_linestyle = kwargs['lines_linestyle']
+        del kwargs['lines_linestyle']
+
+    kwargs['linestyle'] = lines_linestyle
+
+    lineset = []
+    centerx = []
+    centery = []
+
+    for i in range(npt):
+        line = lines.Line2D([eline.start[i][0],eline.end[i][0]], [eline.start[i][1],eline.end[i][1]],**kwargs)
+        lineset.append(line)
+        axes.add_line(line)
+
+        #Add a marker at the center
+        centerx.append(eline.start[i][0] + (eline.end[i][0]-eline.start[i][0])/2)
+        centery.append(eline.start[i][1] + (eline.end[i][1]-eline.start[i][1])/2)
+
+    kwargs['marker'] = marker
+    kwargs['linestyle'] = plot_linestyle
+
+    markers = axes.plot(centerx,centery,**kwargs)
+    return (lineset,markers)
+
 def plotDataSet(axes,dataset, **kwargs):
     if 'linestyle' not in kwargs.keys():
         kwargs['linestyle'] = ""

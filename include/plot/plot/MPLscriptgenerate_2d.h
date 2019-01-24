@@ -32,6 +32,12 @@ private:
   std::vector<PythonHistogramContainer> plothistogram_sets;
   std::vector<kwargsType> plothistogram_args;
   
+  std::vector<PythonErrorLineContainer> ploterrorlines_sets;
+  std::vector<kwargsType> ploterrorlines_args;
+
+  std::vector<PythonErrorCurveContainer> ploterrorcurves_sets;
+  std::vector<kwargsType> ploterrorcurves_args;
+
   std::vector<handleType> leg_handles;
   std::vector<std::string> legends;
   std::string leg_py;
@@ -86,6 +92,44 @@ public:
     return errorBand(band,kwargs,tag);
   }
 
+  //Lines is an accessor with methods:
+  //int size()
+  //PythonTuple<double> start(const int i)
+  //PythonTuple<double> end(const int i)
+  template<typename Lines>
+  handleType errorLines(const Lines &el, const kwargsType &kwargs, std::string tag = ""){
+    ploterrorlines_sets.push_back(PythonErrorLineContainer());
+    if(tag == "") tag = stringize("eline%d", ploterrorlines_sets.size());
+    ploterrorlines_sets.back().import(el, tag);
+    ploterrorlines_args.push_back(kwargs);
+    return handleType(ploterrorlines_sets.size()-1,ErrorLineType);
+  }
+  template<typename Lines>
+  inline handleType errorLines(const Lines &el, std::string tag = ""){
+    kwargsType kwargs;
+    return errorLines(el,kwargs,tag);
+  }
+
+  //Curves is an accessor with methods:
+  //int ncurves()   - number of curves to plot
+  //std::vector<pythonTuple<double> >  curves(const int i)  //coordinates of chosen points along curve i
+  //int nmarkers()   - number of markers to plot
+  //PythonTuple<double>  markers(const int i)  //coordinates of marker i
+  template<typename Curves>
+  handleType errorCurves(const Curves &el, const kwargsType &kwargs, std::string tag = ""){
+    ploterrorcurves_sets.push_back(PythonErrorCurveContainer());
+    if(tag == "") tag = stringize("ecurve%d", ploterrorcurves_sets.size());
+    ploterrorcurves_sets.back().import(el, tag);
+    ploterrorcurves_args.push_back(kwargs);
+    return handleType(ploterrorcurves_sets.size()-1,ErrorCurveType);
+  }
+  template<typename Curves>
+  inline handleType errorCurves(const Curves &el, std::string tag = ""){
+    kwargsType kwargs;
+    return errorCurves(el,kwargs,tag);
+  }
+
+
 
   //Data is an accessors with methods:
   //double y(const int)
@@ -122,6 +166,12 @@ public:
     for(int i=0;i<plothistogram_sets.size();i++)
       plothistogram_sets[i].write(os);
 
+    for(int i=0;i<ploterrorlines_sets.size();i++)
+      ploterrorlines_sets[i].write(os);
+
+    for(int i=0;i<ploterrorcurves_sets.size();i++)
+      ploterrorcurves_sets[i].write(os);
+
     os << preamble.str(); //user code
     
     os << "\nif __name__ == '__main__':\n";
@@ -138,6 +188,12 @@ public:
     for(int i=0;i<plothistogram_sets.size();i++)
       os << "\tplot_" << plothistogram_sets[i].tag() << " = " << "pyplot.plotHistogram(ax, " << plothistogram_sets[i].tag() << kwargsPrint(plothistogram_args[i]) << ")\n";
     
+    for(int i=0;i<ploterrorlines_sets.size();i++)
+      os << "\tplot_" << ploterrorlines_sets[i].tag() << " = " << "pyplot.plotErrorLines(ax, " << ploterrorlines_sets[i].tag() << kwargsPrint(ploterrorlines_args[i]) << ")\n";
+
+    for(int i=0;i<ploterrorcurves_sets.size();i++)
+      os << "\tplot_" << ploterrorcurves_sets[i].tag() << " = " << "pyplot.plotErrorCurves(ax, " << ploterrorcurves_sets[i].tag() << kwargsPrint(ploterrorcurves_args[i]) << ")\n";
+
     os << user.str(); //user code
     
     os << leg_py;    

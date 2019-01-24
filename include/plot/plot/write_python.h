@@ -64,5 +64,22 @@ struct ListPrint: public OstreamHook{
   }
 };
 
+template<typename T>
+class PythonTuple{
+  T v[2];
+public:
+  PythonTuple(){}
+  PythonTuple(const T&a, const T&b){ v[0]=a; v[1]=b; }
+
+  inline T & operator[](const int i){ return v[i]; }
+  inline const T & operator[](const int i) const{ return v[i]; }
+};
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const PythonTuple<T> &v){
+  os << "(" << v[0] <<  ", " << v[1] << ")";
+  return os;
+}
+
+
 CPSFIT_END_NAMESPACE
 #endif
