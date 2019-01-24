@@ -135,6 +135,108 @@ int svd_inverse(std::vector< std::vector<T> > &Ainv,
 }
 
 
+//Compute the Moore-Penrose pseudo-inverse (based on https://gist.github.com/turingbirds/5e99656e08dbe1324c99)
+//Requires a floating point matrix with  (i,j) accessor,  int rows() and int cols()
+//rcond is the threshold singular value below which it is considered to be exactly zero
+template<typename MatrixOutputType, typename MatrixInputType,
+	 ENABLE_IF_ELEM_TYPE_FLOATINGPT(MatrixInputType)
+	 >
+struct GSL_MoorePenrosePseudoInverse{
+  static void doit(MatrixOutputType &Ainv_, const MatrixInputType &A_, const double rcond = 1e-15){
+    typedef typename _get_elem_type<MatrixInputType>::type T;
+
+    size_t n = A_.rows();
+    size_t m = A_.cols();
+
+    gsl_matrix *A_base = gsl_matrix_alloc(n, m);
+    
+    gsl_matrix *A = A_base;
+    for(size_t i=0;i<n;i++)
+      for(size_t j=0;j<m;j++)
+	gsl_matrix_set(A, i, j, A_(i,j));
+    
+    gsl_matrix *_tmp_mat = NULL;
+    double x, cutoff;
+    bool was_swapped = false;
+
+    if (m > n) {
+      /* libgsl SVD can only handle the case m <= n - transpose matrix */
+      was_swapped = true;
+      _tmp_mat = gsl_matrix_alloc(m, n);
+      gsl_matrix_transpose_memcpy(_tmp_mat, A);
+      A = _tmp_mat;
+      size_t i = m;
+      m = n;
+      n = i;
+    }
+
+    /* do SVD */
+    gsl_matrix *V = gsl_matrix_alloc(m, m);
+    gsl_vector *u = gsl_vector_alloc(m);
+    gsl_vector *_tmp_vec = gsl_vector_alloc(m);
+    gsl_linalg_SV_decomp(A, V, u, _tmp_vec);
+    gsl_vector_free(_tmp_vec);
+
+    /* compute \Sigma^{-1} */
+    gsl_matrix *Sigma_pinv = gsl_matrix_alloc(m, n);
+    gsl_matrix_set_zero(Sigma_pinv);
+    cutoff = rcond * gsl_vector_max(u);
+    
+    for (size_t i = 0; i < m; ++i) {
+      x = gsl_vector_get(u, i) > cutoff ? 1. / gsl_vector_get(u, i) : 0.;
+      gsl_matrix_set(Sigma_pinv, i, i, x);
+    }
+    
+    /* libgsl SVD yields "thin" SVD - pad to full matrix by adding zeros */
+    gsl_matrix *U = gsl_matrix_alloc(n, n);
+    gsl_matrix_set_zero(U);
+    
+    for(size_t i = 0; i < n; ++i)
+      for(size_t j = 0; j < m; ++j)
+	gsl_matrix_set(U, i, j, gsl_matrix_get(A, i, j));
+
+    if(_tmp_mat != NULL)
+      gsl_matrix_free(_tmp_mat);
+
+    /* two dot products to obtain pseudoinverse */
+    _tmp_mat = gsl_matrix_alloc(m, n);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1., V, Sigma_pinv, 0., _tmp_mat);
+    
+    gsl_matrix *A_pinv;
+    if (was_swapped) {
+      A_pinv = gsl_matrix_alloc(n, m);
+      gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1., U, _tmp_mat, 0., A_pinv);
+
+      for(int i=0;i<n;i++)
+	for(int j=0;j<m;j++)
+	  gsl_matrix_set(A, i, j, A_(i,j));
+    }
+    else {
+      A_pinv = gsl_matrix_alloc(m, n);
+      gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1., _tmp_mat, U, 0., A_pinv);
+
+      for(int i=0;i<m;i++)
+	for(int j=0;j<n;j++)
+	  gsl_matrix_set(A, i, j, A_(i,j));
+    }
+    
+    gsl_matrix_free(A_base);
+    gsl_matrix_free(_tmp_mat);
+    gsl_matrix_free(U);
+    gsl_matrix_free(Sigma_pinv);
+    gsl_vector_free(u);
+    gsl_matrix_free(V);
+    gsl_matrix_free(A_pinv);
+  }
+};
+
+
+
+
+
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

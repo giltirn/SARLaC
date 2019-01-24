@@ -4,6 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_tensor/class.h>
+#include<tensors/numeric_square_matrix/invert.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -82,6 +83,58 @@ struct resampleFunctor{
     return o;
   }
 };
+
+template<typename T>
+int svd_inverse(NumericTensor<T,2> &Ainv,
+		const NumericTensor<T,2> &A,
+		T &condition_number){
+  if(A.size(0) != A.size(1)) error_exit(std::cout << "svd_inverse of rank-2 numeric tensor requires a square matrix!\n");
+  int N = A.size(0);
+  Ainv.resize({N,N});
+
+  NumericSquareMatrix<T> Ainvs(N,A({0,0}));
+  NumericSquareMatrix<T> As(N, [&](const int i, const int j){ return A({i,j}); });
+  int out = svd_inverse(Ainvs,As,condition_number);
+  for(int i=0;i<N;i++)
+    for(int j=0;j<N;j++)
+      Ainv({i,j}) = std::move(Ainvs(i,j));
+  return out;
+}
+template<typename T>
+inline int svd_inverse(NumericTensor<T,2> &Ainv,
+		       const NumericTensor<T,2> &A){
+  T c;
+  return svd_inverse(Ainv,A,c);
+}
+
+template<typename T, ENABLE_IF_FLOATINGPT(T)>
+void MoorePenrosePseudoInverse(NumericTensor<T,2> &Ainv,
+			       const NumericTensor<T,2> &A,
+			       const double rcond = 1e-15){
+  struct view{
+    NumericTensor<T,2> &M;
+    inline size_t rows() const{ return M.size(0); }
+    inline size_t cols() const{ return M.size(1); }
+    T &operator()(const size_t i, const size_t j){ return M({i,j}); }
+    view(NumericTensor<T,2> &M): M(M){}
+  };
+  struct const_view{
+    const NumericTensor<T,2> &M;
+    inline size_t rows() const{ return M.size(0); }
+    inline size_t cols() const{ return M.size(1); }
+    const T &operator()(const size_t i, const size_t j) const{ return M({i,j}); }
+    const_view(const NumericTensor<T,2> &M): M(M){}
+  };
+
+  Ainv.resize(A.size(1), A.size(0));
+  
+  const_view in(A);
+  view out(Ainv);
+
+  GSL_MoorePenrosePseudoInverse<view,const_view>::doit(out,in,rcond);
+}
+
+//DO FOR DISTRIBUTION TOO
 
 
 CPSFIT_END_NAMESPACE

@@ -12,7 +12,7 @@
 
 CPSFIT_START_NAMESPACE
 
-class GSLvector{
+class GSLvector{  
   gsl_vector * v;
   
 public:
@@ -24,6 +24,18 @@ public:
   inline GSLvector(const GSLvector &r){ 
     v = gsl_vector_alloc(r.dim());
     gsl_vector_memcpy (v,r.v);
+  }
+  inline GSLvector(GSLvector &&r){
+    v = r.v; r.v=NULL;
+  }
+
+  inline GSLvector & operator=(const GSLvector &r){ 
+    v = gsl_vector_alloc(r.dim());
+    gsl_vector_memcpy (v,r.v);
+    return *this;
+  }
+  inline GSLvector & operator=(GSLvector &&r){ 
+    v = r.v; r.v=NULL; return *this;
   }
 
   inline const double & operator[](const int i) const{ return *gsl_vector_const_ptr(v,i); }
@@ -55,6 +67,12 @@ public:
     gsl_vector_add_constant(v,x); return *this;
   }
 
+  inline GSLvector & operator/=(const double x){
+    for(int i=0;i<this->dim();i++) this->operator[](i)/=x;
+    return *this;
+  }
+
+
   //Compute the Euclidean norm ||x||_2 = \sqrt {\sum x_i^2} of the vector x. 
   inline double norm() const{ 
     return gsl_blas_dnrm2 (v);
@@ -66,13 +84,16 @@ public:
   }
 
   inline ~GSLvector(){
-    gsl_vector_free(v);
+    if(v!=NULL) gsl_vector_free(v);
   }
 
   friend inline double dot(const GSLvector &a, const GSLvector &b);
 };
 inline std::ostream & operator<<(std::ostream &os, const GSLvector &v){
-  os << "(" << v[0] << "," << v[1] << "," << v[2] << ")"; return os;
+  os << "(";
+  for(int i=0;i<v.dim();i++){ os << v[i] << (i!=v.dim()-1 ? "," : ""); }
+  os << ")";
+  return os;
 }
 
 
@@ -80,6 +101,10 @@ inline double dot(const GSLvector &a, const GSLvector &b){
   double out;
   gsl_blas_ddot (a.v,b.v,&out);
   return out;
+}
+
+inline GSLvector operator+(const GSLvector &a, const GSLvector &b){
+  GSLvector out(a); out += b; return out;
 }
 
 inline GSLvector operator-(const GSLvector &a, const GSLvector &b){
@@ -92,7 +117,9 @@ inline GSLvector operator*(const double x, const GSLvector &v){
 inline GSLvector operator*(const GSLvector &v,const double x){
   GSLvector out(v); out *= x; return out;
 }
-
+inline GSLvector operator/(const GSLvector &v,const double x){
+  GSLvector out(v); out /= x; return out;
+}
 
 CPSFIT_END_NAMESPACE
 

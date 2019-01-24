@@ -165,6 +165,13 @@ public:
   static inline double errminus(const T &d){ return 0; }  
 };
 
+template<typename DistributionType> //specialize if necessary
+class DistributionCoordinateAccessor{
+public:
+  static inline double value(const DistributionType &d){ return d.mean(); }
+  static inline double errplus(const DistributionType &d){ return d.standardError(); }
+  static inline double errminus(const DistributionType &d){ return d.standardError(); }  
+};
 
 
 CPSFIT_END_NAMESPACE

@@ -1,5 +1,6 @@
 #ifndef LUSCHER_ZETA_H
 #define LUSCHER_ZETA_H
+#include<array>
 #include<gsl/gsl_integration.h>
 #include<gsl/gsl_math.h>
 #include<gsl/gsl_sf_gamma.h>
@@ -16,8 +17,6 @@
 
 CPSFIT_START_NAMESPACE
 
-inline double square(const double x){ return x*x; }
-
 //Luscher's quantization condition is
 //n*\pi - \delta_0(k) = \phi(q) 
 //where q = kL/2\pi  and  k is the solution of E_{\pi\pi} = 2\sqrt( m_\pi^2 + k^2 )
@@ -27,8 +26,9 @@ inline double square(const double x){ return x*x; }
 
 class LuscherZeta{
   //Private variables
-  GSLvector d; //H-parity or G-parity twist directions (x,y,z): there is a twist, use 1.0 or else use 0.0 
-  GSLvector dnorm; //Normalised BC vector
+  GSLvector l; //H-parity or G-parity twist directions (x,y,z): there is a twist, use 1.0 or else use 0.0 
+
+  GSLvector d; //(L/(2\pi))\vec P_CM     center of mass momentum in units of 2pi/L
   int N; //First integral is over integer-component vectors in Z^3. The input parameter 'N" sets the maximum magnitude of these vectors
 
   //Errors on the integrals
@@ -60,7 +60,7 @@ class LuscherZeta{
     //do the integral
     gsl_integration_cquad_workspace * workspace = gsl_integration_cquad_workspace_alloc(100);
     
-    double start = 1e-06;
+    double start = 1e-12;
     double end = 1.0;
 
     double result;
@@ -69,47 +69,59 @@ class LuscherZeta{
     return result;
   }
 
-  double z3sum(const double q, const GSLvector &n) const{
-    double r2 = square(n[0]+d[0]/2.0)+square(n[1]+d[1]/2.0)+square(n[2]+d[2]/2.0);
-    double q2 = square(q);
+  inline GSLvector gammaOpGen(const GSLvector &n, double gamma, bool inv) const{
+    GSLvector dunit = d.norm() == 0. ? GSLvector(3,0.) : d/d.norm();
+    GSLvector npar = dot(n,dunit)*dunit;
+    GSLvector nperp = n - npar;
+    return (inv ? 1./gamma : gamma) * npar + nperp;
+  }
+  inline GSLvector gammaOp(const GSLvector &n, double gamma) const{ return gammaOpGen(n,gamma,false); }
+  inline GSLvector invGammaOp(const GSLvector &n, double gamma) const{ return gammaOpGen(n,gamma,true); }
+
+  double z3sum(const double q, const GSLvector &n, double gamma) const{
+    GSLvector r = n + d/2. + l/2.;
+    r = invGammaOp(r,gamma);
+
+    double r2 = r.norm2();
+    double q2 = q*q;
     double out = 0.0;
         
-    //printf("z3sum with q = %f and n = %f %f %f\n",q,n[0],n[1],n[2]);
-
     //sum over e^{-(r^2 - q^2)}/(r^2 - q^2)        
     out += exp(q2-r2) / (r2-q2);
 
     //skip integral for 0 vector
     if(n[0]==0.0 && n[1]==0.0 && n[2]==0.0)
       return out;
+    
+    //integral \gamma \int_0^1 dt e^{q^2t} (\pi/t)^{3/2} e^{-\pi^2 |\vec h|^2/t}
+    //where   \vec h = \hat gamma \vec n
+    GSLvector h = gammaOp(n,gamma);
+    double h2 = h.norm2();
 
-    //integral \int_0^1 dt e^{q^2t} (\pi/t)^{3/2} e^{-\pi^2 r^2/t} modified for APBC where appropriate (modifies r (aka n) )
-    //define n_perp = n - (n \cdot dnorm) dnorm  is perpendicular to d
-    double dcoeff = dot(n,dnorm);
-    GSLvector np = n - dcoeff*dnorm;
-    double gn2 = square(dcoeff) + np.norm2();
-
-    double int_n = int_zeta(q*q,gn2);
-    out += int_n*pow(-1, dot(n,d));
+    double int_n = int_zeta(q2,h2);
+    out += gamma*int_n*pow(-1, dot(n,d+l));
 
     return out;
   }
-  
- public:
-  LuscherZeta(): d(3), dnorm(3), N(5), epsabs(1e-06),epsrel(1e-06) {}
-  LuscherZeta(const double x, const double y, const double z): d(3), dnorm(3), N(5), epsabs(1e-06),epsrel(1e-06){
-    setTwists(x,y,z);
+
+  void setPCMvec(const std::array<double,3> &_d){
+    for(int i=0;i<3;i++) d[i] = _d[i];
   }
 
-  void setTwists(const double x, const double y, const double z){
-    d[0] = x; d[1] = y; d[2] = z;
-    double dnrm = d.norm();
-    if(d[0]==0 && d[1]== 0 && d[2]==0) dnrm = 1;
-    
+  //H-parity/G-parity spatial directions: 1,   otherwise 0
+  void setTwists(const std::array<int,3> &_l){
     for(int i=0;i<3;i++){
-      if(d[i] != 0.0 && d[i] != 1.0){ std::cout << "LuscherZeta::setTwists : Error, arguments must be 0 or 1\n"; exit(-1); }
-      dnorm[i] = double(d[i])/dnrm; //normalize d
+      if(l[i] != 0 && l[i] != 1){ std::cout << "LuscherZeta::setTwists : Error, arguments must be 0 or 1\n"; exit(-1); }
+      l[i] = _l[i];
     }
+  }
+  
+ public:
+  //\vec d = \vec P_CM / (2pi/L)
+  //\vec l :  H-parity/G-parity spatial directions: 1,   otherwise 0
+  LuscherZeta(const std::array<int,3> &_l, const std::array<double,3> &_d): l(3), d(3), N(5), epsabs(1e-06),epsrel(1e-06){
+    setTwists(_l);
+    setPCMvec(_d);
   }
 
   inline void setIntegrationErrorBounds(const double eps_abs, const double eps_rel){
@@ -120,25 +132,26 @@ class LuscherZeta{
     N = iN;
   }
         
-  double calcZeta00(const double q) const{
+  //gamma: Lorentz boost computed as   E/sqrt(E^2 - |P_CM|^2)   where E is the measured pipi energy
+  double calcZeta00(const double q, const double gamma) const{
     //q is a scalar modulus
     double result = 0.0;
     //outer loop over vectors in Z^3
+    GSLvector n(3);
     for(int nx = -N; nx <= N; ++nx){
       int Ny( floor(sqrt( double(N*N - nx*nx) )) );
       for(int ny = -Ny; ny <= Ny; ++ny){
 	int Nz( floor(sqrt( double(N*N - nx*nx - ny*ny) ) + 0.5 ) ); //round to nearest int
 	for(int nz = -Nz; nz <= Nz; ++nz){
-	  GSLvector n(3);
 	  n[0] = nx; n[1] = ny; n[2] = nz;
-	  result += z3sum(q,n);
+	  result += z3sum(q,n,gamma);
 	}
       }
     }
     
     //constant part
     double const_part = 0.0;
-    double q2 = square(q);
+    double q2 = q*q;
     bool warn = true;
     for(unsigned int l=0;l<100;l++){
       double c_aux = pow(q2,l) / gsl_sf_fact(l) / (l-0.5);
@@ -148,63 +161,52 @@ class LuscherZeta{
       }
       const_part += c_aux;
     }
-    if(warn) printf("Warning: reaches the maximum loop number when doing the summation\n");
+    if(warn) printf("LuscherZeta warning: In determination reached the maximum loop number when doing the summation\n");
 
-    result += pow(M_PI,1.5)*const_part;
+    result += gamma*pow(M_PI,1.5)*const_part;
     result /= sqrt(4*M_PI);
     return result;
   }
 
-  inline double calcPhi(const double q) const{
-    return atan(-q*pow(M_PI,1.5)/calcZeta00(q));
+  inline double calcPhi(const double q, const double gamma = 1.) const{
+    return atan(-gamma*q*pow(M_PI,1.5)/calcZeta00(q,gamma));
   }
-
+  //Assumes gamma = 1.
   inline double calcPhiDeriv(const double q, const double frac_shift = 1e-04) const{
     double dq = frac_shift * q;
-    return ( calcPhi(q+dq) - calcPhi(q-dq) )/(2.*dq);
+    return ( calcPhi(q+dq,1.) - calcPhi(q-dq,1.) )/(2.*dq);
   }
-};
 
-//Test by comparing with numbers computed by Daiqian (based off Qi's MatLab code) 
-class ZetaTesting{
-public:
-  ZetaTesting(){
-    LuscherZeta zeta;
-    
-    //q  dx dy dz phi
-    //0.100000	0	0	1	0.790456
-    zeta.setTwists(0,0,1);
-    printf("0.100000	0	0	1	Expect 0.790456 Got %.6f\n", zeta.calcPhi(0.1));
-      
-    //0.300000	1	1	1	1.079671
-    zeta.setTwists(1,1,1);
-    printf("0.300000	1	1	1	Expect 1.079671 Got %.6f\n", zeta.calcPhi(0.3));
-
-    //0.400000	0	0	0	0.571791
-    zeta.setTwists(0,0,0);
-    printf("0.400000	0	0	0	Expect 0.571791  Got %.6f\n", zeta.calcPhi(0.4));
-
-    //2.000000	1	1	1	-1.315088
-    zeta.setTwists(1,1,1);
-    printf("2.000000	1	1	1	Expect -1.315088 Got %.6f\n", zeta.calcPhi(2.0));
-  }
+  const GSLvector &getd() const{ return d; }
+  const GSLvector &getl() const{ return l; }
 };
 
 //Compute the pipi-scattering phase shift in degrees given a pipi-energy E, a pion mass m, lattice spatial size L (assumed equal for all 3 spatial directions)
 //and a zeta function/number of antiperiodic directions
+//As twists and d not dependent on energy (i.e. don't vary between jackknife samples) we can use the same Zeta instance under a thread loop
+inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, const int L){
+  //Compute the Lorentz factor gamma = E/sqrt(E^2 - |P_CM|^2)
+  const GSLvector &d = zeta.getd();
+  double _2pidL = 2*M_PI/L;
+  double Pcm2 = _2pidL*_2pidL* d.norm2();
+  double gamma = E/sqrt(E*E - Pcm2);
 
-inline double phaseShiftZ(const double E, const double m, const int L, const LuscherZeta &zeta){
+  //Boost energy to CM frame
+  E = E/gamma;
+  
+  //k, q are computed in CM frame
   double k = sqrt( pow(E/2.,2.0) - m*m );
   double q = k * L/2./M_PI;
-  double delta = -zeta.calcPhi(q);
+  double delta = -zeta.calcPhi(q,gamma);
   while(delta > M_PI) delta -= M_PI;
   while(delta < -M_PI) delta += M_PI;
   return delta/M_PI * 180;
 }
 
-inline double phaseShift(const double E, const double m, const int L, const std::vector<int> twists = {0,0,0}){
-  LuscherZeta zeta(twists[0],twists[1],twists[2]);
-  return phaseShiftZ(E,m,L,zeta);
+//d= Pcm /(2pi/L) 
+inline double phaseShift(const double E, const double m, const int L, const std::array<int,3> &twists = {0,0,0}, const std::array<double,3> &d = {0.,0.,0.}){
+  LuscherZeta zeta(twists, d);
+  return phaseShiftZ(zeta,E,m,L);
 }
 
 CPSFIT_END_NAMESPACE

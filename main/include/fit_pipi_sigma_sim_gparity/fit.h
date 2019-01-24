@@ -102,6 +102,7 @@ void fit_corr_uncorr(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data
 
   struct PP{
     inline static void print(std::ostream &os, const SimFitCoord &c){ os << "(" << c.type << "," << c.t << ")" ; }
+    inline static std::string typeInfo(const SimFitCoord &c){ std::ostringstream os; os << c.type; return os.str(); }   
   };
 
   AnalyzeChisq<FitFunc,PP> chisq_analyze(data_j, fitfunc, params, ledoit_wolf_lambda);

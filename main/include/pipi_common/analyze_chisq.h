@@ -9,6 +9,7 @@ using namespace CPSfit;
 template<typename CoordType>
 struct CoordPrintPolicyBasic{
   inline static void print(std::ostream &os, const CoordType &c){ os << c; }
+  inline static std::string typeInfo(const CoordType &c){ return "all"; } //allows data contributions to chi^2 to be sorted by a type
 };
 
 enum WhichMatrix{ Covariance, Correlation, CorrelationLedoitWolf };
@@ -279,6 +280,7 @@ public:
 
     for(int i=0;i<evecs.size();i++){
       std::vector<std::pair<int,double> > contribs(fitval.size());
+      std::map<std::string, double> type_contribs;
 
       double tot = 0;
       os << "Mode " << i << ":\n";
@@ -294,6 +296,12 @@ public:
 	tot += contrib;
 
 	contribs[tt] = {tt, contrib};
+	
+	//Sum up contributions for each data type
+	std::string type = CoordPrintPolicy::typeInfo(data_inrange.coord(tt));
+	auto it = type_contribs.find(type);
+	if(it != type_contribs.end()) it->second += contrib;
+	else type_contribs[type] = contrib;
       }
       os << "Projected eval-normalized mode total: " << tot << std::endl;
       os << "Contrib to chi^2: (" << tot << ")^2" << " = " << tot*tot << std::endl; 
@@ -306,6 +314,11 @@ public:
 	os << " " << contribs[tt].second << std::endl;
 
 	fraction_worse[didx][i] = double(fitval.size()-tt-1)/fitval.size();	
+      }
+
+      os << "Contributions per data type (total " << tot << "):\n";
+      for(auto it=type_contribs.begin(); it!=type_contribs.end(); it++){
+	os << it->first << " " << it->second << std::endl;
       }
     }
     

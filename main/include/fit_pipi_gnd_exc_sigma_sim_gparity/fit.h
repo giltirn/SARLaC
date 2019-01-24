@@ -11,6 +11,7 @@ void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistribu
     inline static PtrType & descr(){ static PtrType p; return p; }
 
     inline static void print(std::ostream &os, const SimFitCoordGen &c){ os << "(" << descr()->find(c.param_map)->second << "," << c.t << ")" ; }
+    inline static std::string typeInfo(const SimFitCoordGen &c){ return descr()->find(c.param_map)->second; }
   };
   PP::descr() = &pmap_descr;
   

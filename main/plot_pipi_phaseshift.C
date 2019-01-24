@@ -50,11 +50,11 @@ struct DiscontinuousCurve{
 
 struct LuscherCurve: public DiscontinuousCurve{
   LuscherCurve(const double mpi, const int L, const double Emin, const double Emax, const int npoints, const std::vector<int> &twists){
-    LuscherZeta zeta(twists[0],twists[1],twists[2]);
+    LuscherZeta zeta({twists[0],twists[1],twists[2]}, {0,0,0});
     double dE = (Emax - Emin)/(npoints-1);
     for(int i=0;i<npoints;i++){
       double E = Emin + i*dE;
-      this->add(E, phaseShiftZ(E,mpi,L,zeta));
+      this->add(E, phaseShiftZ(zeta,E,mpi,L));
     }
   }
 };
@@ -70,7 +70,7 @@ struct SchenkCurve: public DiscontinuousCurve{
       double E_latt = Emin_latt + i*dE;
       double s_MeV2 = pow(E_latt * ainv_MeV,2);
 
-      this->add(E_latt, PhenoCurve::compute(s_MeV2, I, mpi_MeV, curve) * 180./M_PI);
+      this->add(E_latt, PhenoCurveSchenk::compute(s_MeV2, I, mpi_MeV, curve) * 180./M_PI);
     }    
   }
 };

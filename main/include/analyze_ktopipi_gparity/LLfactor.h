@@ -54,7 +54,7 @@ superJackknifeDistribution<double> getPhaseShiftDerivSchenk(const superJackknife
 					      //double dq_by_dEpipi = Epipi_b /(4*qpipi_b) * pow(2*M_PI/Lphys,-2);
 					      //double ds_by_dq = 2*Epipi_b / dq_by_dEpipi;
 					      double ds_by_dq = 8 * pow(2*M_PI/Lphys,2) * qpipi_b;
-					      double ddelta_by_ds = PhenoCurve::compute_deriv(s,0,mpi_b,'B',1e-02); //radians/(MeV^2)
+					      double ddelta_by_ds = PhenoCurveSchenk::compute_deriv(s,0,mpi_b,'B',1e-02); //radians/(MeV^2)
 					      double ddelta_by_dq = ddelta_by_ds * ds_by_dq;
 					      if(b==-1){
 						std::cout << "a^{-1} = " << ainv_b << " MeV,  Epipi = " << Epipi_b << " MeV, q =" << qpipi_b << " (dimensionless), mpi = " << mpi_b << " MeV, s = " << s
@@ -124,7 +124,7 @@ void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0_sj
   typedef superJackknifeDistribution<double> superJackD; 
   
   //Compute the phase shift and it's derivative wrt q
-  LuscherZeta zeta(args.twists[0],args.twists[1],args.twists[2]);
+  LuscherZeta zeta({args.twists[0],args.twists[1],args.twists[2]},  {0.,0.,0.});
 
   superJackD p_pipi_sj = sqrt( Epipi_sj*Epipi_sj/4 - mpi_sj*mpi_sj );
   superJackD q_pipi_sj = args.L * p_pipi_sj /( 2 * M_PI );
