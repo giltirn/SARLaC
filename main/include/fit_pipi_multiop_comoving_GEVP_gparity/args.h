@@ -16,6 +16,8 @@ typedef std::array<int,3> int_array_3;
   ( int, tstep_pipi) \
   ( bool, do_vacuum_subtraction ) \
   ( int, t_max) \
+  ( int, fit_tmin )				\
+  ( int, fit_tmax )				\
   ( int, bin_size) \
   ( int, traj_start ) \
   ( int, traj_inc ) \
@@ -29,9 +31,32 @@ struct Args{
     pipi_bubble_file_format("traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_pi1mom<PB>_pi2mom<PA>_symm"),
     operators({Operator::PiPiComoveGnd, Operator::PiPiComoveExc1, Operator::PiPiComoveExc2}),
     p_tot({{2,0,0}}), do_vacuum_subtraction(false),
-    Lt(64), tsep_pipi(4), tstep_pipi(8), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), bin_size(1){}
+    Lt(64), tsep_pipi(4), tstep_pipi(8), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), bin_size(1), fit_tmin(7), fit_tmax(11){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)
 
+
+
+#define SUBDATA_MEMBERS \
+  (int, state0)					\
+  (int, state1)					\
+  (std::string, file)				\
+  (std::vector<int>, idx)
+
+struct SubData{
+  GENERATE_MEMBERS(SUBDATA_MEMBERS);
+  SubData(): state0(0), state1(1), file("myfit.hdf5"), idx({4}){}
+};
+GENERATE_PARSER(SubData, SUBDATA_MEMBERS);
+
+#define SUBARGS_MEMBERS \
+  (std::vector<SubData>, sub) \
+  (double, scale)
+
+struct SubArgs{
+  GENERATE_MEMBERS(SUBARGS_MEMBERS);
+  SubArgs(): sub(1), scale(1e13){}
+};
+GENERATE_PARSER(SubArgs, SUBARGS_MEMBERS);
 
 #endif

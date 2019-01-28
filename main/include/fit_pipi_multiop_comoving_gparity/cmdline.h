@@ -108,6 +108,15 @@ struct CMDline{
       }else if(sargv[i] == "-load_priors"){
 	load_priors = true;
 	load_priors_file = sargv[i+1];
+
+	if(load_priors_file == "TEMPLATE"){
+	  std::cout << "Saving priors template file to priors_template.args" << std::endl;
+	  PriorArgs pa;
+	  std::ofstream of("priors_template.args");
+	  of << pa;
+	  of.close();
+	  exit(0);
+	}
 	i+=2;
       }else if(sargv[i] == "-load_mlparams"){
 	load_mlparams = true;

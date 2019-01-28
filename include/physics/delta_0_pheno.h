@@ -56,7 +56,7 @@ public:
 
 class PhenoCurveColangelo{
 public:
-  //Calculates \delta_0 pi-pi scattering length in radians
+  //Calculates \delta_0 pi-pi scattering length in *radians*
   //s is the Mandelstam variable s=E_pipi^2
   //I is the isospin : 0 or 2
   //The parameterization is from Colangelo, Nucl. Phys. B603 (2001) 125-179   eqs 17.1- 17.3

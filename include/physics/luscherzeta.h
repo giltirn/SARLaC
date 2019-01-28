@@ -184,18 +184,70 @@ class LuscherZeta{
 //Compute the pipi-scattering phase shift in degrees given a pipi-energy E, a pion mass m, lattice spatial size L (assumed equal for all 3 spatial directions)
 //and a zeta function/number of antiperiodic directions
 //As twists and d not dependent on energy (i.e. don't vary between jackknife samples) we can use the same Zeta instance under a thread loop
-inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, const int L){
+enum class DispersionRelation { Continuum, Sin, SinhSin };
+
+inline double getSinP2(const GSLvector &p){
+  double p2 = 0.;
+  for(int i=0;i<3;i++){
+    double k = 2*sin(p[i]/2.);
+    p2 += k*k;
+  }
+  return p2;
+}
+
+double dispersionRelationGetEnergy(const DispersionRelation disp, double m, GSLvector p, const double punit = 1.){
+  for(int i=0;i<3;i++) p[i] *= punit;
+
+  if(disp == DispersionRelation::Continuum){ //E^2 = m^2 + \sum_i k_i^2 
+    return sqrt( m*m + p.norm2() );
+  }else if(disp == DispersionRelation::Sin){ //E^2 = m^2 + \sum_i [ 2 sin(k_i/2) ]^2
+    double p2 = getSinP2(p);
+    return sqrt( m*m + p2 );
+  }else if(disp == DispersionRelation::SinhSin){ // 4 sinh^2(E/2) = \sum_i [ 2 sin(k_i/2) ]^2  +  4 sinh^2(m/2)    From https://www2.ccs.tsukuba.ac.jp/workshop/ilft04/presen/Edwards.pdf
+    double p2 = getSinP2(p);
+    double h = p2 + pow(2*sinh(m/2), 2);
+    h = sqrt(h/4.);
+    return 2*asinh(h);
+  }else{
+    assert(0);
+  }
+}
+double dispersionRelationGetMass(const DispersionRelation disp, double E, GSLvector p, const double punit = 1.){
+  for(int i=0;i<3;i++) p[i] *= punit;
+
+  if(disp == DispersionRelation::Continuum){ //E^2 = m^2 + \sum_i k_i^2 
+    return sqrt( E*E - p.norm2() );
+  }else if(disp == DispersionRelation::Sin){ //E^2 = m^2 + \sum_i [ 2 sin(k_i/2) ]^2
+    double p2 = getSinP2(p);
+    return sqrt( E*E - p2 );
+  }else if(disp == DispersionRelation::SinhSin){ // 4 sinh^2(E/2) = \sum_i [ 2 sin(k_i/2) ]^2  +  4 sinh^2(m/2)
+    double p2 = getSinP2(p);
+    double h = pow(2*sinh(E/2), 2) - p2;
+    h = sqrt(h/4.);
+    return 2*asinh(h);
+  }else{
+    assert(0);
+  }
+}
+
+
+//Energy E is in the *lab frame*
+//Phase shift is in degrees
+inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, const int L, const DispersionRelation dispn = DispersionRelation::Continuum){
+  //Continuum dispersion relation  Continuum:  E^2 = m^2 + \sum_i k_i^2 
+  //Free scalar field dispersion relation   Sin:  E^2 = m^2 + \sum_i [ 2 sin(k_i/2) ]^2
+  //Lattice dispersion relation
+
   //Compute the Lorentz factor gamma = E/sqrt(E^2 - |P_CM|^2)
   const GSLvector &d = zeta.getd();
-  double _2pidL = 2*M_PI/L;
-  double Pcm2 = _2pidL*_2pidL* d.norm2();
-  double gamma = E/sqrt(E*E - Pcm2);
+  double gamma = E/dispersionRelationGetMass(dispn, E, d, 2*M_PI/L);
 
   //Boost energy to CM frame
   E = E/gamma;
   
   //k, q are computed in CM frame
   double k = sqrt( pow(E/2.,2.0) - m*m );
+  
   double q = k * L/2./M_PI;
   double delta = -zeta.calcPhi(q,gamma);
   while(delta > M_PI) delta -= M_PI;
@@ -204,9 +256,9 @@ inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, con
 }
 
 //d= Pcm /(2pi/L) 
-inline double phaseShift(const double E, const double m, const int L, const std::array<int,3> &twists = {0,0,0}, const std::array<double,3> &d = {0.,0.,0.}){
+inline double phaseShift(const double E, const double m, const int L, const std::array<int,3> &twists = {0,0,0}, const std::array<double,3> &d = {0.,0.,0.}, const DispersionRelation dispn = DispersionRelation::Continuum){
   LuscherZeta zeta(twists, d);
-  return phaseShiftZ(zeta,E,m,L);
+  return phaseShiftZ(zeta,E,m,L,dispn);
 }
 
 CPSFIT_END_NAMESPACE

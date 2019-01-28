@@ -27,6 +27,15 @@ int svd_inverse(NumericSquareMatrix<NumericDist> &Ainv,
 	        const NumericSquareMatrix<NumericDist> &A,
 		NumericDist &condition_number){ 
   const int nsample = A(0,0).size();
+
+  if(Ainv.size() != A.size()) error_exit(std::cout << "svd_inverse(NumericSquareMatrix<NumericDist> &Ainv, const NumericSquareMatrix<NumericDist> &A, NumericDist &condition_number) inverse matrix must have same size as input matrix\n");
+  for(int i=0;i<A.size();i++){
+    for(int j=0;j<A.size();j++){
+      if(A(i,j).size() != nsample) error_exit(std::cout << "svd_inverse(NumericSquareMatrix<NumericDist> &Ainv, const NumericSquareMatrix<NumericDist> &A, NumericDist &condition_number) sample number discrepancy for A(" << i << ","<< j << ") got " << A(i,j).size() << " expect " << nsample << "\n");
+      if(Ainv(i,j).size() != nsample) error_exit(std::cout << "svd_inverse(NumericSquareMatrix<NumericDist> &Ainv, const NumericSquareMatrix<NumericDist> &A, NumericDist &condition_number) sample number discrepancy for Ainv(" << i << ","<< j << ") got " << Ainv(i,j).size() << " expect " << nsample << "\n");
+    }
+  }
+
   int ret = 0;
   std::vector<int> ret_thr(omp_get_max_threads(),0);
   

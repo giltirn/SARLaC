@@ -130,6 +130,7 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
 
   int nsample = (traj_lessthan - traj_start)/traj_inc;
   parser->setup(into, nsample, Lt);
+#pragma omp parallel for
   for(int s=0;s<nsample;s++){
     std::ostringstream os; os << traj_start + s*traj_inc;
     std::string filename = data_info.file_fmt;

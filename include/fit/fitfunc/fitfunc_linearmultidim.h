@@ -5,7 +5,7 @@
 
 #include<config.h>
 #include<utils/macros.h>
-#include<tensors/numeric_vector.h>
+#include<containers/parameter_vector.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -21,7 +21,7 @@ auto getCoord(const int i, const T &coord, ...)->decltype( coord[0] ){ return co
 
 //Dimension 0 just includes the constant term
 template<typename _GeneralizedCoordinate, typename Numeric, int Dimension,
-	 typename _ParameterType = NumericVector<Numeric>,  typename _ValueDerivativeType = NumericVector<Numeric> >  //p[0] + p[1]*x[0] + p[2]*x[1] + ...
+	 typename _ParameterType = parameterVector<Numeric>,  typename _ValueDerivativeType = parameterVector<Numeric> >  //p[0] + p[1]*x[0] + p[2]*x[1] + ...
 class FitFuncLinearMultiDim{
 public:
   typedef Numeric ValueType;

@@ -108,6 +108,27 @@ int main(const int argc, const char* argv[]){
     }
   }
 
+  if(cmdline.subtract_from_data){
+    SubArgs subargs;
+    parse(subargs, cmdline.subtract_from_data_file);
+    
+    NumericSquareMatrix<jackknifeDistributionD> M(nop, jackknifeDistributionD(nsample,0.));
+    
+    for(int i=0;i<subargs.sub.size();i++){
+      jackknifeDistributionD c;
+      readHDF5file(c, subargs.sub[i].file, subargs.sub[i].idx);
+      M(subargs.sub[i].state0, subargs.sub[i].state1) = M(subargs.sub[i].state1, subargs.sub[i].state0) = c * subargs.scale;
+    }
+    std::cout << "Subtracting constant matrix:\n" << M << std::endl;
+    
+    for(int t=0;t<C.size();t++){
+      //std::cout << t << "\n" << C << "\n ----> \n";
+      C.value(t) = C.value(t) - M;
+      //std::cout << C << std::endl;
+    }
+  }
+
+
   //Perform GEVP
   std::cout << "Solving GEVP" << std::endl;
   GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
@@ -155,6 +176,104 @@ int main(const int argc, const char* argv[]){
       }
     }
   }
+
+  //If t-t0=C  where C is a constant, and we restrict  t0 >= t/2   then any t0 >= 2C is valid
+  for(int C=1; C<5; C++){
+    std::cout << "Examining energies with t-t0=" << C << " and t0 >= t/2   i.e. t0 >= 2C = " << 2*C << "\n";
+
+    std::vector< correlationFunction<double,  jackknifeDistributionD> > state_t0dep(nop);
+
+    for(int t0=2*C; t0 < args.t_max; t0++){
+      int t = C + t0;
+      
+      auto E = gevp.effectiveEnergy(t0,t);
+      if(E.size() > 0){	
+	std::cout << t0 << " " << t;
+	for(int n=0;n<nop;n++){
+	  std::cout << " " << E[n];	
+	  if(!std::isnan(E[n].mean()) && !std::isnan(E[n].standardError())){
+	    state_t0dep[n].push_back(t0, E[n]);
+	  }
+	}
+	std::cout << std::endl;
+      }
+    }
+
+    MatPlotLibScriptGenerate plot;
+    typedef DataSeriesAccessor< correlationFunction<double,  jackknifeDistributionD>, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
+    for(int n=0;n<nop;n++){
+      if(state_t0dep[n].size() > 0){
+	plot.plotData(accessor(state_t0dep[n]));
+      }
+    }
+    std::string stub = stringize("plot_fixedtmt0%d", C);
+    plot.write(stub + ".py", stub + ".pdf");    
+
+    //Do a frozen correlated fit to each operator
+    typedef FitFuncLinearMultiDim<double,double,0> FitFunc;    
+    for(int n=0;n<nop;n++){
+      std::cout << "Doing frozen correlated fit for operator " << n << " for C= "<< C << std::endl;
+
+      correlationFunction<double,  jackknifeDistributionD> data_inrange;
+      for(int i=0;i<state_t0dep[n].size();i++){
+	int t = (int)state_t0dep[n].coord(i);
+	if(t >= args.fit_tmin && t <= args.fit_tmax){
+	  data_inrange.push_back(t, state_t0dep[n].value(i));
+	}
+      }
+      if(data_inrange.size() > 0){
+	FitFunc fitfunc;
+
+	typedef typename composeFitPolicy<FitFunc, standardFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+	typename fitter<FitPolicies>::minimizerParamsType mlparams;
+	mlparams.verbose = false;
+	fitter<FitPolicies> fit(mlparams);
+	fit.importFitFunc(fitfunc);
+
+	int N = data_inrange.size();
+	NumericSquareMatrix<jackknifeDistributionD> cov(N);
+	for(int i=0;i<N;i++)
+	  for(int j=i;j<N;j++){
+	    double cv = jackknifeDistributionD::covariance(data_inrange.value(i), data_inrange.value(j));
+	    cov(i,j) = cov(j,i) = jackknifeDistributionD(nsample,cv);
+	  }
+
+	NumericVector<jackknifeDistributionD> sigma(N);
+	for(int i=0;i<N;i++)
+	  sigma(i) = sqrt(cov(i,i));
+
+	NumericSquareMatrix<jackknifeDistributionD> corr(N);
+	for(int i=0;i<N;i++)
+	  for(int j=i;j<N;j++)
+	    corr(i,j) = corr(j,i) = cov(i,j)/sigma(i)/sigma(j);
+	
+	NumericSquareMatrix<jackknifeDistributionD> inv_corr(corr);
+	svd_inverse(inv_corr, corr);
+	
+	fit.importCostFunctionParameters(inv_corr,sigma);
+	
+	parameterVector<double> guess(1,0.3);
+
+	jackknifeDistribution<parameterVector<double> > params(nsample,guess);
+	
+	jackknifeDistributionD chisq(nsample);
+	jackknifeDistributionD chisq_per_dof(nsample);
+	
+	fit.fit(params, chisq, chisq_per_dof, data_inrange);
+
+	double dof = chisq.sample(0)/chisq_per_dof.sample(0);
+	jackknifeDistributionD pvalue(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
+
+	std::cout << "Params: " << params << std::endl;
+	std::cout << "Chisq: " << chisq << std::endl;
+	std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
+	std::cout << "Dof: " << dof << std::endl;
+	std::cout << "P-value: " << pvalue << std::endl;
+      }
+    }
+  }
+
+
 
 
   std::cout << "Done\n";

@@ -18,6 +18,9 @@ struct CMDline{
 
   bool verbose_solver;
   
+  bool subtract_from_data = false;
+  std::string subtract_from_data_file;
+
   CMDline(){
     load_raw_data = false;
     save_raw_data = false;
@@ -25,6 +28,7 @@ struct CMDline{
     save_combined_data = false;
     filemap_allow_ptot_parity = false;
     verbose_solver = false;
+    subtract_from_data = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -69,6 +73,20 @@ struct CMDline{
       }else if(sargv[i] == "-verbose_solver"){
 	verbose_solver = true;
 	i++;
+      }else if(sargv[i] == "-subtract_from_data"){
+	subtract_from_data = true;
+	subtract_from_data_file = sargv[i+1];
+	i+=2;
+
+	if(subtract_from_data_file == "TEMPLATE"){
+	  SubArgs templ;
+	  std::ofstream of("subargs_template.args");
+	  of << templ;
+	  of.close();
+	  std::cout << "Wrote SubArgs template to subargs_template.args\n";
+	  exit(0);	 
+	}
+
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
