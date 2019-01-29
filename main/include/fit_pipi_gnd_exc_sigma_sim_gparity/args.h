@@ -1,17 +1,7 @@
 #ifndef _FIT_PIPI_GND_EXC_SIGMA_GPARITY_ARGS_H_
 #define _FIT_PIPI_GND_EXC_SIGMA_GPARITY_ARGS_H_
 
-GENERATE_ENUM_AND_PARSER(Operator, (PiPiGnd)(PiPiExc)(Sigma) );
-void write(HDF5writer &wr, const Operator op, const std::string &nm){
-  int p = (int)op;
-  _force_external_lookup<int>::fwrite(wr, p, nm);
-}
-void read(HDF5reader &rd, Operator &op, const std::string &nm){
-  int p;
-  _force_external_lookup<int>::fread(rd, p, nm);
-  op = (Operator)p;
-}
-
+#include "enums.h"
 
 //Note tstep_pipi is the separation between source timeslices that the C, D, R diagrams were measured upon (i.e. every 8 in the 32^3 job)
 //Note nstate applies only for "MultiState" fit func variants

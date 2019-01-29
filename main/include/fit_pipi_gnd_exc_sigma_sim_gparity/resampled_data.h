@@ -116,4 +116,21 @@ void loadCheckpoint(ResampledData<jackknifeCorrelationFunction> &data_j,
   data_dj.read(rd, "dj_data");
 }
 
+
+void saveCheckpoint(const ResampledData<jackknifeCorrelationFunction> &data_j,
+		    const std::string &file){
+  std::cout << "Saving data checkpoint to " << file << std::endl;
+  HDF5writer wr(file);
+  data_j.write(wr, "j_data");
+}
+
+
+void loadCheckpoint(ResampledData<jackknifeCorrelationFunction> &data_j,
+		    const std::string &file){
+  std::cout << "Reading data checkpoint from " << file << std::endl;
+  HDF5reader rd(file);
+  data_j.read(rd, "j_data");
+}
+
+
 #endif

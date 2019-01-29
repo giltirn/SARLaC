@@ -75,7 +75,8 @@ int main(const int argc, const char* argv[]){
   bool shift_Epi =false;
   double shift_Epi_x;
   DispersionRelation dispn = DispersionRelation::Continuum;
-  
+  bool stationary_pion = false;
+
   int ii=2;
   while(ii < argc){
     if(std::string(argv[ii]) == "-shift_Epi"){ //experimentally shift Epi by some fraction Epi -> Epi*(1+x)  where user provides x
@@ -87,6 +88,9 @@ int main(const int argc, const char* argv[]){
       ii++;
     }else if(std::string(argv[ii]) == "-sinhsin_dispn_reln"){
       dispn = DispersionRelation::SinhSin;
+      ii++;
+    }else if(std::string(argv[ii]) == "-stationary_pion"){ //In a G-parity environment one can obtain the stationary pion mass from the isoscalar singlet or from a periodic ensemble. This option asserts that the input pion mass is that of a stationary pion regardless of the BC twists
+      stationary_pion = true;
       ii++;
     }else{
       error_exit(std::cout << "Unrecognized argument: " << argv[ii] << std::endl);      
@@ -113,7 +117,7 @@ int main(const int argc, const char* argv[]){
 
   jackknifeDistribution<double> mpi = Epi;
 
-  if(ntwist > 0){
+  if(ntwist > 0 && !stationary_pion){
     GSLvector p({(double)args.twists[0],(double)args.twists[1],(double)args.twists[2]});
     for(int s=0;s<nsample;s++) mpi.sample(s) = dispersionRelationGetMass(dispn, Epi.sample(s), p, M_PI/args.L);
   }
