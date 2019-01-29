@@ -20,6 +20,7 @@ public:
     os << cen << " +/- " << err; return os;
   }
   std::ostream & printPublication(std::ostream &os) const{
+    assert(err.exponent() == cen.exponent());
     cen.print(os, false,true);
     os << "(";
     if(err.value()!=0. && err[0] == 0){
@@ -44,6 +45,8 @@ public:
   }
 
   void setSigFigs(const int nsf, SigFigsSource sf = Largest){
+    assert(err.exponent() == cen.exponent());
+
     if(sf == Largest)
       sf = fabs(cen.value()) >= fabs(err.value()) ? Central : Error;
     
@@ -60,6 +63,8 @@ public:
     err = err.truncateAtPow(round_pow);
   }
   void setRoundPower(const int round_pow){
+    assert(err.exponent() == cen.exponent());
+
     cen = cen.roundAtPow(round_pow);
     err = err.roundAtPow(round_pow);
 

@@ -68,7 +68,7 @@ public:
   }
 
   //For debugging, print the full state
-  std::ostream & report(std::ostream &os){
+  std::ostream & report(std::ostream &os) const{
     os << "dp="<<dp << " base_pow=" << base_pow << " sgn="<< sgn << " v={";
     for(int i=0;i<v.size();i++){ os << v[i]; if(i==dp) os << '|'; }
     os << "}";
@@ -151,12 +151,11 @@ public:
     return out;
   }
 
-  //Remove all digits after power p)
+  //Remove all digits after power p - base power is changed to p
   decimal truncateAtPow(const int p) const{
-    int orig_pow = exponent();
     decimal out = this->setExp(p);
-    out.v.resize(out.dp+1); //just keep all ints up to the decimal point
-    out = out.setExp(orig_pow);
+    int nkeep = out.dp+1;
+    out.v.resize(nkeep); //just keep all ints up to the decimal point
     return out;
   }
     
