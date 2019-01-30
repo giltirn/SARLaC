@@ -73,8 +73,13 @@ class HDF5reader{
     }
   }
 
+  static inline std::string filenameCheck(const std::string &filename){
+    if(!fileExists(filename)) error_exit(std::cout << "HDF5reader constructor: File " << filename << " does not exist\n");
+    return filename;
+  }
+
 public:
-  HDF5reader(const std::string &filename): file(filename.c_str(), H5F_ACC_RDONLY){
+  HDF5reader(const std::string &filename): file(filenameCheck(filename).c_str(), H5F_ACC_RDONLY){
     H5::Exception::dontPrint();
     group.push_back(file.openGroup("/"));
   }

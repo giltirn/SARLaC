@@ -3,32 +3,49 @@
 
 #include<fit/GEVP.h>
 
-void analze_GEVP(const correlationFunction<double, NumericSquareMatrix<jackknifeDistributionD> > &C,
-		 const int t_max, const int fit_tmin, const int fit_tmax, const double Ascale,
-		 bool verbose_solver){
+  // //Perform GEVP
+  // std::cout << "Solving GEVP" << std::endl;
+  // GEVPsolver<jackknifeDistributionD> gevp(verbose_solver);
+  // gevp.solve(C, t_max);
+
+template<typename GEVPsolverType>
+void analyze_GEVP(const GEVPsolverType &gevp,
+		  const correlationFunction<double, NumericSquareMatrix<jackknifeDistributionD> > &C,
+		  const int t_max, const int fit_tmin, const int fit_tmax, const double Ascale){
 
   const int nop = C.value(0).size();
   const int nsample = C.value(0)(0,0).size();
 
-  //Perform GEVP
-  std::cout << "Solving GEVP" << std::endl;
-  GEVPsolver<jackknifeDistributionD> gevp(verbose_solver);
-  gevp.solve(C, t_max);
-
+  //Check residuals
+  for(int t0=0;t0<=t_max-1;t0++){
+    for(int t=t0;t<=t_max;t++){
+      std::vector<jackknifeDistributionD> const *resid = gevp.residuals(t0,t);
+      if(resid != NULL){
+	for(int i=0;i<nop;i++){
+	  bool fail = false;
+	  for(int s=0;s<nsample;s++) if((*resid)[i].sample(s) > 1e-3){ fail = true; break; }
+	  if(fail)
+	    std::cout << "WARNING: Large residuals found for t0="<<t0 <<" t="<<t << " state=" << i << " : " << (*resid)[i] << std::endl;
+	}
+      }
+    }
+  }
+  
+  //Compute energies
   std::cout << "Energies:" << std::endl;
   for(int t0=0;t0<=t_max-1;t0++){
     for(int t=t0;t<=t_max;t++){
       auto E = gevp.effectiveEnergy(t0,t);
-      if(E.size() > 0){	
-	std::cout << t0 << " " << t;
-	for(int n=0;n<nop;n++)
-	  std::cout << " " << E[n];	
-	std::cout << std::endl;
+      if(E.size() > 0){
+  	std::cout << t0 << " " << t;
+  	for(int n=0;n<nop;n++)
+  	  std::cout << " " << E[n];
+  	std::cout << std::endl;
 	
-	std::ostringstream pth; pth << "effective_energies/" << t0 << "/" << t;
-	createDirectory(pth.str());
-	pth << "/E.hdf5";
-	writeParamsStandard(E,pth.str());
+  	std::ostringstream pth; pth << "effective_energies/" << t0 << "/" << t;
+  	createDirectory(pth.str());
+  	pth << "/E.hdf5";
+  	writeParamsStandard(E,pth.str());
       }
     }
   }
@@ -145,10 +162,10 @@ void analze_GEVP(const correlationFunction<double, NumericSquareMatrix<jackknife
 	double dof = chisq.sample(0)/chisq_per_dof.sample(0);
 	jackknifeDistributionD pvalue(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
 
-	writeParamsStandard(params, stringize("fit_params_fixedtmt0%d", C));
-	writeParamsStandard(chisq, stringize("fit_chisq_fixedtmt0%d", C));
-	writeParamsStandard(chisq_per_dof, stringize("fit_chisq_per_dof_fixedtmt0%d", C));
-	writeParamsStandard(pvalue, stringize("fit_pvalue_fixedtmt0%d", C));
+	writeParamsStandard(params, stringize("fit_params_fixedtmt0%d.hdf5", C));
+	writeParamsStandard(chisq, stringize("fit_chisq_fixedtmt0%d.hdf5", C));
+	writeParamsStandard(chisq_per_dof, stringize("fit_chisq_per_dof_fixedtmt0%d.hdf5", C));
+	writeParamsStandard(pvalue, stringize("fit_pvalue_fixedtmt0%d.hdf5", C));
 
 	std::cout << "Params: " << params << std::endl;
 	std::cout << "Chisq: " << chisq << std::endl;
@@ -158,6 +175,5 @@ void analze_GEVP(const correlationFunction<double, NumericSquareMatrix<jackknife
       }
     }
   }
-
 }
 #endif

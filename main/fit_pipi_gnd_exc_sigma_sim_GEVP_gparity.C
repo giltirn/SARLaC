@@ -88,7 +88,9 @@ int main(const int argc, const char* argv[]){
   if(cmdline.subtract_from_data)
     correlatorSubtract(C, cmdline.subtract_from_data_file);
 
-  analze_GEVP(C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale, cmdline.verbose_solver);
+  GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
+  gevp.solve(C, args.t_max);
+  analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
 
   std::cout << "Done\n";
   return 0;

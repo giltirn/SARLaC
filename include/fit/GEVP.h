@@ -8,14 +8,19 @@
 #include<utils/utils.h>
 
 #include<tensors/numeric_vector.h>
+#include<distribution/jackknife.h>
 #include<data_series/data_series.h>
 
 CPSFIT_START_NAMESPACE
 
 template<typename T>
-class GEVPsolver{
-  std::map< std::pair<int,int>, std::vector<T> > evals_t0_t; //only populate elements with t > t0 and t0,t < tmax providing the solver is able to compute the GEVP
-  std::map< std::pair<int,int>, std::vector<NumericVector<T> > > evecs_t0_t;
+class GEVPsolverBase{
+protected:
+  typedef std::pair<int,int> t0_t_pair;
+
+  std::map< t0_t_pair, std::vector<T> > evals_t0_t; //only populate elements with t > t0 and t0,t < tmax providing the solver is able to compute the GEVP
+  std::map< t0_t_pair, std::vector<NumericVector<T> > > evecs_t0_t;
+  std::map< t0_t_pair, std::vector<T> > resid_t0_t;
   int tmax;
   bool verbose;
 public:
@@ -31,6 +36,12 @@ public:
     return it == evecs_t0_t.end() ? NULL : &it->second;
   }
 
+  //GEVP residuals
+  std::vector<T> const* residuals(const int t0, const int t) const{ 
+    auto it = resid_t0_t.find({t0,t});
+    return it == resid_t0_t.end() ? NULL : &it->second;
+  }
+
   //Solve for a general time series of real symmetric positive-definite matrices for t0 in {0..tmax-1} and with t={t0+1..tmax}. Results that are solvable are added to the map
   //Accessor should be lambda-like returning matrix with time t, e.g.  const MatrixType & operator()(const MatrixSeriesType &s, const int t){ return s[t]; }
   template<typename MatrixSeriesType, typename Accessor>
@@ -41,10 +52,11 @@ public:
 	bool fail = false;
 	std::vector<NumericVector<T> > evecs_t;
 	std::vector<T> evals_t;
+	std::vector<T> resid_t;
 	try{
 	  auto A = acc(matrix_series,t);
 	  auto B = acc(matrix_series,t0);
-	  auto resid = symmetricMatrixGEVPsolve(evecs_t, evals_t,A,B);
+	  resid_t = symmetricMatrixGEVPsolve(evecs_t, evals_t,A,B);
 	}catch(const std::exception & ex){
 	  if(verbose) std::cout << t0 << " " << t << " GEVP solver fail with error \"" << ex.what() << "\" (\"input domain error\" usually means one or both matrices are not positive definite), skipping\n";
 	  fail = true;
@@ -52,6 +64,7 @@ public:
 	if(!fail){
 	  evals_t0_t[{t0,t}] = std::move(evals_t);
 	  evecs_t0_t[{t0,t}] = std::move(evecs_t);
+	  resid_t0_t[{t0,t}] = std::move(resid_t);
 	}
       }
     }
@@ -61,15 +74,31 @@ public:
     solve(matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); }, _tmax);
   }
   
+
+  GEVPsolverBase(bool verbose = false): tmax(0), verbose(verbose){}
+  GEVPsolverBase(const GEVPsolverBase &c) = default;
+  GEVPsolverBase(GEVPsolverBase &&c) = default;
+};
+
+
+//GEVP for standard correlators C(t)
+template<typename T>
+class GEVPsolver: public GEVPsolverBase<T>{
+public:
+  GEVPsolver(bool verbose = false):  GEVPsolverBase<T>(verbose){}
+  GEVPsolver(const GEVPsolver &c) = default;
+  GEVPsolver(GEVPsolver &&c) = default;
+
   //Compute the effective energies for time t. Vector size is zero if failed to compute
   std::vector<T> effectiveEnergy(const int t0, const int t) const{
-    auto it_tp1 = evals_t0_t.find({t0,t+1});
-    auto it_t = evals_t0_t.find({t0,t});
-    if(it_tp1 != evals_t0_t.end() && it_t != evals_t0_t.end()){ 
-      const int N = it_t->second.size();
+    std::vector<T> const* evals_tp1 = this->evals(t0,t+1);
+    std::vector<T> const* evals_t = this->evals(t0,t);
+
+    if(evals_tp1 != NULL && evals_t != NULL){
+      const int N = evals_t->size();
       std::vector<T> E_eff(N);
       for(int n=0;n<N;n++){
-	E_eff[n] = log( it_t->second[n] ) - log( it_tp1->second[n] );
+	E_eff[n] = log( (*evals_t)[n] ) - log( (*evals_tp1)[n] );
       }      
       return E_eff;
     }else{
@@ -99,10 +128,10 @@ public:
 
     //Thus for odd timeslices we must remove an additional factor of exp(E)^{1/2}
 
-    std::vector<NumericVector<T> > const* evecs_t0_t = evecs(t0,t);
-    std::vector<T> const* evals_t0_t0ptd2 = evals(t0,t0+t/2);
-    std::vector<T> const* evals_t0_t0pt = evals(t0,t0+t);
-    std::vector<T> Eeff = effectiveEnergy(t0,t); //indexed in state
+    std::vector<NumericVector<T> > const* evecs_t0_t = this->evecs(t0,t);
+    std::vector<T> const* evals_t0_t0ptd2 = this->evals(t0,t0+t/2);
+    std::vector<T> const* evals_t0_t0pt = this->evals(t0,t0+t);
+    std::vector<T> Eeff = this->effectiveEnergy(t0,t); //indexed in state
 
     std::vector<std::vector<T> > out;
     if(evecs_t0_t == NULL || evals_t0_t0ptd2 == NULL || evals_t0_t0pt == NULL || Eeff.size() == 0) return out; //return empty vector if not possible
@@ -154,7 +183,153 @@ public:
     return effectiveAmplitude(t0,t, matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); });
   }
 
-  GEVPsolver(bool verbose = false): tmax(0), verbose(verbose){}
+};
+
+
+
+//For C(t) - C(t+1).  Definition of the effective energy is the same but that of the amplitude will need to be modified (currently not implemented)
+template<typename T>
+class GEVPsubNeighborTslice: public GEVPsolverBase<T>{
+public:
+  GEVPsubNeighborTslice(bool verbose = false):  GEVPsolverBase<T>(verbose){}
+  GEVPsubNeighborTslice(const GEVPsubNeighborTslice &c) = default;
+  GEVPsubNeighborTslice(GEVPsubNeighborTslice &&c) = default;
+
+  //Compute the effective energies for time t. Vector size is zero if failed to compute
+  std::vector<T> effectiveEnergy(const int t0, const int t) const{
+    std::vector<T> const* evals_tp1 = this->evals(t0,t+1);
+    std::vector<T> const* evals_t = this->evals(t0,t);
+
+    if(evals_tp1 != NULL && evals_t != NULL){
+      const int N = evals_t->size();
+      std::vector<T> E_eff(N);
+      for(int n=0;n<N;n++){
+	E_eff[n] = log( (*evals_t)[n] ) - log( (*evals_tp1)[n] );
+      }      
+      return E_eff;
+    }else{
+      return std::vector<T>();
+    }
+  }
+
+  //Not yet implemented
+  template<typename MatrixSeriesType, typename Accessor>
+  std::vector<std::vector<T> > effectiveAmplitude(const int t0, const int t, const MatrixSeriesType &matrix_series, const Accessor &acc) const{
+    return std::vector<std::vector<T> >();
+  }
+  template<typename _GeneralizedCoordinate, typename _MatrixType, template<typename,typename> class _PairType = std::pair>
+  std::vector<std::vector<T> > effectiveAmplitude(const int t0, const int t, const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &matrix_series) const{
+    return effectiveAmplitude(t0,t, matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); });
+  }
+
+};
+
+
+//For C(t) - C(tsub)  for fixed tsub. Requires tsub > t > t0 
+class GEVPsubFixedTslice: public GEVPsolverBase<jackknifeDistribution<double> >{
+  int tsub;
+  
+  class TsubEnergySolveFunc{
+  public:
+    typedef double ValueType;
+    typedef singleValueContainer<double> ParameterType;
+    typedef singleValueContainer<double> ValueDerivativeType;
+    typedef double GeneralizedCoordinate; 
+
+    int t;
+    int t0;
+    int tsub;
+
+    TsubEnergySolveFunc(int t0, int t, int tsub): t0(t0), t(t), tsub(tsub){}
+
+    template<typename T, typename Boost>
+    T eval(const GeneralizedCoordinate &c, const ParameterType &p, const Boost &boost) const{
+      T E = boost(*p, 0);
+      T num = exp(-E*t) - exp(-E*tsub);
+      T den = exp(-E*t0) - exp(-E*tsub);
+      T f= num/den;
+      return f;
+    }
+
+    inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+      return eval<double>(x,p,[&](const double v, const int i){ return v; });
+    }
+    inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+      return ValueDerivativeType(eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==0 ? 1.:0.); }).xp);
+    }
+  
+    static inline int Nparams(){ return 1; }
+  };
+
+  double solveEffectiveEnergyFixedTsub(double lambda, const int t0, const int t, bool verbose = false) const{
+    typedef correlationFunction<double, double> DataType;
+    DataType d(1); d.coord(0) = 0; d.value(0) = lambda;
+    
+    typedef UncorrelatedChisqCostFunction<TsubEnergySolveFunc,DataType> CostFunction;
+    TsubEnergySolveFunc fitfunc(t0,t,tsub);
+    CostFunction cost(fitfunc, d, std::vector<double>(1,1.0));
+    MarquardtLevenbergParameters<double> mlp;
+    //mlp.verbose = verbose;
+    mlp.exit_on_convergence_fail = false;
+    mlp.delta_cost_min = 1e-10;
+    mlp.max_iter = 100;
+    MarquardtLevenbergMinimizer<CostFunction> min(cost, mlp);
+    singleValueContainer<double> E(0.3);
+    
+    //if(verbose) std::cout << "Starting fit for "  << "t0=" << t0 << " t=" << t << " tsub=" << tsub << " to obtain lambda=" << lambda << std::endl;
+    
+    double chisq = min.fit(E);
+    
+    double fvalue = fitfunc.value(0., E);
+    
+    if(!min.hasConverged()){
+      if(verbose) std::cout << "t0=" << t0 << " t=" << t << " tsub=" << tsub<< " did not converge in search for solution of lambda=" << lambda << std::endl;
+      return nan("");
+    }else if( fabs( (fvalue - lambda)/lambda ) > 1e-4 ){
+      //if(verbose) 
+      //std::cout << "t0=" << t0 << " t=" << t << " tsub=" << tsub<< " could not find solution: expect=" <<  lambda << " best= " << fvalue << " at E=" << *E << std::endl;
+      return nan("");
+    }else{
+      //if(verbose) std::cout << "t0=" << t0 << " t=" << t << " tsub=" << tsub<< " inverse E=" << *E << " lambda(E)= " << fvalue << " expect " << lambda << std::endl;
+      return *E;
+    }
+  }
+
+public:
+  GEVPsubFixedTslice(const int tsub, bool verbose = false):  tsub(tsub), GEVPsolverBase<jackknifeDistributionD>(verbose){}
+  GEVPsubFixedTslice(const GEVPsubFixedTslice &c) = default;
+  GEVPsubFixedTslice(GEVPsubFixedTslice &&c) = default;
+
+  //Compute the effective energies for time t. Vector size is zero if failed to compute
+  std::vector<jackknifeDistributionD> effectiveEnergy(const int t0, const int t) const{
+    if(t0 == tsub || t == tsub || t0 == t) return std::vector<jackknifeDistributionD>();
+
+    std::vector<jackknifeDistributionD> const* eval = this->evals(t0,t);
+    if(eval!=NULL){ 
+      const int N = eval->size();
+      const int nsample = (*eval)[0].size();
+      
+      std::vector<jackknifeDistributionD> E_eff(N, jackknifeDistributionD(nsample));
+      for(int n=0;n<N;n++)
+	for(int s=0;s<nsample;s++)
+	  E_eff[n].sample(s) = solveEffectiveEnergyFixedTsub( (*eval)[n].sample(s),t0,t,s==0);
+      
+      return E_eff;
+    }else{
+      return std::vector<jackknifeDistributionD>();
+    }
+  }
+
+  //Not yet implemented
+  template<typename MatrixSeriesType, typename Accessor>
+  std::vector<std::vector<jackknifeDistributionD> > effectiveAmplitude(const int t0, const int t, const MatrixSeriesType &matrix_series, const Accessor &acc) const{
+    return std::vector<std::vector<jackknifeDistributionD> >();
+  }
+  template<typename _GeneralizedCoordinate, typename _MatrixType, template<typename,typename> class _PairType = std::pair>
+  std::vector<std::vector<jackknifeDistributionD> > effectiveAmplitude(const int t0, const int t, const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &matrix_series) const{
+    return effectiveAmplitude(t0,t, matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); });
+  }
+  
 };
 
 CPSFIT_END_NAMESPACE

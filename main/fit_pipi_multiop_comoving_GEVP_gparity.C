@@ -106,11 +106,32 @@ int main(const int argc, const char* argv[]){
       }
     }
   }
-
+  
+  //Perform transformations on data as desired
   if(cmdline.subtract_from_data)
     correlatorSubtract(C, cmdline.subtract_from_data_file);
 
-  analze_GEVP(C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale, cmdline.verbose_solver);
+  if(cmdline.subtract_nbr_tslice)
+    correlatorSubtractNeighbor(C);
+
+  if(cmdline.fix_t_sub)
+    correlatorSubtractFixedT(C, cmdline.fix_t_sub_time);
+
+  //Instantiate the appropriate solver and solve/analyze
+
+  if(cmdline.subtract_nbr_tslice){
+    GEVPsubNeighborTslice<jackknifeDistributionD> gevp(cmdline.verbose_solver);
+    gevp.solve(C, args.t_max);
+    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
+  }else if(cmdline.fix_t_sub){
+    GEVPsubFixedTslice gevp(cmdline.fix_t_sub_time, cmdline.verbose_solver);
+    gevp.solve(C, args.t_max);
+    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
+  }else{
+    GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
+    gevp.solve(C, args.t_max);
+    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
+  }
 
   std::cout << "Done\n";
   return 0;

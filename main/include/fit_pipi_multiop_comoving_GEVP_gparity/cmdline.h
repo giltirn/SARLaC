@@ -21,6 +21,11 @@ struct CMDline{
   bool subtract_from_data = false;
   std::string subtract_from_data_file;
 
+  bool fix_t_sub;
+  int fix_t_sub_time;
+
+  bool subtract_nbr_tslice = false;
+
   CMDline(){
     load_raw_data = false;
     save_raw_data = false;
@@ -29,6 +34,8 @@ struct CMDline{
     filemap_allow_ptot_parity = false;
     verbose_solver = false;
     subtract_from_data = false;
+    fix_t_sub = false;
+    subtract_nbr_tslice = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -86,7 +93,13 @@ struct CMDline{
 	  std::cout << "Wrote SubArgs template to subargs_template.args\n";
 	  exit(0);	 
 	}
-
+      }else if(sargv[i] == "-fix_t_sub"){
+	fix_t_sub = true;
+	fix_t_sub_time = strToAny<int>(sargv[i+1]);
+	i+=2;
+      }else if(sargv[i] == "-subtract_nbr_tslice"){
+	subtract_nbr_tslice = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

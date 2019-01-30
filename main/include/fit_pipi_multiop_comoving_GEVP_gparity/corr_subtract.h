@@ -46,5 +46,23 @@ void correlatorSubtract(correlationFunction<double, NumericSquareMatrix<jackknif
   }
 }
 
+//C(t) -> C(t) - C(t+1)
+void correlatorSubtractNeighbor(correlationFunction<double, NumericSquareMatrix<jackknifeDistributionD> > &C){
+  correlationFunction<double, NumericSquareMatrix<jackknifeDistributionD> > out(C.size()-1);
+  for(int t=0;t<C.size()-1;t++){
+    out.coord(t) = t;
+    out.value(t) = C.value(t) - C.value(t+1);
+  }
+  C = out;
+}
+
+void correlatorSubtractFixedT(correlationFunction<double, NumericSquareMatrix<jackknifeDistributionD> > &C, const int tsub){
+  int nop = C.value(0).size();
+  for(int t=0;t<C.size();t++)
+    for(int i=0;i<nop;i++)
+      for(int j=i;j<nop;j++)
+	C.value(t)(i,j) = C.value(t)(j,i) = C.value(t)(i,j) - C.value(tsub)(i,j);
+}
+
 
 #endif
