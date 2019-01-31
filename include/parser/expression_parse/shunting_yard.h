@@ -76,6 +76,7 @@ class shuntingYardParser{
       operators["exp"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       operators["log"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       operators["log10"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
+      operators["pow"] = std::pair<int,int>(NotAnOperator,NotAnOperator);
       initted = true;
     }
     return operators;

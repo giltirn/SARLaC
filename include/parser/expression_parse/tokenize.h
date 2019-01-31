@@ -28,7 +28,7 @@ namespace _mathExpressionTokenize{
 std::list<std::string> mathExpressionTokenize(const std::string &s){
   using namespace _mathExpressionTokenize;
   std::list<std::string> tokens;
-  bool r = x3::phrase_parse(s.begin(), s.end(), parse_math_rule, ascii::space, tokens);      
+  bool r = x3::phrase_parse(s.begin(), s.end(), parse_math_rule, ascii::space | x3::lit(','), tokens);      
   if(!r){ std::cout << "Could not properly add spaces around tokens in string \"" << s << "\"\n"; exit(-1); }
   return tokens;
 }

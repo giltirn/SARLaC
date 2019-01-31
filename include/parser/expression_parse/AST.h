@@ -61,6 +61,9 @@ class expressionAST{
   struct BinOpTimes: public BinOp{
     inline double value() const{ return this->a->value() * this->b->value(); }
   };
+  struct BinOpDivide: public BinOp{
+    inline double value() const{ return this->a->value() / this->b->value(); }
+  };
   struct BinOpPow: public BinOp{
     inline double value() const{ return ::pow(this->a->value(),this->b->value()); }
   };
@@ -141,7 +144,9 @@ public:
       binop = new BinOpMinus;
     }else if(op == "*"){
       binop = new BinOpTimes;
-    }else if(op == "^"){
+    }else if(op == "/"){
+      binop = new BinOpDivide;
+    }else if(op == "^" || op == "pow"){
       binop = new BinOpPow;
     }else if(op == "neg"){
       unop = new UnOpNegative;

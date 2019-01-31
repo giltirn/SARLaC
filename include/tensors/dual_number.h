@@ -113,6 +113,28 @@ inline dual operator-(const dual &a){
   return dual( -a.x, -a.xp );
 }
 
+using ::sinh;
+using ::cosh;
+
+inline dual sinh(const dual &a){
+  return dual(::sinh(a.x), a.xp*::cosh(a.x));
+}
+inline dual cosh(const dual &a){
+  return dual(::cosh(a.x), a.xp*::sinh(a.x));
+}
+
+using::asinh;
+using::acosh;
+
+inline dual asinh(const dual &a){
+  return dual(::asinh(a.x), a.xp/::sqrt(a.x*a.x + 1.)  );
+}
+inline dual acosh(const dual &a){
+  return dual(::acosh(a.x), a.xp/::sqrt(a.x*a.x - 1.)  );
+}
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif
