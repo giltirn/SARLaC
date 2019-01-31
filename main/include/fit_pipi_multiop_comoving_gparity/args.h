@@ -13,7 +13,8 @@ typedef std::array<int,3> int_array_3;
   ( std::string, pipi_bubble_file_format )    \
   ( std::vector<Operator>, operators )	      \
   ( std::vector<int_array_3>, p_tot )	      \
-  ( int, Lt) \
+  ( int, isospin )			      \
+  ( int, Lt)				      \
   ( int, tsep_pipi) \
   ( int, tstep_pipi) \
   ( bool, do_vacuum_subtraction ) \
@@ -36,7 +37,7 @@ struct Args{
     pipi_bubble_file_format("traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_pi1mom<PB>_pi2mom<PA>_symm"),
     operators({Operator::PiPiComoveGnd, Operator::PiPiComoveExc1, Operator::PiPiComoveExc2}),
     p_tot({{2,0,0}}), do_vacuum_subtraction(false),
-    Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), correlated(true), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
+    isospin(0),Lt(64), tsep_pipi(4), tstep_pipi(8), t_min(0), t_max(32), correlated(true), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
     fitfunc(FitFuncType::FSimGenMultiState), nstate(3), bin_size(1){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)

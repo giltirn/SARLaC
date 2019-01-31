@@ -39,7 +39,8 @@ public:
     rd.leave();
   }
 
-  void read(const int Lt, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan,
+  void read(const int isospin,
+	    const int Lt, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan,
 	    const std::string &pipi_fig_file_fmt, const std::string &pipi_bubble_file_fmt, const int tsep_pipi, const int tstep_pipi,
 	    const threeMomentum &p_tot, const std::vector<Operator> &incl_ops, bool filemap_allow_ptot_parity = false){
 
@@ -62,7 +63,7 @@ public:
 		    pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		    traj_start, traj_inc, traj_lessthan, 
 		    p_tot, op_proj.find(o1)->second, op_proj.find(o2)->second,
-		    0, filemap_allow_ptot_parity);
+		    isospin, filemap_allow_ptot_parity);
 	contains.insert({o1,o2});
       }
     }
