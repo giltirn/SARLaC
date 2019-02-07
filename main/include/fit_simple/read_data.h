@@ -168,4 +168,17 @@ inline void bin(rawDataCorrelationFunctionD &data, const int bin_size){
   for(int d=0;d<data.size();d++) data.value(d) = data.value(d).bin(bin_size);
 }
 
+template<typename DistributionType>
+inline DistributionType removeSamplesInRange(const DistributionType &raw, const int start, const int lessthan){
+  int remove_num_samples = lessthan - start;
+  assert(remove_num_samples < raw.size());
+  DistributionType out(raw.size() - remove_num_samples);
+  int s=0;
+  for(int p=0;p<start;p++)
+    out.sample(s++) = raw.sample(p);
+  for(int p=lessthan;p<raw.size();p++)
+    out.sample(s++) = raw.sample(p);
+  return out;
+}
+
 #endif

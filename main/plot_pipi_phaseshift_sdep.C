@@ -24,10 +24,15 @@ struct EpipiMeas{
 };
 GENERATE_PARSER(EpipiMeas, EPIPI_MEAS_MEMBERS);
 
+GENERATE_ENUM_AND_PARSER(MpiSource, (EpiDispnReln)(File) );
+
 #define ARGS_MEMBERS \
   ( std::vector<EpipiMeas>, meas )		\
+  ( MpiSource, mpi_src)				\
   ( std::string, Epi_file )			\
   ( std::vector<int>, Epi_idx )			\
+  ( std::string, mpi_file )			\
+  ( std::vector<int>, mpi_idx )			\
   ( std::string, ainv_file )			\
   ( std::vector<int>, ainv_idx)			\
   ( int, L )					\
@@ -39,9 +44,11 @@ GENERATE_PARSER(EpipiMeas, EPIPI_MEAS_MEMBERS);
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
 
-  Args(): meas(1), Epi_file("Epi_file"), Epi_idx(1,1), L(32), ainv_file("ainv"), ainv_idx(1,0), twists({1,1,1}){}
+  Args(): meas(1), Epi_file("Epi_file"), Epi_idx(1,1), L(32), ainv_file("ainv"), ainv_idx(1,0), twists({1,1,1}), mpi_file(""), mpi_idx(1,0){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
+
+//Note mpi_file and mpi_idx only need to be specified if mpi_src == File
 
 
 correlationFunction<double, jackknifeDistributionD> genColangeloCurve(const int I, const jackknifeDistributionD &mpi, const jackknifeDistributionD &ainv, const double Emax, const int npoint = 100){
@@ -61,6 +68,65 @@ correlationFunction<double, jackknifeDistributionD> genColangeloCurve(const int 
 }
 
 
+//deltaE = E_pipi - 2 E_pi  in lab frame
+inline double phaseShiftDeltaEZ(const LuscherZeta &zeta, double deltaE, const double m, const int L){
+  const GSLvector &d = zeta.getd();
+  const GSLvector &l = zeta.getl(); //G-parity twist directions
+
+  double Pcm2 = pow(2*M_PI/L,2) * d.norm2();
+  double Ppi2 = pow(M_PI/L,2) * l.norm2();
+
+  double deltaE2 = deltaE*deltaE;
+
+  double k2 = deltaE2/4. + deltaE*sqrt( m*m + Ppi2 ) - Pcm2/4. + Ppi2;
+  double q = sqrt(k2) * L/2./M_PI;
+
+  double Epipi = deltaE + 2*sqrt(m*m + Ppi2);
+  double gamma = Epipi/sqrt(Epipi*Epipi - Pcm2);
+
+  double delta = -zeta.calcPhi(q,gamma);
+  while(delta > M_PI) delta -= M_PI;
+  while(delta < -M_PI) delta += M_PI;
+  return delta/M_PI * 180;
+}
+
+//d= Pcm /(2pi/L) 
+inline double phaseShiftDeltaEZ(const double deltaE, const double m, const int L, const std::array<int,3> &twists = {0,0,0}, const std::array<double,3> &d = {0.,0.,0.}){
+  LuscherZeta zeta(twists, d);
+  return phaseShiftDeltaEZ(zeta,deltaE,m,L);
+}
+
+
+
+//deltaE2 = E_pipi^2 - 4 E_pi^2  in lab frame
+inline double phaseShiftDeltaE2Z(const LuscherZeta &zeta, double deltaE2, const double m, const int L){
+  const GSLvector &d = zeta.getd();
+  const GSLvector &l = zeta.getl(); //G-parity twist directions
+
+  double Pcm2 = pow(2*M_PI/L,2) * d.norm2();
+  double Ppi2 = pow(M_PI/L,2) * l.norm2();
+
+  double k2 = deltaE2/4. - Pcm2/4. + Ppi2;
+  double q = sqrt(k2) * L/2./M_PI;
+  
+  double Epipi = sqrt( deltaE2 + 4*(m*m + Ppi2) );
+  double gamma = Epipi/sqrt(Epipi*Epipi - Pcm2);
+
+  double delta = -zeta.calcPhi(q,gamma);
+  while(delta > M_PI) delta -= M_PI;
+  while(delta < -M_PI) delta += M_PI;
+  return delta/M_PI * 180;
+}
+
+//d= Pcm /(2pi/L) 
+inline double phaseShiftDeltaE2Z(const double deltaE2, const double m, const int L, const std::array<int,3> &twists = {0,0,0}, const std::array<double,3> &d = {0.,0.,0.}){
+  LuscherZeta zeta(twists, d);
+  return phaseShiftDeltaE2Z(zeta,deltaE2,m,L);
+}
+
+
+
+
 int main(const int argc, const char* argv[]){
   Args args;
   if(argc < 2){
@@ -74,8 +140,11 @@ int main(const int argc, const char* argv[]){
 
   bool shift_Epi =false;
   double shift_Epi_x;
-  DispersionRelation dispn = DispersionRelation::Continuum;
-  bool stationary_pion = false;
+  DispersionRelation dispn_mpi = DispersionRelation::Continuum;
+  DispersionRelation dispn_gamma = DispersionRelation::Continuum;
+
+  bool phaseshift_deltaE = false;
+  bool phaseshift_deltaE2 = false;
 
   int ii=2;
   while(ii < argc){
@@ -84,13 +153,19 @@ int main(const int argc, const char* argv[]){
       shift_Epi_x = strToAny<double>(argv[ii+1]);
       ii+=2;
     }else if(std::string(argv[ii]) == "-sin_dispn_reln"){
-      dispn = DispersionRelation::Sin;
+      dispn_mpi = dispn_gamma = DispersionRelation::Sin;
       ii++;
     }else if(std::string(argv[ii]) == "-sinhsin_dispn_reln"){
-      dispn = DispersionRelation::SinhSin;
+      dispn_mpi = dispn_gamma = DispersionRelation::SinhSin;
       ii++;
-    }else if(std::string(argv[ii]) == "-stationary_pion"){ //In a G-parity environment one can obtain the stationary pion mass from the isoscalar singlet or from a periodic ensemble. This option asserts that the input pion mass is that of a stationary pion regardless of the BC twists
-      stationary_pion = true;
+    }else if(std::string(argv[ii]) == "-sin_dispn_reln_mpionly"){
+      dispn_mpi = DispersionRelation::Sin;
+      ii++;
+    }else if(std::string(argv[ii]) == "-phaseshift_deltaE"){
+      phaseshift_deltaE = true;
+      ii++;
+    }else if(std::string(argv[ii]) == "-phaseshift_deltaE2"){
+      phaseshift_deltaE2 = true;
       ii++;
     }else{
       error_exit(std::cout << "Unrecognized argument: " << argv[ii] << std::endl);      
@@ -117,10 +192,16 @@ int main(const int argc, const char* argv[]){
 
   jackknifeDistribution<double> mpi = Epi;
 
-  if(ntwist > 0 && !stationary_pion){
-    GSLvector p({(double)args.twists[0],(double)args.twists[1],(double)args.twists[2]});
-    for(int s=0;s<nsample;s++) mpi.sample(s) = dispersionRelationGetMass(dispn, Epi.sample(s), p, M_PI/args.L);
+  if(ntwist > 0){
+    if(args.mpi_src == MpiSource::EpiDispnReln){
+      GSLvector p({(double)args.twists[0],(double)args.twists[1],(double)args.twists[2]});
+      for(int s=0;s<nsample;s++) mpi.sample(s) = dispersionRelationGetMass(dispn_mpi, Epi.sample(s), p, M_PI/args.L);
+    }else if(args.mpi_src == MpiSource::File){
+      std::cout << "Reading m_pi from file " << args.mpi_file << std::endl;
+      readHDF5file(mpi, args.mpi_file, args.mpi_idx);
+    }
   }
+
   std::cout << "Epi = " << Epi << std::endl;
   std::cout << "mpi = " << mpi << std::endl;
   std::cout << "a^-1 = " << ainv << std::endl;
@@ -138,18 +219,63 @@ int main(const int argc, const char* argv[]){
     
     LuscherZeta zeta(args.twists, args.meas[m].ptot);
     jackknifeDistribution<double> delta(nsample);
-#pragma omp parallel for
-    for(int s=0;s<nsample;s++)
-      delta.sample(s) = phaseShiftZ(zeta, Epipi.sample(s),mpi.sample(s),args.L,dispn);
-    
-    jackknifeDistributionD den(nsample, [&](const int s){ return dispersionRelationGetMass(dispn, Epipi.sample(s), zeta.getd(), 2*M_PI/args.L); });
-    jackknifeDistributionD gamma = Epipi/den;
-    
-    std::cout << "gamma = " << gamma << std::endl;
+    jackknifeDistributionD Epipi_CM_phys(nsample);
+    if(phaseshift_deltaE){
+      jackknifeDistributionD Epi_contm(nsample);
+      jackknifeDistributionD Epipi_contm(nsample);
 
-    //Boost energy to CM frame
-    jackknifeDistributionD Epipi_CM_phys = Epipi*ainv / gamma;
-    
+#pragma omp parallel for
+      for(int s=0;s<nsample;s++){
+	double deltaE = Epipi.sample(s) - 2*Epi.sample(s);
+	delta.sample(s) = phaseShiftDeltaEZ(zeta, deltaE,mpi.sample(s),args.L);
+	
+	double Pcm2 = pow(2*M_PI/args.L,2) * zeta.getd().norm2();
+	double Ppi2 = pow(M_PI/args.L,2) * zeta.getl().norm2();
+
+	Epi_contm.sample(s) = sqrt(mpi.sample(s)*mpi.sample(s) + Ppi2);
+
+	Epipi_contm.sample(s) = deltaE + 2*Epi_contm.sample(s);
+	Epipi_CM_phys.sample(s) = sqrt( pow(Epipi_contm.sample(s),2) - Pcm2 )*ainv.sample(s);
+      }
+      
+      std::cout << "E_pi(contm) = " << Epi_contm << std::endl;
+      std::cout << "E_pipi(contm) = " << Epipi_contm << std::endl;
+
+    }else if(phaseshift_deltaE2){
+      jackknifeDistributionD Epi_contm(nsample);
+      jackknifeDistributionD Epipi_contm(nsample);
+
+#pragma omp parallel for
+      for(int s=0;s<nsample;s++){
+	double deltaE2 = pow(Epipi.sample(s),2) - 4*pow(Epi.sample(s),2);
+	delta.sample(s) = phaseShiftDeltaE2Z(zeta, deltaE2,mpi.sample(s),args.L);
+	
+	double Pcm2 = pow(2*M_PI/args.L,2) * zeta.getd().norm2();
+	double Ppi2 = pow(M_PI/args.L,2) * zeta.getl().norm2();
+
+	Epi_contm.sample(s) = sqrt(mpi.sample(s)*mpi.sample(s) + Ppi2);
+
+	Epipi_contm.sample(s) = sqrt( deltaE2 + 4*pow(Epi_contm.sample(s),2) );
+	Epipi_CM_phys.sample(s) = sqrt( pow(Epipi_contm.sample(s),2) - Pcm2 )*ainv.sample(s);
+      }
+      
+      std::cout << "E_pi(contm) = " << Epi_contm << std::endl;
+      std::cout << "E_pipi(contm) = " << Epipi_contm << std::endl;
+
+    }else{
+#pragma omp parallel for
+      for(int s=0;s<nsample;s++)
+	delta.sample(s) = phaseShiftZ(zeta, Epipi.sample(s),mpi.sample(s),args.L,dispn_gamma);
+      
+      jackknifeDistributionD den(nsample, [&](const int s){ return dispersionRelationGetMass(dispn_gamma, Epipi.sample(s), zeta.getd(), 2*M_PI/args.L); });
+      jackknifeDistributionD gamma = Epipi/den;
+      
+      std::cout << "gamma = " << gamma << std::endl;
+      
+      //Boost energy to CM frame
+      Epipi_CM_phys = Epipi*ainv / gamma;
+    }    
+  
     std::cout << "Epipi (CM) = " << Epipi_CM_phys << " GeV" << std::endl;
     std::cout << "delta = " << delta << std::endl << std::endl;
 
@@ -163,29 +289,6 @@ int main(const int argc, const char* argv[]){
   }
 
   typedef MatPlotLibScriptGenerate::handleType handle;
-
-  // struct DataAccessor{
-  //   int sample_freq;
-  //   const correlationFunction<jackknifeDistributionD, jackknifeDistributionD> &data;
-    
-  //   DataAccessor(const correlationFunction<jackknifeDistributionD, jackknifeDistributionD> &data, int sample_freq=10): data(data), sample_freq(sample_freq){}
-
-  //   int ncurves() const{ return data.size(); }
-  //   std::vector<PythonTuple<double> >  curves(const int i) const{
-  //     assert(data.coord(i).size() == data.value(i).size());
-  //     int nsample = data.value(i).size();
-  //     std::vector<PythonTuple<double> > out;
-  //     for(int s=0;s<nsample;s+=sample_freq){
-  // 	out.push_back(PythonTuple<double>(data.coord(i).sample(s), data.value(i).sample(s)));
-  //     }
-  //     return out;
-  //   }
-  //   int nmarkers() const{ return data.size(); }
-
-  //   PythonTuple<double>  markers(const int i) const{
-  //     return PythonTuple<double>(data.coord(i).mean(), data.value(i).mean());
-  //   } 
-  // };
 
   struct DataAccessor{
     const correlationFunction<jackknifeDistributionD, jackknifeDistributionD> &data;
@@ -241,6 +344,12 @@ int main(const int argc, const char* argv[]){
     Accessor acc(data_I2);
     //handle handle_I2 = plot.plotData(acc, "data_I2");
     handle handle_I2 = plot.errorCurves(acc, "data_I2");
+
+    correlationFunction<double, jackknifeDistributionD> col = genColangeloCurve(2, mpi, ainv, 0.6, 100);
+    CurveAccessor cacc(col);
+    typename MatPlotLibScriptGenerate::kwargsType kwargs;
+    kwargs["alpha"] = 0.6;
+    handle curve_I2 = plot.errorBand(cacc,kwargs);
   }
 
 

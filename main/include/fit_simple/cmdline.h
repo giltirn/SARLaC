@@ -17,6 +17,9 @@ struct CMDline{
   bool load_raw_data;
   std::string load_raw_data_file;
 
+  bool remove_samples_in_range;
+  int remove_samples_in_range_start; //units are sample index, not trajectories!
+  int remove_samples_in_range_lessthan;
 
   CMDline(){
     load_guess = false;
@@ -24,6 +27,7 @@ struct CMDline{
     load_combined_data = false;
     save_raw_data = false;
     load_raw_data = false;  
+    remove_samples_in_range = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -64,6 +68,11 @@ struct CMDline{
       }else if(sargv[i] == "-allow_bin_cropping"){ //when #configs is not an exact multiple of bin size, allow discarding of excess configs
 	rawDataDistributionOptions::binAllowCropByDefault() = true;
 	i++;
+      }else if(sargv[i] == "-remove_samples_in_range"){ //drop data from raw data being read. Only works if reading raw data from original files or checkpoint
+	remove_samples_in_range = true;
+	remove_samples_in_range_start = strToAny<int>(sargv[i+1]);
+	remove_samples_in_range_lessthan = strToAny<int>(sargv[i+2]);
+	i+=3;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

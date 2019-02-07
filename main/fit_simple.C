@@ -63,6 +63,13 @@ int main(const int argc, const char** argv){
 #endif
     }
 
+    if(cmdline.remove_samples_in_range){
+      std::cout << "Removing samples in range [" << cmdline.remove_samples_in_range_start << ", " <<  cmdline.remove_samples_in_range_lessthan << ")" << std::endl;
+      for(int c=0;c<nchannel;c++)
+	for(int t=0;t<channels_raw[c].size();t++)
+	  channels_raw[c].value(t) = removeSamplesInRange(channels_raw[c].value(t), cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
+    }
+
     std::vector<doubleJackknifeCorrelationFunctionD> channels_dj(nchannel);
     std::vector<jackknifeCorrelationFunctionD> channels_j(nchannel);
     for(int i=0;i<nchannel;i++){

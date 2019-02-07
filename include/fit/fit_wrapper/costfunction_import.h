@@ -217,6 +217,76 @@ struct importCostFunctionParameters<correlatedCovFitPolicy,FitPolicies>{
 };
 
 
+//For frozen correlated fits
+template<typename FitPolicies>
+struct importCostFunctionParameters<frozenCorrelatedFitPolicy,FitPolicies>{
+  static_assert(std::is_same<typename FitPolicies::DistributionType,jackknifeDistribution<double> >::value, "Currently only support jackknifeDistribution<double>");
+  
+  NumericSquareMatrix<double> corr;
+  NumericSquareMatrix<double> inv_corr;
+  std::vector<double> sigma;
+
+  template<typename GeneralizedCoord, template<typename> class V>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, jackknifeDistribution<double,V> > &data): sigma(data.size()){
+
+    const int nsample = data.value(0).size();
+    const int ndata = data.size();    
+    NumericSquareMatrix<double> cov(ndata);
+    for(int i=0;i<ndata;i++){
+      cov(i,i) = jackknifeDistribution<double,V>::covariance(data.value(i), data.value(i));
+      sigma[i] = sqrt(cov(i,i));
+
+      for(int j=i+1;j<ndata;j++)
+	cov(i,j) = cov(j,i) = jackknifeDistribution<double,V>::covariance(data.value(i),data.value(j));
+    }
+
+    corr =  NumericSquareMatrix<double>(ndata);
+    
+    for(int i=0;i<ndata;i++){
+      corr(i,i) = 1.;
+      
+      for(int j=i+1;j<ndata;j++)
+	corr(i,j) = corr(j,i) = cov(i,j)/sigma[i]/sigma[j];
+    }
+    
+    inv_corr.resize(ndata, double(nsample));
+    double condition_number;
+    svd_inverse(inv_corr, corr, condition_number);
+
+    //Test the quality of the inverse
+    NumericSquareMatrix<double> test = corr * inv_corr;
+    for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - 1.0;    
+    double resid = modE(test);
+
+    //Output the mean and standard deviation of the distributions of residual and condition number 
+    std::cout << "Condition number = " << condition_number << std::endl;
+    std::cout << "||CorrMat * CorrMat^{-1} - 1||_E = " << resid << std::endl;
+
+    //Import
+    fitter.importCostFunctionParameters(inv_corr,sigma);
+  }
+
+  void setUncorrelated(){ //because the fitter stores pointers we can modify the correlation matrix in place
+    std::cout << "Setting correlation matrix to unit matrix\n";
+    for(int i=0;i<sigma.size();i++)
+      for(int j=0;j<sigma.size();j++)
+	inv_corr(i,j) = corr(i,j) = i==j ? 1. : 0.;
+  }
+
+  void writeCovarianceMatrixHDF5(const std::string &file) const{
+#ifdef HAVE_HDF5
+    NumericSquareMatrix<double> cov = corr;
+    for(int i=0;i<corr.size();i++)
+      for(int j=0;j<corr.size();j++)
+	cov(i,j) = cov(i,j) * sigma[i] * sigma[j];
+    HDF5writer wr(file);
+    write(wr, cov, "value");
+#endif
+  }
+};
+
+
 
 CPSFIT_END_NAMESPACE
 #endif

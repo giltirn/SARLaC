@@ -74,8 +74,8 @@ int main(const int argc, const char* argv[]){
     loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
     for(int i=0;i<ops.size();i++)
       for(int j=i;j<ops.size();j++)
-	assert(data_j.haveData(ops[i],ops[j]));
-    
+	if(!data_j.haveData(ops[i],ops[j]))
+	  error_exit(std::cout << "Loaded checkpoint does not contain data for (" << ops[i] << ", " << ops[j] << ")\n");
   }else{
     data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
     data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
