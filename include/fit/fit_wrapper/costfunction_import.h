@@ -29,6 +29,11 @@ struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
     
     fitter.importCostFunctionParameters(sigma);
   }
+  template<typename GeneralizedCoord, template<typename> class V>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, jackknifeDistribution<double,V> > &data_j,
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data_dj):
+    importCostFunctionParameters(fitter, data_dj){}
 
   void writeCovarianceMatrixHDF5(const std::string &file) const{
 #ifdef HAVE_HDF5
@@ -91,6 +96,12 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
   }
+
+  template<typename GeneralizedCoord, template<typename> class V>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, jackknifeDistribution<double,V> > &data_j,
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data_dj):
+    importCostFunctionParameters(fitter, data_dj){}
 
   void setUncorrelated(){ //because the fitter stores pointers we can modify the correlation matrix in place
     std::cout << "Setting correlation matrix to unit matrix\n";
@@ -194,6 +205,12 @@ struct importCostFunctionParameters<correlatedCovFitPolicy,FitPolicies>{
     fitter.importCostFunctionParameters(inv_cov);
   }
 
+  template<typename GeneralizedCoord, template<typename> class V>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, jackknifeDistribution<double,V> > &data_j,
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data_dj):
+    importCostFunctionParameters(fitter, data_dj){}
+
   void setUncorrelated(){ //because the fitter stores pointers we can modify the correlation matrix in place
     std::cout << "Setting correlation matrix to unit matrix\n";
     int nsample = cov(0,0).size();
@@ -266,6 +283,12 @@ struct importCostFunctionParameters<frozenCorrelatedFitPolicy,FitPolicies>{
     //Import
     fitter.importCostFunctionParameters(inv_corr,sigma);
   }
+
+  template<typename GeneralizedCoord, template<typename> class V>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, jackknifeDistribution<double,V> > &data_j,
+			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data_dj):
+    importCostFunctionParameters(fitter, data_j){}
 
   void setUncorrelated(){ //because the fitter stores pointers we can modify the correlation matrix in place
     std::cout << "Setting correlation matrix to unit matrix\n";

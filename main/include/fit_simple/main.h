@@ -1,27 +1,61 @@
 #ifndef _FIT_SIMPLE_MAIN_H_
 #define _FIT_SIMPLE_MAIN_H_
 
+template<typename DistributionType>
+correlationFunction<double, DistributionType> resampleAndCombine(const std::vector<rawDataCorrelationFunctionD> &channels_raw, const Args &args, const CMDline &cmdline){
+  const int nchannel = channels_raw.size();
+
+  std::vector<correlationFunction<double, DistributionType> > channels_r(nchannel);
+  for(int i=0;i<nchannel;i++){
+    channels_r[i] = correlationFunction<double, DistributionType>(args.Lt, [&](const int t){
+	return typename correlationFunction<double, DistributionType>::ElementType(t, DistributionType(channels_raw[i].value(t).bin(args.bin_size)));								  });
+  }
+  correlationFunction<double, DistributionType> out(args.Lt);
+
+  applyCombination(out,channels_r,args.combination);
+  applyTimeDep(out, args.outer_time_dep, args.Lt);
+
+  return out;
+}
+
+template<typename DataSeriesType>
+inline DataSeriesType getDataInRange(const DataSeriesType &data, const int tmin, const int tmax){
+  return DataSeriesType(tmax - tmin + 1, [&](const int i){ return data[tmin + i]; });
+}
+  
 template<typename FitFunc, template<typename> class CostFunctionPolicy, typename ArgsType, typename CMDlineType>
 void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
   typedef typename composeFitPolicy<FitFunc, standardFitFuncPolicy, CostFunctionPolicy>::type FitPolicies;
   typedef fitter<FitPolicies> Fitter;
   typedef typename FitPolicies::FitParameterDistribution FitParameterDistribution;
   
-  const int nt_fit = args.t_max - args.t_min + 1;
+  jackknifeCorrelationFunctionD data_j_inrange = getDataInRange(data_j, args.t_min, args.t_max);
+  doubleJackknifeCorrelationFunctionD data_dj_inrange;
+  if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) data_dj_inrange = getDataInRange(data_dj, args.t_min, args.t_max);
 
-  doubleJackknifeCorrelationFunctionD data_dj_inrange(nt_fit, 
-						      [&](const int i){ return typename doubleJackknifeCorrelationFunctionD::ElementType(args.t_min + i, data_dj.value(args.t_min + i)); }
-						      );
-  
-  jackknifeCorrelationFunctionD data_j_inrange(nt_fit, 
-					       [&](const int i){ return typename jackknifeCorrelationFunctionD::ElementType(args.t_min + i, data_j.value(args.t_min + i)); }
-					       );
+  std::cout << "All data\n";
+  for(int i=0;i<data_j.size();i++){
+    std::cout << (int)data_j.coord(i) << " " << data_j.value(i) << std::endl;
+  }
+
+  std::cout << "Data in range\n";
+  for(int i=0;i<data_j_inrange.size();i++){
+    std::cout << (int)data_j_inrange.coord(i) << " " << data_j_inrange.value(i) << std::endl;
+  }
 
   FitFunc* fitfunc = FitFuncPolicy<FitFunc,ArgsType>::get(args);
   Fitter fit;
+
+  if(cmdline.load_mlparams){
+    typename Fitter::minimizerParamsType minparams;
+    parse(minparams, cmdline.mlparams_file);
+    std::cout << "Loaded minimizer params: " << minparams << std::endl;
+    fit.setMinimizerParams(minparams);
+  }
+
   fit.importFitFunc(*fitfunc);
 
-  importCostFunctionParameters<CostFunctionPolicy,FitPolicies> prepare(fit,data_dj_inrange);
+  importCostFunctionParameters<CostFunctionPolicy,FitPolicies> prepare(fit,data_j_inrange, data_dj_inrange);
 
   typename FitFunc::ParameterType guess = fitfunc->guess();
   if(cmdline.load_guess){
@@ -30,8 +64,7 @@ void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJack
 
   const int nsample = data_j.value(0).size();
   FitParameterDistribution params(nsample, guess);
-  jackknifeDistributionD chisq(nsample);
-  jackknifeDistributionD chisq_per_dof(nsample);
+  jackknifeDistributionD chisq(nsample), chisq_per_dof(nsample);
 
   fit.fit(params, chisq, chisq_per_dof, data_j_inrange);
 

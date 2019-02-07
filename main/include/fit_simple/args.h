@@ -3,11 +3,13 @@
 
 #include<fit_simple/data_info.h>
 
+GENERATE_ENUM_AND_PARSER(CovarianceStrategy, (Correlated)(Uncorrelated)(FrozenCorrelated) );
+
 #define ARGS_MEMBERS \
   ( std::vector<DataInfo>, data ) \
   ( Combination, combination ) \
   ( TimeDependence, outer_time_dep ) \
-  ( bool, correlated ) \
+  ( CovarianceStrategy, covariance_strategy ) \
   ( FitFuncType, fitfunc) \
   ( int, Lt) \
   ( int, t_min) \
@@ -21,7 +23,7 @@
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
 
-Args(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), correlated(false), traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1), bin_size(1){}
+Args(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), covariance_strategy(CovarianceStrategy::Uncorrelated), fitfunc(FitFuncType::FCosh), traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1), bin_size(1){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 

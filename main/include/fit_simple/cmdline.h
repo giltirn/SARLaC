@@ -21,6 +21,9 @@ struct CMDline{
   int remove_samples_in_range_start; //units are sample index, not trajectories!
   int remove_samples_in_range_lessthan;
 
+  bool load_mlparams;
+  std::string mlparams_file;
+
   CMDline(){
     load_guess = false;
     save_combined_data = false;
@@ -28,6 +31,7 @@ struct CMDline{
     save_raw_data = false;
     load_raw_data = false;  
     remove_samples_in_range = false;
+    load_mlparams = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -73,6 +77,18 @@ struct CMDline{
 	remove_samples_in_range_start = strToAny<int>(sargv[i+1]);
 	remove_samples_in_range_lessthan = strToAny<int>(sargv[i+2]);
 	i+=3;
+      }else if(sargv[i] == "-load_mlparams"){
+	load_mlparams = true;
+	mlparams_file = sargv[i+1];
+	if(mlparams_file == "TEMPLATE"){
+	  MarquardtLevenbergParameters<double> templ;
+	  std::ofstream of("mlparams_template.args");
+	  of << templ;
+	  of.close();
+	  std::cout << "Wrote MLparams template to mlparams_template.args\n";
+	  exit(0);	 
+	}
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

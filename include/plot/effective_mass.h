@@ -15,7 +15,7 @@ CPSFIT_START_NAMESPACE
 
 //For a generic fit form and arbitrary linear combination
 template<typename jackknifeTimeSeriesType, typename FitEffMassFunc>
-jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, const FitEffMassFunc &fiteffmass){
+  jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, const FitEffMassFunc &fiteffmass, double guess = 0.5){
   typedef UncorrelatedChisqCostFunction<FitEffMassFunc, dataSeries<double,double> > CostFunction;
   typedef MarquardtLevenbergMinimizer<CostFunction> MinimizerType;
   typedef typename FitEffMassFunc::ParameterType ParameterType;
@@ -27,7 +27,7 @@ jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, c
   const int nsample = edata.value(0).size();
   jackknifeTimeSeriesType effmass(edata.size(), nsample);
   auto orig_printer = distributionPrint<jackknifeDistribution<double> >::printer();
-  distributionPrint<jackknifeDistribution<double> >::printer(new publicationDistributionPrinter<jackknifeDistribution<double> >,false);  
+  distributionPrint<jackknifeDistribution<double> >::printer(new publicationDistributionPrinter<jackknifeDistribution<double> >(2,Error),false);  
 
   std::vector<bool> erase(edata.size(),false);
   bool erase_required = false;
@@ -43,7 +43,7 @@ jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, c
       rat_t_sample_j.value(0) = edata.value(i).sample(j);
       CostFunction costfunc(fiteffmass, rat_t_sample_j, sigma_j);
       MinimizerType fitter(costfunc, mlparams);
-      ParameterType p(0.5);
+      ParameterType p(guess);
       fitter.fit(p);
       if(!fitter.hasConverged()) fail[omp_get_thread_num()] = 1;
       else effmass.value(i).sample(j) = *p;
@@ -88,7 +88,7 @@ jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, c
 //Two point effective mass for fit functions with form  A*f(m,t)
 //Base should be a correctly setup parameter structure (needed so we can avoid requiring default constructors). The amplitude parameter should be set to a non-zero value. parameter_mass_index is the index of the mass parameter.
 template<typename jackknifeTimeSeriesType, typename FitFunc>
-jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, const FitFunc &fitfunc, const typename FitFunc::ParameterType &base, const int parameter_mass_idx, const int Lt){
+  jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, const FitFunc &fitfunc, const typename FitFunc::ParameterType &base, const int parameter_mass_idx, const int Lt, double guess = 0.5){
   if(data.size() == 0) return jackknifeTimeSeriesType(0);
   if(data.size() != Lt) error_exit(std::cout << "effectiveMass called with data of size " << data.size() << ". Expect 0 or Lt=" << Lt << std::endl);
   
@@ -104,7 +104,7 @@ jackknifeTimeSeriesType effectiveMass2pt(const jackknifeTimeSeriesType &data, co
   }
   typedef Fit2ptEffectiveMass<FitFunc> FitEffMass;
   FitEffMass fiteffmass(fitfunc, base, parameter_mass_idx);
-  return fitEffectiveMass<jackknifeTimeSeriesType,FitEffMass>(ratios,fiteffmass);
+  return fitEffectiveMass<jackknifeTimeSeriesType,FitEffMass>(ratios,fiteffmass,guess);
 }
 
 CPSFIT_END_NAMESPACE

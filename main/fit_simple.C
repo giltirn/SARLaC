@@ -33,7 +33,7 @@ int main(const int argc, const char** argv){
     std::cout << "Reading resampled data from " << cmdline.load_combined_data_file << std::endl;
     HDF5reader reader(cmdline.load_combined_data_file);
     read(reader, data_j, "data_j");
-    read(reader, data_dj, "data_dj");
+    if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) read(reader, data_dj, "data_dj");
 #else
     error_exit("main: Loading amplitude data requires HDF5\n");
 #endif
@@ -70,25 +70,8 @@ int main(const int argc, const char** argv){
 	  channels_raw[c].value(t) = removeSamplesInRange(channels_raw[c].value(t), cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
     }
 
-    std::vector<doubleJackknifeCorrelationFunctionD> channels_dj(nchannel);
-    std::vector<jackknifeCorrelationFunctionD> channels_j(nchannel);
-    for(int i=0;i<nchannel;i++){
-      rawDataCorrelationFunctionD channel_raw = channels_raw[i];
-      bin(channel_raw, args.bin_size);    
-
-      channels_dj[i] = doubleJackknifeCorrelationFunctionD(args.Lt, [&](const int t){
-	  return typename doubleJackknifeCorrelationFunctionD::ElementType(t,  doubleJackknifeDistributionD(channel_raw.value(t)));
-	});
-      channels_j[i] = jackknifeCorrelationFunctionD(args.Lt, [&](const int t){
-	  return typename jackknifeCorrelationFunctionD::ElementType(t,  jackknifeDistributionD(channel_raw.value(t)));
-	});
-    }
-
-    applyCombination(data_dj,channels_dj,args.combination);
-    applyTimeDep(data_dj, args.outer_time_dep, args.Lt);
-
-    applyCombination(data_j,channels_j,args.combination);
-    applyTimeDep(data_j, args.outer_time_dep, args.Lt);
+    data_j = resampleAndCombine<jackknifeDistributionD>(channels_raw, args, cmdline);
+    if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) data_dj = resampleAndCombine<doubleJackknifeDistributionD>(channels_raw, args, cmdline);
   }
 
   fit(data_j,data_dj, args, cmdline);

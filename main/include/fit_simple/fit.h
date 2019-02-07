@@ -4,7 +4,8 @@
 template<typename FitFunc, typename ArgsType>
 void plotEffectiveMass(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, 
 		       const jackknifeDistribution<typename FitFunc::ParameterType> &params, const int params_mass_idx){
-  jackknifeCorrelationFunctionD effmass = effectiveMass2pt<jackknifeCorrelationFunctionD,FitFunc>(data_j,fitfunc,params.sample(0), params_mass_idx, args.Lt);
+  double guess = params.best()(params_mass_idx);
+  jackknifeCorrelationFunctionD effmass = effectiveMass2pt<jackknifeCorrelationFunctionD,FitFunc>(data_j,fitfunc,params.sample(0), params_mass_idx, args.Lt, guess);
   
   MatPlotLibScriptGenerate plotter;
   typedef MatPlotLibScriptGenerate::handleType Handle;
@@ -202,10 +203,18 @@ void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJack
 
 template<typename FitFunc, typename ArgsType, typename CMDlineType>
 inline void fitSpecFF(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
-  return args.correlated ? 
-    fitSpecFFcorr<FitFunc,correlatedFitPolicy,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline) : 
-    fitSpecFFcorr<FitFunc,uncorrelatedFitPolicy,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
+  switch(args.covariance_strategy){
+  case CovarianceStrategy::Correlated:
+    return fitSpecFFcorr<FitFunc,correlatedFitPolicy,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline);
+  case CovarianceStrategy::Uncorrelated:
+    return fitSpecFFcorr<FitFunc,uncorrelatedFitPolicy,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline);
+  case CovarianceStrategy::FrozenCorrelated:
+    return fitSpecFFcorr<FitFunc,frozenCorrelatedFitPolicy,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline);
+  default:
+    error_exit(std::cout << "fitSpecFF unknown CovarianceStrategy " << args.covariance_strategy << std::endl);
+  }
 };
+
 template<typename ArgsType, typename CMDlineType>
 inline void fitResampled(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
   switch(args.fitfunc){
