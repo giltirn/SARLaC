@@ -2,6 +2,7 @@
 #include<fit.h>
 #include<parser.h>
 #include<plot.h>
+#include<random.h>
 
 using namespace CPSfit;
 
@@ -68,6 +69,34 @@ int main(const int argc, const char** argv){
       for(int c=0;c<nchannel;c++)
 	for(int t=0;t<channels_raw[c].size();t++)
 	  channels_raw[c].value(t) = removeSamplesInRange(channels_raw[c].value(t), cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
+    }
+    if(cmdline.scramble_raw_data){ //useful as a check to see if binning is actually doing anything more than reducing resolution on the covariance matrix
+      int nsample = channels_raw[0].value(0).size();
+      if(!RNG.isInitialized()) RNG.initialize(1234);
+      std::vector<int> reord(nsample);
+      std::list<int> rem; 
+      for(int i=0;i<nsample;i++) rem.push_back(i);
+      
+      for(int i=0;i<nsample;i++){
+	int off = (int)uniformRandom<float>(0,rem.size());
+	auto it = std::next(rem.begin(), off);
+	reord[i] = *it;
+	rem.erase(it);
+      }
+      
+      //Check indices are unique
+      std::cout << "Reordered samples: ";
+      std::set<int> con;
+      for(int i=0;i<nsample;i++){
+	std::cout << reord[i] << " ";
+	con.insert(reord[i]);
+      }
+      std::cout << std::endl;
+      assert(con.size() == nsample); 
+
+      for(int c=0;c<nchannel;c++)
+	for(int t=0;t<channels_raw[c].size();t++)
+	  channels_raw[c].value(t) = rawDataDistributionD(nsample, [&](const int s){ return channels_raw[c].value(t).sample(reord[s]); });
     }
 
     data_j = resampleAndCombine<jackknifeDistributionD>(channels_raw, args, cmdline);

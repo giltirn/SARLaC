@@ -50,7 +50,7 @@ int main(const int argc, const char* argv[]){
       for(int p=0;p<args.p_tot.size();p++){
 	RawData &raw = raw_data[args.p_tot[p]];
 
-	raw.read(args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
+	raw.read(args.isospin, args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
 		 args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
 		 args.p_tot[p],
 		 ops, cmdline.filemap_allow_ptot_parity);
@@ -80,7 +80,7 @@ int main(const int argc, const char* argv[]){
   }else{
     for(int p=0;p<args.p_tot.size();p++){
       auto ptot = args.p_tot[p];
-      data_j[ptot].generatedResampledData(raw_data[ptot], args.bin_size, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
+      data_j[ptot].generatedResampledData(raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
     }
   }  
 
@@ -122,15 +122,15 @@ int main(const int argc, const char* argv[]){
   if(cmdline.subtract_nbr_tslice){
     GEVPsubNeighborTslice<jackknifeDistributionD> gevp(cmdline.verbose_solver);
     gevp.solve(C, args.t_max);
-    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
+    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
   }else if(cmdline.fix_t_sub){
     GEVPsubFixedTslice gevp(cmdline.fix_t_sub_time, cmdline.verbose_solver);
     gevp.solve(C, args.t_max);
-    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
+    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
   }else{
     GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
     gevp.solve(C, args.t_max);
-    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
+    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
   }
 
   std::cout << "Done\n";

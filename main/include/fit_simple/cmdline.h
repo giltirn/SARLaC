@@ -24,6 +24,8 @@ struct CMDline{
   bool load_mlparams;
   std::string mlparams_file;
 
+  bool scramble_raw_data; //randomly scramble samples of raw data (only works if reading/loading raw data distributions!)
+
   CMDline(){
     load_guess = false;
     save_combined_data = false;
@@ -32,6 +34,7 @@ struct CMDline{
     load_raw_data = false;  
     remove_samples_in_range = false;
     load_mlparams = false;
+    scramble_raw_data = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -89,6 +92,9 @@ struct CMDline{
 	  exit(0);	 
 	}
 	i+=2;
+      }else if(sargv[i] == "-scramble_raw_data"){
+	scramble_raw_data = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

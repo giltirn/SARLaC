@@ -7,6 +7,16 @@ void plotEffectiveMass(const ArgsType &args, const FitFunc &fitfunc, const jackk
   double guess = params.best()(params_mass_idx);
   jackknifeCorrelationFunctionD effmass = effectiveMass2pt<jackknifeCorrelationFunctionD,FitFunc>(data_j,fitfunc,params.sample(0), params_mass_idx, args.Lt, guess);
   
+  {
+    std::ofstream os("effective_mass.key"); 
+    std::vector<jackknifeDistributionD> em(effmass.size()); 
+    for(int t=0;t<effmass.size();t++){
+      em[t] = effmass.value(t);
+      os << t << " " << effmass.coord(t) << std::endl;
+    }
+    writeParamsStandard(em, "effective_mass.hdf5");
+  }
+
   MatPlotLibScriptGenerate plotter;
   typedef MatPlotLibScriptGenerate::handleType Handle;
   typename MatPlotLibScriptGenerate::kwargsType plot_args;

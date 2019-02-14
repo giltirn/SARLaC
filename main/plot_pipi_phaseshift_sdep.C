@@ -161,6 +161,9 @@ int main(const int argc, const char* argv[]){
     }else if(std::string(argv[ii]) == "-sin_dispn_reln_mpionly"){
       dispn_mpi = DispersionRelation::Sin;
       ii++;
+    }else if(std::string(argv[ii]) == "-fit_dispn_reln"){
+      dispn_mpi = dispn_gamma = DispersionRelation::Fit;
+      ii++;
     }else if(std::string(argv[ii]) == "-phaseshift_deltaE"){
       phaseshift_deltaE = true;
       ii++;
@@ -199,6 +202,10 @@ int main(const int argc, const char* argv[]){
     }else if(args.mpi_src == MpiSource::File){
       std::cout << "Reading m_pi from file " << args.mpi_file << std::endl;
       readHDF5file(mpi, args.mpi_file, args.mpi_idx);
+      std::cout << "Read m_pi = " << mpi << std::endl;
+      
+      //For the sinh dispersion relation, the energy of the stationary particle is not equal to its mass - correct for this
+      for(int s=0;s<nsample;s++) mpi.sample(s) = dispersionRelationGetMass(dispn_mpi, mpi.sample(s), GSLvector(3,0.), M_PI/args.L);
     }
   }
 
@@ -206,10 +213,13 @@ int main(const int argc, const char* argv[]){
   std::cout << "mpi = " << mpi << std::endl;
   std::cout << "a^-1 = " << ainv << std::endl;
 
+  writeParamsStandard(mpi, "mpi_val.hdf5");
+
   MatPlotLibScriptGenerate plot;
 
-  correlationFunction<jackknifeDistributionD, jackknifeDistributionD> data_I0;
-  correlationFunction<jackknifeDistributionD, jackknifeDistributionD> data_I2;
+  correlationFunction<jackknifeDistributionD, jackknifeDistributionD> data_I0, data_I2;
+
+  std::vector<jackknifeDistributionD> Epipi_vec(args.meas.size()), Epipi_CM_vec(args.meas.size()), delta_vec(args.meas.size()), delta_Colangelo_vec(args.meas.size());
 			       
   for(int m=0;m<args.meas.size();m++){
     jackknifeDistribution<double> Epipi;
@@ -218,11 +228,9 @@ int main(const int argc, const char* argv[]){
     assert(Epipi.size() == nsample);    
     
     LuscherZeta zeta(args.twists, args.meas[m].ptot);
-    jackknifeDistribution<double> delta(nsample);
-    jackknifeDistributionD Epipi_CM_phys(nsample);
+    jackknifeDistributionD delta(nsample), Epipi_CM_phys(nsample);
     if(phaseshift_deltaE){
-      jackknifeDistributionD Epi_contm(nsample);
-      jackknifeDistributionD Epipi_contm(nsample);
+      jackknifeDistributionD Epi_contm(nsample), Epipi_contm(nsample);
 
 #pragma omp parallel for
       for(int s=0;s<nsample;s++){
@@ -267,8 +275,8 @@ int main(const int argc, const char* argv[]){
       for(int s=0;s<nsample;s++)
 	delta.sample(s) = phaseShiftZ(zeta, Epipi.sample(s),mpi.sample(s),args.L,dispn_gamma);
       
-      jackknifeDistributionD den(nsample, [&](const int s){ return dispersionRelationGetMass(dispn_gamma, Epipi.sample(s), zeta.getd(), 2*M_PI/args.L); });
-      jackknifeDistributionD gamma = Epipi/den;
+      jackknifeDistributionD E_CM(nsample, [&](const int s){ return dispersionRelationGetEnergyFromEnergy(dispn_gamma, GSLvector(3,0.), Epipi.sample(s), zeta.getd(), 2*M_PI/args.L); });
+      jackknifeDistributionD gamma = Epipi/E_CM;
       
       std::cout << "gamma = " << gamma << std::endl;
       
@@ -277,8 +285,22 @@ int main(const int argc, const char* argv[]){
     }    
   
     std::cout << "Epipi (CM) = " << Epipi_CM_phys << " GeV" << std::endl;
-    std::cout << "delta = " << delta << std::endl << std::endl;
+    std::cout << "delta = " << delta << std::endl;
 
+    Epipi_vec[m] = Epipi;
+    Epipi_CM_vec[m] = Epipi_CM_phys/ainv;
+    delta_vec[m] = delta;
+
+    //Compute Colangelo value
+    delta_Colangelo_vec[m] = jackknifeDistributionD(nsample,
+						    [&](const int s){
+						      double mpi_phys = mpi.sample(s) * ainv.sample(s);
+						      double E = Epipi_CM_phys.sample(s);
+						      return 180./M_PI * PhenoCurveColangelo::compute(E*E, args.meas[m].isospin, mpi_phys);
+						    });
+    std::cout << "delta (Colangelo) = " << delta_Colangelo_vec[m] << std::endl << std::endl;
+
+    //Append data to correlator for plotting
     if(args.meas[m].isospin == 0){
       data_I0.push_back(Epipi_CM_phys, delta);
     }else if(args.meas[m].isospin == 2){
@@ -287,6 +309,11 @@ int main(const int argc, const char* argv[]){
       error_exit(std::cout << "Error: Only support I=0/2\n");
     }
   }
+
+  writeParamsStandard(Epipi_vec, "Epipi_lab.hdf5");
+  writeParamsStandard(Epipi_CM_vec, "Epipi_CM.hdf5");
+  writeParamsStandard(delta_vec, "delta.hdf5");
+  writeParamsStandard(delta_Colangelo_vec, "delta_Colangelo.hdf5");
 
   typedef MatPlotLibScriptGenerate::handleType handle;
 

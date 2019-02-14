@@ -111,7 +111,26 @@ def tabulate(cols,args,**kwargs):
 
     if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
         print r'}'
+    if('caption' in kwargs.keys() ):
+        print "\\caption{%s}" % kwargs['caption']
 
     print "\\end{table}"
     print "\\FloatBarrier"
 
+
+
+def hdf5_calc(outfile, expr, symbols, filenames, index_strings, **kwargs):
+    for f in filenames:
+        if(os.path.isfile(f) == False):
+            return "ERR"
+
+    nsymb = len(symbols)
+    if(len(filenames) != nsymb or len(index_strings) != nsymb):
+        print "hdf5_calc Input arrays must be same size"
+        exit;
+
+    arg_str = "\"%s\"" % expr
+    for i in range(nsymb):
+        arg_str = arg_str + " \"%s\" %s \"%s\"" % (symbols[i], filenames[i], index_strings[i])
+
+    os.popen("hdf5_calc %s %s" % (outfile,arg_str)).read()
