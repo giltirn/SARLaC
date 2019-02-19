@@ -5,7 +5,7 @@
 
 #include<config.h>
 #include<utils/macros.h>
-#include<minimizer/minimizer.h>
+#include<minimizer.h>
 #include<fit/fit_wrapper/base_typedefs.h>
 #include<fit/fit_wrapper/fitfunc_policy.h>
 #include<fit/fit_wrapper/costfunction_policy.h>

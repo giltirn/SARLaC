@@ -26,5 +26,7 @@
 #include<fit/cost_function/uncorrelated_chisq.h>
 #include<fit/cost_function/correlated_chisq.h>
 #include<fit/cost_function/correlated_cov_chisq.h>
+#include<fit/cost_function/correlated_chisq_terms.h>
+#include<fit/cost_function/uncorrelated_chisq_terms.h>
 
 #endif
