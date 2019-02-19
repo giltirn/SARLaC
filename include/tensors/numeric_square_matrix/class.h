@@ -29,7 +29,7 @@ public:
   NumericSquareMatrix(const int n, const Numeric &init): m(n, std::vector<Numeric>(n,init)){}
   NumericSquareMatrix(const NumericSquareMatrix &r) = default;
   NumericSquareMatrix(NumericSquareMatrix &&r) = default;
-  NumericSquareMatrix(std::initializer_list<Numeric> l): m(int(floor(sqrt(l.size())))){
+  NumericSquareMatrix(std::initializer_list<Numeric> l): m(int(floor(sqrt(l.size()))), std::vector<Numeric>(int(floor(sqrt(l.size())))) ){
     assert(l.size() == this->size() * this->size());
     auto it=l.begin();
     for(int i=0;i<m.size();i++)

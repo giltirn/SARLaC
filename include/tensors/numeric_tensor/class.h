@@ -99,7 +99,14 @@ public:
   inline DataType &operator()(int const* elem){
     return data[map(elem)];
   }  
+
+  template<typename std::enable_if<Rank == 2, int>::type = 0>
+  inline DataType &operator()(const int i, const int j){ int ij[2] = {i,j}; return (*this)(ij); }
   
+  template<typename std::enable_if<Rank == 2, int>::type = 0>
+  inline const DataType &operator()(const int i, const int j) const{ int ij[2] = {i,j}; return (*this)(ij); }
+
+
   inline const std::vector<int> &sizes() const{ return dsizes; }
   inline int size(const int dir) const{ return dsizes[dir]; }
 
