@@ -38,7 +38,7 @@ struct ETnumericMatrixMult{
   typedef ENABLE_IF_TWO_ET_LEAF_EQUAL_TAG(Leaf1,Leaf2, typename Leaf1::ET_tag) ET_tag;
   
   ETnumericMatrixMult(Leaf1 &&aa, Leaf2 &&bb): a(std::move(aa)), b(std::move(bb)){
-    assert(aa.common_properties() == bb.common_properties());
+    assert(a.common_properties() == b.common_properties());
   }
   template<typename T>
   static inline auto elem(const T &m, const int i, const int j)->decltype(m[0]){ return m[j + m.common_properties()*i]; }
@@ -74,7 +74,7 @@ struct ETnumericMatrixVectorMult{
   typedef typename Leaf2::ET_tag ET_tag; //result is vector
   
   ETnumericMatrixVectorMult(Leaf1 &&aa, Leaf2 &&bb): a(std::move(aa)), b(std::move(bb)){
-    assert(aa.common_properties() == bb.common_properties());
+    assert(a.common_properties() == b.common_properties());
   }
   template<typename T>
   static inline auto melem(const T &m, const int i, const int j)->decltype(m[0]){ return m[j + m.common_properties()*i]; }

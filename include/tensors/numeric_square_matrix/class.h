@@ -109,6 +109,14 @@ public:
   Numeric & operator()(const int i, const int j){ return m[i][j]; }
   const Numeric & operator()(const int i, const int j) const { return m[i][j]; }
 
+  NumericSquareMatrix transpose() const{
+    NumericSquareMatrix out(this->size());
+    for(int i=0;i<this->size();i++)
+      for(int j=0;j<this->size();j++)
+	out(i,j) = (*this)(j,i);
+    return out;
+  }
+
   GENERATE_HDF5_SERIALIZE_METHOD((m));
 };
 
