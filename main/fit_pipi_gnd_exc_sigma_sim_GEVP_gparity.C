@@ -90,7 +90,7 @@ int main(const int argc, const char* argv[]){
 
   GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
   gevp.solve(C, args.t_max);
-  analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.Ascale);
+  analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
 
   std::cout << "Done\n";
   return 0;

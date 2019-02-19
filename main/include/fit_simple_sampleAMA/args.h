@@ -44,7 +44,7 @@ GENERATE_PARSER(DataInfoSampleAMA, DATA_INFO_SAMPLE_AMA_MEMBERS);
   ( std::vector<DataInfoSampleAMA>, data )		\
   ( Combination, combination )			\
   ( TimeDependence, outer_time_dep )		\
-  ( bool, correlated )				\
+  ( CovarianceStrategy, covariance_strategy )	\
   ( FitFuncType, fitfunc)			\
   ( int, Lt)					\
   ( int, t_min)					\
@@ -61,7 +61,7 @@ GENERATE_PARSER(DataInfoSampleAMA, DATA_INFO_SAMPLE_AMA_MEMBERS);
 struct ArgsSampleAMA{
   GENERATE_MEMBERS(ARGS_SAMPLE_AMA_MEMBERS);
 
-  ArgsSampleAMA(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), correlated(false), t_min(0), t_max(32), data(1), bin_size(1), traj_inc(1),
+  ArgsSampleAMA(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), covariance_strategy(CovarianceStrategy::Uncorrelated), t_min(0), t_max(32), data(1), bin_size(1), traj_inc(1),
 		   sloppy_traj_start(0), sloppy_traj_lessthan(10), correction_traj_start(11), correction_traj_lessthan(15){}
 
   Args toArgs() const{
@@ -69,7 +69,7 @@ struct ArgsSampleAMA{
     out.data.resize(0);
     out.combination = combination;
     out.outer_time_dep = outer_time_dep;
-    out.correlated = correlated;
+    out.covariance_strategy = covariance_strategy;
     out.fitfunc = fitfunc;
     out.Lt = Lt;
     out.t_min = t_min;

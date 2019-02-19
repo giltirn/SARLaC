@@ -1,6 +1,7 @@
 #ifndef LUSCHER_ZETA_H
 #define LUSCHER_ZETA_H
 #include<array>
+#include<cassert>
 #include<gsl/gsl_integration.h>
 #include<gsl/gsl_math.h>
 #include<gsl/gsl_sf_gamma.h>

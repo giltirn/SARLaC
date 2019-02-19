@@ -4,6 +4,7 @@
 #include <data_series.h>
 #include <fit.h>
 #include <tensors.h>
+#include <containers/parameter_vector.h>
 
 using namespace CPSfit;
 
@@ -45,10 +46,10 @@ int main(void){
   FitFunctionType func;
   
   //Implement frozen fit through generic interface, mapping between a subset and superset of the parameters
-  typedef NumericVector<double> ParamSupersetType;
-  typedef NumericVector<double> ParamSubsetType;
-  typedef NumericVector<double> DerivSupersetType;
-  typedef NumericVector<double> DerivSubsetType;
+  typedef parameterVector<double> ParamSupersetType;
+  typedef parameterVector<double> ParamSubsetType;
+  typedef parameterVector<double> DerivSupersetType;
+  typedef parameterVector<double> DerivSubsetType;
   
   typedef FitFuncGenericRemap<FitFunctionType> FrozenFitFunction;
   
@@ -85,7 +86,7 @@ int main(void){
 
     MinimizerType fitter(costfunc, mlparams);
 
-    NumericVector<double> dp(1);
+    parameterVector<double> dp(1);
     dp[1] = param[1].sample(j);
     
     CostType cost = fitter.fit(dp);
@@ -112,7 +113,7 @@ int main(void){
   for(int i=0;i<npt;i++){
     fit.coord(i) = double(i)/10;
     for(int j=0;j<nsample;j++){
-      NumericVector<double> fp(2);
+      parameterVector<double> fp(2);
       fp(0) = param[0].sample(j);
       fp(1) = param[1].sample(j);
       

@@ -71,7 +71,7 @@ void readData(rawDataCorrelationFunctionD &into, const AMAdataInfo &data_info, c
   ( std::vector<AMAdataInfo>, data ) \
   ( Combination, combination ) \
   ( TimeDependence, outer_time_dep ) \
-  ( bool, correlated ) \
+  ( CovarianceStrategy, covariance_strategy )	\
   ( FitFuncType, fitfunc) \
   ( int, Lt) \
   ( int, t_min) \
@@ -85,7 +85,7 @@ void readData(rawDataCorrelationFunctionD &into, const AMAdataInfo &data_info, c
 struct AMAargs{
   GENERATE_MEMBERS(AMA_ARGS_MEMBERS);
 
-  AMAargs(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), correlated(false), traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1), bin_size(1){}
+  AMAargs(): Lt(64), combination(Combination::CombinationAverage), outer_time_dep(TimeDependence::TimeDepNormal), covariance_strategy(CovarianceStrategy::Uncorrelated), traj_start(0), traj_inc(1), traj_lessthan(2), t_min(0), t_max(32), data(1), bin_size(1){}
 };
 GENERATE_PARSER(AMAargs, AMA_ARGS_MEMBERS);
 

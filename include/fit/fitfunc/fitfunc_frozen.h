@@ -4,7 +4,7 @@
 //A "frozen fit" in which a fitfunc has some of its parameters fixed and unvaried during the minimization, can be implemented simply as a wrapper around a standard fit function
 #include<config.h>
 #include<utils/macros.h>
-#include<tensors/numeric_vector.h>
+#include<containers/parameter_vector.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -35,8 +35,8 @@ public:
 
   typedef typename FitFunc::ValueType ValueType;
   typedef typename FitFunc::GeneralizedCoordinate GeneralizedCoordinate;
-  typedef NumericVector<ParamElementType> ParameterType;
-  typedef NumericVector<ParamElementType> ValueDerivativeType;
+  typedef parameterVector<ParamElementType> ParameterType;
+  typedef parameterVector<ParamElementType> ValueDerivativeType;
 private:
 
   const FitFunc &fitfunc;

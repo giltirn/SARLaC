@@ -19,6 +19,8 @@
   ( int, t_max) \
   ( int, fit_tmin )				\
   ( int, fit_tmax )				\
+  ( int, fit_t0min )				\
+  ( int, fit_t0max )				\
   ( int, bin_size)				\
   ( int, traj_start ) \
   ( int, traj_inc ) \
@@ -34,7 +36,7 @@ struct Args{
     sigma_bubble_file_format("traj_<CONF>_sigmaself_mom<PQUARK>_v2"),
     sigma2pt_file_format("traj_<CONF>_sigmacorr_mompsrc<PSRC_QUARK>psnk<PSNK_QUARK>_v2"),
     operators({Operator::PiPiGnd, Operator::PiPiExc, Operator::Sigma}),
-    Lt(64), tsep_pipi(4), tstep_pipi(8), tstep_pipi_to_sigma(8), t_max(20), fit_tmin(7), fit_tmax(12), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13),
+    Lt(64), tsep_pipi(4), tstep_pipi(8), tstep_pipi_to_sigma(8), t_max(20), fit_tmin(7), fit_tmax(12), fit_t0min(6), fit_t0max(13), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13),
     do_vacuum_subtraction(true), bin_size(1), timeslice_avg_vac_sub(false){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)

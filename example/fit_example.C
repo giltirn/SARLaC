@@ -152,7 +152,7 @@ int main(void){
 #pragma omp parallel for
   for(int j=0;j<fit_args.nsample;j++){
     FrozenFitFunction func_frozen(func);
-    NumericVector<double> freeze(2);
+    parameterVector<double> freeze(2);
     freeze[0] = param[0].sample(j);
     
     func_frozen.freeze({0}, freeze);
@@ -166,11 +166,11 @@ int main(void){
     
     MinimizerType fitter(costfunc, mlparams);
 
-    NumericVector<double> dp(2);
+    parameterVector<double> dp(2);
     dp(0) = param[0].sample(j);
     dp(1) = param[1].sample(j);
 
-    NumericVector<double> dp_sub = func_frozen.mapParamsSupersetToSubset(dp);
+    parameterVector<double> dp_sub = func_frozen.mapParamsSupersetToSubset(dp);
 
     CostType cost = fitter.fit(dp_sub);
     assert(fitter.hasConverged());
@@ -215,7 +215,7 @@ int main(void){
   for(int i=0;i<npt;i++){
     fit.coord(i) = fit_args.x_min + i*delta;
     for(int j=0;j<fit_args.nsample;j++){
-      NumericVector<double> fp(2);
+      parameterVector<double> fp(2);
       fp(0) = param[0].sample(j);
       fp(1) = param[1].sample(j);
       
