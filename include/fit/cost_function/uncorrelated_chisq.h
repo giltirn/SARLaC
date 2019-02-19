@@ -76,10 +76,11 @@ public:
     }
   }
 
+  inline int Nparams() const{ return fitfunc.Nparams(); }
+
   inline int Ndof() const{
     return data.size() - fitfunc.Nparams();
   }
-    
 
 };
 

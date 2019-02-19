@@ -115,7 +115,7 @@ public:
   inline int Ndof() const{
     return data.size() - fitfunc.Nparams();
   }
-    
+  inline int Nparams() const{ return fitfunc.Nparams(); }    
 
 };
 

@@ -60,6 +60,7 @@ private:
   const std::vector<double> &sigma; //diagonal elements of covariance matrix
   const InvCorrMatrixType &inv_corr; //inverse correlation matrix
   std::vector<Prior> priors;
+
 public:
 
 
@@ -159,8 +160,7 @@ public:
   inline int Ndof() const{
     return data.size() + priors.size() - fitfunc.Nparams();
   }
-    
-
+  inline int Nparams() const{ return fitfunc.Nparams(); }    
 };
 
 CPSFIT_END_NAMESPACE
