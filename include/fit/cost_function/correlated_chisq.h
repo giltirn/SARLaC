@@ -103,7 +103,8 @@ public:
   }
   
   void derivatives(CostDerivativeType &derivs, CostSecondDerivativeMatrixType &second_derivs, const ParameterType &params) const{
-    assert(params.size() == fitfunc.Nparams());
+    if(params.size() != fitfunc.Nparams()) error_exit(std::cout << "CorrelatedChisqCostFunction::derivatives params size " << params.size() << " doesn't match the number of fit parameters " << fitfunc.Nparams() << std::endl);
+
     const int nparams = params.size();
     const int ndata = data.size();
     

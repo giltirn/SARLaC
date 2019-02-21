@@ -7,8 +7,6 @@
 #include<fit/fit_wrapper/base_typedefs.h>
 #include<fit/fit_wrapper/fitfunc_policy.h>
 
-#include "macros.h"
-
 CPSFIT_START_NAMESPACE
 
 template<typename FitFuncPolicy>

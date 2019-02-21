@@ -51,7 +51,7 @@ public:
 
   inline int Nparams() const{ return 2; }
 
-  ParameterType guess(){ return ParameterType(1,0.5); }
+  ParameterType guess() const{ return ParameterType(1,0.5); }
 };
 class FitSinh: public StandardFitFuncBase{
   const double Lt;
@@ -76,7 +76,7 @@ public:
 
   inline int Nparams() const{ return 2; }
 
-  ParameterType guess(){ return ParameterType(1,0.5); }
+  ParameterType guess() const{ return ParameterType(1,0.5); }
 };
 class FitExp: public StandardFitFuncBase{
 public:
@@ -98,7 +98,7 @@ public:
 
   inline int Nparams() const{ return 2; }
 
-  ParameterType guess(){ return ParameterType(1.0,0.5); }
+  ParameterType guess() const{ return ParameterType(1.0,0.5); }
 };
 
 
@@ -131,7 +131,7 @@ public:
 
   inline int Nparams() const{ return 4; }
 
-  ParameterType guess(){ return ParameterType(1,0.5,1,1); }
+  ParameterType guess() const{ return ParameterType(1,0.5,1,1); }
 };
 
 
@@ -157,7 +157,7 @@ public:
 
   inline int Nparams() const{ return 4; }
 
-  ParameterType guess(){ return ParameterType(1,0.5,1,1); }
+  ParameterType guess() const{ return ParameterType(1,0.5,1,1); }
 };
 
 

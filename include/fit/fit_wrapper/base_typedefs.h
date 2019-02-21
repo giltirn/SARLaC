@@ -14,14 +14,15 @@
 CPSFIT_START_NAMESPACE
 
 #define INHERIT_TYPEDEF(FROM,DEF) typedef typename FROM::DEF DEF
+#define INHERIT_USING(FROM, DEF, TEMPL) template<typename TEMPL> using DEF = typename FROM::template DEF<TEMPL>
 
-template<typename BaseTypes>
-struct baseFitTypedefs{
-  //BaseTypes must typedef the following:
+//BaseTypes must typedef the following:
 #define INHERIT_INPUT_FIT_TYPEDEFS(FROM)			       \
   INHERIT_TYPEDEF(FROM,DistributionType); \
   INHERIT_TYPEDEF(FROM,CorrelationFunctionDistribution)
 
+template<typename BaseTypes>
+struct baseFitTypedefs{
   INHERIT_INPUT_FIT_TYPEDEFS(BaseTypes);
   
   typedef NumericSquareMatrix<DistributionType> MatrixDistribution;
@@ -41,6 +42,7 @@ struct baseFitTypedefs{
 
 
 //This is the standard implementation of BaseTypes for some generate coordinate type, with the data contained in a correlationFunction object comprising jackknife distributions
+//Minimizer is assumed to take the cost function as its sole template parameter
 template<typename GeneralizedCoordinate>
 struct standardInputFitTypes{
   typedef jackknifeDistribution<double> DistributionType;

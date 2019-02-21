@@ -7,4 +7,9 @@
 #include<fit/fit_wrapper/costfunction_policy/correlated_cov_fit_policy.h>
 #include<fit/fit_wrapper/costfunction_policy/frozen_correlated_fit_policy.h>
 
+#define INHERIT_COSTFUNCTION_POLICY_TYPEDEFS(FROM) \
+  INHERIT_FITFUNC_POLICY_TYPEDEFS(FROM); \
+  INHERIT_TYPEDEF(FROM,costFunctionType); \
+  INHERIT_TYPEDEF(FROM,costFunctionState)
+
 #endif

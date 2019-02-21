@@ -44,9 +44,13 @@ private:
   std::unique_ptr<ParameterSuperType> freeze_vals;
   int n_frozen;
 
+  //-1 for indices not in the subset
+  std::vector<int> superset_subset_map;
+
 public:
-  FrozenFitFunc(const FitFunc &_fitfunc): fitfunc(_fitfunc), param_freeze(fitfunc.Nparams(),false), n_frozen(0){}
-  
+  FrozenFitFunc(const FitFunc &_fitfunc): fitfunc(_fitfunc), param_freeze(fitfunc.Nparams(),false), n_frozen(0), 
+					  superset_subset_map(fitfunc.Nparams()){}
+
   ParameterSuperType mapParamsSubsetToSuperset(const ParameterType &params_subset) const{
     if(n_frozen != 0) assert(freeze_vals);
     ParameterSuperType superset = _FrozenFitFunc_helper::_construct<ParameterSuperType,std::is_default_constructible<ParameterSuperType>::value >::construct(freeze_vals);
@@ -69,6 +73,11 @@ public:
     return subset;
   }
 
+  //Returns -1 if parameter is not in the subset
+  inline int getParamsSubsetIndex(const int superset_idx) const{
+    return superset_subset_map[superset_idx];
+  }
+
   //This should only be called once because subsequent calls overwrite the existing freeze information
   void freeze(const std::vector<int> &params, const ParameterSuperType &from){
     //Reset existing freeze info
@@ -77,6 +86,10 @@ public:
     freeze_vals.reset(new ParameterSuperType(from));
     for(int i=0;i<params.size();i++) param_freeze[params[i]] = true;
     n_frozen = params.size();
+    
+    int subset_idx = 0;
+    for(int i=0;i<fitfunc.Nparams();i++)
+      superset_subset_map[i] = param_freeze[i] ? -1 : subset_idx++;
   }
   
   inline ValueType value(const GeneralizedCoordinate &coord, const ParameterType &params_subset) const{

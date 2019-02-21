@@ -5,20 +5,14 @@
 
 #include<config.h>
 #include<utils/macros.h>
-#include<minimizer.h>
-#include<fit/fit_wrapper/base_typedefs.h>
-#include<fit/fit_wrapper/fitfunc_policy.h>
-#include<fit/fit_wrapper/costfunction_policy.h>
+#include<fit/fit_wrapper/minimizer_policy.h>
 
 CPSFIT_START_NAMESPACE
 
 template<typename FitPolicies>
 class fitter: public FitPolicies{
 public:
-  INHERIT_FIT_POLICY_TYPEDEFS(FitPolicies);
-  
-  typedef MarquardtLevenbergMinimizer<costFunctionType> minimizerType;
-  typedef typename minimizerType::AlgorithmParameterType minimizerParamsType;
+  INHERIT_MINIMIZER_POLICY_TYPEDEFS(FitPolicies);
 private:
   minimizerParamsType min_params;
 public:

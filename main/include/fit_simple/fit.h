@@ -211,36 +211,39 @@ struct FitFuncPolicy<FitTwoStateCosh,ArgsType>{
 template<typename FitFunc, template<typename> class CostFunctionPolicy, typename ArgsType, typename CMDlineType>
 void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline);
 
+
 template<typename FitFunc, typename ArgsType, typename CMDlineType>
 inline void fitSpecFF(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
+#define SPEC(ENUM,TYPE)				\
+  case CovarianceStrategy:: ENUM:					\
+    return fitSpecFFcorr<FitFunc,TYPE,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline)
+
   switch(args.covariance_strategy){
-  case CovarianceStrategy::Correlated:
-    return fitSpecFFcorr<FitFunc,correlatedFitPolicy,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline);
-  case CovarianceStrategy::Uncorrelated:
-    return fitSpecFFcorr<FitFunc,uncorrelatedFitPolicy,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline);
-  case CovarianceStrategy::FrozenCorrelated:
-    return fitSpecFFcorr<FitFunc,frozenCorrelatedFitPolicy,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline);
+    SPEC(Correlated, correlatedFitPolicy);
+    SPEC(Uncorrelated, uncorrelatedFitPolicy);
+    SPEC(FrozenCorrelated, frozenCorrelatedFitPolicy);
   default:
     error_exit(std::cout << "fitSpecFF unknown CovarianceStrategy " << args.covariance_strategy << std::endl);
   }
+#undef SPEC
 };
 
 template<typename ArgsType, typename CMDlineType>
 inline void fitResampled(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
+#define SPEC(ENUM,TYPE)				\
+  case FitFuncType::ENUM:						\
+    return fitSpecFF<TYPE,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline)
+
   switch(args.fitfunc){
-  case FitFuncType::FCosh:
-    return fitSpecFF<FitCosh,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
-  case FitFuncType::FSinh:
-    return fitSpecFF<FitSinh,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
-  case FitFuncType::FExp:
-    return fitSpecFF<FitExp,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline);
-  case FitFuncType::FConstant:
-    return fitSpecFF<FitConstant,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline); 
-  case FitFuncType::FTwoStateCosh:
-    return fitSpecFF<FitTwoStateCosh,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline); 
+    SPEC(FCosh, FitCosh);
+    SPEC(FSinh, FitSinh);
+    SPEC(FExp, FitExp);
+    SPEC(FConstant, FitConstant);
+    SPEC(FTwoStateCosh, FitTwoStateCosh);
   default:
     error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);
   };
+#undef SPEC
 }
 template<typename ArgsType, typename CMDlineType>
 inline void fit(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
