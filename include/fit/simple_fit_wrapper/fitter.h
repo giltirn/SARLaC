@@ -57,13 +57,10 @@ class simpleFitWrapper{
 
   double fitSampleML(ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
-		     const NumericSquareMatrix<double> &corr_s,
+		     const NumericSquareMatrix<double> &inv_corr_s,
 		     const std::vector<double> &sigma_s,
-		     const FitFuncFrozen &fitfunc_s) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
-    
-    NumericSquareMatrix<double> inv_corr_s(corr_s.size());
-    svd_inverse(inv_corr_s, corr_s);
-
+		     const FitFuncFrozen &fitfunc_s,
+		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
     typedef CorrelatedChisqCostFunction<FitFuncFrozen, correlationFunction<generalContainer, double> > CostFunc;
     CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
     addPriors(cost, fitfunc_s);
@@ -77,14 +74,23 @@ class simpleFitWrapper{
 
     Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
 
-    return min.fit(params_s);
+    double chisq = min.fit(params_s);
+
+    if(chisq_dof_nopriors){
+      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, inv_corr_s);
+      chisq_dof_nopriors->first = cost_nopriors.cost(params_s);
+      chisq_dof_nopriors->second = cost_nopriors.Ndof();
+    }
+
+    return chisq;
   }
 
   double fitSampleGSL(ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &corr_s,
 		     const std::vector<double> &sigma_s,
-		     const FitFuncFrozen &fitfunc_s) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
+		     const FitFuncFrozen &fitfunc_s,
+		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
     std::vector<double> corr_evals;
     std::vector<NumericVector<double> > corr_evecs;
     symmetricMatrixEigensolve(corr_evecs, corr_evals, corr_s);
@@ -103,7 +109,45 @@ class simpleFitWrapper{
 
     Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
 
-    return min.fit(params_s);
+    double chisq = min.fit(params_s);
+
+    if(chisq_dof_nopriors){
+      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, corr_evals, corr_evecs);
+      NumericVector<double> cost_terms = cost_nopriors.costVector(params_s);
+      chisq_dof_nopriors->first = 0.5*dot(cost_terms,cost_terms);
+      chisq_dof_nopriors->second = cost_nopriors.Ndof();
+    }
+    
+    return chisq;
+  }
+
+  NumericSquareMatrix<jackknifeDistribution<double> > invertCorrelationMatrix() const{
+    int nsample = corr_mat(0,0).size();
+    NumericSquareMatrix<jackknifeDistribution<double> > inv_corr_mat(corr_mat);
+    jackknifeDistribution<double> condition_number;
+    svd_inverse(inv_corr_mat, corr_mat, condition_number);
+
+    //Test the quality of the inverse
+    NumericSquareMatrix<jackknifeDistribution<double> > test = corr_mat * inv_corr_mat;
+    for(int i=0;i<test.size();i++) test(i,i) = test(i,i) - jackknifeDistribution<double>(nsample,1.0);    
+    jackknifeDistribution<double> resid = modE(test);
+
+    //Output the mean and standard deviation of the distributions of residual and condition number 
+    std::cout << "Condition number = " << condition_number.mean() << " +- " << condition_number.standardError()/sqrt(nsample-1.) << std::endl;
+    std::cout << "||CorrMat * CorrMat^{-1} - 1||_E = " << resid.mean() << " +- " << resid.standardError()/sqrt(nsample-1.) << std::endl;
+    return inv_corr_mat;
+  }
+
+  static inline std::vector<double> sample(std::vector<jackknifeDistribution<double> > &v, const int s){
+    std::vector<double> out(v.size()); for(int i=0;i<v.size();i++) out[i] = v[i].sample(s); 
+    return out;
+  }
+  static inline NumericSquareMatrix<double> sample(NumericSquareMatrix<jackknifeDistribution<double> > &v, const int s){
+    NumericSquareMatrix<double> out(v.size()); 
+    for(int i=0;i<v.size();i++) 
+      for(int j=0;j<v.size();j++) 
+	out(i,j) = v(i,j).sample(s); 
+    return out;
   }
 
 public:  
@@ -185,19 +229,46 @@ public:
 
     importCovarianceMatrix(cov, cost_type);
   }
+
+  //Write the covariance matrix to a file in HDF5 format for external manipulation
+  void writeCovarianceMatrixHDF5(const std::string &file) const{
+#ifdef HAVE_HDF5
+    if(!have_corr_mat) error_exit(std::cout << "simpleFitWrapper::writeCovarianceMatrixHDF5  No covariance/correlation matrix available. Make sure you import one before calling this method!\n");
+    NumericSquareMatrix<jackknifeDistribution<double> > cov = corr_mat;
+    for(int i=0;i<cov.size();i++)
+      for(int j=0;j<cov.size();j++)
+	cov(i,j) = cov(i,j) * sigma[i] * sigma[j];
+    HDF5writer wr(file);
+    write(wr, cov, "value");
+#endif
+  }
+  
+  inline const NumericSquareMatrix<jackknifeDistribution<double> > & getCorrelationMatrix() const{
+    assert(have_corr_mat); return corr_mat;
+  }
+  inline const std::vector<jackknifeDistribution<double>> & getSigma() const{
+    assert(have_corr_mat); return sigma;
+  }
   
   //Note the parameter type P is tranlated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
   //The coordinate type is wrapped up in a generalContainer as this is only ever needed by the fit function (which knows what type it is and can retrieve it)
+  //If chisq_dof_nopriors pointer is provided, the chisq computed without priors and the number of degrees of freedom without priors will be written there
   template<typename P, typename T>
   void fit(jackknifeDistribution<P> &params,
 	   jackknifeDistribution<double> &chisq,
 	   jackknifeDistribution<double> &chisq_per_dof,
 	   int &dof,
-	   const correlationFunction<T, jackknifeDistribution<double>> &data){
+	   const correlationFunction<T, jackknifeDistribution<double>> &data,
+	   std::pair<jackknifeDistribution<double>, int>* chisq_dof_nopriors = NULL){
     if(!have_corr_mat) error_exit(std::cout << "simpleFitWrapper::fit  No covariance/correlation matrix available. Make sure you import one before calling this method!\n");
 
     int nsample = data.value(0).size();
     int ndata = data.size();
+
+    if(chisq_dof_nopriors) chisq_dof_nopriors->first.resize(nsample);
+
+    //Prepare inverse correlation matrix (the condition number is useful information even if we don't need the inverse explicitly)
+    NumericSquareMatrix<jackknifeDistribution<double> > inv_corr_mat = invertCorrelationMatrix();
 
     correlationFunction<generalContainer, double> data_sbase(ndata);
     for(int i=0;i<ndata;i++) data_sbase.coord(i) = generalContainer(data.coord(i));
@@ -207,10 +278,6 @@ public:
       //Get the sample data
       correlationFunction<generalContainer, double> data_s = data_sbase;
       for(int i=0;i<ndata;i++) data_s.value(i) = data.value(i).sample(s);
-
-      //Get the sample correlation matrix/sigma
-      NumericSquareMatrix<double> corr_s(ndata,[&](const int i,int j){ return corr_mat(i,j).sample(s); });
-      std::vector<double> sigma_s(ndata); for(int i=0;i<ndata;i++) sigma_s[i] = sigma[i].sample(s); 
 
       //Prepare the inner fit parameter type
       int nparam = params.sample(s).size();
@@ -229,14 +296,17 @@ public:
 	fitfunc_s.freeze({}, params_s);
       }
 
-      //Run the fitter
+      //Prepare locations to store thread-local results
       int dof_s;
+      std::pair<double,int> chisq_dof_nopriors_s;
+      std::pair<double,int> *chisq_dof_nopriors_s_ptr = chisq_dof_nopriors != NULL ? &chisq_dof_nopriors_s : NULL;
 
+      //Run the fitter
       switch(min_type){
       case MinimizerType::MarquardtLevenberg:
-	chisq.sample(s) = fitSampleML(params_s, dof_s, data_s, corr_s, sigma_s, fitfunc_s); break;
+	chisq.sample(s) = fitSampleML(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::GSLtrs:
-	chisq.sample(s) = fitSampleGSL(params_s, dof_s, data_s, corr_s, sigma_s, fitfunc_s); break;
+	chisq.sample(s) = fitSampleGSL(params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       default:
 	assert(0);
       }
@@ -247,13 +317,15 @@ public:
       //Store outputs
       if(s==0) dof = dof_s;
       
+      if(chisq_dof_nopriors){
+	chisq_dof_nopriors->first.sample(s) = chisq_dof_nopriors_s.first;
+	if(s==0) chisq_dof_nopriors->second = chisq_dof_nopriors_s.second;
+      }
+
       chisq_per_dof.sample(s) = chisq.sample(s)/dof_s;
       for(int i=0;i<nparam;i++) params.sample(s)(i) = params_s(i);
     }
-  }
-  
-
-
+  }  
 };
 
 CPSFIT_END_NAMESPACE

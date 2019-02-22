@@ -28,7 +28,7 @@ public:
   //Copy between two vector-like objects
   template<typename T, typename U>
   inline static void copyOver(T &out, const U &in){
-    out.resize(in.size()); for(int i=0;i<in.size();i++) out(i) = in(i);
+    for(int i=0;i<in.size();i++) out(i) = in(i);
   }
   //Translate the coordinate into the underlying type T
   template<typename T>
@@ -43,26 +43,53 @@ public:
 
 
 //This wrapper can be used to enwrap any function that confirms to the general template for use in the simplified fitter
+//Note: for parameter classes which do not have a constructor that takes only the number of parameters
+//      you should use the second wrapper below
 template<typename FitFunc>
 struct simpleFitFuncWrapper: public genericFitFuncBase{
   INHERIT_GENERIC_FITFUNC_BASE_TYPEDEFS;
-  const FitFunc &fitfunc;
+  FitFunc fitfunc;
 
   simpleFitFuncWrapper(const FitFunc &fitfunc): fitfunc(fitfunc){}
   
   ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
-    typename FitFunc::ParameterType pbase; copyOver(pbase, p);
+    typename FitFunc::ParameterType pbase(p.size()); copyOver(pbase, p);
     return fitfunc.value(getCoord<typename FitFunc::GeneralizedCoordinate>(x), pbase);
   }
   ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
-    typename FitFunc::ParameterType pbase; copyOver(pbase, p);
+    typename FitFunc::ParameterType pbase(p.size()); copyOver(pbase, p);
     auto derivs = fitfunc.parameterDerivatives(getCoord<typename FitFunc::GeneralizedCoordinate>(x),pbase);
-    ValueDerivativeType out; copyOver(out, derivs);
+    ValueDerivativeType out(fitfunc.Nparams()); copyOver(out, derivs);
     return out;
   } 
 
   int Nparams() const{ return fitfunc.Nparams(); }
 };
+
+//This wrapper works for any parameter type that has a copy constructor
+template<typename FitFunc>
+struct genericFitFuncWrapper: public genericFitFuncBase{
+  INHERIT_GENERIC_FITFUNC_BASE_TYPEDEFS;
+  typedef typename FitFunc::ParameterType BaseParameterType;
+  FitFunc fitfunc;
+  BaseParameterType psetup;
+
+  genericFitFuncWrapper(const FitFunc &fitfunc, const BaseParameterType &psetup): fitfunc(fitfunc), psetup(psetup){}
+  
+  ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    typename FitFunc::ParameterType pbase(psetup); copyOver(pbase, p);
+    return fitfunc.value(getCoord<typename FitFunc::GeneralizedCoordinate>(x), pbase);
+  }
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    typename FitFunc::ParameterType pbase(psetup); copyOver(pbase, p);
+    auto derivs = fitfunc.parameterDerivatives(getCoord<typename FitFunc::GeneralizedCoordinate>(x),pbase);
+    ValueDerivativeType out(fitfunc.Nparams()); copyOver(out, derivs);
+    return out;
+  } 
+
+  int Nparams() const{ return fitfunc.Nparams(); }
+};
+
 
 CPSFIT_END_NAMESPACE
 #endif

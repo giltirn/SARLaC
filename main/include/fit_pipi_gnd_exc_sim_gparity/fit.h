@@ -36,97 +36,35 @@ struct PriorArgs{
 };
 GENERATE_PARSER(PriorArgs, PRIOR_ARGS_MEMBERS)
 
+std::unique_ptr<genericFitFuncBase> getFitFunc(const FitFuncType type, const int nstate, const int t_min, const int Lt, 
+					       const int nparam, const double Ascale, const double Cscale,
+					       const taggedValueContainer<double,std::string> &psetup){
+  typedef std::unique_ptr<genericFitFuncBase> PtrType;
 
+#define FDEF_BASIC(ENUM, CLASS) \
+  case(FitFuncType:: ENUM):						\
+    return PtrType(new genericFitFuncWrapper<CLASS>(CLASS(Lt, nparam, Ascale, Cscale), psetup)); break
+  
+#define FDEF_NSTATE(ENUM, CLASS)					\
+  case(FitFuncType:: ENUM):						\
+    return PtrType(new genericFitFuncWrapper<CLASS>(CLASS(nstate, Lt, nparam, Ascale, Cscale), psetup)); break
+  
+  switch(type){
+    FDEF_BASIC(FSimGenOneState, FitSimGenOneState);
+    FDEF_BASIC(FSimGenTwoState, FitSimGenTwoState);
+    FDEF_BASIC(FSimGenThreeState, FitSimGenThreeState);
+    FDEF_BASIC(FSimGenThreeStateLogEdiff, FitSimGenThreeStateLogEdiff);
+    FDEF_NSTATE(FSimGenMultiState, FitSimGenMultiState);
+    FDEF_NSTATE(FSimGenMultiStateLogEdiff, FitSimGenMultiStateLogEdiff);
+    FDEF_NSTATE(FSimGenMultiStateCparam, FitSimGenMultiStateCparam);
+    FDEF_NSTATE(FSimGenMultiStateSub, FitSimGenMultiStateSub);    
+    case(FitFuncType::FSimGenMultiStateTminSub):
+    case(FitFuncType::FSimGenMultiStateTminSubForceZero):
+      return PtrType(new genericFitFuncWrapper<FitSimGenMultiStateTminSub>(FitSimGenMultiStateTminSub(nstate, Lt, nparam, t_min, Ascale, Cscale), psetup)); break;  
+    default:
+      assert(0);
+  }
 
-template<typename FitFunc>
-void fit_ff(jackknifeDistribution<typename FitFunc::Params> &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
-	    const correlationFunction<SimFitCoordGen, jackknifeDistributionD> &corr_comb_j,
-	    const correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> &corr_comb_dj,
-	    const FitFunc &fitfunc, const bool correlated, const fitOptions &opt = fitOptions()){
-    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-    const int nsample = corr_comb_j.value(0).size();
-
-    fitter<FitPolicies> fit;
-    fit.importFitFunc(fitfunc);
-    
-    if(opt.load_frozen_fit_params){
-      std::cout << "Reading frozen fit params from " << opt.load_frozen_fit_params_file << std::endl;
-      readFrozenParams(fit, opt.load_frozen_fit_params_file, nsample, &params.sample(0));
-    }else{
-      std::cout << "Inserting default param instance to frozen fitter" << std::endl;
-      fit.freeze({},params); //parameter type size is dynamic, thus for the internals to properly construct a full parameter vector it needs something to copy from even if no freezing is performed
-    }
-
-    std::cout << "Generating and importing covariance matrix\n";
-    importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, corr_comb_dj);
-    if(!correlated) import.setUncorrelated();
-
-    if(opt.write_covariance_matrix) import.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
-
-    int Nprior;
-    if(opt.load_priors){
-      PriorArgs pargs;  parse(pargs, opt.load_priors_file);
-      for(int p=0;p<pargs.priors.size();p++){
-	std::cout << "Added prior value " << pargs.priors[p].value << " weight " <<  pargs.priors[p].weight << " param " << pargs.priors[p].param_idx << std::endl;
-	fit.addPrior(pargs.priors[p].value, pargs.priors[p].weight, pargs.priors[p].param_idx);
-      }
-      Nprior = pargs.priors.size();
-    }
-    if(opt.load_mlparams){
-      typename fitter<FitPolicies>::minimizerParamsType minparams;
-      parse(minparams, opt.mlparams_file);
-      std::cout << "Loaded minimizer params: " << minparams << std::endl;
-      fit.setMinimizerParams(minparams);
-    }
-
-
-    std::cout << "Running fit routine\n";
-    fit.fit(params, chisq, chisq_per_dof, corr_comb_j);
-
-    if(opt.load_priors){
-      //Compute chi^2 and chi^2/dof without priors
-      typedef correlationFunction<SimFitCoordGen, double> cenCorrFunc;
-      int N = corr_comb_j.size();
-
-      {
-	cenCorrFunc data_cen(N, [&](const int i){ return cenCorrFunc::ElementType(corr_comb_j.coord(i), corr_comb_j.value(i).best()); });
-      
-	NumericSquareMatrix<double> inv_corr(N);
-	std::vector<double> sigma(N);
-	for(int i=0;i<N;i++){
-	  sigma[i] = import.sigma[i].best();
-
-	  for(int j=0;j<N;j++)
-	    inv_corr(i,j) = import.inv_corr(i,j).best();
-	}
-	CorrelatedChisqCostFunction<FitFunc, cenCorrFunc> costfunc(fitfunc, data_cen, sigma, inv_corr);
-	double chisq_noprior = costfunc.cost(params.best());
-	double chisq_per_dof_noprior = chisq_noprior/(costfunc.Ndof() + Nprior);
-
-	std::cout << "Chi^2 (excl priors) = " << chisq_noprior << std::endl;
-	std::cout << "Chi^2/dof (excl priors) = " << chisq_per_dof_noprior << std::endl;
-      }
-
-
-      int nsample = params.size();
-      jackknifeDistributionD chisq_noprior_j(nsample);
-      for(int s=0;s<nsample;s++){	
-	cenCorrFunc data_j(N, [&](const int i){ return cenCorrFunc::ElementType(corr_comb_j.coord(i), corr_comb_j.value(i).sample(s)); });
-      
-	NumericSquareMatrix<double> inv_corr(N);
-	std::vector<double> sigma(N);
-	for(int i=0;i<N;i++){
-	  sigma[i] = import.sigma[i].sample(s);
-
-	  for(int j=0;j<N;j++)
-	    inv_corr(i,j) = import.inv_corr(i,j).sample(s);
-	}
-	CorrelatedChisqCostFunction<FitFunc, cenCorrFunc> costfunc(fitfunc, data_j, sigma, inv_corr);
-	chisq_noprior_j.sample(s) = costfunc.cost(params.sample(s));
-      }
-      std::cout << "Chi^2 (excl priors) from jackknife = " << chisq_noprior_j << std::endl;
-
-    }
 }
 
 
@@ -140,46 +78,50 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 	 const bool correlated,
 	 const double Ascale, const double Cscale,
 	 const fitOptions &opt = fitOptions()){
+  
+  std::unique_ptr<genericFitFuncBase> fitfunc = getFitFunc(ffunc, nstate, t_min, Lt, param_map.size(), Ascale, Cscale, params.sample(0));
+  
+  MinimizerType minimizer = MinimizerType::MarquardtLevenberg;
+  MarquardtLevenbergParameters<double> min_params;
+  min_params.verbose = true;
 
-  if(ffunc == FitFuncType::FSimGenOneState){
-    typedef FitSimGenOneState FitFunc;
-    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenTwoState){
-    typedef FitSimGenTwoState FitFunc;
-    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenThreeState){
-    typedef FitSimGenThreeState FitFunc;
-    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenThreeStateLogEdiff){
-    typedef FitSimGenThreeStateLogEdiff FitFunc;
-    FitFunc fitfunc(Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenMultiState){
-    typedef FitSimGenMultiState FitFunc;
-    FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenMultiStateLogEdiff){
-    typedef FitSimGenMultiStateLogEdiff FitFunc;
-    FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenMultiStateCparam){
-    typedef FitSimGenMultiStateCparam FitFunc;
-    FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenMultiStateSub){
-    typedef FitSimGenMultiStateSub FitFunc;
-    FitFunc fitfunc(nstate, Lt, param_map.size(), Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else if(ffunc == FitFuncType::FSimGenMultiStateTminSub || ffunc == FitFuncType::FSimGenMultiStateTminSubForceZero){
-    typedef FitSimGenMultiStateTminSub FitFunc;
-    FitFunc fitfunc(nstate, Lt, param_map.size(), t_min, Ascale, Cscale);
-    return fit_ff<FitFunc>(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, fitfunc, correlated, opt);
-  }else{
-    assert(0);
+  if(opt.load_mlparams){
+    parse(min_params, opt.mlparams_file);
+    std::cout << "Loaded minimizer params: " << min_params << std::endl;
   }
+
+  simpleFitWrapper fit(*fitfunc, minimizer, min_params);
+  
+  const int nsample = corr_comb_j.value(0).size();
+ 
+  if(opt.load_frozen_fit_params){
+    std::cout << "Reading frozen fit params from " << opt.load_frozen_fit_params_file << std::endl;
+    readFrozenParams(fit, opt.load_frozen_fit_params_file, nsample);
+  }
+
+  std::cout << "Generating and importing covariance matrix\n";
+  CostType cost_type = correlated ? CostType::Correlated : CostType::Uncorrelated;  
+  fit.generateCovarianceMatrix(corr_comb_dj, cost_type);
+
+  if(opt.write_covariance_matrix) fit.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
+
+  int Nprior;
+  if(opt.load_priors){
+    PriorArgs pargs;  parse(pargs, opt.load_priors_file);
+    for(int p=0;p<pargs.priors.size();p++){
+      std::cout << "Added prior value " << pargs.priors[p].value << " weight " <<  pargs.priors[p].weight << " param " << pargs.priors[p].param_idx << std::endl;
+	fit.addPrior(pargs.priors[p].value, pargs.priors[p].weight, pargs.priors[p].param_idx);
+    }
+    Nprior = pargs.priors.size();
+  }
+
+  std::cout << "Running fit routine\n";
+  int dof;
+  std::pair<jackknifeDistribution<double>, int> chisq_dof_nopriors;
+
+  fit.fit(params, chisq, chisq_per_dof, dof, corr_comb_j, opt.load_priors ? &chisq_dof_nopriors : NULL);
+  
+  if(opt.load_priors) std::cout << "Chi^2 (excl priors) from jackknife = " << chisq_dof_nopriors.first << std::endl;    
 }
 
 

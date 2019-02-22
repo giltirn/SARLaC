@@ -202,7 +202,7 @@ int main(const int argc, const char** argv){
   
 
 
-  typedef composeFitPolicy<FitMpi, standardFitFuncPolicy, uncorrelatedFitPolicy, fitTypeDefs>::type FitPolicies;
+  typedef composeFitPolicy<FitMpi, standardFitFuncPolicy, uncorrelatedFitPolicy, MarquardtLevenbergMinimizerPolicy, fitTypeDefs>::type FitPolicies;
 
   jackknifeDistributionType chisq;
   jackknifeDistributionType chisq_per_dof;

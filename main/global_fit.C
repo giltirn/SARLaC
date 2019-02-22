@@ -188,7 +188,7 @@ int main(void){
   typedef AnalyticGlobalFit FitFunc;
   FitFunc gfit(fparams);
   
-  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy, globalFitTypes>::type FitPolicy;
+  typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, uncorrelatedFitPolicy,MarquardtLevenbergMinimizerPolicy, globalFitTypes>::type FitPolicy;
 
   MarquardtLevenbergParameters<double> ml_params;
   ml_params.verbose = true;
