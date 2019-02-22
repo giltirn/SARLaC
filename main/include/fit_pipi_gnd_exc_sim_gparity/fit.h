@@ -16,10 +16,12 @@ struct fitOptions{
   bool load_priors;
   std::string load_priors_file;
 
-  bool load_mlparams;
-  std::string mlparams_file;
+  MinimizerType minimizer;
+  bool load_minimizer_params;
+  std::string minimizer_params_file;
 
-  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), load_priors(false), load_mlparams(false){}
+  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), load_priors(false), 
+		load_minimizer_params(false), minimizer(MinimizerType::MarquardtLevenberg){}
 };
 
 #define PRIOR_T_MEMBERS ( double, value )( double, weight )( int, param_idx )
@@ -81,16 +83,24 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
   
   std::unique_ptr<genericFitFuncBase> fitfunc = getFitFunc(ffunc, nstate, t_min, Lt, param_map.size(), Ascale, Cscale, params.sample(0));
   
-  MinimizerType minimizer = MinimizerType::MarquardtLevenberg;
-  MarquardtLevenbergParameters<double> min_params;
-  min_params.verbose = true;
+  generalContainer min_params;
+  if(opt.minimizer == MinimizerType::MarquardtLevenberg){
+    MarquardtLevenbergParameters<double> mlp; mlp.verbose=true;
+    if(opt.load_minimizer_params){
+      parse(mlp, opt.minimizer_params_file);
+      std::cout << "Loaded minimizer params: " << mlp << std::endl;
+    }
+    min_params = mlp;
+  }else if(opt.minimizer == MinimizerType::GSLtrs){
+    GSLtrsMinimizerParams mp; mp.verbose = true;
+    if(opt.load_minimizer_params){
+      parse(mp, opt.minimizer_params_file);
+      std::cout << "Loaded minimizer params: " << mp << std::endl;
+    }
+    min_params = mp;
+  }else assert(0);
 
-  if(opt.load_mlparams){
-    parse(min_params, opt.mlparams_file);
-    std::cout << "Loaded minimizer params: " << min_params << std::endl;
-  }
-
-  simpleFitWrapper fit(*fitfunc, minimizer, min_params);
+  simpleFitWrapper fit(*fitfunc, opt.minimizer, min_params);
   
   const int nsample = corr_comb_j.value(0).size();
  

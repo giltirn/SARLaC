@@ -28,8 +28,8 @@ struct CMDline{
   bool load_priors;
   std::string load_priors_file;
 
-  bool load_mlparams;
-  std::string mlparams_file;
+  bool load_minimizer_params;
+  std::string minimizer_params_file;
 
   bool remove_samples_in_range;
   int remove_samples_in_range_start; //units are sample index, not trajectories!
@@ -47,15 +47,15 @@ struct CMDline{
     save_guess_template = false;
     write_covariance_matrix = false;
     load_priors = false;
-    load_mlparams = false;
+    load_minimizer_params = false;
     remove_samples_in_range = false;
     write_fit_data = false;
   }
-  CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
-    setup(argc,argv,begin);
+  CMDline(const int argc, const char** argv, MinimizerType minimizer, const int begin = 0): CMDline(){
+    setup(argc,argv,minimizer,begin);
   }
   
-  void setup(const int argc, const char** argv, const int begin = 0){
+  void setup(const int argc, const char** argv, MinimizerType minimizer, const int begin = 0){
     const int sz = argc-begin;
     std::vector<std::string> sargv(sz);
     for(int i=begin; i<argc; i++) sargv[i-begin] = std::string(argv[i]);
@@ -114,15 +114,22 @@ struct CMDline{
 	load_priors = true;
 	load_priors_file = sargv[i+1];
 	i+=2;
-      }else if(sargv[i] == "-load_mlparams"){
-	load_mlparams = true;
-	mlparams_file = sargv[i+1];
-	if(mlparams_file == "TEMPLATE"){
-	  MarquardtLevenbergParameters<double> templ;
-	  std::ofstream of("mlparams_template.args");
-	  of << templ;
+      }else if(sargv[i] == "-load_minimizer_params"){
+	load_minimizer_params = true;
+	minimizer_params_file = sargv[i+1];
+	if(minimizer_params_file == "TEMPLATE"){
+	  std::ofstream of("min_params_template.args");
+	  if(minimizer == MinimizerType::MarquardtLevenberg){
+	    MarquardtLevenbergParameters<double> templ;
+	    of << templ;
+	  }else if(minimizer == MinimizerType::GSLtrs){
+	    GSLtrsMinimizerParams templ;
+	    of << templ;
+	  }else assert(0);
+	  
 	  of.close();
-	  std::cout << "Wrote MLparams template to mlparams_template.args\n";
+	  std::cout << "Wrote minimizer params template to min_params_template.args\n";
+
 	  exit(0);	 
 	}
 	i+=2;
@@ -151,8 +158,9 @@ struct CMDline{
     COPYIT(write_covariance_matrix_file);
     COPYIT(load_priors);
     COPYIT(load_priors_file);
-    COPYIT(load_mlparams);
-    COPYIT(mlparams_file);
+    COPYIT(load_minimizer_params);
+    COPYIT(minimizer_params_file);
+#undef COPYIT
   }
 
 };

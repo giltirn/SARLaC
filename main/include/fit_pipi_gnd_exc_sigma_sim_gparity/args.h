@@ -24,6 +24,7 @@
   ( int, t_min) \
   ( int, t_max) \
   ( bool, correlated ) \
+  ( MinimizerType, minimizer ) \
   ( int, bin_size) \
   ( int, traj_start ) \
   ( int, traj_inc ) \
@@ -41,7 +42,14 @@ struct Args{
     sigma2pt_file_format("traj_<CONF>_sigmacorr_mompsrc<PSRC_QUARK>psnk<PSNK_QUARK>_v2"),
     operators({Operator::PiPiGnd, Operator::PiPiExc, Operator::Sigma}),
     Lt(64), tsep_pipi(4), tstep_pipi(8), tstep_pipi_to_sigma(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
-    fitfunc(FitFuncType::FSimGenTwoState), nstate(3), do_vacuum_subtraction(true), bin_size(1), timeslice_avg_vac_sub(false), correlated(true){}
+    fitfunc(FitFuncType::FSimGenTwoState), nstate(3), do_vacuum_subtraction(true), bin_size(1), timeslice_avg_vac_sub(false), correlated(true), minimizer(MinimizerType::MarquardtLevenberg){}
+
+  void exportOptions(fitOptions &opt){
+#define COPYIT(A) opt.A = A
+    COPYIT(minimizer);
+#undef COPYIT
+  }
+
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)
 

@@ -30,7 +30,7 @@ int main(const int argc, const char* argv[]){
     std::cout << "Read arguments: \n" << args << std::endl;
   }
 
-  CMDline cmdline(argc,argv,2);
+  CMDline cmdline(argc,argv,args.minimizer,2);
 
   //Setup the fit func parameter maps
   std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > subfit_pmaps;
@@ -139,6 +139,7 @@ int main(const int argc, const char* argv[]){
 
   fitOptions opt;
   cmdline.exportOptions(opt);
+  args.exportOptions(opt);
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
