@@ -1,11 +1,12 @@
 exampledir = $(prefix)/example
 testdir = $(prefix)/test
-test_PROGRAMS = benchmark test_boundedfit test_ET test_expression_parse test_gsl_min test_hdf5 test_Luscher_zeta test_parsers test_simple_fit_wrapper test_tensor
+test_PROGRAMS = benchmark test_boundedfit test_ET test_expression_parse test_gsl_min test_gsl_multidim_min test_hdf5 test_Luscher_zeta test_parsers test_simple_fit_wrapper test_tensor
 benchmark_SOURCES = benchmark.C
 test_boundedfit_SOURCES = test_boundedfit.C
 test_ET_SOURCES = test_ET.C
 test_expression_parse_SOURCES = test_expression_parse.C
 test_gsl_min_SOURCES = test_gsl_min.C
+test_gsl_multidim_min_SOURCES = test_gsl_multidim_min.C
 test_hdf5_SOURCES = test_hdf5.C
 test_Luscher_zeta_SOURCES = test_Luscher_zeta.C
 test_parsers_SOURCES = test_parsers.C

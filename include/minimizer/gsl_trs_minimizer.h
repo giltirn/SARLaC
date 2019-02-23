@@ -297,6 +297,8 @@ public:
       if(err != GSL_SUCCESS) error_exit(std::cout << prefix << "Unable to iterate due to error: " << gsl_strerror(err) << std::endl);
 
     }
+    gsl_vector_free(guess);
+
     for(int i=0;i<nparams;i++) params(i) = gsl_vector_get(workspace->x, i);
     return  0.5 * pow(gsl_blas_dnrm2(workspace->f),2);
   }
