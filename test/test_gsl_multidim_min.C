@@ -18,7 +18,7 @@ void test(const CostFunc &cost,
     //GSL
     StandardFitParams params_gsl(guess);
     GSLmultidimMinimizerParams p_gsl;
-    p_gsl.delta_cost_min = 1e-10;
+    p_gsl.stopping_conditions = { {GSLmultiminStoppingCondition::StopCostDelta, 1e-10} };
     p_gsl.verbose = true;
     p_gsl.algorithm = GSLmultiminAlgorithm::ConjugateGradientFR;
 

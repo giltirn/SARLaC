@@ -17,7 +17,7 @@
 
 CPSFIT_START_NAMESPACE
 
-GENERATE_ENUM_AND_PARSER(MinimizerType, (MarquardtLevenberg)(GSLtrs) );
+GENERATE_ENUM_AND_PARSER(MinimizerType, (MarquardtLevenberg)(GSLtrs)(GSLmultimin) );
 GENERATE_ENUM_AND_PARSER(CostType, (Correlated)(Uncorrelated) );
 
 
@@ -85,7 +85,7 @@ class simpleFitWrapper{
     return chisq;
   }
 
-  double fitSampleGSL(ParameterType &params_s, int &dof,
+  double fitSampleGSLtrs(ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &corr_s,
 		     const std::vector<double> &sigma_s,
@@ -120,6 +120,37 @@ class simpleFitWrapper{
     
     return chisq;
   }
+
+  double fitSampleGSLmultimin(ParameterType &params_s, int &dof,
+		     const correlationFunction<generalContainer, double> &data_s,
+		     const NumericSquareMatrix<double> &inv_corr_s,
+		     const std::vector<double> &sigma_s,
+		     const FitFuncFrozen &fitfunc_s,
+		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
+    typedef CorrelatedChisqCostFunction<FitFuncFrozen, correlationFunction<generalContainer, double> > CostFunc;
+    CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
+    addPriors(cost, fitfunc_s);
+    
+    dof = cost.Ndof();
+    
+    typedef GSLmultidimMinimizer<CostFunc> Minimizer;
+    typedef Minimizer::AlgorithmParameterType MParams;
+
+    if(!min_params.is_null()) assert(min_params.is<MParams>());
+
+    Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
+
+    double chisq = min.fit(params_s);
+
+    if(chisq_dof_nopriors){
+      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, inv_corr_s);
+      chisq_dof_nopriors->first = cost_nopriors.cost(params_s);
+      chisq_dof_nopriors->second = cost_nopriors.Ndof();
+    }
+
+    return chisq;
+  }
+
 
   NumericSquareMatrix<jackknifeDistribution<double> > invertCorrelationMatrix() const{
     int nsample = corr_mat(0,0).size();
@@ -250,7 +281,7 @@ public:
     assert(have_corr_mat); return sigma;
   }
   
-  //Note the parameter type P is tranlated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
+  //Note the parameter type P is translated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
   //The coordinate type is wrapped up in a generalContainer as this is only ever needed by the fit function (which knows what type it is and can retrieve it)
   //If chisq_dof_nopriors pointer is provided, the chisq computed without priors and the number of degrees of freedom without priors will be written there
   template<typename P, typename T>
@@ -306,7 +337,9 @@ public:
       case MinimizerType::MarquardtLevenberg:
 	chisq.sample(s) = fitSampleML(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::GSLtrs:
-	chisq.sample(s) = fitSampleGSL(params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = fitSampleGSLtrs(params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+      case MinimizerType::GSLmultimin:
+	chisq.sample(s) = fitSampleGSLmultimin(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       default:
 	assert(0);
       }

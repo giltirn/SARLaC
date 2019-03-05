@@ -18,6 +18,9 @@ CPSFIT_START_NAMESPACE
 GENERATE_ENUM_AND_PARSER(GSLmultiminAlgorithm, 
 			 (ConjugateGradientFR)(ConjugateGradientPR)(VectorBFGS)(VectorBFGS2)(SteepestDescent)
 			 (NMsimplex)(NMsimplex2)(NMsimplex2rand) );
+GENERATE_ENUM_AND_PARSER(GSLmultiminStoppingCondition, (StopGradient)(StopCostDelta) );
+
+typedef std::pair<GSLmultiminStoppingCondition, double> GSLmultiminStoppingConditionAndValue;
 
 struct GSLmultidimMinimizerParams{
   GSLmultiminAlgorithm algorithm;
@@ -25,7 +28,7 @@ struct GSLmultidimMinimizerParams{
   std::vector<double> step_size; //For derivative solvers this should have size 1, otherwise it should have size = nparams
                                  //The exact meaning depends on the algorith, cf [1] and [2] above
 
-  double delta_cost_min;
+  std::vector<GSLmultiminStoppingConditionAndValue> stopping_conditions; //choose one or more stopping conditions and their values
 
   int max_iter;
   bool verbose;
@@ -33,7 +36,7 @@ struct GSLmultidimMinimizerParams{
 
   bool exit_on_convergence_fail;
 
-  GSLmultidimMinimizerParams(): algorithm(GSLmultiminAlgorithm::ConjugateGradientFR), line_search_tol(0.1), step_size(1, 0.1), delta_cost_min(1e-5), max_iter(10000), verbose(false), output(&std::cout), exit_on_convergence_fail(true){}
+GSLmultidimMinimizerParams(): algorithm(GSLmultiminAlgorithm::ConjugateGradientFR), line_search_tol(0.1), step_size(1, 0.1), stopping_conditions({ {GSLmultiminStoppingCondition::StopCostDelta, 1e-5} }), max_iter(10000), verbose(false), output(&std::cout), exit_on_convergence_fail(true){}
 };
 
 
@@ -243,21 +246,49 @@ public:
     iter = 0;
     converged = false;
     double prev_cost;
+     
+    //Setup stopping conditions
+    assert(min_params.stopping_conditions.size() > 0);
+    
+    bool stop_dcost = false;
+    double stop_cond_dcost;
+    bool stop_grad = false;
+    double stop_cond_grad;
+    for(int i=0;i<min_params.stopping_conditions.size();i++){
+      switch(min_params.stopping_conditions[i].first){
+      case GSLmultiminStoppingCondition::StopGradient:
+	stop_grad = true; stop_cond_grad = min_params.stopping_conditions[i].second; break;
+      case GSLmultiminStoppingCondition::StopCostDelta:
+	stop_dcost = true; stop_cond_dcost = min_params.stopping_conditions[i].second; break;
+      default:
+	assert(0);
+      }
+    }
 
+    gsl_vector* g_temp = gsl_vector_alloc(nparams);
+
+    //Iterate
     for(iter = 0; iter <= min_params.max_iter; iter++){
       double cost = is_falg ? min_f->fval : min_fdf->f;
       double dcost = cost - prev_cost;
+      
+      if(stop_grad && is_falg) func_wrapper.df(min_f->x, NULL, g_temp); //compute the derivative explicitly as we know it!
+      gsl_vector* g = is_falg ? g_temp : min_fdf->gradient;
+      double modg = gsl_blas_dnrm2(g);
 
       if(!me && min_params.verbose){
 	auto &op = *min_params.output;
 	op << prefix << iter << " Cost=" << cost << " dCost=" << dcost;
-	op << " dCost/tol=" << dcost/min_params.delta_cost_min;
+	if(stop_dcost) op << " dCost/tol=" << dcost/stop_cond_dcost;
+	if(stop_grad) op << " |g|=" << modg << " |g|/tol=" << modg/stop_cond_grad;
 	op << " Parameters=";
 	for(int p=0;p<nparams;p++) op << gsl_vector_get(is_falg ? min_f->x : min_fdf->x,p) << (p == nparams - 1 ? "" : ", ");
 	op << ")" << std::endl;
       }
       
-      if(iter > 0 && dcost < 0 && -dcost < min_params.delta_cost_min){
+      if(stop_dcost && iter > 0 && dcost < 0 && -dcost < stop_cond_dcost){
+	converged=true; break;
+      }else if(stop_grad && modg < stop_cond_grad){
 	converged=true; break;
       }else if(iter == min_params.max_iter){
 	if(min_params.exit_on_convergence_fail) error_exit(std::cout << prefix << "Reached max iterations\n");
@@ -273,6 +304,7 @@ public:
     }
     if(is_falg) gsl_vector_free(step_size);
     gsl_vector_free(guess);
+    gsl_vector_free(g_temp);
 
     for(int i=0;i<nparams;i++) params(i) = gsl_vector_get(is_falg ? min_f->x : min_fdf->x, i);
     return is_falg ? min_f->fval : min_fdf->f;
