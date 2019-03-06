@@ -18,9 +18,15 @@ CPSFIT_START_NAMESPACE
 GENERATE_ENUM_AND_PARSER(GSLmultiminAlgorithm, 
 			 (ConjugateGradientFR)(ConjugateGradientPR)(VectorBFGS)(VectorBFGS2)(SteepestDescent)
 			 (NMsimplex)(NMsimplex2)(NMsimplex2rand) );
-GENERATE_ENUM_AND_PARSER(GSLmultiminStoppingCondition, (StopGradient)(StopCostDelta) );
+GENERATE_ENUM_AND_PARSER(GSLmultiminStoppingCondition, (StopGradient)(StopCostDelta)(StopRelativeGradients)(StopSimplexSize) );
 
 typedef std::pair<GSLmultiminStoppingCondition, double> GSLmultiminStoppingConditionAndValue;
+
+//Stopping conditions:
+//StopGradient:  Stop when  |g| < value
+//StopCostDelta: Stop when absolute change in cost between two successive iterations is < value
+//StopRelativeGradients:   Stop when   df/dp_i  * p_i/f  < value  for all parameter indices i
+//StopSimplexSize: Only applies to simplex algorithms, related to separation between simplex vertices https://www.gnu.org/software/gsl/doc/html/multimin.html
 
 struct GSLmultidimMinimizerParams{
   GSLmultiminAlgorithm algorithm;
@@ -38,6 +44,14 @@ struct GSLmultidimMinimizerParams{
 
 GSLmultidimMinimizerParams(): algorithm(GSLmultiminAlgorithm::ConjugateGradientFR), line_search_tol(0.1), step_size(1, 0.1), stopping_conditions({ {GSLmultiminStoppingCondition::StopCostDelta, 1e-5} }), max_iter(10000), verbose(false), output(&std::cout), exit_on_convergence_fail(true){}
 };
+
+#define GSLMDIM_PARAMS			\
+  (GSLmultiminAlgorithm, algorithm)(double, line_search_tol)(std::vector<double>, step_size)(std::vector<GSLmultiminStoppingConditionAndValue>, stopping_conditions) \
+  (int, max_iter)(bool, verbose)(bool, exit_on_convergence_fail)
+
+GENERATE_PARSER( GSLmultidimMinimizerParams, GSLMDIM_PARAMS );
+		    
+#undef GSLMDIM_PARAMS
 
 
 //A function wrapper for interfacing my cost functions with the GSL function definition for use in the multidimensional minimization (gsl_multimin)
@@ -254,43 +268,78 @@ public:
     double stop_cond_dcost;
     bool stop_grad = false;
     double stop_cond_grad;
+    bool stop_rel_grad = false;
+    double stop_cond_rel_grad;
+    bool stop_simplex_size = false;
+    double stop_cond_simplex_size;
     for(int i=0;i<min_params.stopping_conditions.size();i++){
       switch(min_params.stopping_conditions[i].first){
       case GSLmultiminStoppingCondition::StopGradient:
 	stop_grad = true; stop_cond_grad = min_params.stopping_conditions[i].second; break;
       case GSLmultiminStoppingCondition::StopCostDelta:
 	stop_dcost = true; stop_cond_dcost = min_params.stopping_conditions[i].second; break;
+      case GSLmultiminStoppingCondition::StopRelativeGradients:
+	stop_rel_grad = true; stop_cond_rel_grad = min_params.stopping_conditions[i].second; break;
+      case GSLmultiminStoppingCondition::StopSimplexSize:
+	stop_simplex_size = true; stop_cond_simplex_size = min_params.stopping_conditions[i].second; break;
       default:
 	assert(0);
       }
     }
 
+    if(stop_simplex_size && !is_falg) error_exit(std::cout << "Simplex size stopping condition only applies to simplex algorithms!\n");
+
     gsl_vector* g_temp = gsl_vector_alloc(nparams);
+    double relg[nparams];
+
+    double const* cost_ptr = is_falg ? &min_f->fval : &min_fdf->f;
+    gsl_vector const* x =  is_falg ? min_f->x : min_fdf->x;
+    gsl_vector const* g = is_falg ? g_temp : min_fdf->gradient;
 
     //Iterate
     for(iter = 0; iter <= min_params.max_iter; iter++){
-      double cost = is_falg ? min_f->fval : min_fdf->f;
+      double cost = *cost_ptr;
       double dcost = cost - prev_cost;
       
-      if(stop_grad && is_falg) func_wrapper.df(min_f->x, NULL, g_temp); //compute the derivative explicitly as we know it!
-      gsl_vector* g = is_falg ? g_temp : min_fdf->gradient;
+      if(is_falg) func_wrapper.df(min_f->x, NULL, g_temp); //compute the derivative explicitly as we know it!
+
+      for(int p=0;p<nparams;p++) relg[p] = gsl_vector_get(g,p) * gsl_vector_get(x,p)/ cost;
+
       double modg = gsl_blas_dnrm2(g);
 
       if(!me && min_params.verbose){
 	auto &op = *min_params.output;
-	op << prefix << iter << " Cost=" << cost << " dCost=" << dcost;
+	op << prefix << iter << " Cost=" << cost << " dCost=" << dcost << " |g|=" << modg;
+	if(is_falg) op << " simplex size=" << gsl_multimin_fminimizer_size(min_f);
 	if(stop_dcost) op << " dCost/tol=" << dcost/stop_cond_dcost;
-	if(stop_grad) op << " |g|=" << modg << " |g|/tol=" << modg/stop_cond_grad;
-	op << " Parameters=";
-	for(int p=0;p<nparams;p++) op << gsl_vector_get(is_falg ? min_f->x : min_fdf->x,p) << (p == nparams - 1 ? "" : ", ");
+	if(stop_grad) op << " |g|/tol=" << modg/stop_cond_grad;
+	op << " (p_i/f * df/dp_i)=(";
+	for(int p=0;p<nparams;p++) op << relg[p] << (p == nparams - 1 ? "" : ", ");
+	if(stop_rel_grad){
+	  op << ") |p_i/f * df/dp_i|/tol=(";
+	  for(int p=0;p<nparams;p++) op << fabs(relg[p])/stop_cond_rel_grad << (p == nparams - 1 ? "" : ", ");
+	}
+	op << ") Parameters=(";
+	for(int p=0;p<nparams;p++) op << gsl_vector_get(x,p) << (p == nparams - 1 ? "" : ", ");
 	op << ")" << std::endl;
       }
       
       if(stop_dcost && iter > 0 && dcost < 0 && -dcost < stop_cond_dcost){
 	converged=true; break;
-      }else if(stop_grad && modg < stop_cond_grad){
+      }      
+      if(stop_grad && modg < stop_cond_grad){
 	converged=true; break;
-      }else if(iter == min_params.max_iter){
+      }
+      if(stop_rel_grad){ // Stop when   df/dp_i  * p_i/f  < value  for all parameter indices i
+	converged=true;
+	for(int p=0;p<nparams;p++) if( fabs(relg[p]) > stop_cond_rel_grad ){ converged = false; break; }
+	if(converged) break;
+      }            
+      if(stop_simplex_size && gsl_multimin_fminimizer_size(min_f) < stop_cond_simplex_size){
+	converged = true; break;
+      }
+      
+      if(iter == min_params.max_iter){
 	if(min_params.exit_on_convergence_fail) error_exit(std::cout << prefix << "Reached max iterations\n");
 	else break;
       }
@@ -306,8 +355,8 @@ public:
     gsl_vector_free(guess);
     gsl_vector_free(g_temp);
 
-    for(int i=0;i<nparams;i++) params(i) = gsl_vector_get(is_falg ? min_f->x : min_fdf->x, i);
-    return is_falg ? min_f->fval : min_fdf->f;
+    for(int i=0;i<nparams;i++) params(i) = gsl_vector_get(x, i);
+    return *cost_ptr;
   }
   inline bool hasConverged() const{ return converged; }
   inline int iterations() const{ return iter; }

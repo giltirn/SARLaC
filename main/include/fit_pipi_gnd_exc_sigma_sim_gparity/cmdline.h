@@ -125,6 +125,9 @@ struct CMDline{
 	  }else if(minimizer == MinimizerType::GSLtrs){
 	    GSLtrsMinimizerParams templ;
 	    of << templ;
+	  }else if(minimizer == MinimizerType::GSLmultimin){
+	    GSLmultidimMinimizerParams templ;
+	    of << templ;
 	  }else assert(0);
 	  
 	  of.close();

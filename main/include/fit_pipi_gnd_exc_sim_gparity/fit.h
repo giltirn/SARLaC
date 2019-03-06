@@ -69,6 +69,30 @@ std::unique_ptr<genericFitFuncBase> getFitFunc(const FitFuncType type, const int
 
 }
 
+template<typename T>
+generalContainer getMinimizerParamsT(const fitOptions &opt){
+  generalContainer min_params;
+  T mp; mp.verbose = true;
+  if(opt.load_minimizer_params){
+    parse(mp, opt.minimizer_params_file);
+    std::cout << "Loaded minimizer params: " << mp << std::endl;
+  }
+  min_params = mp;
+  return min_params;
+}
+generalContainer getMinimizerParams(const fitOptions &opt){
+  switch(opt.minimizer){
+  case MinimizerType::MarquardtLevenberg:
+    return getMinimizerParamsT<MarquardtLevenbergParameters<double> >(opt);
+  case MinimizerType::GSLtrs:
+    return getMinimizerParamsT<GSLtrsMinimizerParams>(opt);
+  case MinimizerType::GSLmultimin:
+    return getMinimizerParamsT<GSLmultidimMinimizerParams>(opt);
+  default:
+    assert(0);
+  }
+}
+
 
 //Note: nstate applies only for "MultiState" variants
 void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
@@ -83,22 +107,7 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
   
   std::unique_ptr<genericFitFuncBase> fitfunc = getFitFunc(ffunc, nstate, t_min, Lt, param_map.size(), Ascale, Cscale, params.sample(0));
   
-  generalContainer min_params;
-  if(opt.minimizer == MinimizerType::MarquardtLevenberg){
-    MarquardtLevenbergParameters<double> mlp; mlp.verbose=true;
-    if(opt.load_minimizer_params){
-      parse(mlp, opt.minimizer_params_file);
-      std::cout << "Loaded minimizer params: " << mlp << std::endl;
-    }
-    min_params = mlp;
-  }else if(opt.minimizer == MinimizerType::GSLtrs){
-    GSLtrsMinimizerParams mp; mp.verbose = true;
-    if(opt.load_minimizer_params){
-      parse(mp, opt.minimizer_params_file);
-      std::cout << "Loaded minimizer params: " << mp << std::endl;
-    }
-    min_params = mp;
-  }else assert(0);
+  generalContainer min_params = getMinimizerParams(opt);
 
   simpleFitWrapper fit(*fitfunc, opt.minimizer, min_params);
   

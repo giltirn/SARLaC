@@ -130,7 +130,8 @@ int main(const int argc, const char** argv){
     GSLmultidimMinimizerParams gslp;
     gslp.verbose = true;
     gslp.algorithm = GSLmultiminAlgorithm::ConjugateGradientFR;
-    gslp.stopping_conditions = { {GSLmultiminStoppingCondition::StopGradient, 1e-3} };
+    //gslp.stopping_conditions = { {GSLmultiminStoppingCondition::StopGradient, 1e-3} };
+    gslp.stopping_conditions = { {GSLmultiminStoppingCondition::StopRelativeGradients, 1e-3} };
     gslp.line_search_tol = 0.; //0.01;
 
     fitter.setMinimizer(MinimizerType::GSLmultimin, gslp);
