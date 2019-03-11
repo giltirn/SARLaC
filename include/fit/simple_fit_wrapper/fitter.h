@@ -17,7 +17,7 @@
 
 CPSFIT_START_NAMESPACE
 
-GENERATE_ENUM_AND_PARSER(MinimizerType, (MarquardtLevenberg)(GSLtrs)(GSLmultimin) );
+GENERATE_ENUM_AND_PARSER(MinimizerType, (MarquardtLevenberg)(GSLtrs)(GSLmultimin)(Minuit2) );
 GENERATE_ENUM_AND_PARSER(CostType, (Correlated)(Uncorrelated) );
 
 
@@ -152,6 +152,40 @@ class simpleFitWrapper{
   }
 
 
+  double fitSampleMinuit2(ParameterType &params_s, int &dof,
+			  const correlationFunction<generalContainer, double> &data_s,
+			  const NumericSquareMatrix<double> &inv_corr_s,
+			  const std::vector<double> &sigma_s,
+			  const FitFuncFrozen &fitfunc_s,
+			  std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
+#ifndef HAVE_MINUIT2
+    error_exit(std::cout << "Library not compiled with Minuit2" << std::endl);
+#else
+    typedef CorrelatedChisqCostFunction<FitFuncFrozen, correlationFunction<generalContainer, double> > CostFunc;
+    CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
+    addPriors(cost, fitfunc_s);
+    
+    dof = cost.Ndof();
+    
+    typedef Minuit2minimizer<CostFunc> Minimizer;
+    typedef Minimizer::AlgorithmParameterType MParams;
+
+    if(!min_params.is_null()) assert(min_params.is<MParams>());
+
+    Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
+
+    double chisq = min.fit(params_s);
+
+    if(chisq_dof_nopriors){
+      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, inv_corr_s);
+      chisq_dof_nopriors->first = cost_nopriors.cost(params_s);
+      chisq_dof_nopriors->second = cost_nopriors.Ndof();
+    }
+
+    return chisq;
+#endif
+  }
+
   NumericSquareMatrix<jackknifeDistribution<double> > invertCorrelationMatrix() const{
     int nsample = corr_mat(0,0).size();
     NumericSquareMatrix<jackknifeDistribution<double> > inv_corr_mat(corr_mat);
@@ -180,6 +214,23 @@ class simpleFitWrapper{
 	out(i,j) = v(i,j).sample(s); 
     return out;
   }
+
+  //A streambuf that filters stream output for a single thread
+  class thrbuf: public std::streambuf{
+  public:
+    int thread;
+    std::streambuf *base;
+
+    thrbuf(const int thread, std::streambuf *base): thread(thread), base(base){}
+
+  protected:
+    std::streamsize xsputn (const char* s, std::streamsize n){
+      return omp_get_thread_num() == thread ? base->sputn(s,n) : n;
+    }
+    int overflow(int c = std::char_traits<char>::eof()){
+      return omp_get_thread_num() == thread ? base->sputc(c) : c;
+    }
+  };
 
 public:  
   simpleFitWrapper(const FitFunc &fitfunc, 
@@ -304,6 +355,12 @@ public:
     correlationFunction<generalContainer, double> data_sbase(ndata);
     for(int i=0;i<ndata;i++) data_sbase.coord(i) = generalContainer(data.coord(i));
 
+    //Minuit2 fitter annoyingly puts output on std::cout, which makes a mess with many threads; intercept and nullify cout output for all threads but 0
+    std::streambuf* cout_rdbuf_orig = std::cout.rdbuf();
+    thrbuf thr0_only(0,std::cout.rdbuf());
+    
+    if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(&thr0_only);
+
 #pragma omp parallel for
     for(int s=0;s<nsample;s++){
       //Get the sample data
@@ -340,6 +397,8 @@ public:
 	chisq.sample(s) = fitSampleGSLtrs(params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::GSLmultimin:
 	chisq.sample(s) = fitSampleGSLmultimin(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+      case MinimizerType::Minuit2:
+	chisq.sample(s) = fitSampleMinuit2(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       default:
 	assert(0);
       }
@@ -358,6 +417,9 @@ public:
       chisq_per_dof.sample(s) = chisq.sample(s)/dof_s;
       for(int i=0;i<nparam;i++) params.sample(s)(i) = params_s(i);
     }
+
+    if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(cout_rdbuf_orig);
+
   }  
 };
 

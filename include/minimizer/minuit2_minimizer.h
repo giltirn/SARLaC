@@ -11,10 +11,12 @@
 #include<utils/macros.h>
 #include<utils/utils.h>
 #include<parser/parser.h>
+#include<tensors/numeric_square_matrix.h>
 
 #include<Minuit2/FCNGradientBase.h>
 #include<Minuit2/FunctionMinimum.h>
 #include<Minuit2/MnMinimize.h>
+#include<Minuit2/MnSimplex.h>
 #include<Minuit2/MnPrint.h>
 
 CPSFIT_START_NAMESPACE
@@ -51,6 +53,8 @@ public:
     return func.cost(getFuncParams(x));
   }
 
+  bool CheckGradient() const{ return false; }
+
   std::vector<double> Gradient(const std::vector<double>&pin) const{
     ParameterType fparams = getFuncParams(pin);
     CostDerivativeType d;
@@ -71,6 +75,25 @@ public:
    */
 
   double Up() const{ return 1.0; }  
+
+  //The error matrix is twice the inverse of the Hessian
+  NumericSquareMatrix<double> ErrorMatrix(const std::vector<double>&pin) const{
+    ParameterType fparams = getFuncParams(pin);
+    CostDerivativeType d;
+    CostSecondDerivativeMatrixType dd;
+    func.derivatives(d,dd,fparams);    
+    NumericSquareMatrix<double> H(nparams);
+    for(int i=0;i<nparams;i++)
+      for(int j=0;j<nparams;j++)
+	H(i,j) = dd(i,j);
+    NumericSquareMatrix<double> Hinv(nparams);
+    svd_inverse(Hinv,H);
+    for(int i=0;i<nparams;i++)
+      for(int j=0;j<nparams;j++)
+	Hinv(i,j) = Hinv(i,j) * 2.;
+    return Hinv;
+  }
+
 };
 
 
@@ -84,13 +107,17 @@ struct Minuit2minimizerParams{
   //Sets the strategy to be used in calculating first and second derivatives and in certain minimization methods. In general, low values of level mean fewer function calls and high values mean more reliable minimization. Currently allowed values are 0 (low), 1 (default), and 2 (high).
   int strategy; 
 
+  bool run_initial_simplex; //perform an initial simplex solve to refine the guess
+  double initial_simplex_tolerance;
+  int initial_simplex_max_iter;
+
   bool verbose; 
 
-  Minuit2minimizerParams(): max_iter(10000), exit_on_convergence_fail(true), tolerance(1e-5), strategy(1), verbose(false){}
+  Minuit2minimizerParams(): max_iter(10000), exit_on_convergence_fail(true), tolerance(1e-5), strategy(1), verbose(false), run_initial_simplex(false), initial_simplex_tolerance(1e-1), initial_simplex_max_iter(200){}
 };
 
 #define MIN2MIN_PARAMS			\
-  (double, tolerance)(int, strategy)(int, max_iter)(bool, verbose)(bool, exit_on_convergence_fail)
+  (double, tolerance)(int, strategy)(bool, run_initial_simplex)(double, initial_simplex_tolerance)(int, initial_simplex_max_iter)(int, max_iter)(bool, verbose)(bool, exit_on_convergence_fail)
 
 GENERATE_PARSER( Minuit2minimizerParams, MIN2MIN_PARAMS );
 		    
@@ -134,7 +161,7 @@ public:
   ~Minuit2minimizer(){
   }
 
-
+  
   CostType fit(ParameterType &params){
     using namespace ROOT::Minuit2;
 
@@ -145,8 +172,38 @@ public:
     func_wrapper.setParameterBase(params);
 
     std::vector<double> init_par(nparams);
-    std::vector<double> init_err(nparams, 0.1);
     for(int i=0;i<nparams;i++) init_par[i] = params(i);
+
+    std::vector<double> init_err(nparams);
+    NumericSquareMatrix<double> init_errm = func_wrapper.ErrorMatrix(init_par);
+
+    for(int i=0;i<nparams;i++) init_err[i] = sqrt(init_errm(i,i));
+
+    if(min_params.run_initial_simplex){//perform an initial simplex solve to refine the guess
+      double f_init = func_wrapper(init_par);
+
+      MnSimplex min(func_wrapper, init_par, init_err);
+
+      FunctionMinimum sol = min(min_params.initial_simplex_max_iter, min_params.initial_simplex_tolerance);
+    
+      int simplex_iter = min.NumOfCalls();
+      bool simplex_converged = sol.IsValid();
+
+      std::vector<double> sol_params(nparams);
+      for(int i=0;i<nparams;i++) sol_params[i] = sol.Parameters().Vec()(i);
+      
+      double f_final = func_wrapper(sol_params);
+
+      if(simplex_converged || f_final < f_init){
+	if(!me)
+	  if(simplex_converged) std::cout << prefix << " Initial simplex converged\n";
+	  else std::cout << prefix << " Initial simplex did not converge but did improve the guess\n";
+	
+	init_par = sol_params;
+	init_errm = func_wrapper.ErrorMatrix(init_par);
+	for(int i=0;i<nparams;i++) init_err[i] = sqrt(init_errm(i,i));
+      }else if(!me) std::cout << "Initial simplex did not converge and did not improve guess: reverting to initial guess\n";
+    }
 
     //MnMigrad min(func_wrapper, init_par, init_err, min_params.strategy);
     MnMinimize min(func_wrapper, init_par, init_err, min_params.strategy);
@@ -162,7 +219,7 @@ public:
 
     converged = sol.IsValid();
 
-    if(!converged && min_params.exit_on_convergence_fail) error_exit(std::cout << prefix << "Failed to converge\n");    
+    if(!converged && min_params.exit_on_convergence_fail) error_exit(std::cerr << prefix << "Failed to converge\n");    
 
     for(int i=0;i<nparams;i++)
       params(i) = sol.Parameters().Vec()(i);

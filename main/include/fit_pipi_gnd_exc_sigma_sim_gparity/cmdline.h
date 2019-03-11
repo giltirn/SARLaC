@@ -128,6 +128,13 @@ struct CMDline{
 	  }else if(minimizer == MinimizerType::GSLmultimin){
 	    GSLmultidimMinimizerParams templ;
 	    of << templ;
+	  }else if(minimizer == MinimizerType::Minuit2){
+#ifdef HAVE_MINUIT2
+	    Minuit2minimizerParams templ;
+	    of << templ;
+#else
+	    error_exit(std::cout << "Library not compiled with Minuit2\n");
+#endif
 	  }else assert(0);
 	  
 	  of.close();

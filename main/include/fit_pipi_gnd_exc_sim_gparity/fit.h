@@ -88,6 +88,12 @@ generalContainer getMinimizerParams(const fitOptions &opt){
     return getMinimizerParamsT<GSLtrsMinimizerParams>(opt);
   case MinimizerType::GSLmultimin:
     return getMinimizerParamsT<GSLmultidimMinimizerParams>(opt);
+  case MinimizerType::Minuit2:
+#ifdef HAVE_MINUIT2
+    return getMinimizerParamsT<Minuit2minimizerParams>(opt);
+#else
+    error_exit(std::cout << "Library not compiled with Minuit2\n");
+#endif
   default:
     assert(0);
   }

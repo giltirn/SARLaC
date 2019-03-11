@@ -158,14 +158,36 @@ int main(const int argc, const char** argv){
   }
 
 
+  //Fit with Minuit2
+#ifdef HAVE_MINUIT2
+  results results_minuit2(nsample, guess);
+  {
+    Minuit2minimizerParams minp;
+    minp.verbose = true;
+    minp.tolerance = 1e-10;
+
+    fitter.setMinimizer(MinimizerType::Minuit2, minp);
+
+    std::cout << "Performing fit with Minuit2 implementation" << std::endl;
+    results &r = results_minuit2;
+    fitter.fit(r.params, r.chisq, r.chisq_per_dof, r.dof, data_j);
+  }
+#endif
+
   results_std.print("ML ");
   results_gsl_trs.print("GSL TRS ");
   results_gsl_multimin_fdf.print("GSL multimin fdf ");
   results_gsl_multimin_f.print("GSL multimin f ");
+#ifdef HAVE_MINUIT2
+  results_minuit2.print("Minuit2 ");
+#endif
 
   results::compare(results_gsl_trs, results_std, "GSL TRS ");
   results::compare(results_gsl_multimin_fdf, results_std, "GSL multimin fdf ");
   results::compare(results_gsl_multimin_f, results_std, "GSL multimin f ");
+#ifdef HAVE_MINUIT2
+  results::compare(results_minuit2, results_std, "Minuit2 ");
+#endif
 
   std::cout << "Done\n";
   return 0;
