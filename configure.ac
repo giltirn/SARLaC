@@ -125,6 +125,21 @@ elif test "x$with_hdf5" != "xno"; then
 fi
 
 
+#Check for Minuit2
+AC_ARG_WITH([minuit2], AS_HELP_STRING([--with-minuit2], [Build with Minuit2]),[],[with_minuit2=no])
+if test "x$with_minuit2" = "xyes"; then
+   PKG_CHECK_MODULES([MINUIT2], [Minuit2 >= 0 ], [AC_DEFINE([HAVE_MINUIT2], [1], [Use Minuit2])   ], [AC_MSG_FAILURE([Minuit2 version required])])
+   LIBS="$MINUIT2_LIBS -lMinuit2 $LIBS"
+   CPPFLAGS="$MINUIT2_CFLAGS $CPPFLAGS"
+elif test "x$with_minuit2" != "xno"; then
+  CPPFLAGS="-I${with_minuit2}/include $CPPFLAGS"
+  LDFLAGS="-L${with_minuit2}/lib $LDFLAGS"
+  AC_CHECK_LIB([Minuit2],[main], [LIBS="-lMinuit2 $LIBS"], [AC_MSG_FAILURE([Could not link to Minuit2])])	
+  AC_DEFINE([HAVE_MINUIT2], [1], [Use Minuit2])
+fi
+
+
+
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS(boost/format.hpp, [], [AC_MSG_FAILURE([["Could not compile with boost/format.hpp"]])] )
