@@ -1,3 +1,4 @@
+import os
 import sys
 import colorsys
 import subprocess
@@ -134,6 +135,14 @@ class DataSet:
                 self.dxp = None
                 self.dym = None
                 self.dyp = None
+        def createEmpty(self): 
+            self.x = []
+            self.y = []
+            self.dxp = []
+            self.dxm = []
+            self.dyp = []
+            self.dym = []
+
         def shiftX(self, shift):
             for i in range(len(self.x)):
                 self.x[i] = self.x[i] + shift
@@ -429,3 +438,15 @@ def plotScatter(axes3d, data, **kwargs):
         kwargs['linewidth'] = 0 #edges obscure the points usually
         
     return axes3d.scatter(data.x,data.y,data.z, **kwargs)
+
+
+def getHDF5valErr(filename, elem):
+    if(os.path.isfile(filename) == False):
+        return "ERR"
+    arg_str = "-elem \"%s\"" % elem
+    out = os.popen("hdf5_print %s %s" % (filename,arg_str)).read()
+    m = re.search(r'([\d\.e\+\-]+)\s\+\-\s([\d\.e\+\-]+)',out)
+    if m == None:
+        return "ERR"
+    else:
+        return (float(m.group(1)),float(m.group(2)))    

@@ -16,7 +16,7 @@ public:
     return contains.find({opa,opb}) != contains.end();
   }
 
-  void generatedResampledData(const RawData &raw_data, const int bin_size, const int isospin, const int Lt, const int tsep_pipi, const threeMomentum &p_tot, const bool do_vacuum_subtraction){
+  void generatedResampledData(const std::vector<Operator> &ops, const RawData &raw_data, const int bin_size, const int isospin, const int Lt, const int tsep_pipi, const threeMomentum &p_tot, const bool do_vacuum_subtraction){
     if(isospin == 2) assert(do_vacuum_subtraction == false);
 
     static const std::vector< std::pair<Operator,Operator> > rp = { {Operator::PiPiComoveGnd, Operator::PiPiComoveGnd},
@@ -34,6 +34,8 @@ public:
     for(auto it=rp.begin();it!=rp.end();it++){
       auto o1 = it->first; auto o2 = it->second;
       
+      if(std::find(ops.begin(),ops.end(),o1) == ops.end() || std::find(ops.begin(),ops.end(),o2) == ops.end() ) continue;
+
       if(raw_data.haveData(o1,o2)){
 	contains.insert({o1,o2});
 	auto &corr = correlator(o1,o2);

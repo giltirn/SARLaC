@@ -9,6 +9,7 @@ using namespace CPSfit;
 
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/args.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/fitfunc.h>
+#include<fit_pipi_gnd_exc_sigma_sim_gparity/filters.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/cmdline.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/raw_data.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/resampled_data.h>
@@ -93,12 +94,30 @@ int main(const int argc, const char* argv[]){
   std::vector<std::string> vnm; //for printing
 
   std::map<std::unordered_map<std::string, std::string> const*, std::string> pmap_descr;
+
+  Filters filters;
+  if(cmdline.load_filters)
+    parse(filters,cmdline.load_filters_file);
+
   for(int i=0;i<ops.size();i++){
     for(int j=i;j<ops.size();j++){
       std::ostringstream nm; nm << ops[i] << " " << ops[j];
       pmap_descr[&subfit_pmaps[{ops[i],ops[j]}]] = nm.str();
 
       for(int t=args.t_min;t<=args.t_max;t++){
+	auto const & val_j = data_j.correlator(ops[i],ops[j]).value(t);
+
+	bool skip = false;
+	std::string reason;
+	if(cmdline.load_filters)
+	  for(int f=0;f<filters.filters.size();f++)
+	    if(filters.filters[f].filterOut(ops[i],ops[j],t,val_j,&reason)){
+	      skip = true;
+	      std::cout << "Skipping " << nm.str() << " t=" << t << " as: " << reason << std::endl;
+	    }
+	if(skip)
+	  continue;
+
 	SimFitCoordGen coord(t, &subfit_pmaps[{ops[i],ops[j]}] , foldOffsetMultiplier(ops[i],ops[j])*args.tsep_pipi);
 	corr_comb_j.push_back(coord, data_j.correlator(ops[i],ops[j]).value(t));
 	corr_comb_dj.push_back(coord, data_dj.correlator(ops[i],ops[j]).value(t));
@@ -109,7 +128,8 @@ int main(const int argc, const char* argv[]){
 
   std::cout << "Data in fit:" << std::endl;
   for(int i=0;i<corr_comb_j.size();i++){
-    std::cout << vnm[i] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
+    std::cout << vnm[i] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) 
+	      << " (err/mean = " << fabs(corr_comb_j.value(i).standardError()/corr_comb_j.value(i).mean()) << ")" <<   std::endl;
   }
   if(cmdline.write_fit_data){
     std::cout << "Writing fit data to data_in_fit.hdf5 (and key data_in_fit.key)" << std::endl;

@@ -150,8 +150,12 @@ struct CMDline{
     COPYIT(write_covariance_matrix_file);
     COPYIT(load_priors);
     COPYIT(load_priors_file);
-    COPYIT(load_mlparams);
-    COPYIT(mlparams_file);
+    //COPYIT(load_mlparams);
+    //COPYIT(mlparams_file);
+
+    opt.minimizer = MarquardtLevenberg;
+    opt.load_minimizer_params = load_mlparams;
+    opt.minimizer_params_file = mlparams_file;
   }
 
 };

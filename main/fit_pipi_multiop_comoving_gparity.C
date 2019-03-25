@@ -89,8 +89,8 @@ int main(const int argc, const char* argv[]){
   }else{
     for(int p=0;p<args.p_tot.size();p++){
       auto ptot = args.p_tot[p];
-      data_j[ptot].generatedResampledData(raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
-      data_dj[ptot].generatedResampledData(raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
+      data_j[ptot].generatedResampledData(ops,raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
+      data_dj[ptot].generatedResampledData(ops,raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
     }
   }  
   

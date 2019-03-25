@@ -37,6 +37,9 @@ struct CMDline{
 
   bool write_fit_data;
 
+  bool load_filters;
+  std::string load_filters_file;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -50,6 +53,7 @@ struct CMDline{
     load_minimizer_params = false;
     remove_samples_in_range = false;
     write_fit_data = false;
+    load_filters = false;
   }
   CMDline(const int argc, const char** argv, MinimizerType minimizer, const int begin = 0): CMDline(){
     setup(argc,argv,minimizer,begin);
@@ -110,6 +114,21 @@ struct CMDline{
 	  exit(0);
 	}else if(!fileExists(load_frozen_fit_params_file)) error_exit(std::cout << "CMDline freeze data file " << load_frozen_fit_params_file << " does not exist!\n");
 	i+=2;
+
+      }else if(sargv[i] == "-load_filters"){
+	load_filters = true;
+	load_filters_file = sargv[i+1];
+
+	if(load_filters_file == "TEMPLATE"){
+	  std::cout << "Saving filters template file to filters_template.args" << std::endl;
+	  Filters fp;
+	  std::ofstream of("filters_template.args");
+	  of << fp;
+	  of.close();
+	  exit(0);
+	}else if(!fileExists(load_filters_file)) error_exit(std::cout << "CMDline filters file " << load_filters_file << " does not exist!\n");
+	i+=2;
+
       }else if(sargv[i] == "-load_priors"){
 	load_priors = true;
 	load_priors_file = sargv[i+1];
