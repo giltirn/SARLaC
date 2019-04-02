@@ -37,7 +37,7 @@ struct _symmetricMatrixEigensolve<T,1>{
 	evecs[i][j].resize(nsample);
     }
     
-    typedef typename std::decay< decltype( A(0,0).sample(0) ) >::type type;
+    typedef typename iterate<T>::type type;
     NumericSquareMatrix<type> A_s(size);
     std::vector<NumericVector<type> > evecs_s(size, NumericVector<type>(size));
     std::vector<type> evals_s(size);
@@ -76,7 +76,7 @@ struct _symmetricMatrixEigensolve<T,1>{
 	evecs[i][j].resize(nsample);
     }
     
-    typedef typename std::decay< decltype( A(0,0).sample(0) ) >::type type;
+    typedef typename iterate<T>::type type;
     NumericSquareMatrix<type> A_s(size);
     NumericSquareMatrix<type> B_s(size);
     std::vector<NumericVector<type> > evecs_s(size, NumericVector<type>(size));

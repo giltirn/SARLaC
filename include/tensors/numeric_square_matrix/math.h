@@ -82,6 +82,42 @@ T modinfty(const NumericSquareMatrix<T> &m, const geqFunc &geq, const absFunc &a
 }
 
 
+inline int LeviCivita(int const* idx, const int n){
+  int out = 1;
+  for(int i=0;i<n;i++)
+    for(int j=i+1;j<n;j++){
+      int x = idx[j] - idx[i];
+      out *= (x > 0) ? 1 : ((x < 0) ? -1 : 0);
+    }
+  return out;
+}
+
+
+template<typename T>
+T determinant(const NumericSquareMatrix<T> &m){
+  int n = m.size();
+  size_t lsize = pow(n,n);
+  
+  T out = m(0,0);
+  zeroit(out);
+
+  for(size_t l = 0; l < lsize; l++){
+    int idx[n];
+    int rem = l;
+    for(int a=0;a<n;a++){
+      idx[a] = rem % n;
+      rem /= n;
+    }
+    int sgn = LeviCivita(idx,n);
+    
+    T prod = double(sgn) * m(0,idx[0]);
+    for(int a=1;a<n;a++)
+      prod = prod * m(a, idx[a]);
+
+    out = out + prod;
+  }
+  return out;
+}
 
 
 

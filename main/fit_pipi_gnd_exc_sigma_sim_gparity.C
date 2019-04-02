@@ -14,6 +14,7 @@ using namespace CPSfit;
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/raw_data.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/resampled_data.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/fit.h>
+#include<fit_pipi_gnd_exc_sigma_sim_gparity/plot.h>
 
 int main(const int argc, const char* argv[]){
   RNG.initialize(1234);
@@ -191,6 +192,8 @@ int main(const int argc, const char* argv[]){
 #endif
 
   if(args.correlated) analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.t_min, args.t_max, args.Ascale, args.Cscale, pmap_descr); 
+
+  plotDeterminantTest("determinant_test", data_j, ops, args.Lt);
 
   std::cout << "Done\n";
   return 0;

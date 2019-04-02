@@ -117,6 +117,33 @@ int main(void){
     NumericTensor<double,1> ovec2 = contract(t,vec,1,0);
     std::cout << t << "\n*\n" << vec << "\n=\n" << ovec2 << std::endl;
   }
+
+  //Test 2x2 determinant
+  {
+    NumericSquareMatrix<double> M({1.3,-4.5, 0.3, 72.4});
+    double expect = M(0,0)* M(1,1) - M(0,1)*M(1,0);
+    double got = determinant(M);
+    std::cout << "2x2 determinant got " << got << " expect " << expect << std::endl;
+    assert(fabs(expect-got) < 1e-10);
+  }
+  //Test 3x3 determinant
+  {
+    NumericSquareMatrix<double> M(
+				  {1.3,-4.5, 0.3, 
+				   72.4, 31.2, -0.07,
+				   12.1, 4e-2, 5e2 }
+				  );
+    double expect = M(0,0) * ( M(1,1) * M(2,2) - M(2,1) * M(1,2) )
+      - M(0,1) * ( M(1,0)*M(2,2) - M(2,0)*M(1,2) )
+      + M(0,2) * ( M(1,0)*M(2,1) - M(2,0)*M(1,1) );
+    
+    double got = determinant(M);
+    std::cout << "3x3 determinant got " << got << " expect " << expect << std::endl;
+    assert(fabs(expect-got) < 1e-10);
+  }
+
+
+
   
   return 0;
 }
