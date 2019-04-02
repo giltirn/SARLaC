@@ -29,6 +29,8 @@ public:
 
 template<typename T, template<typename> class V>
 struct iterate<doubleJackknifeDistribution<T,V> >{
+  typedef T type;
+
   static inline int size(const doubleJackknifeDistribution<T,V> &from){ return from.size() * (from.size()-1); } //j + (from.size()-1)*i
   static inline const T& at(const int i, const doubleJackknifeDistribution<T,V> &from){
     const int nn = from.size()-1;
