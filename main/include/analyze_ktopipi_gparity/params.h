@@ -3,7 +3,7 @@
 
 #include<parser.h>
 
-GENERATE_ENUM_AND_PARSER(PhaseShiftDerivativeSource, (DerivSchenk)(DerivLinearEpipi)(DerivLinearQpipi) );
+GENERATE_ENUM_AND_PARSER(PhaseShiftDerivativeSource, (DerivSchenk)(DerivLinearEpipi)(DerivLinearQpipi)(DerivColangelo) );
 GENERATE_ENUM_AND_PARSER(RIscheme, (QslashQslash)(GammaGamma) );
 
 #define FILE_IDX_PAIR_MEMBERS (std::string, file)(int, idx)

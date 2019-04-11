@@ -67,6 +67,35 @@ superJackknifeDistribution<double> getPhaseShiftDerivSchenk(const superJackknife
 }
 
 
+superJackknifeDistribution<double> getPhaseShiftDerivColangelo(const superJackknifeDistribution<double> &ainv,
+							       const superJackknifeDistribution<double> &Epipi,
+							       const superJackknifeDistribution<double> &q_pipi,
+							       const superJackknifeDistribution<double> &mpi,
+							       const int L){					     
+  std::cout << "Computing phase shift derivative using Colangelo formulae\n";
+  return superJackknifeDistribution<double>(ainv.getLayout(),
+					    [&](const int b){
+					      double ainv_b = ainv.osample(b)* 1000; //in MeV
+					      double Epipi_b = Epipi.osample(b) * ainv_b;
+					      double qpipi_b = q_pipi.osample(b); //q is dimensionless
+					      double mpi_b = mpi.osample(b) * ainv_b;
+					      double Lphys = double(L)/ainv_b; // L_latt = L_phys/a, L_phys = a* L_latt = L_latt/a^{-1}
+					      double s = Epipi_b*Epipi_b;
+					      double ds_by_dq = 8 * pow(2*M_PI/Lphys,2) * qpipi_b;
+					      double ddelta_by_ds = PhenoCurveColangelo::compute_deriv(s,0,mpi_b,1e-02); //radians/(MeV^2)
+					      double ddelta_by_dq = ddelta_by_ds * ds_by_dq;
+					      if(b==-1){
+						std::cout << "a^{-1} = " << ainv_b << " MeV,  Epipi = " << Epipi_b << " MeV, q =" << qpipi_b << " (dimensionless), mpi = " << mpi_b << " MeV, s = " << s
+							  << " MeV,  L = " << Lphys << " MeV\n";
+						std::cout << "ds/dq = " << ds_by_dq << " MeV^2\n";
+						std::cout << "Computed d(delta)/ds = " << ddelta_by_ds << " MeV^{-2}\n";
+						std::cout << "Computed d(delta)/dq = " << ddelta_by_ds * ds_by_dq << std::endl;
+					      }
+					      return ddelta_by_dq;});
+}
+
+
+
 superJackknifeDistribution<double> getPhaseShiftDerivLinearEpipi(const superJackknifeDistribution<double> &Epipi,
 								 const superJackknifeDistribution<double> &q_pipi,
 								 const superJackknifeDistribution<double> &mpi,
@@ -91,18 +120,25 @@ superJackknifeDistribution<double> getPhaseShiftDerivLinearQpipi(const superJack
   return delta/q_pipi;
 }
 
+superJackknifeDistribution<double> computedPhiDerivativeQ(const superJackknifeDistribution<double> &q_pipi,
+							  const LuscherZeta &zeta){
+  std::cout << "Computing Lellouch-Luscher factor Phi derivative term\n";
+  superJackknifeDistribution<double> dphi_by_dq(q_pipi.getLayout(),
+						[&](const int b){ return zeta.calcPhiDeriv(b==-1 ? q_pipi.best() : q_pipi.sample(b)); });
+
+  std::cout << "dphi(q)/dq = " << dphi_by_dq << std::endl;
+  return dphi_by_dq;
+}
+
 superJackknifeDistribution<double> computeLLfactor(const superJackknifeDistribution<double> &Epipi,						   
 						   const superJackknifeDistribution<double> &q_pipi,
 						   const superJackknifeDistribution<double> &p_pipi,
 						   const superJackknifeDistribution<double> &mK,
 						   const superJackknifeDistribution<double> &ddelta_by_dq,
-						   const LuscherZeta &zeta,
+						   const superJackknifeDistribution<double> &dphi_by_dq,
 						   const int L){
   std::cout << "Computing Lellouch-Luscher factor\n";
-  superJackknifeDistribution<double> dphi_by_dq(q_pipi.getLayout(),
-						[&](const int b){ return zeta.calcPhiDeriv(b==-1 ? q_pipi.best() : q_pipi.sample(b)); });
 
-  std::cout << "dphi(q)/dq = " << dphi_by_dq << std::endl;
   superJackknifeDistribution<double> ddelta_by_dp = (L/2./M_PI) * ddelta_by_dq;   //d/dp = d/d[2pi/L q] = L/2pi d/dq
 
   std::cout << "d(delta)/dq = " << ddelta_by_dq << std::endl;
@@ -117,49 +153,52 @@ superJackknifeDistribution<double> computeLLfactor(const superJackknifeDistribut
   return F;
 }
 
-void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0_sj, //I=0 phase shift
-				  superJackknifeDistribution<double> &F_sj, //Lellouch-Luscher factor
-				  const superJackknifeDistribution<double> &Epipi_sj, const superJackknifeDistribution<double> &mpi_sj,
-				  const superJackknifeDistribution<double> &mK_sj, const superJackknifeDistribution<double> &ainv_sj, const Args &args, const std::string &file_stub = ""){
+void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0, //I=0 phase shift
+				  superJackknifeDistribution<double> &F, //Lellouch-Luscher factor
+				  const superJackknifeDistribution<double> &Epipi, const superJackknifeDistribution<double> &mpi,
+				  const superJackknifeDistribution<double> &mK, const superJackknifeDistribution<double> &ainv, const Args &args, const std::string &file_stub = ""){
   typedef superJackknifeDistribution<double> superJackD; 
   
   //Compute the phase shift and it's derivative wrt q
   LuscherZeta zeta({args.twists[0],args.twists[1],args.twists[2]},  {0.,0.,0.});
 
-  superJackD p_pipi_sj = sqrt( Epipi_sj*Epipi_sj/4 - mpi_sj*mpi_sj );
-  superJackD q_pipi_sj = args.L * p_pipi_sj /( 2 * M_PI );
-  std::cout << "p = " << p_pipi_sj << std::endl;
-  std::cout << "q = " << q_pipi_sj << std::endl;
+  superJackD p_pipi = sqrt( Epipi*Epipi/4 - mpi*mpi );
+  superJackD q_pipi = args.L * p_pipi /( 2 * M_PI );
+  std::cout << "p = " << p_pipi << std::endl;
+  std::cout << "q = " << q_pipi << std::endl;
+
+  superJackD dphi_by_dq = computedPhiDerivativeQ(q_pipi, zeta);
   
-  delta_0_sj = getPhaseShift(zeta,q_pipi_sj);
-  superJackD delta_0_deg_sj = delta_0_sj/M_PI * 180;
+  delta_0 = getPhaseShift(zeta,q_pipi);
+  superJackD delta_0_deg = delta_0/M_PI * 180;
 
-  std::cout << "delta_0 = " << delta_0_sj << " rad = " << delta_0_deg_sj << "deg\n";
+  std::cout << "delta_0 = " << delta_0 << " rad = " << delta_0_deg << "deg\n";
 
-  writeParamsStandard(delta_0_deg_sj, file_stub+"delta0_deg.hdf5");
+  writeParamsStandard(delta_0_deg, file_stub+"delta0_deg.hdf5");
+
+  superJackD d_delta_by_dq[4] = { getPhaseShiftDerivSchenk(ainv,Epipi,q_pipi,mpi,args.L),
+				  getPhaseShiftDerivColangelo(ainv,Epipi,q_pipi,mpi,args.L),
+				  getPhaseShiftDerivLinearEpipi(Epipi,q_pipi,mpi,delta_0,args.L),
+				  getPhaseShiftDerivLinearQpipi(q_pipi,delta_0) };
   
-  superJackD d_delta_by_dq_schenk_sj = getPhaseShiftDerivSchenk(ainv_sj,Epipi_sj,q_pipi_sj,mpi_sj,args.L);
-  superJackD d_delta_by_dq_lin_Epipi_sj = getPhaseShiftDerivLinearEpipi(Epipi_sj,q_pipi_sj,mpi_sj,delta_0_sj,args.L);
-  superJackD d_delta_by_dq_lin_qpipi_sj = getPhaseShiftDerivLinearQpipi(q_pipi_sj,delta_0_sj);
+  PhaseShiftDerivativeSource d_delta_by_dq_src[4] = { PhaseShiftDerivativeSource::DerivSchenk, PhaseShiftDerivativeSource::DerivColangelo, 
+						      PhaseShiftDerivativeSource::DerivLinearEpipi, PhaseShiftDerivativeSource::DerivLinearQpipi };
 
-  std::cout << "ddelta_0/dq (Schenk) = " << d_delta_by_dq_schenk_sj << std::endl;
-  std::cout << "ddelta_0/dq (Lin. Epipi) = " << d_delta_by_dq_lin_Epipi_sj << std::endl;
-  std::cout << "ddelta_0/dq (Lin. q) = " << d_delta_by_dq_lin_qpipi_sj << std::endl;
+  std::string d_delta_by_dq_descr[4] = { "Schenk", "Colangelo", "Lin. Epipi", "Lin. q" };
+  
+  int i_use = -1;
+  for(int i=0;i<4;i++){
+    superJackD F_i = computeLLfactor(Epipi,q_pipi,p_pipi,mK,d_delta_by_dq[i],dphi_by_dq,args.L);
+    std::cout << "ddelta_0/dq (" << d_delta_by_dq_descr[i] << ") = " << d_delta_by_dq[i] << std::endl;
+    std::cout << "F (" << d_delta_by_dq_descr[i] << ") = " << F_i << std::endl;
 
-  superJackD d_delta_by_dq_sj;
-  switch(args.deriv_source){
-  case PhaseShiftDerivativeSource::DerivSchenk:
-    d_delta_by_dq_sj = d_delta_by_dq_schenk_sj; break;
-  case PhaseShiftDerivativeSource::DerivLinearEpipi:
-    d_delta_by_dq_sj = d_delta_by_dq_lin_Epipi_sj; break;
-  case PhaseShiftDerivativeSource::DerivLinearQpipi:
-    d_delta_by_dq_sj = d_delta_by_dq_lin_qpipi_sj; break;
-  default:
-    error_exit(std::cout << "Unknown phase shift derivative source " << args.deriv_source << std::endl);
+    if(d_delta_by_dq_src[i] == args.deriv_source){
+      F = F_i; i_use = i;
+    }
   }
-  std::cout << "Using ddelta_0/dq source " << args.deriv_source << ", value " << d_delta_by_dq_sj << std::endl;
+  if(i_use == -1) error_exit(std::cout << "computePhaseShiftAndLLfactor: Unknown phase shift derivative source\n");
 
-  F_sj = computeLLfactor(Epipi_sj,q_pipi_sj,p_pipi_sj,mK_sj,d_delta_by_dq_sj,zeta,args.L);
+  std::cout << "Using F=" << F << " from source " << d_delta_by_dq_src[i_use] << " for final result\n";
 }
 
 

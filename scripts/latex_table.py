@@ -54,9 +54,9 @@ def latex_print(filename, elem, **kwargs):
 
 
 def tabulate(cols,args,**kwargs):
-    print r'\FloatBarrier'
-    print r'\begin{table}[h]'
-    print r'\centering'
+    longtable = False
+    if('longtable' in kwargs.keys() and kwargs['longtable'] == True):
+        longtable = True
 
     colstr=""
     if('colstr' in kwargs.keys()):
@@ -65,10 +65,25 @@ def tabulate(cols,args,**kwargs):
         for i in range(cols):
             colstr=colstr+'c'
 
-    if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
-        print r'\resizebox{\textwidth}{!}{'
+
+    print r'\FloatBarrier'
+
+    if longtable == True:
+        print "\\begin{longtable}{%s}" % colstr
+
+        if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
+            print "shrink_to_fit not supported for longtable"
+            sys.exit(1)
+
+    else:
+        print r'\begin{table}[h]'
+        print r'\centering'
+
+        if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
+            print r'\resizebox{\textwidth}{!}{'
     
-    print "\\begin{tabular}{%s}" % colstr
+        print "\\begin{tabular}{%s}" % colstr
+
     print r'\hline\hline'
 
     np = len(args)
@@ -107,14 +122,20 @@ def tabulate(cols,args,**kwargs):
             sys.stdout.write("\\\\\n")
             ii=0
     
-    print "\\end{tabular}"
+    if longtable == False:
+        print "\\end{tabular}"
 
-    if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
-        print r'}'
+        if('shrink_to_fit' in kwargs.keys() and kwargs['shrink_to_fit'] == True):
+            print r'}'
+
     if('caption' in kwargs.keys() ):
         print "\\caption{%s}" % kwargs['caption']
 
-    print "\\end{table}"
+    if longtable == True:
+        print "\\end{longtable}"
+    else:
+        print "\\end{table}"
+
     print "\\FloatBarrier"
 
 
