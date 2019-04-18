@@ -358,6 +358,157 @@ void plotErrorWeightedData3expFlat(const std::vector<correlationFunction<amplitu
   }
 }
 
+
+
+void plotErrorWeightedDataNexpFlat(const ResampledData<jackknifeDistributionD> &data_j,
+				   const std::vector<PiPiOperator> &operators,
+				   const FitSimGenMultiStateWavg &fitfunc,
+				   const std::vector<jackknifeDistribution<FitSimGenMultiStateWavg::Params> > &fit_params,
+				   const jackknifeDistributionD &mK, const jackknifeDistributionD &AK,
+				   const int Lt, const int tmin_k_op, const int tmin_op_snk){
+  const int nop = operators.size();
+  const int nstate = fitfunc.Nstate();
+  const int nQ = fit_params.size();
+
+  typedef FitSimGenMultiStateWavg::Params Params;
+  typedef correlationFunction<amplitudeDataCoord, jackknifeDistributionD> CorrFunc;
+
+  static const std::vector<PiPiOperator> all_ops = {PiPiOperator::PiPiGnd, PiPiOperator::PiPiExc, PiPiOperator::Sigma};
+  static const std::vector<std::string> all_ops_pfmt = {"Apipi%d", "Apipi_exc_%d", "Asigma%d"};
+  static const std::vector<std::string> all_ops_descr = {"K->pipi(111)", "K->pipi(311)", "K->sigma"};
+  static const std::vector<std::string> all_ops_descr_short = {"kpipi_111", "kpipi_311", "ksigma"};
+  static const std::vector<std::string> all_ops_latex = { "$K\\to\\pi\\pi_{111}$", "$K\\to\\pi\\pi_{311}$", "$K\\to\\sigma$" };
+
+  //Which of the above are in our operator list
+  std::vector<int> op_idx(nop);
+  for(int o=0;o<nop;o++){
+    int opidx=-1; for(int a=0;a<all_ops.size();a++) if(all_ops[a] == operators[o]){ opidx=a; break; }
+    assert(opidx != -1);
+    op_idx[o] = opidx;
+  }
+
+  for(int q=0;q<nQ;q++){
+
+    //Get the fit parameters
+    std::vector<std::vector<jackknifeDistributionD> > A(nop, std::vector<jackknifeDistributionD>(nstate));
+    for(int o=0;o<nop;o++){
+      int opidx=op_idx[o];
+      for(int s=0;s<nstate;s++){
+	//Get the amplitude parameter tag for this op and state
+	std::string pnm = stringize(all_ops_pfmt[opidx].c_str(),s);	
+	A[o][s] = peek(pnm, fit_params[q]);
+      }
+    }
+    std::vector<jackknifeDistributionD> E(nstate);
+    std::vector<jackknifeDistributionD> M(nstate);
+    
+    for(int s=0;s<nstate;s++){
+      E[s] = peek(stringize("E%d",s),fit_params[q]);
+      M[s] = peek(stringize("M%d",s),fit_params[q]);
+    }
+      
+    //Get the data for this q
+    std::vector<CorrFunc> qdata(nop);
+    for(int o=0;o<nop;o++) qdata[o] = data_j(operators[o])[q];
+
+    //Divide out all the kaon and sink operator dependence associated with the ground state
+    for(int o=0;o<nop;o++)
+      qdata[o] = removeGroundStateDependence(qdata[o], AK, mK, A[o][0], E[0]);
+
+    //Time dep now:
+    //M0 + (A1/A0)*M1*exp(-(E1-E0) * (tsep_k_pi - t)) + (A2/A0)*M2*exp(-(E2-E0) * (tsep_k_pi - t)) + ....  
+    //tsep_k_pi - t = t_op_pi
+    
+    //Generate error weighted average over data with same t_op_pi and also split data out over different tsep_k_op
+    typedef correlationFunction<double, jackknifeDistributionD> PlotCorrFuncType;
+    std::vector<PlotCorrFuncType> qdata_wavg(nop);
+    std::vector<std::vector<PlotCorrFuncType> > qdata_tsepkop(nop);
+    std::vector<std::map<int, int> > op_idx_tsepkop_map(nop);
+
+    int tsep_k_op_max = -1;
+    for(int o=0;o<nop;o++){ 
+      filterAndErrWeightedAvgData(qdata_wavg[o], qdata_tsepkop[o], op_idx_tsepkop_map[o], qdata[o], tmin_k_op, Lt, stringize("%s Q%d", all_ops_descr[op_idx[o]].c_str(),q+1) );
+      for(auto it=op_idx_tsepkop_map[o].begin(); it != op_idx_tsepkop_map[o].end(); ++it) tsep_k_op_max = std::max(tsep_k_op_max, it->second);
+    }
+    
+    //Construct fit curves
+    PlotCorrFuncType curve_ground;
+    std::vector<std::vector<PlotCorrFuncType> > curve_exc(nop, std::vector<PlotCorrFuncType>(nstate-1));
+    std::vector<PlotCorrFuncType> curve_sum(nop);
+
+    int npoint = 60;
+    double delta = double(tsep_k_op_max-tmin_op_snk)/(npoint - 1);
+    for(int i=0;i<npoint;i++){
+      double t_op_snk = tmin_op_snk + i*delta;
+      jackknifeDistributionD gnd = M[0];
+      curve_ground.push_back(t_op_snk, gnd);
+
+      for(int o=0;o<nop;o++){
+	jackknifeDistributionD sum = gnd;
+	for(int s=1;s<nstate;s++){
+	  jackknifeDistributionD term = A[o][s]*M[s]*exp(-(E[s]-E[0])*t_op_snk)/A[o][0];
+	  curve_exc[o][s-1].push_back(t_op_snk, term);
+	  sum = sum + term;
+	}
+	curve_sum[o].push_back(t_op_snk, sum);
+      }
+    }
+  
+    {
+      //Plot
+      MatPlotLibScriptGenerate plotter;
+      typedef DataSeriesAccessor<PlotCorrFuncType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
+
+      static const char colors[6] = { 'r','g','b','c','m','k' };
+      assert(nop <= 6);
+     
+      std::vector<std::string> shortd(nop), latex(nop);
+      for(int o=0;o<nop;o++){ shortd[o] = all_ops_descr_short[op_idx[o]];  latex[o] = all_ops_latex[op_idx[o]]; }
+
+      //Weighted avgs
+      for(int o=0;o<nop;o++){
+	auto handle = plotter.plotData(accessor(qdata_wavg[o]),  {{"color",colors[o]}}, stringize("%s_wavg", shortd[o].c_str()) );
+	plotter.setLegend(handle, stringize("%s weighted avg", latex[o].c_str()) );
+      }
+
+      //Individual tseps
+      for(int o=0;o<nop;o++){
+	for(int i=0;i<qdata_tsepkop.size();i++){
+	  int tsep_k_op = op_idx_tsepkop_map[o][i];
+	  auto handle = plotter.plotData(accessor(qdata_tsepkop[o][i]), {{"color",colors[o]}}, stringize("%s_tsep_k_pi%d", shortd[o].c_str(),tsep_k_op));
+	  plotter.setLegend(handle, stringize("%s $t_{\\rm sep}^{K\\to{\\rm op}}=%d$", latex[o].c_str(),tsep_k_op));
+	}
+      }      
+
+      //Ground constant
+      plotter.setLegend(plotter.errorBand(accessor(curve_ground),{{"color",colors[0]}, {"alpha",0.5}},"fit_gnd"),
+			"Gnd");
+      
+      //Fit curves
+      for(int o=0;o<nop;o++){
+	//Excited state contributions
+	for(int es=0;es<nstate-1;es++){ //excited state index
+	  auto handle = plotter.errorBand(accessor(curve_exc[o][es]),{{"color",colors[o]}, {"alpha",0.5}}, stringize("fit_exc%d_%s", es+1, shortd[o].c_str() ) );
+	  plotter.setLegend(handle, stringize("%s Exc %d", latex[o].c_str(), es+1) );
+	}
+	//Total
+	auto handle = plotter.errorBand(accessor(curve_sum[o]),{{"color",colors[o]}, {"alpha",0.5}},stringize("fit_sum_%s", shortd[o].c_str()) );
+	plotter.setLegend(handle, stringize("%s Tot", latex[o].c_str()) );
+      }
+
+      plotter.setXlabel("$t$");
+      std::ostringstream ylabel; ylabel << "$M^{1/2,\\ \\rm{lat}}_" << q+1 << "$";
+      plotter.setYlabel(ylabel.str());
+      
+      plotter.createLegend();
+      std::ostringstream filename_stub; filename_stub << "plot_errw_Q" << q+1 << "_flat";
+      plotter.write( filename_stub.str()+".py", filename_stub.str()+".pdf");
+    }
+  }
+}
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

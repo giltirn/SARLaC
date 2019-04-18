@@ -247,6 +247,8 @@ public:
   FitSimGenMultiStateWavg(const int nparams, const int nstate): nparams(nparams), nstate(nstate){}
 
   inline int Nparams() const{ return nparams; }
+
+  inline int Nstate() const{ return nstate; }
 };
 
 

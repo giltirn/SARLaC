@@ -28,6 +28,8 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
 
   //Subtract the pseudoscalar operators and mix4 vacuum term
   std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << "\n";
+  //NOTE: <sigma|P|K> = -|C|*mix3    where the |C| cancels with a corresponding factor absorbed into the definition of alpha here 
+  //      (cf https://rbc.phys.columbia.edu/rbc_ukqcd/individual_postings/ckelly/Gparity/operator_subtraction.pdf pg 4)
   A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){ return DistributionType(from + alpha_r(t)*mix_srcavg_r(3)(t)); }); 
   A0_srcavg_r(4) = A0_srcavg_r(4).transform([&](int const* t, const DistributionType &from){
       return DistributionType(from - alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );

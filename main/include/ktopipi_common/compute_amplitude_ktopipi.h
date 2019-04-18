@@ -52,7 +52,7 @@ struct computeAmplitudeAlltKtensorControls{
 
 
 
-
+//Note we ignore an overall factor of i
 
 template<typename Controls>
 typename Controls::outputType computeAmplitudeType1(const typename Controls::inputType &in){

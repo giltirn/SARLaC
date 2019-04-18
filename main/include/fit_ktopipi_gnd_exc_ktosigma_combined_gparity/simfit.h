@@ -497,20 +497,25 @@ public:
 	c.t = it->first.first;
 	c.param_map = it->first.second;
 
-	std::cout << "Q" << q+1 << " weighted avg with descr " << pmap_descr.find(c.param_map)->second << " and top_snk = " << c.t << std::endl;
+	auto const & idxv = it->second;	
 
-	auto const & idxv = it->second;
-
-	std::vector<jackknifeDistributionD const*> towavg_j(idxv.size());
-	
-	std::cout << "Data included" << std::endl;
 	//Jackknife
-	for(int i=0;i<idxv.size();i++){ 
-	  std::cout << printCoord(A0_sim_j[q].coord(idxv[i]), pmap_descr) << " " << A0_sim_j[q].value(idxv[i]) << std::endl;
-	  towavg_j[i] = &A0_sim_j[q].value(idxv[i]);	
-	}
+	std::vector<jackknifeDistributionD const*> towavg_j(idxv.size());
+	for(int i=0;i<idxv.size();i++)
+	  towavg_j[i] = &A0_sim_j[q].value(idxv[i]);		
 	A0_sim_j_wavg[q].push_back(c, weightedAvg(towavg_j));
 	
+	//Print some useful information
+	{
+	  const jackknifeDistributionD &wavg = A0_sim_j_wavg[q].value(A0_sim_j_wavg[q].size()-1);
+	  std::cout << "Q" << q+1 << " weighted avg with descr " << pmap_descr.find(c.param_map)->second << " and top_snk = " << c.t << " : " << wavg << std::endl;
+	  std::cout << "Data included" << std::endl;
+	  for(int i=0;i<idxv.size();i++){ 
+	    jackknifeDistributionD wavg_diff = A0_sim_j[q].value(idxv[i]) - wavg;
+	    std::cout << printCoord(A0_sim_j[q].coord(idxv[i]), pmap_descr) << " " << A0_sim_j[q].value(idxv[i]) << " (diff from wavg: " << wavg_diff << ")" << std::endl;
+	  }
+	}
+
 	//Double jackknife
 	doubleJackknifeDistributionD wavg_dj(nsample);
 	for(int s=0;s<nsample;s++){
@@ -554,7 +559,7 @@ public:
     std::vector<jackknifeDistribution<Params> > params;    
     runfit<FitPolicies>(params, A0_sim_j_wavg, A0_sim_dj_wavg, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
  
-    //plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
+    plotErrorWeightedDataNexpFlat(data_j, operators, fitfunc, params, this->mK, this->cK, Lt, tmin_k_op, tmin_op_snk);
 
     return params;
   }
