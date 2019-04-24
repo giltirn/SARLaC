@@ -49,6 +49,9 @@ struct CMDline{
       if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));
 	i+=2;
+      }else if(sargv[i] == "-allow_bin_cropping"){ //when #configs is not an exact multiple of bin size, allow discarding of excess configs
+	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
 
 #define PARSE_ARGS(NM) \
       }else if(sargv[i] == "-load_" #NM "_data_checkpoint"){ \

@@ -114,10 +114,10 @@ private:
     }
   }
 
-    template<typename ReadPolicy>
-    void getAllData(const int tsep_k_sigma, const ProjectedSigmaBubbleData &bubble_data, 
-		    const int bin_size, const int Lt, const ReadPolicy &rp,
-		    const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+  template<typename ReadPolicy>
+  void getAllData(const int tsep_k_sigma, const ProjectedSigmaBubbleData &bubble_data, 
+		  const int bin_size, const int Lt, const ReadPolicy &rp,
+		  const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
 
     std::cout << "Reading K->sigma data with tsep_k_sigma=" << tsep_k_sigma << std::endl;
 

@@ -4,6 +4,7 @@
 //Some common accessor classes for feeding data into the 2D plotters
 #include<cassert>
 #include<vector>
+#include<cmath>
 
 #include<config.h>
 #include<utils/macros.h>
@@ -140,11 +141,28 @@ public:
 
 //Example ValuePolicy types
 template<typename DistributionType> //specialize if necessary
-class DistributionPlotAccessor{
+class DistributionPlotAccessor{  
 public:
   static inline double value(const DistributionType &d){ return d.mean(); }
   static inline double errplus(const DistributionType &d){ return d.standardError(); }
   static inline double errminus(const DistributionType &d){ return d.standardError(); }  
+};
+
+template<typename DistributionType>
+class DistributionPlotAccessorNanRepl{
+  bool replace_nan;
+  double replace_nan_with;
+
+  inline double repl(const double v) const { return (replace_nan && std::isnan(v)) ? replace_nan_with : v; }
+
+public:
+  DistributionPlotAccessorNanRepl(): replace_nan(false){}
+  
+  void replaceNan(const double with = 0.){ replace_nan = true; replace_nan_with = with; }
+  
+  double value(const DistributionType &d) const{ return repl(d.mean()); }
+  double errplus(const DistributionType &d) const{ return repl(d.standardError()); }
+  double errminus(const DistributionType &d) const{ return repl(d.standardError()); }  
 };
 
 template<typename T>

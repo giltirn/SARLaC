@@ -54,7 +54,8 @@ struct LuscherCurve: public DiscontinuousCurve{
     double dE = (Emax - Emin)/(npoints-1);
     for(int i=0;i<npoints;i++){
       double E = Emin + i*dE;
-      this->add(E, phaseShiftZ(zeta,E,mpi,L));
+      double delta = phaseShiftZ(zeta,E,mpi,L);
+      this->add(E, delta);
     }
   }
 };
@@ -89,7 +90,7 @@ struct SchenkCurve: public DiscontinuousCurve{
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
 
-  Args(): twists({1,1,1}), L(32), ainv(1.3784), mpi(0.10382), Emin(0.3), Emax(1.), npoints(200){}
+  Args(): twists({0,0,0}), L(32), ainv(1.3784), mpi(0.10382), Emin(0.3), Emax(1.), npoints(200){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 
@@ -106,6 +107,14 @@ int main(const int argc, const char *argv[]){
   parse(args, argv[1]);
 
   LuscherCurve luscher(args.mpi,args.L,args.Emin,args.Emax,args.npoints,args.twists);
+  LuscherCurve luscher_n1(luscher);
+  LuscherCurve luscher_nm1(luscher);
+  for(int i=0;i<luscher.yvalues.size();i++)
+    for(int j=0;j<luscher.yvalues[i].size();j++){
+      luscher_n1.yvalues[i][j] += 180;
+      luscher_nm1.yvalues[i][j] -= 180;
+    }
+
   SchenkCurve schenk_I0_A(0, 'A', args.mpi, args.ainv, args.Emin, args.Emax,args.npoints);
   SchenkCurve schenk_I0_B(0, 'B', args.mpi, args.ainv, args.Emin, args.Emax,args.npoints);
   SchenkCurve schenk_I0_C(0, 'C', args.mpi, args.ainv, args.Emin, args.Emax,args.npoints);
@@ -129,6 +138,15 @@ int main(const int argc, const char *argv[]){
     luscher.setPeriod(p);
     plot.plotData(luscher, kwargs);
   }
+  for(int p=0;p<luscher.periods();p++){
+    luscher_n1.setPeriod(p);
+    plot.plotData(luscher_n1, kwargs);
+  }
+  for(int p=0;p<luscher.periods();p++){
+    luscher_nm1.setPeriod(p);
+    plot.plotData(luscher_nm1, kwargs);
+  }
+
   
   for(int i=0;i<2;i++){
     kwargs["color"] = i == 0 ? "b" : "g";
@@ -141,10 +159,10 @@ int main(const int argc, const char *argv[]){
     }
   }
 
-  plot.setYaxisBounds(-90,90);
+  plot.setYaxisBounds(-180,180);
   plot.setXaxisMajorTickSpacing(0.1);
   plot.setXaxisMinorTickSpacing(0.02);
-  plot.setYaxisMajorTickSpacing(10);
+  plot.setYaxisMajorTickSpacing(20);
   plot.setYaxisMinorTickSpacing(5);
   plot.setXlabel(R"($E_{\pi\pi}^{\rm latt}$)");
   plot.setYlabel(R"($\delta$ (deg))");

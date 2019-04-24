@@ -129,9 +129,14 @@ public:
     auto const &data_a = a.sampleVector();
     auto const &data_b = b.sampleVector();
 
-    DataType v = data_a[0]*data_b[0];
-    for(int i=1;i<N;i++) v = v+ data_a[i]*data_b[i];
-    return v/double(N) - avg_a*avg_b;
+    //This implementation is less at risk from finite-precision errors
+    DataType v = (data_a[0] - avg_a)*(data_b[0] - avg_b);
+    for(int i=1;i<N;i++) v = v+ (data_a[i]-avg_a)*(data_b[i]-avg_b);
+    return v/double(N);
+
+    //DataType v = data_a[0]*data_b[0];
+    //for(int i=1;i<N;i++) v = v+ data_a[i]*data_b[i];
+    //return v/double(N) - avg_a*avg_b;
 #endif
   }
 
@@ -163,6 +168,23 @@ std::ostream & operator<<(std::ostream &os, const distribution<T,V> &d){
   typedef distributionPrint<distribution<T,V> > printClass;
   assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
+}
+
+template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
+DistributionType weightedAvg(const std::vector<DistributionType const*> &v){
+  assert(v.size() > 0);
+  DistributionType out(*v[0]);
+  out.zero();
+
+  double wsum = 0.;
+  for(int i=0;i<v.size();i++){
+    double w = v[i]->standardError();
+    w = 1./w/w;
+    wsum += w;
+    out = out + w * (*v[i]);
+  }
+  out = out/wsum;
+  return out;
 }
 
 CPSFIT_END_NAMESPACE

@@ -22,6 +22,24 @@ struct basicDistributionPrinter: public distributionPrinter<DistributionType>{
   }
 };
 
+//( Central value +- error )  expand to width
+template<typename DistributionType, typename ValuePolicy = printStats<DistributionType> >
+struct expandWidthDistributionPrinter: public distributionPrinter<DistributionType>{
+  int width;
+  expandWidthDistributionPrinter(const int width = 20): width(width){}
+
+  void setWidth(const int w){ width = w; }
+
+  void print(std::ostream &os, const DistributionType &dist) const{
+    std::ostringstream ss;
+    ss << "(" << ValuePolicy::centralValue(dist) << " +- " << ValuePolicy::error(dist) << ")";
+    int len = ss.tellp();
+    if(len < width){ int toadd = width - len; for(int i=0;i<toadd;i++) ss << ' '; }
+    os << ss.str();
+  }
+};
+
+
 //Central value
 template<typename DistributionType, typename ValuePolicy = printStats<DistributionType> >
 struct centralValueDistributionPrinter: public distributionPrinter<DistributionType>{
