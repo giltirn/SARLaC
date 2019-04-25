@@ -107,7 +107,7 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
 	 const int nstate, const int Lt, 
 	 const int t_min, const int t_max,
-	 const bool correlated,
+	 const bool correlated, const bool frozen_cov_mat,
 	 const double Ascale, const double Cscale,
 	 const fitOptions &opt = fitOptions()){
   
@@ -126,7 +126,8 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 
   std::cout << "Generating and importing covariance matrix\n";
   CostType cost_type = correlated ? CostType::Correlated : CostType::Uncorrelated;  
-  fit.generateCovarianceMatrix(corr_comb_dj, cost_type);
+  CovMatSampleStrategy sample_strat = frozen_cov_mat ? CovMatSampleStrategy::Frozen : CovMatSampleStrategy::Unfrozen;
+  fit.generateCovarianceMatrix(corr_comb_dj, cost_type, sample_strat);
 
   if(opt.write_covariance_matrix) fit.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
 
@@ -157,11 +158,11 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
 	 const int Lt, 
 	 const int t_min, const int t_max,
-	 const bool correlated, 
+	 const bool correlated, const bool frozen_cov_mat, 
 	 const double Ascale, const double Cscale,
 	 const fitOptions &opt = fitOptions()){
   assert(ffunc != FitFuncType::FSimGenMultiState);
-  fit(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, ffunc, param_map, 0, Lt, t_min, t_max, correlated, Ascale, Cscale, opt);
+  fit(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, ffunc, param_map, 0, Lt, t_min, t_max, correlated, frozen_cov_mat, Ascale, Cscale, opt);
 }
 
 CPSFIT_END_NAMESPACE

@@ -164,7 +164,7 @@ int main(const int argc, const char* argv[]){
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.nstate, args.Lt, args.t_min, args.t_max, args.correlated, args.Ascale, args.Cscale, opt);
+      args.nstate, args.Lt, args.t_min, args.t_max, args.correlated, args.frozen_cov_mat, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n";
   {
