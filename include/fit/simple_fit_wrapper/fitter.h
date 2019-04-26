@@ -19,8 +19,6 @@ CPSFIT_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(MinimizerType, (MarquardtLevenberg)(GSLtrs)(GSLmultimin)(Minuit2) );
 GENERATE_ENUM_AND_PARSER(CostType, (Correlated)(Uncorrelated) );
-GENERATE_ENUM_AND_PARSER(CovMatSampleStrategy, (Frozen)(Unfrozen) ); //covariance matrix elements obtained either from mean or from double-jackknife
-
 
 class simpleFitWrapper{
   typedef genericFitFuncBase FitFunc;
@@ -262,33 +260,21 @@ public:
 
   //Import a pre-generated covariance matrix
   void importCovarianceMatrix(const NumericSquareMatrix<jackknifeDistribution<double>> &cov, 
-			      const CostType cost_type = CostType::Correlated, const CovMatSampleStrategy sample_strat = CovMatSampleStrategy::Unfrozen){
+			      const CostType cost_type = CostType::Correlated){
     int nsample = cov(0,0).size();
     int ndata = cov.size();
     corr_mat.resize(ndata);
     sigma.resize(ndata);
 
-    jackknifeDistribution<double> zero(ndata,0.);
+    jackknifeDistribution<double> zero(nsample,0.);
 
-    if(sample_strat == CovMatSampleStrategy::Unfrozen){
-      for(int i=0;i<ndata;i++) sigma[i] = sqrt(cov(i,i));
+    for(int i=0;i<ndata;i++) sigma[i] = sqrt(cov(i,i));
     
-      for(int i=0;i<ndata;i++){
-	corr_mat(i,i) = cov(i,i)/sigma[i]/sigma[i];
-	for(int j=i+1;j<ndata;j++)
-	  corr_mat(i,j) = corr_mat(j,i) =  cost_type == CostType::Correlated ? cov(i,j)/sigma[i]/sigma[j] : zero;      
-      }
-    }else if(sample_strat == CovMatSampleStrategy::Frozen){
-      for(int i=0;i<ndata;i++) sigma[i] = jackknifeDistribution<double>(nsample, sqrt(cov(i,i).mean() ) );
-    
-      for(int i=0;i<ndata;i++){
-	corr_mat(i,i) = jackknifeDistribution<double>(nsample, cov(i,i).mean()/sigma[i].sample(0)/sigma[i].sample(0) );
-	for(int j=i+1;j<ndata;j++)
-	  corr_mat(i,j) = corr_mat(j,i) =  cost_type == CostType::Correlated ? 
-	    jackknifeDistribution<double>(nsample,cov(i,j).mean()/sigma[i].sample(0)/sigma[j].sample(0) ) 
-	    : zero;      
-      }
-    }else assert(0);																	
+    for(int i=0;i<ndata;i++){
+      corr_mat(i,i) = cov(i,i)/sigma[i]/sigma[i];
+      for(int j=i+1;j<ndata;j++)
+	corr_mat(i,j) = corr_mat(j,i) =  cost_type == CostType::Correlated ? cov(i,j)/sigma[i]/sigma[j] : zero;      
+    }														
 
     have_corr_mat = true;
   }
@@ -302,14 +288,14 @@ public:
   //Generate the covariance matrix internally from double-jackknife data. Option to use uncorrelated (diagonal) or correlated matrix
   template<typename T>
   void generateCovarianceMatrix(const correlationFunction<T, doubleJackknifeDistribution<double>> &data_dj, 
-				const CostType cost_type = CostType::Correlated, const CovMatSampleStrategy sample_strat = CovMatSampleStrategy::Unfrozen){
+				const CostType cost_type = CostType::Correlated){
     int ndata = data_dj.size();
     NumericSquareMatrix<jackknifeDistribution<double>> cov(ndata);
     for(int i=0;i<ndata;i++)
       for(int j=i;j<ndata;j++)
 	cov(i,j) = cov(j,i) = doubleJackknifeDistribution<double>::covariance(data_dj.value(i), data_dj.value(j));
 
-    importCovarianceMatrix(cov, cost_type, sample_strat);
+    importCovarianceMatrix(cov, cost_type);
   }
   //Generate the covariance matrix internally from single-jackknife data. The resulting covariance matrix is "frozen", i.e. the same for all samples
   //Option to use uncorrelated (diagonal) or correlated matrix
@@ -325,7 +311,7 @@ public:
 	cov(i,j) = cov(j,i) = jackknifeDistribution<double>(nsample, cv);
       }
 
-    importCovarianceMatrix(cov, cost_type, CovMatSampleStrategy::Frozen);
+    importCovarianceMatrix(cov, cost_type);
   }
 
   //Write the covariance matrix to a file in HDF5 format for external manipulation
