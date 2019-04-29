@@ -40,6 +40,9 @@ struct CMDline{
   bool load_filters;
   std::string load_filters_file;
 
+  bool corr_mat_from_unbinned_data;
+  std::string unbinned_data_checkpoint;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -54,6 +57,7 @@ struct CMDline{
     remove_samples_in_range = false;
     write_fit_data = false;
     load_filters = false;
+    corr_mat_from_unbinned_data = false;
   }
   CMDline(const int argc, const char** argv, MinimizerType minimizer, const int begin = 0): CMDline(){
     setup(argc,argv,minimizer,begin);
@@ -173,6 +177,10 @@ struct CMDline{
       }else if(sargv[i] == "-write_fit_data"){
 	write_fit_data=true;
 	i++;
+      }else if(sargv[i] == "-corr_mat_from_unbinned_data"){
+	corr_mat_from_unbinned_data = true;
+	unbinned_data_checkpoint = sargv[i+1];
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

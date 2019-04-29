@@ -15,7 +15,7 @@ GENERATE_ENUM_AND_PARSER(DataFilter, (TimeGreaterThan)(RelErrGreaterThan)(TimeOd
 struct Filter{
   GENERATE_MEMBERS(FILTER_MEMBERS);
 
-  bool filterOut(const Operator dop1, const Operator dop2, const int t, const jackknifeDistribution<double> &dval, std::string *reason = NULL){
+  bool filterOut(const Operator dop1, const Operator dop2, const int t, const jackknifeDistribution<double> &dval, std::string *reason = NULL) const{
     if(all_ops || (dop1 == op1 && dop2 == op2)){
       if(filter == DataFilter::TimeGreaterThan && t > strToAny<int>(value)){
 	if(reason) *reason = stringize("Time %d > %s", t , value.c_str());

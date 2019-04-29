@@ -16,6 +16,75 @@ using namespace CPSfit;
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/fit.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/plot.h>
 
+struct DataDescr{
+  Operator op1;
+  Operator op2;
+  int t;
+  DataDescr(Operator op1, Operator op2, int t): op1(op1),op2(op2),t(t){}
+};
+
+std::vector<DataDescr> getFitDataElemIdx(const ResampledData<jackknifeCorrelationFunction> &data_j,
+					 const std::vector<Operator> &ops, const int tsep_pipi, const int t_min, const int t_max,
+					 const Filters &filters, const bool use_filters){
+  std::vector<DataDescr> keep;
+  
+  for(int i=0;i<ops.size();i++){
+    for(int j=i;j<ops.size();j++){
+      std::ostringstream nm; nm << ops[i] << " " << ops[j];
+
+      for(int t=t_min;t<=t_max;t++){
+	bool skip = false;
+	std::string reason;
+	if(use_filters)
+	  for(int f=0;f<filters.filters.size();f++)
+	    if(filters.filters[f].filterOut(ops[i],ops[j],t,data_j.correlator(ops[i],ops[j]).value(t),&reason)){
+	      skip = true;
+	      std::cout << "Skipping " << nm.str() << " t=" << t << " as: " << reason << std::endl;
+	    }
+	if(skip)
+	  continue;
+
+	keep.push_back(DataDescr(ops[i],ops[j],t));
+      }
+    }
+  }
+  return keep;
+}
+
+
+template<typename DistributionType>
+void filterData(correlationFunction<SimFitCoordGen,  DistributionType> &corr_comb,
+		const ResampledData<correlationFunction<double,DistributionType> > &data,
+		const std::vector<DataDescr> &keep, 
+		const std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > &subfit_pmaps, const int tsep_pipi){
+
+  for(int i=0;i<keep.size();i++){
+    std::unordered_map<std::string, std::string> const* pmap = &subfit_pmaps.find({keep[i].op1,keep[i].op2})->second;    
+    SimFitCoordGen coord(keep[i].t, pmap, foldOffsetMultiplier(keep[i].op1,keep[i].op2)*tsep_pipi);
+    corr_comb.push_back(coord, data.correlator(keep[i].op1,keep[i].op2).value(keep[i].t));
+  }
+}
+
+typedef std::map<std::unordered_map<std::string, std::string> const*, std::string> pmapDescrType;
+
+pmapDescrType getPmapDescriptions(const std::vector<Operator> &ops, const std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > &subfit_pmaps){
+  pmapDescrType pmap_descr; //description of the pmaps
+  for(int i=0;i<ops.size();i++)
+    for(int j=i;j<ops.size();j++){
+      std::ostringstream nm; nm << ops[i] << " " << ops[j];
+      std::unordered_map<std::string, std::string> const* pmap = &subfit_pmaps.find({ops[i],ops[j]})->second;
+      pmap_descr[pmap] = nm.str();
+    }
+  return pmap_descr;
+}
+
+inline std::string coordDescr(const SimFitCoordGen &coord, const pmapDescrType &pmap_descr){
+  std::ostringstream os; 
+  os << pmap_descr.find(coord.param_map)->second << " " << (int)coord.t;
+  return os.str();
+}
+
+
 int main(const int argc, const char* argv[]){
   RNG.initialize(1234);
 
@@ -34,16 +103,18 @@ int main(const int argc, const char* argv[]){
 
   CMDline cmdline(argc,argv,args.minimizer,2);
 
+  const std::vector<Operator> &ops = args.operators;
+
   //Setup the fit func parameter maps
   std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > subfit_pmaps;
   ParamTagIdxMap param_map;
   Params guess;
   setupParameterMaps(subfit_pmaps, param_map, guess, args.operators, args.fitfunc, args.Ascale, args.nstate);
 
+  pmapDescrType pmap_descr =  getPmapDescriptions(ops, subfit_pmaps); //description of the pmaps
+
   //Write guess template and exit if requested
   if(cmdline.save_guess_template){ saveGuess(guess, "guess_template.dat"); exit(0); }
-  
-  const std::vector<Operator> &ops = args.operators;
 
   //Read data
   RawData raw_data;
@@ -88,48 +159,23 @@ int main(const int argc, const char* argv[]){
   const int nsample = data_j.getNsample();
   std::cout << "Number of binned samples is " << nsample << std::endl;
 
-  //Add resampled data to full data set with generalized coordinate set appropriately
-  correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j;
-  correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
-  
-  std::vector<std::string> vnm; //for printing
-
-  std::map<std::unordered_map<std::string, std::string> const*, std::string> pmap_descr;
-
+  //Load extra data filters
   Filters filters;
   if(cmdline.load_filters)
     parse(filters,cmdline.load_filters_file);
 
-  for(int i=0;i<ops.size();i++){
-    for(int j=i;j<ops.size();j++){
-      std::ostringstream nm; nm << ops[i] << " " << ops[j];
-      pmap_descr[&subfit_pmaps[{ops[i],ops[j]}]] = nm.str();
+  //Find which data satisfy tmin, tmax, filters
+  std::vector<DataDescr> keep = getFitDataElemIdx(data_j, ops, args.tsep_pipi, args.t_min, args.t_max, filters, cmdline.load_filters);
 
-      for(int t=args.t_min;t<=args.t_max;t++){
-	auto const & val_j = data_j.correlator(ops[i],ops[j]).value(t);
-
-	bool skip = false;
-	std::string reason;
-	if(cmdline.load_filters)
-	  for(int f=0;f<filters.filters.size();f++)
-	    if(filters.filters[f].filterOut(ops[i],ops[j],t,val_j,&reason)){
-	      skip = true;
-	      std::cout << "Skipping " << nm.str() << " t=" << t << " as: " << reason << std::endl;
-	    }
-	if(skip)
-	  continue;
-
-	SimFitCoordGen coord(t, &subfit_pmaps[{ops[i],ops[j]}] , foldOffsetMultiplier(ops[i],ops[j])*args.tsep_pipi);
-	corr_comb_j.push_back(coord, data_j.correlator(ops[i],ops[j]).value(t));
-	corr_comb_dj.push_back(coord, data_dj.correlator(ops[i],ops[j]).value(t));
-	vnm.push_back(nm.str());
-      }
-    }
-  }
+  //Add resampled data to full data set with generalized coordinate set appropriately
+  correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j;
+  correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
+  filterData(corr_comb_j, data_j, keep, subfit_pmaps, args.tsep_pipi);
+  filterData(corr_comb_dj, data_dj, keep, subfit_pmaps, args.tsep_pipi);
 
   std::cout << "Data in fit:" << std::endl;
   for(int i=0;i<corr_comb_j.size();i++){
-    std::cout << vnm[i] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) 
+    std::cout << coordDescr(corr_comb_j.coord(i),pmap_descr) << " " << corr_comb_j.value(i) 
 	      << " (err/mean = " << fabs(corr_comb_j.value(i).standardError()/corr_comb_j.value(i).mean()) << ")" <<   std::endl;
   }
   if(cmdline.write_fit_data){
@@ -137,19 +183,19 @@ int main(const int argc, const char* argv[]){
     std::vector<jackknifeDistributionD> fd(corr_comb_j.size());
     std::ofstream of("data_in_fit.key");
     for(int i=0;i<corr_comb_j.size();i++){
-      of << i << " " << vnm[i] << " " << (int)corr_comb_j.coord(i).t << std::endl;
+      of << i << " " << coordDescr(corr_comb_j.coord(i),pmap_descr) << std::endl;
       fd[i] = corr_comb_j.value(i);
     }
     writeParamsStandard(fd, "data_in_fit.hdf5");
   }
  
   std::cout << "Performing any data transformations required by the fit func" << std::endl;
-  transformData(corr_comb_j, corr_comb_dj, args.t_min, args.t_max, args.fitfunc);
+  transformData(corr_comb_j, args.t_min, args.t_max, args.fitfunc);
+  transformData(corr_comb_dj, args.t_min, args.t_max, args.fitfunc);
  
   std::cout << "Data post-transformation:" << std::endl;
-  for(int i=0;i<corr_comb_j.size();i++){
-    std::cout << pmap_descr[corr_comb_j.coord(i).param_map] << " " << corr_comb_j.coord(i).t << " " << corr_comb_j.value(i) << std::endl;
-  }
+  for(int i=0;i<corr_comb_j.size();i++)
+    std::cout << coordDescr(corr_comb_j.coord(i),pmap_descr) << " " << corr_comb_j.value(i) << std::endl;
 
   if(cmdline.load_guess) loadGuess(guess, cmdline.guess_file);
 
@@ -161,6 +207,20 @@ int main(const int argc, const char* argv[]){
   fitOptions opt;
   cmdline.exportOptions(opt);
   args.exportOptions(opt);
+
+  if(cmdline.corr_mat_from_unbinned_data){ //load unbinned data checkpoint for this option
+    ResampledData<jackknifeCorrelationFunction> data_j_unbinned;
+    loadCheckpoint(data_j_unbinned, cmdline.unbinned_data_checkpoint);
+    
+    correlationFunction<SimFitCoordGen,  jackknifeDistributionD>* corr_comb_j_unbinned = new correlationFunction<SimFitCoordGen,  jackknifeDistributionD>(); 
+    filterData(*corr_comb_j_unbinned, data_j_unbinned, keep, subfit_pmaps, args.tsep_pipi);
+    transformData(*corr_comb_j_unbinned, args.t_min, args.t_max, args.fitfunc);
+
+    std::cout << "Loaded unbinned data with nsample=" << corr_comb_j_unbinned->value(0).size() << " (binned data size " << nsample << ")" << std::endl;
+
+    opt.corr_mat_from_unbinned_data = true;
+    opt.corr_comb_j_unbinned = corr_comb_j_unbinned;
+  }
 
   fit(params, chisq, chisq_per_dof,
       corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
@@ -194,6 +254,8 @@ int main(const int argc, const char* argv[]){
   if(args.correlated) analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.t_min, args.t_max, args.Ascale, args.Cscale, pmap_descr); 
 
   plotDeterminantTest("determinant_test", data_j, ops, args.Lt);
+
+  if(cmdline.corr_mat_from_unbinned_data) delete opt.corr_comb_j_unbinned;
 
   std::cout << "Done\n";
   return 0;

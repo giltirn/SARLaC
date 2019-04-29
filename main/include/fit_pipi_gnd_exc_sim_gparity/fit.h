@@ -13,6 +13,9 @@ struct fitOptions{
   bool write_covariance_matrix;
   std::string write_covariance_matrix_file;
 
+  bool corr_mat_from_unbinned_data;
+  correlationFunction<SimFitCoordGen,  jackknifeDistributionD> const* corr_comb_j_unbinned;
+  
   bool load_priors;
   std::string load_priors_file;
 
@@ -20,7 +23,7 @@ struct fitOptions{
   bool load_minimizer_params;
   std::string minimizer_params_file;
 
-  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), load_priors(false), 
+  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), corr_mat_from_unbinned_data(false), corr_comb_j_unbinned(NULL), load_priors(false), 
 		load_minimizer_params(false), minimizer(MinimizerType::MarquardtLevenberg){}
 };
 
@@ -99,6 +102,40 @@ generalContainer getMinimizerParams(const fitOptions &opt){
   }
 }
 
+//For testing bin size dependence it can be useful to fix the correlation matrix from the unbinned data and do a frozen fit
+void generateFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,
+					  const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j_unbinned,
+					  const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j_binned){
+  std::cout << "Generating frozen covariance matrix from binned jackknife sigma and unbinned jackknife correlation matrix" << std::endl;
+  assert(corr_comb_j_unbinned.size() == corr_comb_j_binned.size());
+  int ndata = corr_comb_j_binned.size();
+  int nsample_binned = corr_comb_j_binned.value(0).size();
+  NumericSquareMatrix<jackknifeDistributionD > corr(ndata);
+  std::vector<jackknifeDistributionD > sigma(ndata);
+
+  NumericSquareMatrix<double> cov_mn_unbinned(ndata);
+  NumericSquareMatrix<double> cov_mn_binned(ndata);
+  for(int i=0;i<ndata;i++)
+    for(int j=i;j<ndata;j++){
+      cov_mn_binned(i,j) = cov_mn_binned(j,i) = jackknifeDistribution<double>::covariance(corr_comb_j_binned.value(i), corr_comb_j_binned.value(j));
+      cov_mn_unbinned(i,j) = cov_mn_unbinned(j,i) = jackknifeDistribution<double>::covariance(corr_comb_j_unbinned.value(i), corr_comb_j_unbinned.value(j));
+    }
+
+  NumericSquareMatrix<double> corr_mn_unbinned(ndata);
+  for(int i=0;i<ndata;i++)
+    for(int j=i;j<ndata;j++)
+      corr_mn_unbinned(i,j) = corr_mn_unbinned(j,i) = cov_mn_unbinned(i,j)/sqrt( cov_mn_unbinned(i,i) * cov_mn_unbinned(j,j) );
+  
+  for(int i=0;i<ndata;i++){
+    sigma[i] = jackknifeDistributionD(nsample_binned, sqrt(cov_mn_binned(i,i)));
+    for(int j=i;j<ndata;j++)
+      corr(i,j) = corr(j,i) = jackknifeDistributionD(nsample_binned, corr_mn_unbinned(i,j));
+  }
+  fit.importCorrelationMatrix(corr,sigma);
+}
+					  
+
+
 
 //Note: nstate applies only for "MultiState" variants
 void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
@@ -126,8 +163,17 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 
   std::cout << "Generating and importing covariance matrix\n";
   CostType cost_type = correlated ? CostType::Correlated : CostType::Uncorrelated;  
-  CovMatSampleStrategy sample_strat = frozen_cov_mat ? CovMatSampleStrategy::Frozen : CovMatSampleStrategy::Unfrozen;
-  fit.generateCovarianceMatrix(corr_comb_dj, cost_type, sample_strat);
+
+  if(opt.corr_mat_from_unbinned_data){
+    //For testing what effect binning has on the covariance matrix separate from any underlying error dependence, here
+    //we generate the (frozen) covariance matrix using the correlation matrix from the unbinned data
+    assert(frozen_cov_mat);
+    assert(opt.corr_comb_j_unbinned != NULL);    
+    generateFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_j);
+  }else{
+    if(frozen_cov_mat) fit.generateCovarianceMatrix(corr_comb_j, cost_type);
+    else fit.generateCovarianceMatrix(corr_comb_dj, cost_type);
+  }
 
   if(opt.write_covariance_matrix) fit.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
 
