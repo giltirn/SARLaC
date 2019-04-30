@@ -28,6 +28,9 @@ struct CMDline{
   bool load_priors;
   std::string load_priors_file;
 
+  bool load_bounds;
+  std::string load_bounds_file;
+
   bool load_minimizer_params;
   std::string minimizer_params_file;
 
@@ -40,6 +43,8 @@ struct CMDline{
   bool load_filters;
   std::string load_filters_file;
 
+  //Load the correlation matrix from the unbinned data. 
+  //Note: If the fit is unfrozen the weights sigma will be computed using the binned double-jackknife data - the correlation matrix will be fixed for all samples
   bool corr_mat_from_unbinned_data;
   std::string unbinned_data_checkpoint;
 
@@ -53,6 +58,7 @@ struct CMDline{
     save_guess_template = false;
     write_covariance_matrix = false;
     load_priors = false;
+    load_bounds = false;
     load_minimizer_params = false;
     remove_samples_in_range = false;
     write_fit_data = false;
@@ -137,6 +143,21 @@ struct CMDline{
 	load_priors = true;
 	load_priors_file = sargv[i+1];
 	i+=2;
+
+      }else if(sargv[i] == "-load_bounds"){
+	load_bounds = true;
+	load_bounds_file = sargv[i+1];
+
+	if(load_bounds_file == "TEMPLATE"){
+	  std::cout << "Saving bounds template file to bounds_template.args" << std::endl;
+	  BoundArgs fp;
+	  std::ofstream of("bounds_template.args");
+	  of << fp;
+	  of.close();
+	  exit(0);
+	}else if(!fileExists(load_bounds_file)) error_exit(std::cout << "CMDline bounds file " << load_bounds_file << " does not exist!\n");
+	i+=2;
+
       }else if(sargv[i] == "-load_minimizer_params"){
 	load_minimizer_params = true;
 	minimizer_params_file = sargv[i+1];
@@ -195,6 +216,8 @@ struct CMDline{
     COPYIT(write_covariance_matrix_file);
     COPYIT(load_priors);
     COPYIT(load_priors_file);
+    COPYIT(load_bounds);
+    COPYIT(load_bounds_file);
     COPYIT(load_minimizer_params);
     COPYIT(minimizer_params_file);
 #undef COPYIT

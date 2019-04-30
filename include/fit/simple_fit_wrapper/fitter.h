@@ -8,6 +8,7 @@
 #include<minimizer/minimizer.h>
 #include<minimizer/gsl_trs_minimizer.h>
 #include<fit/fitfunc/fitfunc_frozen.h>
+#include<fit/fitfunc/fitfunc_bounded.h>
 #include<tensors/numeric_square_matrix.h>
 #include<distribution/jackknife.h>
 #include<distribution/double_jackknife.h>
@@ -22,7 +23,8 @@ GENERATE_ENUM_AND_PARSER(CostType, (Correlated)(Uncorrelated) );
 
 class simpleFitWrapper{
   typedef genericFitFuncBase FitFunc;
-  typedef FrozenFitFunc<genericFitFuncBase> FitFuncFrozen;
+  typedef BoundedFitFunc<genericFitFuncBase> FitFuncBounded;
+  typedef FrozenFitFunc<FitFuncBounded> FitFuncFrozenBounded;
 
   const FitFunc &fitfunc;
   typedef FitFunc::ParameterType ParameterType;
@@ -37,6 +39,8 @@ class simpleFitWrapper{
   std::vector<jackknifeDistribution<double> > freeze_values;
   std::vector<int> freeze_params;
 
+  std::vector<boundedParameterTransform> bounded_trans;
+
   struct Prior{
     double value;
     double weight;
@@ -45,8 +49,8 @@ class simpleFitWrapper{
   };
   std::vector<Prior> priors;
 
-  template<typename CostFunc>
-  void addPriors(CostFunc &cost, const FitFuncFrozen &fitfunc_s) const{
+  template<typename CostFunc, typename FitFuncInternal>
+  void addPriors(CostFunc &cost, const FitFuncInternal &fitfunc_s) const{
     for(int p=0;p<priors.size();p++){
       int subset_pidx = fitfunc_s.getParamsSubsetIndex(priors[p].param_idx);
       if(subset_pidx != -1)
@@ -54,20 +58,21 @@ class simpleFitWrapper{
     }
   }
 
+  template<typename FitFuncInternal>
   double fitSampleML(ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &inv_corr_s,
 		     const std::vector<double> &sigma_s,
-		     const FitFuncFrozen &fitfunc_s,
+		     const FitFuncInternal &fitfunc_s,
 		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
-    typedef CorrelatedChisqCostFunction<FitFuncFrozen, correlationFunction<generalContainer, double> > CostFunc;
+    typedef CorrelatedChisqCostFunction<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
     CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
     addPriors(cost, fitfunc_s);
     
     dof = cost.Ndof();
     
     typedef MarquardtLevenbergMinimizer<CostFunc> Minimizer;
-    typedef Minimizer::AlgorithmParameterType MParams;
+    typedef typename Minimizer::AlgorithmParameterType MParams;
 
     if(!min_params.is_null()) assert(min_params.is<MParams>());
 
@@ -84,17 +89,18 @@ class simpleFitWrapper{
     return chisq;
   }
 
+  template<typename FitFuncInternal>
   double fitSampleGSLtrs(ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &corr_s,
 		     const std::vector<double> &sigma_s,
-		     const FitFuncFrozen &fitfunc_s,
+		     const FitFuncInternal &fitfunc_s,
 		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
     std::vector<double> corr_evals;
     std::vector<NumericVector<double> > corr_evecs;
     symmetricMatrixEigensolve(corr_evecs, corr_evals, corr_s);
 
-    typedef CorrelatedChisqCostFunctionTerms<FitFuncFrozen, correlationFunction<generalContainer, double> > CostFunc;
+    typedef CorrelatedChisqCostFunctionTerms<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
 
     CostFunc cost(fitfunc_s, data_s, sigma_s, corr_evals, corr_evecs);
     addPriors(cost, fitfunc_s);
@@ -102,7 +108,7 @@ class simpleFitWrapper{
     dof = cost.Ndof();
     
     typedef GSLtrsMinimizer<CostFunc> Minimizer;
-    typedef Minimizer::AlgorithmParameterType MParams;
+    typedef typename Minimizer::AlgorithmParameterType MParams;
 
     if(!min_params.is_null()) assert(min_params.is<MParams>());
 
@@ -120,20 +126,21 @@ class simpleFitWrapper{
     return chisq;
   }
 
+  template<typename FitFuncInternal>
   double fitSampleGSLmultimin(ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &inv_corr_s,
 		     const std::vector<double> &sigma_s,
-		     const FitFuncFrozen &fitfunc_s,
+		     const FitFuncInternal &fitfunc_s,
 		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
-    typedef CorrelatedChisqCostFunction<FitFuncFrozen, correlationFunction<generalContainer, double> > CostFunc;
+    typedef CorrelatedChisqCostFunction<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
     CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
     addPriors(cost, fitfunc_s);
     
     dof = cost.Ndof();
     
     typedef GSLmultidimMinimizer<CostFunc> Minimizer;
-    typedef Minimizer::AlgorithmParameterType MParams;
+    typedef typename Minimizer::AlgorithmParameterType MParams;
 
     if(!min_params.is_null()) assert(min_params.is<MParams>());
 
@@ -150,24 +157,24 @@ class simpleFitWrapper{
     return chisq;
   }
 
-
+  template<typename FitFuncInternal>
   double fitSampleMinuit2(ParameterType &params_s, int &dof,
 			  const correlationFunction<generalContainer, double> &data_s,
 			  const NumericSquareMatrix<double> &inv_corr_s,
 			  const std::vector<double> &sigma_s,
-			  const FitFuncFrozen &fitfunc_s,
+			  const FitFuncInternal &fitfunc_s,
 			  std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
 #ifndef HAVE_MINUIT2
     error_exit(std::cout << "Library not compiled with Minuit2" << std::endl);
 #else
-    typedef CorrelatedChisqCostFunction<FitFuncFrozen, correlationFunction<generalContainer, double> > CostFunc;
+    typedef CorrelatedChisqCostFunction<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
     CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
     addPriors(cost, fitfunc_s);
     
     dof = cost.Ndof();
     
     typedef Minuit2minimizer<CostFunc> Minimizer;
-    typedef Minimizer::AlgorithmParameterType MParams;
+    typedef typename Minimizer::AlgorithmParameterType MParams;
 
     if(!min_params.is_null()) assert(min_params.is<MParams>());
 
@@ -257,6 +264,12 @@ public:
   inline void addPrior(const double value, const double weight, const int param_idx){
     priors.push_back(Prior(value,weight,param_idx));
   }
+  
+  //Add bounds on parameters
+  inline void setBound(int param, const ParameterBound bound, double min, double max){ //min or max will be ignored as appropriate if using Max or Min bounds
+    bounded_trans.push_back( boundedParameterTransform(param, bound, min, max) );
+  }
+  inline void setBound(const boundedParameterTransform &t){ bounded_trans.push_back(t); }
 
   //Import a pre-generated covariance matrix
   void importCovarianceMatrix(const NumericSquareMatrix<jackknifeDistribution<double>> &cov, 
@@ -375,7 +388,13 @@ public:
       for(int i=0;i<nparam;i++) params_s(i) = params.sample(s)(i);
 
       //Setup the sample fit function (frozen fit func needs a properly setup instance of the parameter type even if not freezing anything)
-      FitFuncFrozen fitfunc_s(fitfunc);
+      FitFuncBounded fitfunc_bs(fitfunc);
+      for(int t=0;t<bounded_trans.size();t++) fitfunc_bs.setBound(bounded_trans[t]);
+      
+      //Map guess parameters to internal params
+      for(int t=0;t<bounded_trans.size();t++) bounded_trans[t].mapBoundedToUnbounded(params_s);
+
+      FitFuncFrozenBounded fitfunc_s(fitfunc_bs);
       if(freeze_params.size() > 0){
 	ParameterType frzp(params_s);
 	for(int p=0;p<freeze_params.size();p++)
@@ -408,6 +427,9 @@ public:
       //Re-enlarge the parameter vector with the frozen fit parameters
       if(freeze_params.size() > 0) params_s = fitfunc_s.mapParamsSubsetToSuperset(params_s);
 
+      //Map internal parameters to external params
+      for(int t=0;t<bounded_trans.size();t++) bounded_trans[t].mapUnboundedToBounded(params_s);
+      
       //Store outputs
       if(s==0) dof = dof_s;
       

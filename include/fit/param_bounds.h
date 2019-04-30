@@ -3,6 +3,7 @@
 
 #include<config.h>
 #include<utils/macros.h>
+#include<parser/parser.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -44,6 +45,66 @@ struct MaxBoundedMapping{
     return -pu/sqrt( pu*pu + 1 );
   }
 };
+
+GENERATE_ENUM_AND_PARSER(ParameterBound, (Min)(Max)(Window) ); 
+
+struct boundedParameterTransform{
+  int param;
+  ParameterBound bound;
+  double min;
+  double max;
+    
+  boundedParameterTransform(): param(0), bound(ParameterBound::Min), min(0.), max(0.){}
+  boundedParameterTransform(int param, ParameterBound bound, double min, double max): param(param), bound(bound), min(min), max(max){}
+
+  template<typename Vtype>
+  inline void mapBoundedToUnbounded(Vtype &v) const{
+    switch(bound){
+    case ParameterBound::Min:
+      v(param) = MinBoundedMapping::mapBoundedToUnbounded(v(param),min);
+      break;
+    case ParameterBound::Max:
+      v(param) = MaxBoundedMapping::mapBoundedToUnbounded(v(param),max);
+      break;
+    case ParameterBound::Window:
+      v(param) = WindowBoundedMapping::mapBoundedToUnbounded(v(param),min,max);
+      break;
+    }
+  }
+  template<typename Vtype>
+  inline void mapUnboundedToBounded(Vtype &v) const{
+    switch(bound){
+    case ParameterBound::Min:
+      v(param) = MinBoundedMapping::mapUnboundedToBounded(v(param),min);
+      break;
+    case ParameterBound::Max:
+      v(param) = MaxBoundedMapping::mapUnboundedToBounded(v(param),max);
+      break;
+    case ParameterBound::Window:
+      v(param) = WindowBoundedMapping::mapUnboundedToBounded(v(param),min,max);
+      break;
+    }
+  }
+
+  template<typename derivType, typename Vtype>
+  inline void jacobian(derivType &dv, const Vtype &v) const{ //v is unbounded variable
+    switch(bound){
+    case ParameterBound::Min:
+      dv(param) = dv(param) * MinBoundedMapping::derivBoundedWrtUnbounded(v(param),min);
+      break;
+    case ParameterBound::Max:
+      dv(param) = dv(param) * MaxBoundedMapping::derivBoundedWrtUnbounded(v(param),max);
+      break;
+    case ParameterBound::Window:
+      dv(param) = dv(param) * WindowBoundedMapping::derivBoundedWrtUnbounded(v(param),min,max);
+      break;
+    }
+  }
+
+};
+  
+
+GENERATE_PARSER(boundedParameterTransform, (int, param)(ParameterBound, bound)(double, min)(double, max) );
 
 CPSFIT_END_NAMESPACE
 

@@ -23,23 +23,36 @@ struct fitOptions{
   bool load_minimizer_params;
   std::string minimizer_params_file;
 
-  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), corr_mat_from_unbinned_data(false), corr_comb_j_unbinned(NULL), load_priors(false), 
-		load_minimizer_params(false), minimizer(MinimizerType::MarquardtLevenberg){}
+  bool load_bounds;
+  std::string load_bounds_file;
+
+  fitOptions(): load_frozen_fit_params(false),  write_covariance_matrix(false), 
+		corr_mat_from_unbinned_data(false), corr_comb_j_unbinned(NULL), load_priors(false), 
+		load_minimizer_params(false), load_bounds(false), minimizer(MinimizerType::MarquardtLevenberg){}
 };
 
 #define PRIOR_T_MEMBERS ( double, value )( double, weight )( int, param_idx )
 struct PriorT{
-  GENERATE_MEMBERS(PRIOR_T_MEMBERS)
+  GENERATE_MEMBERS(PRIOR_T_MEMBERS);
   PriorT(): value(1.0), weight(0.2), param_idx(0){}
 };
-GENERATE_PARSER(PriorT, PRIOR_T_MEMBERS)
+GENERATE_PARSER(PriorT, PRIOR_T_MEMBERS);
 
 #define PRIOR_ARGS_MEMBERS ( std::vector<PriorT>, priors )
 struct PriorArgs{
-  GENERATE_MEMBERS(PRIOR_ARGS_MEMBERS)
+  GENERATE_MEMBERS(PRIOR_ARGS_MEMBERS);
   PriorArgs(): priors(1){}
 };
-GENERATE_PARSER(PriorArgs, PRIOR_ARGS_MEMBERS)
+GENERATE_PARSER(PriorArgs, PRIOR_ARGS_MEMBERS);
+
+#define BOUND_ARGS_MEMBERS ( std::vector<boundedParameterTransform>, bounds )
+struct BoundArgs{
+  GENERATE_MEMBERS(BOUND_ARGS_MEMBERS);
+  BoundArgs(): bounds(1){}
+};
+GENERATE_PARSER(BoundArgs, BOUND_ARGS_MEMBERS);
+
+
 
 std::unique_ptr<genericFitFuncBase> getFitFunc(const FitFuncType type, const int nstate, const int t_min, const int Lt, 
 					       const int nparam, const double Ascale, const double Cscale,
@@ -133,7 +146,38 @@ void generateFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,
   }
   fit.importCorrelationMatrix(corr,sigma);
 }
-					  
+			
+//In this version we allow the weights sigma to fluctuate between jackknife samples but the correlation matrix is fixed to that obtained from 
+//the unbinned data. The idea is that this might capture much of the fluctuations that we would have with a true correlated fit
+void generatePartiallyFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,
+						   const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j_unbinned,
+						   const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj_binned){
+  std::cout << "Generating frozen covariance matrix from binned jackknife sigma and unbinned jackknife correlation matrix" << std::endl;
+  assert(corr_comb_j_unbinned.size() == corr_comb_dj_binned.size());
+  int ndata = corr_comb_dj_binned.size();
+  int nsample_binned = corr_comb_dj_binned.value(0).size();
+  NumericSquareMatrix<jackknifeDistributionD > corr(ndata);
+  std::vector<jackknifeDistributionD > sigma(ndata);
+
+  NumericSquareMatrix<double> cov_mn_unbinned(ndata);
+  for(int i=0;i<ndata;i++)
+    for(int j=i;j<ndata;j++)
+      cov_mn_unbinned(i,j) = cov_mn_unbinned(j,i) = jackknifeDistributionD::covariance(corr_comb_j_unbinned.value(i), corr_comb_j_unbinned.value(j));
+    
+  NumericSquareMatrix<double> corr_mn_unbinned(ndata);
+  for(int i=0;i<ndata;i++)
+    for(int j=i;j<ndata;j++)
+      corr_mn_unbinned(i,j) = corr_mn_unbinned(j,i) = cov_mn_unbinned(i,j)/sqrt( cov_mn_unbinned(i,i) * cov_mn_unbinned(j,j) );
+  
+  for(int i=0;i<ndata;i++){
+    sigma[i] = sqrt( doubleJackknifeDistributionD::covariance(corr_comb_dj_binned.value(i),corr_comb_dj_binned.value(i) ) );
+    for(int j=i;j<ndata;j++)
+      corr(i,j) = corr(j,i) = jackknifeDistributionD(nsample_binned, corr_mn_unbinned(i,j));
+  }
+  fit.importCorrelationMatrix(corr,sigma);
+}
+
+
 
 
 
@@ -156,37 +200,57 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
   
   const int nsample = corr_comb_j.value(0).size();
  
+  //Read frozen fit parameters
   if(opt.load_frozen_fit_params){
     std::cout << "Reading frozen fit params from " << opt.load_frozen_fit_params_file << std::endl;
     readFrozenParams(fit, opt.load_frozen_fit_params_file, nsample);
   }
 
+  //Generate covariance matrix
   std::cout << "Generating and importing covariance matrix\n";
   CostType cost_type = correlated ? CostType::Correlated : CostType::Uncorrelated;  
 
   if(opt.corr_mat_from_unbinned_data){
     //For testing what effect binning has on the covariance matrix separate from any underlying error dependence, here
-    //we generate the (frozen) covariance matrix using the correlation matrix from the unbinned data
-    assert(frozen_cov_mat);
+    //we generate the covariance matrix using the correlation matrix from the unbinned data
+    //If we use frozen fits the weights sigma will be computed from the binned jackknife data and fixed for all samples,
+    //otherwise for unfrozen fits sigma will be computed from binned double-jackknife data. Note in both cases the same fixed correlation matrix is used
     assert(opt.corr_comb_j_unbinned != NULL);    
-    generateFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_j);
+
+    if(frozen_cov_mat) generateFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_j);
+    else generatePartiallyFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_dj);
   }else{
     if(frozen_cov_mat) fit.generateCovarianceMatrix(corr_comb_j, cost_type);
     else fit.generateCovarianceMatrix(corr_comb_dj, cost_type);
   }
 
   if(opt.write_covariance_matrix) fit.writeCovarianceMatrixHDF5(opt.write_covariance_matrix_file);
-
+  
+  //Add priors if necessary
   int Nprior;
   if(opt.load_priors){
     PriorArgs pargs;  parse(pargs, opt.load_priors_file);
     for(int p=0;p<pargs.priors.size();p++){
-      std::cout << "Added prior value " << pargs.priors[p].value << " weight " <<  pargs.priors[p].weight << " param " << pargs.priors[p].param_idx << std::endl;
+      std::cout << "Added prior value " << pargs.priors[p].value << " weight " 
+		<<  pargs.priors[p].weight << " param " << pargs.priors[p].param_idx << std::endl;
+
 	fit.addPrior(pargs.priors[p].value, pargs.priors[p].weight, pargs.priors[p].param_idx);
     }
     Nprior = pargs.priors.size();
   }
 
+  //Add bounds if necessary
+  if(opt.load_bounds){
+    BoundArgs bargs;  parse(bargs, opt.load_bounds_file);
+    for(int p=0;p<bargs.bounds.size();p++){
+      std::cout << "Adding bound " << bargs.bounds[p].bound << " to param " << bargs.bounds[p].param 
+		<< " with min " << bargs.bounds[p].min << " and/or max " <<bargs.bounds[p].max << std::endl; 
+
+      fit.setBound(bargs.bounds[p]);
+    }
+  }
+
+  //Run the fit
   std::cout << "Running fit routine\n";
   int dof;
   std::pair<jackknifeDistribution<double>, int> chisq_dof_nopriors;
