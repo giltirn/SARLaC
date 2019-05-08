@@ -102,6 +102,42 @@ public:
     return bin(bin_size, rawDataDistributionOptions::binAllowCropByDefault());
   }
 
+  //Autocorrelation and integrated autocorrelation as defined in https://arxiv.org/pdf/1208.4412.pdf  page 9
+  double autocorrelation(const int delta){
+    double var = this->variance();
+    double mean = this->mean();
+
+    double c_delta = 0.;
+    int navg = this->size()-delta;
+    for(int t=0;t<this->size()-delta;t++){
+      c_delta += ( this->sample(t) - mean ) * ( this->sample(t + delta) - mean ) / var;
+    }
+    c_delta /= navg;
+    return c_delta;
+  }
+
+  //tau_int as a function of the cut on the separation.
+  double integratedAutocorrelation(const int delta_cut){
+    double tau_int = 0.5;
+    for(int delta = 1; delta <= delta_cut; delta++)
+      tau_int += this->autocorrelation(delta);
+    return tau_int;
+  }
+
+  //Same as above but return result for every delta_cut from 0 .. delta_cut_max
+  std::vector<double> integratedAutocorrelationMulti(const int delta_cut_max){
+    double tau_int = 0.5;
+    
+    std::vector<double> out(1, tau_int);
+
+    for(int delta = 1; delta <= delta_cut_max; delta++){
+      tau_int += this->autocorrelation(delta);
+      out.push_back(tau_int);
+    }
+
+    return out;
+  }
+
 };
 
 template<typename T, template<typename> class _VectorType = basic_vector>
