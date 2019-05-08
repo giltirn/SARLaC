@@ -48,6 +48,8 @@ struct CMDline{
   bool corr_mat_from_unbinned_data;
   std::string unbinned_data_checkpoint;
 
+  bool scramble_raw_data;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -64,6 +66,7 @@ struct CMDline{
     write_fit_data = false;
     load_filters = false;
     corr_mat_from_unbinned_data = false;
+    scramble_raw_data = false;
   }
   CMDline(const int argc, const char** argv, MinimizerType minimizer, const int begin = 0): CMDline(){
     setup(argc,argv,minimizer,begin);
@@ -195,6 +198,9 @@ struct CMDline{
 	remove_samples_in_range_start = strToAny<int>(sargv[i+1]);
 	remove_samples_in_range_lessthan = strToAny<int>(sargv[i+2]);
 	i+=3;
+      }else if(sargv[i] == "-scramble_raw_data"){
+	scramble_raw_data = true;
+	i+=2;
       }else if(sargv[i] == "-write_fit_data"){
 	write_fit_data=true;
 	i++;

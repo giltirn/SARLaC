@@ -35,6 +35,82 @@ public:
     return contains.find({opa,opb}) != contains.end();
   }
 
+  template<typename T>
+  void iterateOverRawDistributions(const T &action){
+    for(auto it=contains.begin(); it != contains.end(); it++){
+      {//correlator      
+	rawCorrelationFunction &raw = correlator(it->first, it->second);
+	for(int i=0;i<raw.size();i++) action(raw.value(i));
+      }
+      if( (it->first == Operator::PiPiGnd || it->first == Operator::PiPiExc) &&
+	  (it->second == Operator::PiPiGnd || it->second == Operator::PiPiExc) ){
+	{//bubble
+	  bubbleDataAllMomenta &bub = PiPiBubble(it->first, it->second);
+	  for(auto p=bub.begin();p!=bub.end();p++)
+	    for(int t=0;t<p->second.getLt();t++)
+	      action(p->second.at(t));
+	}
+	{//bubbleZ
+	  bubbleDataAllMomentaZ &bub = PiPiBubbleZ(it->first, it->second);
+	  for(auto p=bub.begin();p!=bub.end();p++)
+	    for(int t=0;t<p->second.getLt();t++)
+	      action(p->second.at(t));
+	}
+      }
+    }
+    if(haveData(Operator::PiPiGnd,Operator::Sigma) || 
+       haveData(Operator::PiPiExc,Operator::Sigma) ||
+       haveData(Operator::Sigma,Operator::Sigma)
+       ){
+      {//sigma
+	sigmaSelfContraction &bub = SigmaBubble();
+	for(int t=0;t<bub.getLt();t++)
+	  action(bub.at(t));
+      }
+      {//sigma Z
+	sigmaSelfContractionZ &bub = SigmaBubbleZ();
+	for(int t=0;t<bub.getLt();t++)
+	  action(bub.at(t));
+      }
+    }
+  }
+
+  //For testing of bin size dependence we can randomly scramble the data to remove any real autocorrelations
+  void scrambleSamples(){
+    auto first_op_pair = *contains.begin();
+    int nsample = correlator(first_op_pair.first, first_op_pair.second).value(0).size();
+   
+    if(!RNG.isInitialized()) RNG.initialize(1234);
+    std::vector<int> reord(nsample);
+    std::list<int> rem; 
+    for(int i=0;i<nsample;i++) rem.push_back(i);
+      
+    for(int i=0;i<nsample;i++){
+      int off = (int)uniformRandom<float>(0,rem.size());
+      auto it = std::next(rem.begin(), off);
+      reord[i] = *it;
+      rem.erase(it);
+    }
+      
+    //Check indices are unique
+    std::cout << "Reordered samples: ";
+    std::set<int> con;
+    for(int i=0;i<nsample;i++){
+      std::cout << reord[i] << " ";
+      con.insert(reord[i]);
+    }
+    std::cout << std::endl;
+    assert(con.size() == nsample); 
+    
+    iterateOverRawDistributions(
+				[&](auto &v){ 
+				  typedef typename std::decay<decltype(v)>::type DistributionType;
+				  v = DistributionType(nsample, [&](const int s){ return v.sample(reord[s]); }); 
+				}
+      );
+  }
+
+
   template<typename DistributionType>
   inline static DistributionType removeSamplesInRange(const DistributionType &raw, const int start, const int lessthan){
     int remove_num_samples = lessthan - start;
@@ -50,44 +126,11 @@ public:
 
   void removeSamplesInRange(const int start, const int lessthan){
     std::cout << "RawData removing samples in range [" << start << ", " << lessthan << ")" << std::endl;
-
-    for(auto it=contains.begin(); it != contains.end(); it++){
-      {//correlator      
-	rawCorrelationFunction &raw = correlator(it->first, it->second);
-	for(int i=0;i<raw.size();i++)
-	  raw.value(i) = removeSamplesInRange(raw.value(i),start,lessthan);
-      }
-      if( (it->first == Operator::PiPiGnd || it->first == Operator::PiPiExc) &&
-	  (it->second == Operator::PiPiGnd || it->second == Operator::PiPiExc) ){
-	{//bubble
-	  bubbleDataAllMomenta &bub = PiPiBubble(it->first, it->second);
-	  for(auto p=bub.begin();p!=bub.end();p++)
-	    for(int t=0;t<p->second.getLt();t++)
-	      p->second.at(t) = removeSamplesInRange(p->second.at(t),start,lessthan);
-	}
-	{//bubbleZ
-	  bubbleDataAllMomentaZ &bub = PiPiBubbleZ(it->first, it->second);
-	  for(auto p=bub.begin();p!=bub.end();p++)
-	    for(int t=0;t<p->second.getLt();t++)
-	      p->second.at(t) = removeSamplesInRange(p->second.at(t),start,lessthan);
-	}
-      }
-    }
-    if(haveData(Operator::PiPiGnd,Operator::Sigma) || 
-       haveData(Operator::PiPiExc,Operator::Sigma) ||
-       haveData(Operator::Sigma,Operator::Sigma)
-       ){
-      {//sigma
-	sigmaSelfContraction &bub = SigmaBubble();
-	for(int t=0;t<bub.getLt();t++)
-	  bub.at(t) = removeSamplesInRange(bub.at(t),start,lessthan);
-      }
-      {//sigma Z
-	sigmaSelfContractionZ &bub = SigmaBubbleZ();
-	for(int t=0;t<bub.getLt();t++)
-	  bub.at(t) = removeSamplesInRange(bub.at(t),start,lessthan);
-      }
-    }
+    iterateOverRawDistributions(
+				[&](auto &v){ 
+				  v = removeSamplesInRange(v,start,lessthan);				  
+				}
+				);
     std::cout << "RawData samples removed" << std::endl;
   }
   

@@ -139,6 +139,8 @@ int main(const int argc, const char* argv[]){
 
     if(cmdline.remove_samples_in_range)
       raw_data.removeSamplesInRange(cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
+    if(cmdline.scramble_raw_data)
+      raw_data.scrambleSamples();
   }
 
   ResampledData<jackknifeCorrelationFunction> data_j;
