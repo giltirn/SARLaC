@@ -155,13 +155,45 @@ public:
 struct TsquareDistribution{
 public:
   static inline double PDF(const double x, const double p, const double n){
-    return Fdistribution::PDF((n-p+1)*x/p/n, p, n-p+1);
+    return (n-p+1)/p/n * Fdistribution::PDF((n-p+1)/p/n*x, p, n-p+1);
   }
 
+private:
+  struct pdf_params{
+    double p;
+    double n;
+  };
+  static double pdf_func(double x, void *gparams){
+    pdf_params *p = (pdf_params*)gparams;
+    return PDF(x,p->p,p->n);
+  }
+
+public:
   //p( T2 < x; p,n)  explicit calculation by numerical integral
   static inline double CDF_int(const double x, const double p, const double n){
-    return Fdistribution::CDF_int((n-p+1)*x/p/n, p, n-p+1);
+    pdf_params pdf_p;
+    pdf_p.p = p;
+    pdf_p.n = n;
+    
+    gsl_function pdf;
+    pdf.function = &pdf_func;
+    pdf.params = &pdf_p;
+
+    //do the integral
+    gsl_integration_cquad_workspace * workspace = gsl_integration_cquad_workspace_alloc(100);
+    
+    double start = 0;
+    double end = x;
+
+    double epsabs = 1e-6;
+    double epsrel = 1e-6;
+    
+    double result;
+    gsl_integration_cquad(&pdf, start, end, epsabs, epsrel, workspace, &result, NULL,NULL);
+    gsl_integration_cquad_workspace_free(workspace);
+    return result;
   }
+
 
   //Using built-in
   static inline double CDF(const double x, const double p, const double n){
