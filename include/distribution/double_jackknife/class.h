@@ -32,29 +32,23 @@ public:
   void resample(const DistributionType &in){
     const int N = in.size();
     this->_data.resize(N);
-    for(int i=0;i<N;i++) this->_data[i].resize(N-1);
-
-    struct Op{
-      const DistributionType &in;
-      Op(const DistributionType &_in): in(_in){}
-      inline int size() const{ return in.size(); }
-      inline BaseDataType operator()(const int i) const{ return in.sample(i); }
-    };
-    Op op(in);
-    BaseDataType sum = threadedSum(op);
+    BaseDataType sum; zeroit(sum);
+    for(int i=0;i<N;i++){
+      sum = sum + in.sample(i);
+      this->_data[i].resize(N-1);
+    }
     
     const double num = 1./double(N-2);
 #pragma omp parallel for
     for(int i=0;i<N;i++){
-      int jj=0;
-      for(int j=0;j<N;j++){
-	if(i==j) continue;
-
+      for(int j=0;j<i;j++)
+	this->sample(i).sample(j) = (sum - in.sample(i) - in.sample(j))*num;
+      int jj=i;
+      for(int j=i+1;j<N;j++)
 	this->sample(i).sample(jj++) = (sum - in.sample(i) - in.sample(j))*num;
-      }
     }
   }
-
+  
   doubleJackknifeDistribution(): baseType(){}
 
   doubleJackknifeDistribution(const doubleJackknifeDistribution &r): baseType(r){}
@@ -81,6 +75,7 @@ public:
   ENABLE_GENERIC_ET(doubleJackknifeDistribution, myType, doubleJackknifeDistribution<BaseDataType>);
 
   doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
+  doubleJackknifeDistribution & operator=(doubleJackknifeDistribution &&r){ static_cast<baseType*>(this)->operator=(std::move(r)); return *this; }
 
   template<template<typename> class U = basic_vector>
   static jackknifeDistribution<BaseDataType,U> covariance(const myType &a, const myType &b){
