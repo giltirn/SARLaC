@@ -59,7 +59,7 @@ public:
     nsample = binCrop(_nsample, _bin_size);
     bin_size = _bin_size;
 
-    int nbinned = _nsample / _bin_size;
+    int nbinned = nsample / bin_size;
     int nsub = nsample - bin_size;
 
     this->_data.resize(nbinned);
@@ -101,8 +101,7 @@ public:
       }
     }
   }
-
-  blockDoubleJackknifeDistribution(): baseType(), bin_size(0), nsample(0){}
+  blockDoubleJackknifeDistribution(): baseType(), bin_size(1), nsample(0){}
 
   blockDoubleJackknifeDistribution(const blockDoubleJackknifeDistribution &r): baseType(r), bin_size(r.bin_size), nsample(r.nsample){}
   
@@ -140,7 +139,12 @@ public:
   
   ENABLE_GENERIC_ET(blockDoubleJackknifeDistribution, myType, blockDoubleJackknifeDistribution<BaseDataType> );
 
-  blockDoubleJackknifeDistribution & operator=(const blockDoubleJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
+  blockDoubleJackknifeDistribution & operator=(const blockDoubleJackknifeDistribution &r){ 
+    nsample = r.nsample; bin_size=r.bin_size; static_cast<baseType*>(this)->operator=(r); return *this; 
+  }
+  blockDoubleJackknifeDistribution & operator=(blockDoubleJackknifeDistribution &&r){ 
+    nsample = r.nsample; bin_size=r.bin_size; static_cast<baseType*>(this)->operator=(std::move(r)); return *this; 
+  }
 
   template<template<typename> class U = basic_vector>
   static jackknifeDistribution<BaseDataType,U> covariance(const myType &a, const myType &b){

@@ -149,6 +149,7 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
 template<typename CorrelationFunctionType>
 void applyCombination(CorrelationFunctionType &to, const std::vector<CorrelationFunctionType> &from, const Combination comb){
   if(comb == Combination::CombinationAverage){
+    assert(from.size() > 0);
     to = from[0];
     for(int i=1;i<from.size();i++) to = to + from[i];
     to = to / double(from.size());

@@ -171,7 +171,7 @@ void fit(const jackknifeCorrelationFunctionD &data_j,
   //Generate the covariance matrix
   switch(args.covariance_strategy){
   case CovarianceStrategy::CorrelatedBlockHybrid:
-    fitter.generateCovarianceMatrix(data_dj_inrange, data_bdj, CostType::Correlated);
+    fitter.generateCovarianceMatrix(data_dj_inrange, data_bdj_inrange, CostType::Correlated);
     break;
   case CovarianceStrategy::FrozenCorrelated:
     fitter.generateCovarianceMatrix(data_j_inrange, CostType::Correlated);
