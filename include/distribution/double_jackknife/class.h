@@ -72,7 +72,7 @@ public:
     this->resample(raw);
   }
   
-  ENABLE_GENERIC_ET(doubleJackknifeDistribution, myType, doubleJackknifeDistribution<BaseDataType>);
+  ENABLE_PARALLEL_GENERIC_ET(doubleJackknifeDistribution, myType, doubleJackknifeDistribution<BaseDataType>);
 
   doubleJackknifeDistribution & operator=(const doubleJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
   doubleJackknifeDistribution & operator=(doubleJackknifeDistribution &&r){ static_cast<baseType*>(this)->operator=(std::move(r)); return *this; }

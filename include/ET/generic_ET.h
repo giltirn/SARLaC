@@ -38,6 +38,21 @@ CPSFIT_START_NAMESPACE
     return *this; \
   }
 
+
+#define ENABLE_PARALLEL_GENERIC_ET(CLASS_NAME, CLASS_FULL, TAG)			\
+  typedef TAG ET_tag;							\
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
+  CLASS_NAME(U&& expr): CLASS_NAME(expr.common_properties()){			\
+    CPSfit::parallel_loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
+  }\
+  \
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
+  CLASS_FULL & operator=(U && expr){ \
+    this->resize(expr.common_properties());    \
+    CPSfit::parallel_loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
+    return *this; \
+  }
+
 CPSFIT_END_NAMESPACE
 
 #endif
