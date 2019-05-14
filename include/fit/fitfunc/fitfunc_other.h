@@ -23,7 +23,7 @@ public:
 
   inline int Nparams() const{ return 1; }
 
-  ParameterType guess(){ return ParameterType(1,1.0); }
+  ParameterType guess() const{ return ParameterType(1,1.0); }
 };
 
 CPSFIT_END_NAMESPACE

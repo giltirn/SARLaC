@@ -1,263 +1,221 @@
 #ifndef _FIT_SIMPLE_FIT_H_
 #define _FIT_SIMPLE_FIT_H_
 
-template<typename FitFunc, typename ArgsType>
-void plotEffectiveMass(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, 
-		       const jackknifeDistribution<typename FitFunc::ParameterType> &params, const int params_mass_idx){
-  double guess = params.best()(params_mass_idx);
-  jackknifeCorrelationFunctionD effmass = effectiveMass2pt<jackknifeCorrelationFunctionD,FitFunc>(data_j,fitfunc,params.sample(0), params_mass_idx, args.Lt, guess);
-  
-  {
-    std::ofstream os("effective_mass.key"); 
-    std::vector<jackknifeDistributionD> em(effmass.size()); 
-    for(int t=0;t<effmass.size();t++){
-      em[t] = effmass.value(t);
-      os << t << " " << effmass.coord(t) << std::endl;
-    }
-    writeParamsStandard(em, "effective_mass.hdf5");
-  }
+#include "plot.h"
 
-  MatPlotLibScriptGenerate plotter;
-  typedef MatPlotLibScriptGenerate::handleType Handle;
-  typename MatPlotLibScriptGenerate::kwargsType plot_args;
-    
-  typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > Accessor;
-  Accessor a(effmass);
-  Handle ah = plotter.plotData(a);
+template<typename DataSeriesType>
+inline DataSeriesType getDataInRange(const DataSeriesType &data, const int tmin, const int tmax){
+  return DataSeriesType(tmax - tmin + 1, [&](const int i){ return data[tmin + i]; });
+}
 
-  //   Plot the fitted mass as constant
-  typename FitFunc::ParameterType mn = params.best();
-  typename FitFunc::ParameterType err = params.standardError();
-  const double m = mn(params_mass_idx);
-  const double dm = err(params_mass_idx);
-  
-  std::vector<double> x = {double(args.t_min), double(args.t_max)};
-  std::vector<double> upper = {m + dm, m + dm};
-  std::vector<double> lower = {m - dm, m - dm};    
-  BandVectorAccessor band(x,upper,lower);
-  plot_args["alpha"] = 0.2;
-  ah = plotter.errorBand(band, plot_args);
-  
-  
-  plotter.createLegend();
-  plotter.setXlabel("$t$");
-  plotter.setYlabel("$m_{\\rm eff}(t)$");
-  plotter.setXaxisBounds(-0.2,args.Lt+0.2);
+template<typename Out, typename In>
+Out pconvert(const In &in){ Out out(in.size()); for(int i=0;i<in.size();i++) out(i) = in(i); return out; }
 
-  const double ymid = m;
-  const double yw = 20 * dm;
-  
-  plotter.setYaxisBounds(ymid-yw, ymid+yw);
-
-  std::cout << "Writing plot to 'effective_mass.py'\n";  
-  plotter.write("effective_mass.py", "effective_mass.pdf");
+template<typename Out, typename In>
+jackknifeDistribution<Out> pconvert(const jackknifeDistribution<In> &in){ 
+  jackknifeDistribution<Out> out(in.size());
+  for(int s=0;s<in.size();s++) out.sample(s) = pconvert<Out,In>(in.sample(s));
+  return out;
 }
 
 
-template<typename TwoStateFitFunc, typename OneStateFitFunc, typename ArgsType>
-void plotTwoStateEffectiveMass(const ArgsType &args, 
-			       const jackknifeCorrelationFunctionD &data_j, 
-			       const jackknifeDistribution<typename TwoStateFitFunc::ParameterType> &params, 
-			       const OneStateFitFunc &fitfunc_1state, const TwoStateFitFunc &fitfunc_2state,
-			       const int fitfunc_1state_params_mass_idx){
+typedef parameterVector<double> parameterVectorD;
 
-  //Generate the one-state effective mass from the data
-  StandardFitParams base(1.0,1.0);
-
-  int nsample = data_j.value(0).size();
-  jackknifeCorrelationFunctionD effmass_data = effectiveMass2pt<jackknifeCorrelationFunctionD,OneStateFitFunc>(data_j,fitfunc_1state,base, fitfunc_1state_params_mass_idx, args.Lt);
+template<typename ArgsType, typename CMDlineType>
+struct FitFuncManagerBase{
+  const ArgsType &args;
+  const CMDlineType &cmdline;
   
-  //Generate the fit curve from the 2 state fit
-  jackknifeCorrelationFunctionD curve_2state(args.Lt);
-  for(int t=0;t<args.Lt;t++){
-    curve_2state.coord(t) = t;
-    curve_2state.value(t) = jackknifeDistributionD(nsample, [&](const int s){ return fitfunc_2state.value(t, params.sample(s)); });
-  }
-
-  //Generate one-state effective mass from fit curve
-  jackknifeCorrelationFunctionD effmass_curve = effectiveMass2pt<jackknifeCorrelationFunctionD,OneStateFitFunc>(curve_2state,fitfunc_1state,base, fitfunc_1state_params_mass_idx, args.Lt);
-
- 
-  //Plot everything
-  MatPlotLibScriptGenerate plotter;
-  typedef MatPlotLibScriptGenerate::handleType Handle;
-  typename MatPlotLibScriptGenerate::kwargsType plot_args;
-    
-  typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > Accessor;
-  Accessor a(effmass_data);
-  Handle ah = plotter.plotData(a);
+  FitFuncManagerBase(const ArgsType &args, const CMDlineType &cmdline): args(args), cmdline(cmdline){}
   
-  //   Plot the fitted curve as error band 
-  std::vector<double> x(args.t_max - args.t_min + 1);
-  std::vector<double> upper(args.t_max - args.t_min + 1);
-  std::vector<double> lower(args.t_max - args.t_min + 1);
+  virtual genericFitFuncBase const* getFitFunc() const = 0;
+  virtual parameterVectorD getGuess() const = 0;
+  virtual void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const = 0;
 
-  for(int t=args.t_min ; t <= args.t_max; t++){
-    x[t-args.t_min] = t;
-
-    double y = effmass_curve.value(t).best();
-    double dy = effmass_curve.value(t).standardError();
-
-    lower[t-args.t_min] = y-dy;
-    upper[t-args.t_min] = y+dy;
+  template<typename FF>
+  parameterVectorD getGuessBase(const FF &ff) const{
+   typename FF::ParameterType guess = ff.guess();
+    if(cmdline.load_guess)
+      parse(guess,cmdline.guess_file);
+    return pconvert<parameterVectorD, typename FF::ParameterType>(guess);
   }
-  BandVectorAccessor band(x,upper,lower);
-  plot_args["alpha"] = 0.2;
-  ah = plotter.errorBand(band, plot_args);
-    
-  plotter.createLegend();
-  plotter.setXlabel("$t$");
-  plotter.setYlabel("$m_{\\rm eff}(t)$");
-  plotter.setXaxisBounds(-0.2,args.Lt+0.2);
-
-  const double yw = 20 * (upper.back() - lower.back())/2.;
-  const double ymid = (upper.back() + lower.back())/2;
-
-  plotter.setYaxisBounds(ymid-yw, ymid+yw);
-
-  std::cout << "Writing plot to 'effective_mass.py'\n";  
-  plotter.write("effective_mass.py", "effective_mass.pdf");
-}
-
-
-
-template<typename FitFunc, typename ArgsType>
-void plotRaw(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, 
-	     const jackknifeDistribution<typename FitFunc::ParameterType> &params){
-  jackknifeCorrelationFunctionD fit_data(args.Lt,[&](const int t){ 
-      jackknifeDistributionD val(params.size(), [&](const int s){ return fitfunc.value(t,params.sample(s)); });
-      return jackknifeCorrelationFunctionD::ElementType(t,val);
-    });
-
-  MatPlotLibScriptGenerate plotter;
-  typedef MatPlotLibScriptGenerate::handleType Handle;
-  typename MatPlotLibScriptGenerate::kwargsType plot_args;
-    
-  typedef DataSeriesAccessor<jackknifeCorrelationFunctionD, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > Accessor;
-  Accessor a(data_j);
-  Handle ah = plotter.plotData(a);
   
-  Accessor band(fit_data);
-  plot_args["alpha"] = 0.2;
-  ah = plotter.errorBand(band, plot_args);
-  
-  plotter.createLegend();
-  plotter.setXlabel("$t$");
-  plotter.setYlabel("$y(t)$");
-  plotter.setXaxisBounds(-0.2,args.Lt+0.2);
-
-  std::cout << "Writing plot to 'plot.py'\n";  
-  plotter.write("plot.py", "plot.pdf");
-}
-
-template<typename FitFunc, typename ArgsType>
-struct FitFuncPolicy{
-  static inline FitFunc* get(const ArgsType &args){ assert(0); }
-  static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){ assert(0); }
+  virtual ~FitFuncManagerBase(){}
 };
 
-template<typename ArgsType>
-struct FitFuncPolicy<FitCosh,ArgsType>{
-  typedef FitCosh FitFunc;
-  static inline FitCosh* get(const ArgsType &args){ return new FitCosh(args.Lt); }
-  static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){
-    plotEffectiveMass(args,fitfunc,data_j,params,1);
+template<typename HyperbolicFitFunc, typename ArgsType, typename CMDlineType>
+struct FitFuncHyperbolicManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
+  typedef HyperbolicFitFunc FitFunc;
+  simpleFitFuncWrapper<FitFunc> fitfunc;
+
+  FitFuncHyperbolicManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc(args.Lt)){}
+
+  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
+
+  parameterVectorD getGuess() const{ 
+    return this->getGuessBase(fitfunc.fitfunc);
   }
-};
 
-template<typename ArgsType>
-struct FitFuncPolicy<FitSinh,ArgsType>{
-  typedef FitSinh FitFunc;
-  static inline FitSinh* get(const ArgsType &args){ return new FitSinh(args.Lt); }
-  static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){
-    plotEffectiveMass(args,fitfunc,data_j,params,1);
+  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
+    plotEffectiveMass(this->args,fitfunc.fitfunc,data_j,pconvert<typename FitFunc::ParameterType,parameterVectorD>(params),1);
   }
-};
-
-template<typename ArgsType>
-struct FitFuncPolicy<FitExp,ArgsType>{
-  typedef FitExp FitFunc;
-  static inline FitExp* get(const ArgsType &args){ return new FitExp; }
-  static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){
-    plotEffectiveMass(args,fitfunc,data_j,params,1);
-  }
-};
-
-template<typename ArgsType>
-struct FitFuncPolicy<FitConstant,ArgsType>{
-  typedef FitConstant FitFunc;
-  static inline FitConstant* get(const ArgsType &args){ return new FitConstant; }
-  static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){
-    plotRaw(args,fitfunc,data_j,params);
-  }
-};
-
-template<typename ArgsType>
-struct FitFuncPolicy<FitTwoStateCosh,ArgsType>{
-  typedef FitTwoStateCosh FitFunc;
-  static inline FitTwoStateCosh* get(const ArgsType &args){ return new FitTwoStateCosh(args.Lt); }
-  static inline void plot(const ArgsType &args, const FitFunc &fitfunc, const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<typename FitFunc::ParameterType> &params){
-    //Plot the one-state effective mass
-    //jackknifeDistribution<StandardFitParams> p1exp(params.size(),[&](const int s){ return StandardFitParams(params.sample(s)(0), params.sample(s)(1)); });
-    //FitCosh fcosh(args.Lt);
-    //plotEffectiveMass(args,fcosh,data_j,p1exp,1);
-
-    FitCosh fcosh(args.Lt);
-    plotTwoStateEffectiveMass<FitTwoStateCosh, FitCosh, ArgsType>(args, data_j, params, fcosh, fitfunc, 1); 
-  }
-};
-
-
-template<typename FitFunc, template<typename> class CostFunctionPolicy, typename ArgsType, typename CMDlineType>
-void fitSpecFFcorr(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline);
-
-
-template<typename FitFunc, typename ArgsType, typename CMDlineType>
-inline void fitSpecFF(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
-#define SPEC(ENUM,TYPE)				\
-  case CovarianceStrategy:: ENUM:					\
-    return fitSpecFFcorr<FitFunc,TYPE,ArgsType,CMDlineType>(data_j,data_dj,args,cmdline)
-
-  switch(args.covariance_strategy){
-    SPEC(Correlated, correlatedFitPolicy);
-    SPEC(Uncorrelated, uncorrelatedFitPolicy);
-    SPEC(FrozenCorrelated, frozenCorrelatedFitPolicy);
-  default:
-    error_exit(std::cout << "fitSpecFF unknown CovarianceStrategy " << args.covariance_strategy << std::endl);
-  }
-#undef SPEC
 };
 
 template<typename ArgsType, typename CMDlineType>
-inline void fitResampled(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
-#define SPEC(ENUM,TYPE)				\
-  case FitFuncType::ENUM:						\
-    return fitSpecFF<TYPE,ArgsType,CMDlineType>(data_j, data_dj,args,cmdline)
+struct FitExpManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
+  typedef FitExp FitFunc;
+  simpleFitFuncWrapper<FitFunc> fitfunc;
+
+  FitExpManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc()){}
+
+  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
+
+  parameterVectorD getGuess() const{ 
+    return this->getGuessBase(fitfunc.fitfunc);
+  }
+
+  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
+    plotEffectiveMass(this->args,fitfunc.fitfunc,data_j,pconvert<typename FitFunc::ParameterType,parameterVectorD>(params),1);
+  }
+};
+
+template<typename ArgsType, typename CMDlineType>
+struct FitConstantManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
+  typedef FitConstant FitFunc;
+  simpleFitFuncWrapper<FitFunc> fitfunc;
+
+  FitConstantManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc()){}
+
+  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
+
+  parameterVectorD getGuess() const{ 
+    return this->getGuessBase(fitfunc.fitfunc);
+  }
+
+  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
+    plotRaw(this->args,fitfunc.fitfunc,data_j,pconvert<typename FitFunc::ParameterType,parameterVectorD>(params));
+  }
+};
+
+template<typename ArgsType, typename CMDlineType>
+struct FitTwoStateCoshManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
+  typedef FitTwoStateCosh FitFunc;
+  simpleFitFuncWrapper<FitFunc> fitfunc;
+
+  FitTwoStateCoshManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc(args.Lt)){}
+
+  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
+
+  parameterVectorD getGuess() const{ 
+    return this->getGuessBase(fitfunc.fitfunc);
+  }
+
+  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
+    FitCosh fcosh(this->args.Lt);
+    plotTwoStateEffectiveMass<FitTwoStateCosh, FitCosh, ArgsType>(this->args, data_j, pconvert<typename FitFunc::ParameterType,parameterVectorD>(params), fcosh, fitfunc.fitfunc, 1); 
+  }
+};
+
+
+template<typename ArgsType, typename CMDlineType>
+void fit(const jackknifeCorrelationFunctionD &data_j,
+	 const doubleJackknifeCorrelationFunctionD &data_dj,
+	 const blockDoubleJackknifeCorrelationFunctionD &data_bdj,
+	 const ArgsType &args, const CMDlineType &cmdline){
+
+  //Get the data in the fit range
+  jackknifeCorrelationFunctionD data_j_inrange = getDataInRange(data_j, args.t_min, args.t_max);
+  doubleJackknifeCorrelationFunctionD data_dj_inrange;
+  if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) data_dj_inrange = getDataInRange(data_dj, args.t_min, args.t_max);
+  blockDoubleJackknifeCorrelationFunctionD data_bdj_inrange;
+  if(args.covariance_strategy == CovarianceStrategy::CorrelatedBlockHybrid) data_bdj_inrange = getDataInRange(data_bdj, args.t_min, args.t_max);
+
+  std::cout << "All data\n";
+  for(int i=0;i<data_j.size();i++){
+    std::cout << (int)data_j.coord(i) << " " << data_j.value(i) << std::endl;
+  }
+
+  std::cout << "Data in range\n";
+  for(int i=0;i<data_j_inrange.size();i++){
+    std::cout << (int)data_j_inrange.coord(i) << " " << data_j_inrange.value(i) << std::endl;
+  }
+
+
+  //Get the fit function manager
+  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager;
 
   switch(args.fitfunc){
-    SPEC(FCosh, FitCosh);
-    SPEC(FSinh, FitSinh);
-    SPEC(FExp, FitExp);
-    SPEC(FConstant, FitConstant);
-    SPEC(FTwoStateCosh, FitTwoStateCosh);
+  case FitFuncType::FCosh:
+    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitCosh,ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FSinh:
+    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitSinh,ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FExp:
+    fitfunc_manager.reset(new FitExpManager<ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FConstant:
+    fitfunc_manager.reset(new FitConstantManager<ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FTwoStateCosh:
+    fitfunc_manager.reset(new FitTwoStateCoshManager<ArgsType,CMDlineType>(args,cmdline)); break;
   default:
     error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);
-  };
-#undef SPEC
-}
-template<typename ArgsType, typename CMDlineType>
-inline void fit(const jackknifeCorrelationFunctionD &data_j, const doubleJackknifeCorrelationFunctionD &data_dj, const ArgsType &args, const CMDlineType &cmdline){
-  if(cmdline.save_combined_data){
-#ifdef HAVE_HDF5
-    std::cout << "Writing resampled data to " << cmdline.save_combined_data_file << std::endl;
-    HDF5writer writer(cmdline.save_combined_data_file);
-    write(writer, data_j, "data_j");
-    write(writer, data_dj, "data_dj");
-#else
-    error_exit("fitSpecFFcorr: Saving amplitude data requires HDF5\n");
-#endif
   }
-  fitResampled<ArgsType,CMDlineType>(data_j, data_dj, args, cmdline);
+
+  //Set up the minimizer
+  MarquardtLevenbergParameters<double> minparams;
+  if(cmdline.load_mlparams){
+    parse(minparams, cmdline.mlparams_file);
+    std::cout << "Loaded minimizer params: " << minparams << std::endl;
+  }
+  
+  simpleFitWrapper fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
+
+  //Generate the covariance matrix
+  switch(args.covariance_strategy){
+  case CovarianceStrategy::CorrelatedBlockHybrid:
+    fitter.generateCovarianceMatrix(data_dj_inrange, data_bdj, CostType::Correlated);
+    break;
+  case CovarianceStrategy::FrozenCorrelated:
+    fitter.generateCovarianceMatrix(data_j_inrange, CostType::Correlated);
+    break;
+  case CovarianceStrategy::Correlated:
+    fitter.generateCovarianceMatrix(data_dj_inrange, CostType::Correlated);
+    break;
+  case CovarianceStrategy::Uncorrelated:
+    fitter.generateCovarianceMatrix(data_dj_inrange, CostType::Uncorrelated);
+    break;
+  default:
+    assert(0);
+  }
+
+  //Do the fit
+  parameterVector<double> guess = fitfunc_manager->getGuess();
+
+  const int nsample = data_j.value(0).size();
+  jackknifeDistribution<parameterVectorD> params(nsample, guess);
+  jackknifeDistributionD chisq(nsample), chisq_per_dof(nsample);
+  int dof;
+  
+  fitter.fit(params, chisq, chisq_per_dof, dof, data_j_inrange);
+
+  jackknifeDistributionD pvalue_chisq(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
+  jackknifeDistributionD pvalue_Tsq(nsample, [&](const int s){ return TsquareDistribution::pvalue(chisq.sample(s), dof, nsample-1); });
+
+  std::cout << "Params: " << params << std::endl;
+  std::cout << "Chisq: " << chisq << std::endl;
+  std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
+  std::cout << "Dof: " << dof << std::endl;
+  std::cout << "P-value(chi^2): " << pvalue_chisq << std::endl;
+  std::cout << "P-value(T^2): " << pvalue_Tsq << std::endl;
+  
+#ifdef HAVE_HDF5
+  writeParamsStandard(chisq, "chisq.hdf5");
+  writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
+  writeParamsStandard(params, "params.hdf5"); 
+  writeParamsStandard(pvalue_chisq, "pvalue_chisq.hdf5");
+  writeParamsStandard(pvalue_Tsq, "pvalue_Tsq.hdf5");
+#endif
+
+  fitfunc_manager->plot(data_j, params);
 }
+
   
 #endif

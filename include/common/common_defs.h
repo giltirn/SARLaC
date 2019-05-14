@@ -59,6 +59,7 @@ typedef filteredDataSeries<doubleJackknifeTimeSeriesF> filteredDoubleJackknifeTi
 typedef correlationFunction<double,rawDataDistributionD> rawDataCorrelationFunctionD;
 typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunctionD;
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackknifeCorrelationFunctionD;
+typedef correlationFunction<double,blockDoubleJackknifeDistributionD> blockDoubleJackknifeCorrelationFunctionD;
 
 //Tensor types
 typedef NumericSquareMatrix<jackknifeDistribution<double> >  jackknifeSquareMatrixD;

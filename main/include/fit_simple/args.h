@@ -3,7 +3,7 @@
 
 #include<fit_simple/data_info.h>
 
-GENERATE_ENUM_AND_PARSER(CovarianceStrategy, (Correlated)(Uncorrelated)(FrozenCorrelated) );
+GENERATE_ENUM_AND_PARSER(CovarianceStrategy, (Correlated)(Uncorrelated)(FrozenCorrelated)(CorrelatedBlockHybrid) );
 
 #define ARGS_MEMBERS \
   ( std::vector<DataInfo>, data ) \
