@@ -27,6 +27,9 @@ typedef jackknifeCdistribution<float> jackknifeCdistributionF;
 typedef doubleJackknifeDistribution<double> doubleJackknifeDistributionD;
 typedef doubleJackknifeDistribution<float> doubleJackknifeDistributionF;
 
+typedef blockDoubleJackknifeDistribution<double> blockDoubleJackknifeDistributionD;
+typedef blockDoubleJackknifeDistribution<float> blockDoubleJackknifeDistributionF;
+
 typedef bootstrapDistribution<double> bootstrapDistributionD;
 typedef bootstrapDistribution<float> bootstrapDistributionF;
 

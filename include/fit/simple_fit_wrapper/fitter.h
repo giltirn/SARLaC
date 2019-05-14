@@ -12,6 +12,7 @@
 #include<tensors/numeric_square_matrix.h>
 #include<distribution/jackknife.h>
 #include<distribution/double_jackknife.h>
+#include<distribution/block_double_jackknife.h>
 #include<data_series/correlationfunction.h>
 #include<fit/cost_function/correlated_chisq.h>
 #include<fit/cost_function/correlated_chisq_terms.h>
@@ -310,6 +311,55 @@ public:
 
     importCovarianceMatrix(cov, cost_type);
   }
+  template<typename T>
+  void generateCovarianceMatrix(const correlationFunction<T, blockDoubleJackknifeDistribution<double>> &data_dj, 
+				const CostType cost_type = CostType::Correlated){
+    int ndata = data_dj.size();
+    NumericSquareMatrix<jackknifeDistribution<double>> cov(ndata);
+    for(int i=0;i<ndata;i++)
+      for(int j=i;j<ndata;j++)
+	cov(i,j) = cov(j,i) = blockDoubleJackknifeDistribution<double>::covariance(data_dj.value(i), data_dj.value(j));
+
+    importCovarianceMatrix(cov, cost_type);
+  }
+
+  //Get the correlation matrix from the block double-jack and sigma from the regular, binned double-jackknife
+  template<typename T>
+  void generateCovarianceMatrix(const correlationFunction<T, doubleJackknifeDistribution<double>> &data_dj,
+				const correlationFunction<T, blockDoubleJackknifeDistribution<double>> &data_bdj, 
+				const CostType cost_type = CostType::Correlated){
+    assert(data_dj.size() == data_bdj.size());
+    assert(data_dj.value(0).size() == data_bdj.value(0).size()); //only inner indexing differs
+
+    int ndata = data_dj.size();
+    int nsample = data_bdj.value(0).size();
+
+    NumericSquareMatrix<jackknifeDistribution<double>> cov_bdj(ndata);    
+    for(int i=0;i<ndata;i++)
+      for(int j=i;j<ndata;j++)
+	cov_bdj(i,j) = cov_bdj(j,i) = blockDoubleJackknifeDistribution<double>::covariance(data_bdj.value(i), data_bdj.value(j));
+    
+    std::vector<jackknifeDistribution<double>> sigma_bdj(ndata);
+    sigma.resize(ndata);
+    for(int i=0;i<ndata;i++){
+      sigma[i] = sqrt( doubleJackknifeDistribution<double>::covariance(data_dj.value(i), data_dj.value(i)) ); //sigma from regular dj
+      sigma_bdj[i] = sqrt(cov_bdj(i,i));
+    }
+      
+    //Corr from bdj
+    corr_mat.resize(ndata);
+    jackknifeDistribution<double> zero(nsample,0.);
+
+    for(int i=0;i<ndata;i++){
+      corr_mat(i,i) = cov_bdj(i,i)/sigma_bdj[i]/sigma_bdj[i];
+      for(int j=i+1;j<ndata;j++)
+	corr_mat(i,j) = corr_mat(j,i) =  cost_type == CostType::Correlated ? cov_bdj(i,j)/sigma_bdj[i]/sigma_bdj[j] : zero;      
+    }
+										       
+    have_corr_mat = true;
+  }
+
+
   //Generate the covariance matrix internally from single-jackknife data. The resulting covariance matrix is "frozen", i.e. the same for all samples
   //Option to use uncorrelated (diagonal) or correlated matrix
   template<typename T>
