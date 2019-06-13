@@ -85,35 +85,12 @@ std::unique_ptr<genericFitFuncBase> getFitFunc(const FitFuncType type, const int
 
 }
 
-template<typename T>
-generalContainer getMinimizerParamsT(const fitOptions &opt){
-  generalContainer min_params;
-  T mp; mp.verbose = true;
-  if(opt.load_minimizer_params){
-    parse(mp, opt.minimizer_params_file);
-    std::cout << "Loaded minimizer params: " << mp << std::endl;
-  }
-  min_params = mp;
-  return min_params;
+
+inline generalContainer getMinimizerParams(const fitOptions &opt){
+  return getMinimizerParams(opt.minimizer, opt.load_minimizer_params, opt.minimizer_params_file);
 }
-generalContainer getMinimizerParams(const fitOptions &opt){
-  switch(opt.minimizer){
-  case MinimizerType::MarquardtLevenberg:
-    return getMinimizerParamsT<MarquardtLevenbergParameters<double> >(opt);
-  case MinimizerType::GSLtrs:
-    return getMinimizerParamsT<GSLtrsMinimizerParams>(opt);
-  case MinimizerType::GSLmultimin:
-    return getMinimizerParamsT<GSLmultidimMinimizerParams>(opt);
-  case MinimizerType::Minuit2:
-#ifdef HAVE_MINUIT2
-    return getMinimizerParamsT<Minuit2minimizerParams>(opt);
-#else
-    error_exit(std::cout << "Library not compiled with Minuit2\n");
-#endif
-  default:
-    assert(0);
-  }
-}
+
+
 
 //For testing bin size dependence it can be useful to fix the correlation matrix from the unbinned data and do a frozen fit
 void generateFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,

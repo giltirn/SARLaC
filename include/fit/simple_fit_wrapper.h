@@ -5,5 +5,6 @@
 
 #include<fit/simple_fit_wrapper/fitter.h>
 #include<fit/simple_fit_wrapper/fit_wrapper_freeze.h>
+#include<fit/simple_fit_wrapper/utils.h>
 
 #endif

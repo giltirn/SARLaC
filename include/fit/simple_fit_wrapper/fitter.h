@@ -7,6 +7,8 @@
 #include<fit/simple_fit_wrapper/fitfunc_wrapper.h>
 #include<minimizer/minimizer.h>
 #include<minimizer/gsl_trs_minimizer.h>
+#include<minimizer/gsl_multidim_minimizer.h>
+#include<minimizer/minuit2_minimizer.h>
 #include<fit/fitfunc/fitfunc_frozen.h>
 #include<fit/fitfunc/fitfunc_bounded.h>
 #include<tensors/numeric_square_matrix.h>
