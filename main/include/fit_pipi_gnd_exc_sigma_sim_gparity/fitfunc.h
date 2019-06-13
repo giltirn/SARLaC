@@ -1,6 +1,8 @@
 #ifndef _FIT_PIPI_GND_EXC_SIGMA_GPARITY_FITFUNC_H
 #define _FIT_PIPI_GND_EXC_SIGMA_GPARITY_FITFUNC_H
 
+#include "enums.h"
+
 //Define the mappings between the sub-fit parameters and the full set of parameters plus index the parameters
 typedef std::unordered_map<std::string, std::string> SubFitFuncParameterMap;
 typedef std::unordered_map<std::string,size_t> ParamTagIdxMap;
