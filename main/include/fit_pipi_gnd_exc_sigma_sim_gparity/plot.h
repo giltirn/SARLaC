@@ -1,7 +1,7 @@
 #ifndef _PIPI_STATIONARY_PLOT_H
 #define _PIPI_STATIONARY_PLOT_H
 
-void plotDeterminantTest(const std::string &file_stub, const ResampledData<jackknifeCorrelationFunction> &data, const std::vector<Operator> &ops, const int Lt){
+void plotDeterminantTest(const std::string &file_stub, const ResampledData<jackknifeCorrelationFunctionD> &data, const std::vector<Operator> &ops, const int Lt){
   struct plotdata{
     std::vector<jackknifeDistributionD> v;
     std::vector<int> t;

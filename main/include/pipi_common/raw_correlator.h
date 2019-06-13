@@ -52,15 +52,13 @@ void outputRawCorrelator(const std::string &filename, const correlationFunction<
   of.close();
 }
 
-typedef correlationFunction<double,rawDataDistributionD> rawCorrelationFunction;
-
-inline void bin(rawCorrelationFunction &raw, const int bin_size){
+inline void bin(rawDataCorrelationFunctionD &raw, const int bin_size){
   for(int i=0;i<raw.size();i++) raw.value(i) = raw.value(i).bin(bin_size);
 }
 
 //Given the parsed, raw data, compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data. This includes projecting the pipi states onto
 //a user-selected linear combination (for example projecting onto the A1 cubic representation)
-void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMomenta &raw_data,
+void getRawPiPiCorrFunc(rawDataCorrelationFunctionD &pipi_raw, const figureDataAllMomenta &raw_data,
 			const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk, const int isospin, 
 			const int bin_size, const std::string &extra_descr = "", bool output_raw_data = true){
   if(isospin != 0 && isospin != 2) error_exit(std::cout << "getRawPiPiCorrFunc only supports isospin 0,2\n");
@@ -68,7 +66,7 @@ void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMom
   const std::vector<double> coeffs = isospin == 0 ? std::vector<double>({1., 2., -6., 3.}) : std::vector<double>({-2., 2., 0., 0.});
   std::string ee = extra_descr != "" ? "_" + extra_descr : "";  
 
-  rawCorrelationFunction fig_corr[4];  
+  rawDataCorrelationFunctionD fig_corr[4];  
 
   for(int f=0;f<4;f++){
     figureData proj_data = project(figs[f], raw_data, proj_src, proj_snk);
@@ -76,7 +74,7 @@ void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMom
 
     if(output_raw_data){
       //These data are saved after binning
-      rawCorrelationFunction realavg_b(fig_corr[f]);
+      rawDataCorrelationFunctionD realavg_b(fig_corr[f]);
       bin(realavg_b, bin_size);
       outputRawCorrelator(stringize("raw_data_%cpart%s.dat",figs[f],ee.c_str()), realavg_b, coeffs[f]);
     }
@@ -87,7 +85,7 @@ void getRawPiPiCorrFunc(rawCorrelationFunction &pipi_raw, const figureDataAllMom
 }
 
 //Read pipi 2pt data into correlation function
-void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
+void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
 		 const std::string &data_dir, 
 		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 		 const int tsep_pipi, const int tstep_pipi, const int Lt,
@@ -111,7 +109,7 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bu
   getRawPiPiCorrFunc(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, 1, "", false);
 }
 
-inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
+inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
 			const std::string &data_dir, 
 			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 			const int tsep_pipi, const int tstep_pipi, const int Lt,
@@ -127,7 +125,7 @@ inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &
 
 
 //Read zero total momentum pipi 2pt data 
-inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
+inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomentaZ &raw_bubble_data,
 		 const std::string &data_dir, 
 		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 		 const int tsep_pipi, const int tstep_pipi, const int Lt,
@@ -137,7 +135,7 @@ inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomentaZ 
 	      traj_start, traj_inc, traj_lessthan, {0,0,0}, proj_src_t, proj_snk_t, isospin);
 }
 
-inline void readPiPi2pt(rawCorrelationFunction &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
+inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
 			const std::string &data_dir, 
 			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 			const int tsep_pipi, const int tstep_pipi, const int Lt,

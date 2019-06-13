@@ -58,27 +58,32 @@ public:
     return v;
   }
 
-  void generatedResampledData(const RawData &raw_data, const int bin_size, const int Lt, const int tsep_pipi, const bool do_vacuum_subtraction = true, const bool timeslice_avg_vac_sub = false){
-    const static std::vector<std::pair<Operator,Operator> > rp = {  {Operator::PiPiGnd, Operator::PiPiGnd}, {Operator::PiPiGnd,Operator::PiPiExc}, {Operator::PiPiExc,Operator::PiPiExc}, {Operator::PiPiGnd,Operator::Sigma}, {Operator::PiPiExc,Operator::Sigma}, {Operator::Sigma,Operator::Sigma} };
+  void generatedResampledData(const RawData &raw_data, const int bin_size, const int Lt, const int tsep_pipi, 
+			      const bool do_vacuum_subtraction = true, const bool timeslice_avg_vac_sub = false){
+
+    const static std::vector<std::pair<Operator,Operator> > rp = {  
+      {Operator::PiPiGnd, Operator::PiPiGnd}, {Operator::PiPiGnd,Operator::PiPiExc}, {Operator::PiPiExc,Operator::PiPiExc}, 
+      {Operator::PiPiGnd,Operator::Sigma}, {Operator::PiPiExc,Operator::Sigma}, {Operator::Sigma,Operator::Sigma} 
+    };
 
     for(auto it=rp.begin();it!=rp.end();it++)
       if(raw_data.haveData(it->first, it->second)){
-	contains.insert({it->first, it->second});
+  	contains.insert({it->first, it->second});
 
-	auto &corr = correlator(it->first, it->second);
+  	auto &corr = correlator(it->first, it->second);
 
-	//Resample	
-	corr = binResample<resampledCorrelationFunctionType>(raw_data.correlator(it->first,it->second), bin_size);
+  	//Resample	
+  	corr = binResample<resampledCorrelationFunctionType>(raw_data.correlator(it->first,it->second), bin_size);
 
-	//Vacuum subtract
-	if(do_vacuum_subtraction) corr = corr - 
-				    computeVacSub(raw_data, it->first, it->second, bin_size, tsep_pipi, timeslice_avg_vac_sub);
+  	//Vacuum subtract
+  	if(do_vacuum_subtraction) corr = corr - 
+  				    computeVacSub(raw_data, it->first, it->second, bin_size, tsep_pipi, timeslice_avg_vac_sub);
 
-	//Fold
-	corr = fold( 
-		    corr, 
-		    foldOffsetMultiplier(it->first,it->second) * tsep_pipi
-		     );
+  	//Fold
+  	corr = fold( 
+  		    corr, 
+  		    foldOffsetMultiplier(it->first,it->second) * tsep_pipi
+  		     );
 
       } 
   }
@@ -97,8 +102,33 @@ public:
   }
 };
 
-void saveCheckpoint(const ResampledData<jackknifeCorrelationFunction> &data_j,
-		    const ResampledData<doubleJackCorrelationFunction> &data_dj, 
+void saveCheckpoint(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
+		    const ResampledData<doubleJackknifeCorrelationFunctionD> &data_dj, 
+		    const ResampledData<blockDoubleJackknifeCorrelationFunctionD> &data_bdj, 
+		    const std::string &file){
+  std::cout << "Saving data checkpoint to " << file << std::endl;
+  HDF5writer wr(file);
+  data_j.write(wr, "j_data");
+  data_dj.write(wr, "dj_data");
+  data_bdj.write(wr, "bdj_data");
+}
+
+
+void loadCheckpoint(ResampledData<jackknifeCorrelationFunctionD> &data_j,
+		    ResampledData<doubleJackknifeCorrelationFunctionD> &data_dj, 
+		    ResampledData<blockDoubleJackknifeCorrelationFunctionD> &data_bdj,
+		    const std::string &file){
+  std::cout << "Reading data checkpoint from " << file << std::endl;
+  HDF5reader rd(file);
+  data_j.read(rd, "j_data");
+  data_dj.read(rd, "dj_data");
+  data_bdj.read(rd, "bdj_data");
+}
+
+
+
+void saveCheckpoint(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
+		    const ResampledData<doubleJackknifeCorrelationFunctionD> &data_dj, 
 		    const std::string &file){
   std::cout << "Saving data checkpoint to " << file << std::endl;
   HDF5writer wr(file);
@@ -107,8 +137,8 @@ void saveCheckpoint(const ResampledData<jackknifeCorrelationFunction> &data_j,
 }
 
 
-void loadCheckpoint(ResampledData<jackknifeCorrelationFunction> &data_j,
-		    ResampledData<doubleJackCorrelationFunction> &data_dj, 		    
+void loadCheckpoint(ResampledData<jackknifeCorrelationFunctionD> &data_j,
+		    ResampledData<doubleJackknifeCorrelationFunctionD> &data_dj, 		    
 		    const std::string &file){
   std::cout << "Reading data checkpoint from " << file << std::endl;
   HDF5reader rd(file);
@@ -117,7 +147,7 @@ void loadCheckpoint(ResampledData<jackknifeCorrelationFunction> &data_j,
 }
 
 
-void saveCheckpoint(const ResampledData<jackknifeCorrelationFunction> &data_j,
+void saveCheckpoint(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
 		    const std::string &file){
   std::cout << "Saving data checkpoint to " << file << std::endl;
   HDF5writer wr(file);
@@ -125,7 +155,7 @@ void saveCheckpoint(const ResampledData<jackknifeCorrelationFunction> &data_j,
 }
 
 
-void loadCheckpoint(ResampledData<jackknifeCorrelationFunction> &data_j,
+void loadCheckpoint(ResampledData<jackknifeCorrelationFunctionD> &data_j,
 		    const std::string &file){
   std::cout << "Reading data checkpoint from " << file << std::endl;
   HDF5reader rd(file);

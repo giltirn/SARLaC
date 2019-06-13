@@ -155,7 +155,7 @@ struct readReconstructPiPiToSigmaWithDisconnAllTsrcOptions{
 //Combine above, reading the pipi->sigma data and reconstructing the disconnected component for all tsrc
 //pipi_self_data_Z should be pre-projected
 template<typename ReadPolicy>
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPolicy &rp,
+rawDataCorrelationFunctionD readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPolicy &rp,
 								    const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
@@ -189,10 +189,10 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPo
   }
 
   //Source avg connected and disconnected parts and sum the contributions
-  rawCorrelationFunction correlator_raw_conn = sourceAverage(pipitosigma_conn_data);
-  rawCorrelationFunction correlator_raw_disconn = sourceAverage(pipitosigma_disconn_data);
+  rawDataCorrelationFunctionD correlator_raw_conn = sourceAverage(pipitosigma_conn_data);
+  rawDataCorrelationFunctionD correlator_raw_disconn = sourceAverage(pipitosigma_disconn_data);
 
-  rawCorrelationFunction correlator_raw = correlator_raw_conn;
+  rawDataCorrelationFunctionD correlator_raw = correlator_raw_conn;
   for(int t=0;t<Lt;t++) correlator_raw.value(t) = correlator_raw.value(t) + correlator_raw_disconn.value(t);
 
   std::cout << "Pipi->sigma raw data connected/disconnected parts:\n";
@@ -201,14 +201,14 @@ rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const ReadPo
   return correlator_raw;
 }
 
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
+rawDataCorrelationFunctionD readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const int traj_start, const int traj_inc, const int traj_lessthan,
 								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
   PiPiToSigmaBasicReadPolicy rd(data_dir, traj_start, traj_inc, traj_lessthan);
   return readReconstructPiPiToSigmaWithDisconnAllTsrc(rd, Lt, tstep_src,  proj_pipi, pipi_self_data_Z, sigma_self_data_Z, opt);
 }
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
+rawDataCorrelationFunctionD readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const int traj_start, const int traj_inc, const int traj_lessthan,
 								    const bubbleDataZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
@@ -249,14 +249,14 @@ typename AllMomentaContainerType::ContainerType projectSourcePiPiBubble(const Al
 }
 
 //This version does the pipi projection
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
+rawDataCorrelationFunctionD readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const int traj_start, const int traj_inc, const int traj_lessthan,								    
 								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){
   bubbleDataZ pipi_self_proj_Z = projectSourcePiPiBubble(pipi_self_data_Z, proj_pipi);
   return readReconstructPiPiToSigmaWithDisconnAllTsrc(data_dir, Lt, tstep_src, proj_pipi, traj_start, traj_inc, traj_lessthan, pipi_self_proj_Z, sigma_self_data_Z, opt);
 }
-rawCorrelationFunction readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
+rawDataCorrelationFunctionD readReconstructPiPiToSigmaWithDisconnAllTsrc(const std::string &file_fmt, const std::string &data_dir, const int Lt, const int tstep_src, const PiPiProjectorBase &proj_pipi,
 								    const int traj_start, const int traj_inc, const int traj_lessthan,								    
 								    const bubbleDataAllMomentaZ &pipi_self_data_Z, const sigmaSelfContractionZ &sigma_self_data_Z,
 								    const readReconstructPiPiToSigmaWithDisconnAllTsrcOptions &opt = readReconstructPiPiToSigmaWithDisconnAllTsrcOptions()){

@@ -4,7 +4,7 @@
 class RawData{
   NumericSquareMatrix<bubbleDataAllMomenta> pipi_bubble;
   NumericSquareMatrix<bubbleDataAllMomentaZ> pipi_bubble_Z;
-  NumericSquareMatrix<rawCorrelationFunction> correlators;
+  NumericSquareMatrix<rawDataCorrelationFunctionD> correlators;
   sigmaSelfContraction sigma_self;
   sigmaSelfContractionZ sigma_self_Z;
   std::set<std::pair<Operator,Operator> > contains;
@@ -22,8 +22,8 @@ public:
   inline const sigmaSelfContractionZ & SigmaBubbleZ() const{ return sigma_self_Z; }
 
   //Correlator data
-  inline rawCorrelationFunction & correlator(const Operator srcop, const Operator snkop){ return correlators((int)srcop, (int)snkop); }
-  inline const rawCorrelationFunction & correlator(const Operator srcop, const Operator snkop) const{ return correlators((int)srcop, (int)snkop); }
+  inline rawDataCorrelationFunctionD & correlator(const Operator srcop, const Operator snkop){ return correlators((int)srcop, (int)snkop); }
+  inline const rawDataCorrelationFunctionD & correlator(const Operator srcop, const Operator snkop) const{ return correlators((int)srcop, (int)snkop); }
   
   RawData(): pipi_bubble(2), pipi_bubble_Z(2), correlators(3){}
 
@@ -39,7 +39,7 @@ public:
   void iterateOverRawDistributions(const T &action){
     for(auto it=contains.begin(); it != contains.end(); it++){
       {//correlator      
-	rawCorrelationFunction &raw = correlator(it->first, it->second);
+	rawDataCorrelationFunctionD &raw = correlator(it->first, it->second);
 	for(int i=0;i<raw.size();i++) action(raw.value(i));
       }
       if( (it->first == Operator::PiPiGnd || it->first == Operator::PiPiExc) &&

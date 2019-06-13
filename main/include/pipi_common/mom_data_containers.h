@@ -117,15 +117,18 @@ struct figureDataAllMomentaExtra{
 typedef figureDataAllMomentaBase<figureData, figureDataAllMomentaExtra> figureDataAllMomenta;
 typedef figureDataAllMomentaBase<figureDataJack> figureDataJackAllMomenta;
 typedef figureDataAllMomentaBase<figureDataDoubleJack> figureDataDoubleJackAllMomenta;
+typedef figureDataAllMomentaBase<figureDataBlockDoubleJack> figureDataBlockDoubleJackAllMomenta;
 
 template<typename DistributionType>
-struct _figureDataAllMomentaTypeSelector{};
+struct _figureDataAllMomentaTypeSelector{ };
 template<>
 struct _figureDataAllMomentaTypeSelector<rawDataDistributionD>{ typedef figureDataAllMomenta type; };
 template<>
 struct _figureDataAllMomentaTypeSelector<jackknifeDistributionD>{ typedef figureDataJackAllMomenta type; };
 template<>
 struct _figureDataAllMomentaTypeSelector<doubleJackknifeDistributionD>{ typedef figureDataDoubleJackAllMomenta type; };
+template<>
+struct _figureDataAllMomentaTypeSelector<blockDoubleJackknifeDistributionD>{ typedef figureDataBlockDoubleJackAllMomenta type; };
 template<>
 struct _figureDataAllMomentaTypeSelector<bootstrapDistributionD>{ typedef figureDataAllMomentaBase<figureDataBoot>  type; };
 
@@ -220,6 +223,7 @@ typedef bubbleDataAllMomentaBase<bubbleData, bubbleDataAllMomentaExtra<bubbleDat
 typedef bubbleDataAllMomentaBase<bubbleDataZ, bubbleDataAllMomentaExtra<bubbleDataZ> > bubbleDataAllMomentaZ;
 typedef bubbleDataAllMomentaBase<bubbleDataJack> bubbleDataJackAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataDoubleJack> bubbleDataDoubleJackAllMomenta;
+typedef bubbleDataAllMomentaBase<bubbleDataBlockDoubleJack> bubbleDataBlockDoubleJackAllMomenta;
 typedef bubbleDataAllMomentaBase<bubbleDataBoot> bubbleDataBootAllMomenta;
 
 template<typename DistributionType>
@@ -232,6 +236,8 @@ template<>
 struct _bubbleDataAllMomentaTypeSelector<jackknifeDistributionD>{ typedef bubbleDataJackAllMomenta type; };
 template<>
 struct _bubbleDataAllMomentaTypeSelector<doubleJackknifeDistributionD>{ typedef bubbleDataDoubleJackAllMomenta type; };
+template<>
+struct _bubbleDataAllMomentaTypeSelector<blockDoubleJackknifeDistributionD>{ typedef bubbleDataBlockDoubleJackAllMomenta type; };
 template<>
 struct _bubbleDataAllMomentaTypeSelector<bootstrapDistributionD>{ typedef bubbleDataBootAllMomenta type; };
 

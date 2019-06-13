@@ -23,7 +23,7 @@ struct DataDescr{
   DataDescr(Operator op1, Operator op2, int t): op1(op1),op2(op2),t(t){}
 };
 
-std::vector<DataDescr> getFitDataElemIdx(const ResampledData<jackknifeCorrelationFunction> &data_j,
+std::vector<DataDescr> getFitDataElemIdx(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
 					 const std::vector<Operator> &ops, const int tsep_pipi, const int t_min, const int t_max,
 					 const Filters &filters, const bool use_filters){
   std::vector<DataDescr> keep;
@@ -143,10 +143,17 @@ int main(const int argc, const char* argv[]){
       raw_data.scrambleSamples();
   }
 
-  ResampledData<jackknifeCorrelationFunction> data_j;
-  ResampledData<doubleJackCorrelationFunction> data_dj;
+  bool do_bdj = args.covariance_matrix == CovarianceMatrix::BlockHybrid;
+
+  ResampledData<jackknifeCorrelationFunctionD> data_j;
+  ResampledData<doubleJackknifeCorrelationFunctionD> data_dj;
+  ResampledData<blockDoubleJackknifeCorrelationFunctionD> data_bdj;
   if(cmdline.load_combined_data){
-    loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
+    if(do_bdj) 
+      loadCheckpoint(data_j, data_dj, data_bdj, cmdline.load_combined_data_file);
+    else
+      loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
+
     for(int i=0;i<ops.size();i++)
       for(int j=i;j<ops.size();j++)
 	if(!data_j.haveData(ops[i],ops[j]))
@@ -154,9 +161,14 @@ int main(const int argc, const char* argv[]){
   }else{
     data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
     data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
+    if(do_bdj) data_bdj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
   }  
 
-  if(cmdline.save_combined_data) saveCheckpoint(data_j, data_dj, cmdline.save_combined_data_file);
+  if(cmdline.save_combined_data)     
+    if(do_bdj)
+      saveCheckpoint(data_j, data_dj, data_bdj, cmdline.save_combined_data_file);
+    else
+      saveCheckpoint(data_j, data_dj, cmdline.save_combined_data_file);
 
   const int nsample = data_j.getNsample();
   std::cout << "Number of binned samples is " << nsample << std::endl;
@@ -172,8 +184,10 @@ int main(const int argc, const char* argv[]){
   //Add resampled data to full data set with generalized coordinate set appropriately
   correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_j;
   correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
+  correlationFunction<SimFitCoordGen,  blockDoubleJackknifeDistributionD> corr_comb_bdj;
   filterData(corr_comb_j, data_j, keep, subfit_pmaps, args.tsep_pipi);
   filterData(corr_comb_dj, data_dj, keep, subfit_pmaps, args.tsep_pipi);
+  if(do_bdj) filterData(corr_comb_bdj, data_bdj, keep, subfit_pmaps, args.tsep_pipi);
 
   std::cout << "Data in fit:" << std::endl;
   for(int i=0;i<corr_comb_j.size();i++){
@@ -194,7 +208,8 @@ int main(const int argc, const char* argv[]){
   std::cout << "Performing any data transformations required by the fit func" << std::endl;
   transformData(corr_comb_j, args.t_min, args.t_max, args.fitfunc);
   transformData(corr_comb_dj, args.t_min, args.t_max, args.fitfunc);
- 
+  if(do_bdj) transformData(corr_comb_bdj, args.t_min, args.t_max, args.fitfunc);
+
   std::cout << "Data post-transformation:" << std::endl;
   for(int i=0;i<corr_comb_j.size();i++)
     std::cout << coordDescr(corr_comb_j.coord(i),pmap_descr) << " " << corr_comb_j.value(i) << std::endl;
@@ -211,7 +226,8 @@ int main(const int argc, const char* argv[]){
   args.exportOptions(opt);
 
   if(cmdline.corr_mat_from_unbinned_data){ //load unbinned data checkpoint for this option
-    ResampledData<jackknifeCorrelationFunction> data_j_unbinned;
+    assert(args.covariance_matrix != CovarianceMatrix::BlockHybrid);
+    ResampledData<jackknifeCorrelationFunctionD> data_j_unbinned;
     loadCheckpoint(data_j_unbinned, cmdline.unbinned_data_checkpoint);
     
     correlationFunction<SimFitCoordGen,  jackknifeDistributionD>* corr_comb_j_unbinned = new correlationFunction<SimFitCoordGen,  jackknifeDistributionD>(); 
@@ -225,8 +241,8 @@ int main(const int argc, const char* argv[]){
   }
 
   fit(params, chisq, chisq_per_dof,
-      corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.nstate, args.Lt, args.t_min, args.t_max, args.correlated, args.frozen_cov_mat, args.Ascale, args.Cscale, opt);
+      corr_comb_j, corr_comb_dj, corr_comb_bdj, args.fitfunc, param_map,
+      args.nstate, args.Lt, args.t_min, args.t_max, args.correlated, args.covariance_matrix, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n";
   {

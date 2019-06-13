@@ -60,27 +60,29 @@ auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data
 }
 
 template<typename resampledCorrelationFunction>
-resampledCorrelationFunction binResample(const rawCorrelationFunction &raw, const int bin_size){
+resampledCorrelationFunction binResample(const rawDataCorrelationFunctionD &raw, const int bin_size){
   typedef typename resampledCorrelationFunction::DataType DistributionType;
   return resampledCorrelationFunction(raw.size(),
 				       [&](const int t){ 
-					 return typename resampledCorrelationFunction::ElementType(t, DistributionType(raw.value(t).bin(bin_size)));
-				       }
-				       );
+					return typename resampledCorrelationFunction::ElementType(t, binResample<DistributionType>(raw.value(t), bin_size));
+				      }
+				      );
 }
+
+
 template<typename resampledBubbleDataAllMomentumType>
 resampledBubbleDataAllMomentumType binResample(const bubbleDataAllMomenta &bubbles, const int bin_size){
   int Lt = bubbles.getLt();
 
   resampledBubbleDataAllMomentumType out(Lt, bubbles.getTsepPiPi());
-
+  typedef typename resampledBubbleDataAllMomentumType::DistributionType DistributionType;
+  
   for(auto it = bubbles.begin(); it != bubbles.end(); it++){
     for(int t=0;t<Lt;t++)
-      out(it->first)(t).resample(it->second(t).bin(bin_size));
+      out(it->first)(t) = binResample<DistributionType>(it->second(t), bin_size);
   }
   return out;
 }
-
 
 template<typename resampledCorrelationFunction>
 resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, 
@@ -142,7 +144,7 @@ struct getResampledPiPi2ptDataOpts{
 
 //Read and combine/double-jack resample data from original files or a checkpoint of the entire data set
 template<typename FigureFilenamePolicy, typename BubbleFilenamePolicy>
-void getResampledPiPi2ptData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj,
+void getResampledPiPi2ptData(jackknifeCorrelationFunctionD &pipi_j, doubleJackknifeCorrelationFunctionD &pipi_dj,
 			     const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk,
 			     const int isospin, const int Lt, const int tsep_pipi, const int tstep_pipi, bool do_vacuum_subtraction,
 			     const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size,
@@ -151,7 +153,7 @@ void getResampledPiPi2ptData(jackknifeCorrelationFunction &pipi_j, doubleJackCor
 
   //Read the data
   bubbleDataAllMomenta raw_bubble_data;
-  rawCorrelationFunction pipi_raw;
+  rawDataCorrelationFunctionD pipi_raw;
   {
     figureDataAllMomenta raw_data;
     if(opts.load_hdf5_data_checkpoint){
@@ -169,12 +171,12 @@ void getResampledPiPi2ptData(jackknifeCorrelationFunction &pipi_j, doubleJackCor
 
   const int nsample = (traj_lessthan - traj_start)/traj_inc/bin_size;
   
-  pipi_j = binResample<jackknifeCorrelationFunction>(pipi_raw, bin_size);
-  pipi_dj = binResample<doubleJackCorrelationFunction>(pipi_raw, bin_size);
+  pipi_j = binResample<jackknifeCorrelationFunctionD>(pipi_raw, bin_size);
+  pipi_dj = binResample<doubleJackknifeCorrelationFunctionD>(pipi_raw, bin_size);
 
   if(isospin == 0 && do_vacuum_subtraction){
-    pipi_j = pipi_j - computePiPi2ptVacSub<jackknifeCorrelationFunction>(raw_bubble_data, bin_size, tsep_pipi, proj_src, proj_snk);
-    pipi_dj = pipi_dj - computePiPi2ptVacSub<doubleJackCorrelationFunction>(raw_bubble_data, bin_size, tsep_pipi, proj_src, proj_snk);
+    pipi_j = pipi_j - computePiPi2ptVacSub<jackknifeCorrelationFunctionD>(raw_bubble_data, bin_size, tsep_pipi, proj_src, proj_snk);
+    pipi_dj = pipi_dj - computePiPi2ptVacSub<doubleJackknifeCorrelationFunctionD>(raw_bubble_data, bin_size, tsep_pipi, proj_src, proj_snk);
   }
   
   pipi_j = fold(pipi_j, 2*tsep_pipi);

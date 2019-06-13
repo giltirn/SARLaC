@@ -3,4 +3,5 @@
 
 GENERATE_ENUM_AND_PARSER(FitFuncType, (FSimGenOneState)(FSimGenTwoState)(FSimGenThreeState)(FSimGenMultiState)(FSimGenMultiStateCparam)(FSimGenThreeStateLogEdiff)(FSimGenMultiStateLogEdiff)(FSimGenMultiStateSub)(FSimGenMultiStateTminSub)(FSimGenMultiStateTminSubForceZero) );
 
+GENERATE_ENUM_AND_PARSER(CovarianceMatrix, (Regular)(Frozen)(BlockHybrid) );
 #endif

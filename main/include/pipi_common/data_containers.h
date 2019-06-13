@@ -139,6 +139,7 @@ typedef bubbleDataBase<rawDataDistributionD, bubbleDataPolicies<double, setValue
 typedef bubbleDataBase<rawDataDistribution<std::complex<double> >, bubbleDataPolicies<std::complex<double>, setValueComplex> > bubbleDataZ;
 typedef bubbleDataBase<jackknifeDistributionD > bubbleDataJack;
 typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
+typedef bubbleDataBase<blockDoubleJackknifeDistributionD > bubbleDataBlockDoubleJack;
 typedef bubbleDataBase<bootstrapDistributionD > bubbleDataBoot;
 
 template<typename DistributionType>
@@ -152,8 +153,9 @@ struct _bubbleDataTypeSelector<jackknifeDistributionD>{ typedef bubbleDataJack t
 template<>
 struct _bubbleDataTypeSelector<doubleJackknifeDistributionD>{ typedef bubbleDataDoubleJack type; };
 template<>
+struct _bubbleDataTypeSelector<blockDoubleJackknifeDistributionD>{ typedef bubbleDataBlockDoubleJack type; };
+template<>
 struct _bubbleDataTypeSelector<bootstrapDistributionD>{ typedef bubbleDataBoot type; };
-
 
 template<typename DistributionType>
 using bubbleDataSelect = typename _bubbleDataTypeSelector<DistributionType>::type;
@@ -352,6 +354,7 @@ public:
 
 typedef figureDataBase<rawDataDistributionD , figureDataPolicies> figureData;
 typedef figureDataBase<doubleJackknifeDistributionD, figureDataDistributionPolicies<doubleJackknifeDistributionD> > figureDataDoubleJack;
+typedef figureDataBase<blockDoubleJackknifeDistributionD, figureDataDistributionPolicies<blockDoubleJackknifeDistributionD> > figureDataBlockDoubleJack;
 typedef figureDataBase<jackknifeDistributionD, figureDataDistributionPolicies<jackknifeDistributionD> > figureDataJack;
 typedef figureDataBase<bootstrapDistributionD, figureDataDistributionPolicies<bootstrapDistributionD> > figureDataBoot;
 
@@ -363,6 +366,8 @@ template<>
 struct _figureDataTypeSelector<jackknifeDistributionD>{ typedef figureDataJack type; };
 template<>
 struct _figureDataTypeSelector<doubleJackknifeDistributionD>{ typedef figureDataDoubleJack type; };
+template<>
+struct _figureDataTypeSelector<blockDoubleJackknifeDistributionD>{ typedef figureDataBlockDoubleJack type; };
 template<>
 struct _figureDataTypeSelector<bootstrapDistributionD>{ typedef figureDataBoot type; };
 
@@ -455,6 +460,7 @@ typedef sigmaSelfContractionBase<rawDataDistributionD , sigmaSelfContractionPoli
 typedef sigmaSelfContractionBase<rawDataDistribution<std::complex<double> > , sigmaSelfContractionPolicies<std::complex<double>, setValueComplex> > sigmaSelfContractionZ;
 typedef sigmaSelfContractionBase<jackknifeDistributionD> sigmaSelfContractionJack;
 typedef sigmaSelfContractionBase<doubleJackknifeDistributionD> sigmaSelfContractionDoubleJack;
+typedef sigmaSelfContractionBase<blockDoubleJackknifeDistributionD> sigmaSelfContractionBlockDoubleJack;
 typedef sigmaSelfContractionBase<bootstrapDistributionD> sigmaSelfContractionBoot;
 
 template<typename DistributionType>
@@ -467,6 +473,8 @@ template<>
 struct _sigmaSelfContractionTypeSelector<jackknifeDistributionD>{ typedef sigmaSelfContractionJack type; };
 template<>
 struct _sigmaSelfContractionTypeSelector<doubleJackknifeDistributionD>{ typedef sigmaSelfContractionDoubleJack type; };
+template<>
+struct _sigmaSelfContractionTypeSelector<blockDoubleJackknifeDistributionD>{ typedef sigmaSelfContractionBlockDoubleJack type; };
 template<>
 struct _sigmaSelfContractionTypeSelector<bootstrapDistributionD>{ typedef sigmaSelfContractionBoot type; };
 
@@ -482,6 +490,9 @@ inline sigmaSelfContraction reIm(const sigmaSelfContractionZ &in, const int reim
     out(t) = rawDataDistributionD(in(t).size(), [&](const int s){ return reim == 0 ? in(t).sample(s).real() : in(t).sample(s).imag(); });
   return out;
 }
+
+
+
 
 CPSFIT_END_NAMESPACE
 

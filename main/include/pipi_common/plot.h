@@ -13,19 +13,19 @@
 CPSFIT_START_NAMESPACE
 
 //two-point effective energy assuming cosh form with optional constant subtraction
-jackknifeCorrelationFunction twoPointEffectiveEnergy(const jackknifeCorrelationFunction &data_j,
+jackknifeCorrelationFunctionD twoPointEffectiveEnergy(const jackknifeCorrelationFunctionD &data_j,
 						     const jackknifeDistributionD &fitted_Epipi,
 						     const jackknifeDistributionD &fitted_constant,
 						     const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
 						     const bool subtract_constant){
-  jackknifeCorrelationFunction data_j_mod(data_j);
+  jackknifeCorrelationFunctionD data_j_mod(data_j);
   if(subtract_constant){
     for(int i=0;i<data_j_mod.size();i++) data_j_mod.value(i) = data_j_mod.value(i) - Cscale*fitted_constant;
   }
   FitCoshPlusConstant fitfunc(Lt, tsep_pipi, Ascale, Cscale);
   FitCoshPlusConstant::Params base(1,1,0); //amplitude irrelevant, E will be varied, set constant to 0
   std::cout << "Computing two-point effective energy" << std::endl;
-  return effectiveMass2pt<jackknifeCorrelationFunction,FitCoshPlusConstant>(data_j,fitfunc,base,1,Lt);
+  return effectiveMass2pt<jackknifeCorrelationFunctionD,FitCoshPlusConstant>(data_j,fitfunc,base,1,Lt);
 }
 
 
@@ -83,12 +83,12 @@ public:
   inline int Nparams() const{ return 1; }
 };
 
-jackknifeCorrelationFunction threePointEffectiveEnergy(const jackknifeCorrelationFunction &data_j,
+jackknifeCorrelationFunctionD threePointEffectiveEnergy(const jackknifeCorrelationFunctionD &data_j,
 						       const jackknifeDistributionD &fitted_Epipi,
 						       const int Lt, const int tsep_pipi, const double Ascale, const double Cscale){
   const int nsample = data_j.value(0).size();
   assert(data_j.size() == Lt);
-  jackknifeCorrelationFunction ratios(Lt-2);
+  jackknifeCorrelationFunctionD ratios(Lt-2);
   for(int i=0;i<Lt-2;i++){
     double t = data_j.coord(i);
     assert(t == double(i));
@@ -104,11 +104,11 @@ jackknifeCorrelationFunction threePointEffectiveEnergy(const jackknifeCorrelatio
   FitCoshPlusConstant::Params base(1,1,0); //amplitude and constant irrelevant, E will be varied
   std::cout << "Computing three-point effective energy" << std::endl;
   FitEffMass fiteffmass(fitfunc, base, 1);
-  return fitEffectiveMass<jackknifeCorrelationFunction,FitEffMass>(ratios,fiteffmass);
+  return fitEffectiveMass<jackknifeCorrelationFunctionD,FitEffMass>(ratios,fiteffmass);
 }
 
   
-jackknifeCorrelationFunction effectiveEnergy(const jackknifeCorrelationFunction &data_j,
+jackknifeCorrelationFunctionD effectiveEnergy(const jackknifeCorrelationFunctionD &data_j,
 					     const jackknifeDistributionD &fitted_Epipi,
 					     const jackknifeDistributionD &fitted_constant,
 					     const PiPiEffectiveEnergy effective_energy,
@@ -125,13 +125,13 @@ jackknifeCorrelationFunction effectiveEnergy(const jackknifeCorrelationFunction 
   }
 }
 
-void plot(const jackknifeCorrelationFunction &data_j,
+void plot(const jackknifeCorrelationFunctionD &data_j,
 	  const jackknifeDistributionD &fitted_Epipi,
 	  const jackknifeDistributionD &fitted_constant,
 	  const int fit_t_min, const int fit_t_max,
 	  const PiPiEffectiveEnergy effective_energy,
 	  const int Lt, const int tsep_pipi, const double Ascale, const double Cscale){
-  jackknifeCorrelationFunction E_eff = effectiveEnergy(data_j,fitted_Epipi,fitted_constant, effective_energy, Lt, tsep_pipi, Ascale, Cscale);
+  jackknifeCorrelationFunctionD E_eff = effectiveEnergy(data_j,fitted_Epipi,fitted_constant, effective_energy, Lt, tsep_pipi, Ascale, Cscale);
 
   std::cout << "Effective energy:\n" << E_eff << std::endl;
 
@@ -141,7 +141,7 @@ void plot(const jackknifeCorrelationFunction &data_j,
   plot_args["color"] = "r";
 
   //Plot the effective energy
-  typedef DataSeriesAccessor<jackknifeCorrelationFunction,ScalarCoordinateAccessor<double>,DistributionPlotAccessor<jackknifeDistributionD> > accessor;
+  typedef DataSeriesAccessor<jackknifeCorrelationFunctionD,ScalarCoordinateAccessor<double>,DistributionPlotAccessor<jackknifeDistributionD> > accessor;
   accessor effenergy_accessor(E_eff);
 
   handleType plotdata = plotter.plotData(effenergy_accessor,plot_args);

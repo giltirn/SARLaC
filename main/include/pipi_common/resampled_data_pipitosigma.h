@@ -8,9 +8,6 @@
 
 CPSFIT_START_NAMESPACE
 
-typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
-typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunction;
-
 //Assumed to be a resampled distribution type
 template<typename DistributionType>
 correlationFunction<double, DistributionType> computePiPiToSigmaVacSub(const sigmaSelfContractionBase<DistributionType> &sigma_self, 
@@ -47,8 +44,8 @@ resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContrac
   sigmaSelfContractionType sigma_self_r(Lt);
   pipiSelfContractionType pipi_self_r(Source, Lt, pipi_self.getTsepPiPi());
   for(int t=0;t<Lt;t++){
-    sigma_self_r(t).resample(sigma_self(t).bin(bin_size));
-    pipi_self_r(t).resample(pipi_self(t).bin(bin_size));
+    sigma_self_r(t) = binResample<DistributionType>(sigma_self(t), bin_size);
+    pipi_self_r(t) = binResample<DistributionType>(pipi_self(t), bin_size);
   }
   return computePiPiToSigmaVacSub(sigma_self_r, pipi_self_r);
 }

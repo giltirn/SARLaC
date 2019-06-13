@@ -185,10 +185,11 @@ void generatePartiallyFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,
 void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
 	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
 	 const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj,
+	 const correlationFunction<SimFitCoordGen,  blockDoubleJackknifeDistributionD> &corr_comb_bdj,
 	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
 	 const int nstate, const int Lt, 
 	 const int t_min, const int t_max,
-	 const bool correlated, const bool frozen_cov_mat,
+	 const bool correlated, const CovarianceMatrix covariance_matrix,
 	 const double Ascale, const double Cscale,
 	 const fitOptions &opt = fitOptions()){
   
@@ -211,16 +212,18 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
   CostType cost_type = correlated ? CostType::Correlated : CostType::Uncorrelated;  
 
   if(opt.corr_mat_from_unbinned_data){
+    assert(covariance_matrix != CovarianceMatrix::BlockHybrid);
     //For testing what effect binning has on the covariance matrix separate from any underlying error dependence, here
     //we generate the covariance matrix using the correlation matrix from the unbinned data
     //If we use frozen fits the weights sigma will be computed from the binned jackknife data and fixed for all samples,
     //otherwise for unfrozen fits sigma will be computed from binned double-jackknife data. Note in both cases the same fixed correlation matrix is used
     assert(opt.corr_comb_j_unbinned != NULL);    
 
-    if(frozen_cov_mat) generateFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_j);
+    if(covariance_matrix == CovarianceMatrix::Frozen) generateFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_j);
     else generatePartiallyFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_dj);
   }else{
-    if(frozen_cov_mat) fit.generateCovarianceMatrix(corr_comb_j, cost_type);
+    if(covariance_matrix == CovarianceMatrix::Frozen) fit.generateCovarianceMatrix(corr_comb_j, cost_type);
+    else if(covariance_matrix == CovarianceMatrix::BlockHybrid) fit.generateCovarianceMatrix(corr_comb_dj, corr_comb_bdj, cost_type);
     else fit.generateCovarianceMatrix(corr_comb_dj, cost_type);
   }
 
@@ -265,14 +268,15 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
 void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &params, jackknifeDistributionD &chisq, jackknifeDistributionD &chisq_per_dof,
 	 const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
 	 const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj,
+	 const correlationFunction<SimFitCoordGen,  blockDoubleJackknifeDistributionD> &corr_comb_bdj,
 	 FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
 	 const int Lt, 
 	 const int t_min, const int t_max,
-	 const bool correlated, const bool frozen_cov_mat, 
+	 const bool correlated, const CovarianceMatrix covariance_matrix,
 	 const double Ascale, const double Cscale,
 	 const fitOptions &opt = fitOptions()){
   assert(ffunc != FitFuncType::FSimGenMultiState);
-  fit(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, ffunc, param_map, 0, Lt, t_min, t_max, correlated, frozen_cov_mat, Ascale, Cscale, opt);
+  fit(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, corr_comb_bdj, ffunc, param_map, 0, Lt, t_min, t_max, correlated, covariance_matrix, Ascale, Cscale, opt);
 }
 
 CPSFIT_END_NAMESPACE

@@ -15,9 +15,6 @@
 
 CPSFIT_START_NAMESPACE
 
-typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
-typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunction;
-
 struct pipiFitOptions{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
@@ -33,8 +30,8 @@ struct pipiFitOptions{
 
 
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
-jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-								const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeCorrelationFunctionD &pipi_j_vacsubbed_inrange,
+								const doubleJackknifeCorrelationFunctionD &pipi_dj_vacsubbed_inrange,
 								const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
 								const pipiFitOptions &opt = pipiFitOptions()){
   typedef typename FitFunc::Params Params;
@@ -92,8 +89,8 @@ jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr(const jackknifeC
 }
   
 template<typename FitFunc>
-inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-								       const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff(const jackknifeCorrelationFunctionD &pipi_j_vacsubbed_inrange,
+								       const doubleJackknifeCorrelationFunctionD &pipi_dj_vacsubbed_inrange,
 								       const bool correlated, 
 								       const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
 								       const pipiFitOptions &opt = pipiFitOptions()){
@@ -107,8 +104,8 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff(const jac
 }
 
 //returns a pair containing the pipi energy and the constant term
-inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-								    const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit(const jackknifeCorrelationFunctionD &pipi_j_vacsubbed_inrange,
+								    const doubleJackknifeCorrelationFunctionD &pipi_dj_vacsubbed_inrange,
 								    const PiPiFitFunction fitfunc, const bool correlated,
 								    const int Lt, const int tsep_pipi, const double Ascale, const double Cscale,
 								    const pipiFitOptions &opt = pipiFitOptions()){

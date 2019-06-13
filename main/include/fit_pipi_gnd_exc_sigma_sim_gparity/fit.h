@@ -107,8 +107,9 @@ void transformData(correlationFunction<SimFitCoordGen,  DistributionType> &corr_
 	  if(!RNG.isInitialized()) RNG.initialize(1234);
 	  double w = 1e-5;
 	  int nsample = corr_comb.value(dtmin).size();
+	  DistributionType zero = corr_comb.value(dtmin);
+	  zeroit(zero);
 
-	  DistributionType zero(nsample);
 	  for(int i=0;i<iterate<DistributionType>::size(zero);i++)
 	    gaussianRandom(iterate<DistributionType>::at(i,zero), 0., w/sqrt(nsample-1)); 
 	  
