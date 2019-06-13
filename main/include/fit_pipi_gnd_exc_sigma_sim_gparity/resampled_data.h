@@ -163,4 +163,57 @@ void loadCheckpoint(ResampledData<jackknifeCorrelationFunctionD> &data_j,
 }
 
 
+
+
+
+struct DataDescr{
+  Operator op1;
+  Operator op2;
+  int t;
+  DataDescr(Operator op1, Operator op2, int t): op1(op1),op2(op2),t(t){}
+};
+
+std::vector<DataDescr> getFitDataElemIdx(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
+					 const std::vector<Operator> &ops, const int tsep_pipi, const int t_min, const int t_max,
+					 const Filters &filters, const bool use_filters){
+  std::vector<DataDescr> keep;
+  
+  for(int i=0;i<ops.size();i++){
+    for(int j=i;j<ops.size();j++){
+      std::ostringstream nm; nm << ops[i] << " " << ops[j];
+
+      for(int t=t_min;t<=t_max;t++){
+	bool skip = false;
+	std::string reason;
+	if(use_filters)
+	  for(int f=0;f<filters.filters.size();f++)
+	    if(filters.filters[f].filterOut(ops[i],ops[j],t,data_j.correlator(ops[i],ops[j]).value(t),&reason)){
+	      skip = true;
+	      std::cout << "Skipping " << nm.str() << " t=" << t << " as: " << reason << std::endl;
+	    }
+	if(skip)
+	  continue;
+
+	keep.push_back(DataDescr(ops[i],ops[j],t));
+      }
+    }
+  }
+  return keep;
+}
+
+
+template<typename DistributionType>
+void filterData(correlationFunction<SimFitCoordGen,  DistributionType> &corr_comb,
+		const ResampledData<correlationFunction<double,DistributionType> > &data,
+		const std::vector<DataDescr> &keep, 
+		const std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > &subfit_pmaps, const int tsep_pipi){
+
+  for(int i=0;i<keep.size();i++){
+    std::unordered_map<std::string, std::string> const* pmap = &subfit_pmaps.find({keep[i].op1,keep[i].op2})->second;    
+    SimFitCoordGen coord(keep[i].t, pmap, foldOffsetMultiplier(keep[i].op1,keep[i].op2)*tsep_pipi);
+    corr_comb.push_back(coord, data.correlator(keep[i].op1,keep[i].op2).value(keep[i].t));
+  }
+}
+
+
 #endif

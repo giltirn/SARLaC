@@ -123,5 +123,25 @@ void transformData(correlationFunction<SimFitCoordGen,  DistributionType> &corr_
   }
 }
 
+
+typedef std::map<std::unordered_map<std::string, std::string> const*, std::string> pmapDescrType;
+
+pmapDescrType getPmapDescriptions(const std::vector<Operator> &ops, const std::map< std::pair<Operator,Operator>, SubFitFuncParameterMap > &subfit_pmaps){
+  pmapDescrType pmap_descr; //description of the pmaps
+  for(int i=0;i<ops.size();i++)
+    for(int j=i;j<ops.size();j++){
+      std::ostringstream nm; nm << ops[i] << " " << ops[j];
+      std::unordered_map<std::string, std::string> const* pmap = &subfit_pmaps.find({ops[i],ops[j]})->second;
+      pmap_descr[pmap] = nm.str();
+    }
+  return pmap_descr;
+}
+
+inline std::string coordDescr(const SimFitCoordGen &coord, const pmapDescrType &pmap_descr){
+  std::ostringstream os; 
+  os << pmap_descr.find(coord.param_map)->second << " " << (int)coord.t;
+  return os.str();
+}
+
 #endif
 
