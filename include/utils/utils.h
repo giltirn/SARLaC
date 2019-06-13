@@ -11,5 +11,6 @@
 #include<utils/utils/memory.h>
 #include<utils/utils/filesystem.h>
 #include<utils/utils/endian.h>
+#include<utils/utils/time.h>
 
 #endif
