@@ -16,7 +16,7 @@ struct UpdateFuncGaussian{
 
   UpdateFuncGaussian(const double width): width(width){}  
 
-  double operator()(const double x) const{ return gaussianRandom<double>(x,width); }
+  double operator()(const double x, RNGstore &rng = RNG) const{ return gaussianRandom<double>(x,width,rng); }
 };
 
 //Example probability function - Gaussian
@@ -32,20 +32,20 @@ struct ProbGaussian{
 
 //Update func generates a new candidate x_i+1 based on current x_i. Must be reversible  g(x|y) = g(y|x)
 //Ffunc is a function proportional to the target distribution
-template<typename Ffunc, typename UpdateFunc>
-rawDataDistribution<double> MetropolisHastings(const int Nkeep, const int Nwarmup, const double x0, const Ffunc &f, const UpdateFunc &g){
-  double x = x0;
+template<typename T, typename Ffunc, typename UpdateFunc>
+rawDataDistribution<T> MetropolisHastings(const int Nkeep, const int Nwarmup, const T x0, const Ffunc &f, const UpdateFunc &g, RNGstore &rng = RNG, double *acceptance = NULL){
+  T x = x0;
 
-  rawDataDistribution<double> out(Nkeep);
+  rawDataDistribution<T> out(Nkeep);
 
   int naccept = 0;
 
   for(int i=0;i<Nwarmup+Nkeep;i++){
     if(i>=Nwarmup) out.sample(i-Nwarmup) = x;
 
-    double xp = g(x);
+    T xp = g(x, rng);
     double alpha = f(xp)/f(x);
-    double u = uniformRandom<double>(0.0,1.0);
+    double u = uniformRandom<double>(0.0,1.0,rng);
 
     bool accept = u <= alpha;
     if(accept) naccept++;
@@ -53,7 +53,7 @@ rawDataDistribution<double> MetropolisHastings(const int Nkeep, const int Nwarmu
     x = accept ? xp : x;
   }
 
-  std::cout << "Acceptance " << double(naccept)/(Nwarmup + Nkeep) << std::endl;
+  if(acceptance) *acceptance = double(naccept)/(Nwarmup + Nkeep);
 
   return out;
 } 

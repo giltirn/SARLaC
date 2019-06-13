@@ -100,6 +100,7 @@ public:
   template<template<typename> class U = VectorType>
   doubleJackknifeDistribution<DataType,U> toDoubleJackknife() const;
 
+  //Covariance of the means
   static DataType covariance(const jackknifeDistribution<DataType,VectorType> &a, const jackknifeDistribution<DataType,VectorType> &b){
     assert(a.size() == b.size());
     return distribution<DataType,VectorType>::covariance(a,b) * double(a.size()-1);  //like the standard error, the covariance of the jackknife samples is related to the covariance of the underlying distribution by a constant factor

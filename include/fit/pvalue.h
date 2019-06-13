@@ -80,7 +80,9 @@ public:
   static inline double pvalue(const double k, const double x){
     return 1.-CDF(k,x); //chi^2 is unit-normalized
   }
-    
+
+  inline static double mean(const double k){ return k; }
+  inline static double variance(const double k){ return 2*k; }
 };
 
 
@@ -96,7 +98,14 @@ private:
 
 public:
   static inline double PDF(const double x, const double d1, const double d2){
-    return sqrt( pow(d1*x, d1) * pow(d2,d2) / pow(d1*x + d2, d1+d2) ) / x / Beta(d1/2,d2/2);
+    double beta = Beta(d1/2,d2/2);
+    double a = pow(d1/d2, d1/2);
+    double b = pow(x, d1/2-1);
+    double c = pow( 1 + d1*x/d2, -d1/2 - d2/2);
+
+    return a*b*c/beta;
+
+    //return sqrt( pow(d1*x, d1) * pow(d2,d2) / pow(d1*x + d2, d1+d2) ) / x / Beta(d1/2,d2/2);
   }
 
 private:
@@ -144,8 +153,7 @@ public:
     int ret = gsl_sf_beta_inc_e(d1/2, d2/2, d1*x/(d1*x + d2), &r);
     if(ret != GSL_SUCCESS) error_exit(std::cout << "gsl_sf_gamma_inc_Q_e failed with error " << gsl_strerror(ret) << std::endl);
     return r.val;
-  }
-   
+  }   
 };
   
 
@@ -194,6 +202,37 @@ public:
     return result;
   }
 
+  //p(a <= T2 <= b; p,n)
+  static inline double rangeInt(const double a, const double b, const double p, const double n){
+    pdf_params pdf_p;
+    pdf_p.p = p;
+    pdf_p.n = n;
+    
+    gsl_function pdf;
+    pdf.function = &pdf_func;
+    pdf.params = &pdf_p;
+
+    //do the integral
+    gsl_integration_cquad_workspace * workspace = gsl_integration_cquad_workspace_alloc(100);
+    
+    double start = a;
+    double end = b;
+
+    double epsabs = 1e-6;
+    double epsrel = 1e-6;
+    
+    double result;
+    gsl_integration_cquad(&pdf, start, end, epsabs, epsrel, workspace, &result, NULL,NULL);
+    gsl_integration_cquad_workspace_free(workspace);
+    return result;
+  }
+
+  static inline double mean(const double p, const double n){
+    return n*p/(n-p-1);
+  }
+  static inline double variance(const double p, const double n){
+    return 2*n*n*p*(n-1)/pow(n-p-1,2)/(n-p-3);
+  }
 
   //Using built-in
   static inline double CDF(const double x, const double p, const double n){

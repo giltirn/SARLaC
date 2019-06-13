@@ -21,6 +21,26 @@ T mod2(const NumericVector<T> &m){
   return dot(m,m);
 }
 
+//Generate an orthonormal basis from a set of vectors
+template<typename T>
+std::vector<NumericVector<T> > GrammSchmidtOrthonormalize(const std::vector<NumericVector<T> > &v){
+  int n = v.size();
+  int L = v[0].size();
+  for(int i=1;i<n;i++) assert(v[i].size() == L);
+
+  std::vector<NumericVector<T> > u(n);
+  u[0] = v[0]/sqrt(mod2(v[0]));
+
+  for(int i=1;i<n;i++){
+    u[i] = v[i];
+    for(int j=0; j<i; j++)
+      u[i] = u[i] - dot(v[i], u[j])*u[j];
+    u[i] = u[i] / sqrt(mod2(u[i]));
+  }
+  return u;
+}
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

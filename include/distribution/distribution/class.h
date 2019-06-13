@@ -100,9 +100,15 @@ public:
     
     return threadedSum(op)/double(N);
 #else
-    DataType v = _data[0]*_data[0];
-    for(int i=1;i<_data.size();i++) v = v+ _data[i]*_data[i];
-    return v/double(N) - avg*avg;
+
+    //This implementation is less at risk from finite-precision errors
+    DataType v = (_data[0] - avg)*(_data[0] - avg);
+    for(int i=1;i<N;i++) v = v+ (_data[i]-avg)*(_data[i]-avg);
+    return v/double(N);
+
+    // DataType v = _data[0]*_data[0];
+    // for(int i=1;i<_data.size();i++) v = v+ _data[i]*_data[i];
+    // return v/double(N) - avg*avg;
 #endif
   }
   DataType standardDeviation() const{

@@ -28,6 +28,12 @@ public:
 
   inline DataType best() const{ return this->mean(); } //"central value" of distribution used for printing/plotting
   DataType standardError() const{ return this->standardDeviation()/sqrt(double(this->size()-1)); }
+
+  //Covariance of the means
+  static DataType covariance(const rawDataDistribution<_DataType,_VectorType> &a, const rawDataDistribution<_DataType,_VectorType> &b){
+    assert(a.size() == b.size());
+    return distribution<_DataType,_VectorType>::covariance(a,b)/double(a.size() - 1);
+  }
   
   //Compute the m'th standardized moment of the distribution
   DataType standardizedMoment(const int m) const{

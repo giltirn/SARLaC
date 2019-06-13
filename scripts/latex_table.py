@@ -33,9 +33,18 @@ def hdf5_print(filename, **kwargs):
     if(os.path.isfile(filename) == False):
         return "ERR"
 
+    debug = False;
+    if('debug' in kwargs.keys()):
+        debug = True
+        del kwargs['debug']
+
     arg_str = ""
     for a in kwargs.keys():
         arg_str = arg_str+(" -%s %s" % (a,kwargs[a]))
+
+    if(debug == True):
+        print >> sys.stderr, "DEBUG hdf5_print %s %s" % (filename, arg_str)
+
     out = os.popen("hdf5_print %s %s" % (filename,arg_str)).read()
     out = out.rstrip('\r\n')
     return out

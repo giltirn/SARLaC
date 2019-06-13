@@ -72,10 +72,143 @@ public:
     return threadedSum(op)/double(N)/pow(sigma,m);
   }
 
+  static std::vector<std::vector<int> > nonoverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+									 const int nboots = bootstrapDistributionOptions::defaultBoots()){
+    int nblock = nsample / block_size;
+    int nsample_b = nblock * block_size; //just in case block size doesn't divide the number of samples equally
+    
+    std::uniform_int_distribution<> dis(0,nblock-1);
+    std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));
+    for(int b=0;b<nboots;b++){
+      for(int i=0;i<nblock;i++){
+  	int block_idx = dis(brng());
 
+  	int to_off = block_size*i;
+  	int from_off = block_size*block_idx;
+
+  	for(int ss=0;ss<block_size;ss++)
+  	  out[b][to_off + ss] = from_off + ss;
+      }
+    }
+    return out;
+  }
+
+  inline static std::vector<std::vector<int> > nonoverlappingBlockResampleTable(const int nsample, const int block_size,
+									 const int nboots = bootstrapDistributionOptions::defaultBoots(),
+									 const int seed = bootstrapDistributionOptions::defaultSeed()){
+    RNGstore brng(seed);
+    return nonoverlappingBlockResampleTable(brng, nsample, block_size, nboots);
+  }
+
+  static std::vector<std::vector<int> > overlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+								      const int nboots = bootstrapDistributionOptions::defaultBoots()){
+    //Here we use overlapping blocks of size block_size, of which there are nsample-block_size+1. These are the blocks that are resampled
+    //We draw floor(n/block_size) of these with replacement and set them down in order, which gives n samples back
+    int nblock_ov = nsample-block_size+1;
+    int nresample = nsample/block_size;
+    int nsample_b = nresample * block_size; //just in case nsample is not evenly divisible by block size
+
+    std::uniform_int_distribution<> dis(0,nblock_ov-1);
+
+    std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));    
+    for(int b=0;b<nboots;b++){
+      for(int i=0;i<nresample;i++){
+	int block_idx = dis(brng());
+
+	int to_off = block_size*i;
+	int from_off = block_idx;
+
+	for(int ss=0;ss<block_size;ss++)
+	  out[b][to_off + ss] = from_off + ss;
+      }
+    }
+    return out;
+  }
+
+  inline static std::vector<std::vector<int> > overlappingBlockResampleTable(const int nsample, const int block_size,
+									     const int nboots = bootstrapDistributionOptions::defaultBoots(), 
+									     const int seed = bootstrapDistributionOptions::defaultSeed()){
+    RNGstore brng(seed);
+    return overlappingBlockResampleTable(brng, nsample, block_size, nboots);
+  }
+
+
+  //One problem with the overlapping block bootstrap is that the underlying samples do not appear in the blocks with equal frequency. For example, sample 0 only appears in block 0, whereas sample 1 appears in 0 and 1, sample 2 in 0,1,2 and so on up to the block size. This can apparently skew the mean away from that of the underlying ensemble. In the circular version the configurations are laid out on a circle
+  static std::vector<std::vector<int> > circularOverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+								      const int nboots = bootstrapDistributionOptions::defaultBoots()){
+    //Here we use circularly overlapping blocks of size block_size, of which there are nsample. These are the blocks that are resampled
+    //We draw floor(n/block_size) of these with replacement and set them down in order, which gives n samples back
+    int nblock_ov = nsample;
+    int nresample = nsample/block_size;
+    int nsample_b = nresample * block_size; //just in case nsample is not evenly divisible by block size
+
+    std::uniform_int_distribution<> dis(0,nblock_ov-1);
+
+    std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));    
+    for(int b=0;b<nboots;b++){
+      for(int i=0;i<nresample;i++){
+	int block_idx = dis(brng());
+
+	int to_off = block_size*i;
+	int from_off = block_idx;
+
+	for(int ss=0;ss<block_size;ss++)
+	  out[b][to_off + ss] = (from_off + ss) % nsample;
+      }
+    }
+    return out;
+  }
+
+  inline static std::vector<std::vector<int> > circularOverlappingBlockResampleTable(const int nsample, const int block_size,
+									     const int nboots = bootstrapDistributionOptions::defaultBoots(), 
+									     const int seed = bootstrapDistributionOptions::defaultSeed()){
+    RNGstore brng(seed);
+    return circularOverlappingBlockResampleTable(brng, nsample, block_size, nboots);
+  }
+
+
+
+  
+  //Generate the mapping between the resampled ensembles and the original. Output indices are [boot][sample]
+  static std::vector<std::vector<int> > resampleTable(RNGstore &brng, const int nsample, 
+						      const int nboots = bootstrapDistributionOptions::defaultBoots()){
+    std::uniform_int_distribution<> dis(0,nsample-1);
+    std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample));
+    for(int b=0;b<nboots;b++)
+      for(int i=0;i<nsample;i++)
+	out[b][i] = dis(brng());
+    return out;
+  }
+
+  inline static std::vector<std::vector<int> > resampleTable(const int nsample, 
+							     const int nboots = bootstrapDistributionOptions::defaultBoots(), 
+							     const int seed = bootstrapDistributionOptions::defaultSeed()){
+    RNGstore brng(seed);
+    return resampleTable(brng, nsample, nboots);
+  }
+
+  template<typename DistributionType>
+  void resample(const DistributionType &in, const std::vector<std::vector<int> > &table){
+    assert(table.size() == this->size());
+    int boots = this->size();
+    assert(table[0].size() == in.size());
+    int nraw = in.size();
+
+    for(int b=0;b<boots;b++){
+      zeroit(this->sample(b));
+
+      //Draw N samples with replacement
+      for(int i=0;i<nraw;i++)
+	this->sample(b) = this->sample(b) + in.sample(table[b][i]);
+      
+      this->sample(b) = this->sample(b)/nraw;
+    }
+  }
+
+  //This version generates the mapping on-the-fly. The same seed should be used for all data
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
-  void resample(const DistributionType &in){
-    RNGstore brng(bootstrapDistributionOptions::defaultSeed());
+  void resample(const DistributionType &in, const int seed = bootstrapDistributionOptions::defaultSeed()){
+    RNGstore brng(seed);
     
     this->avg = in.best();
     

@@ -18,11 +18,25 @@ private:
   RNGtype* rng;
 public:
   RNGstore(): rng(NULL){}
+  RNGstore(const RNGstore &r): rng( r.rng == NULL ? NULL : new RNGtype(*r.rng) ){}
+  RNGstore(RNGstore &&r): rng(r.rng){ r.rng = NULL; }  
+
+  RNGstore & operator=(const RNGstore &r){
+    if(rng != NULL) delete rng;
+    rng = r.rng == NULL ? NULL : new RNGtype(*r.rng);
+    return *this;
+  }
+  RNGstore & operator=(RNGstore &&r){
+    if(rng != NULL) delete rng;
+    rng = r.rng;
+    r.rng = NULL;
+    return *this;
+  }
 
   void initialize(const seedType seed){ if(rng==NULL) rng = new RNGtype(seed); }
   void initialize(){ if(rng == NULL) rng = new RNGtype(); }
   
- RNGstore(const seedType seed): rng(NULL){ initialize(seed); }
+  RNGstore(const seedType seed): rng(NULL){ initialize(seed); }
 
   bool isInitialized() const{ return rng != NULL; }
   
@@ -32,6 +46,23 @@ public:
 };
 
 RNGstore RNG; //static instance
+
+struct threadRNGstore{
+  std::vector<RNGstore> rngs;
+  typedef RNGstore::seedType seedType;
+
+  threadRNGstore(int nthr = omp_get_max_threads()): rngs(nthr){}
+
+  void initialize(const seedType seed){
+    for(int i=0;i<rngs.size();i++)
+      rngs[i].initialize( seed + 1 + i );
+  }
+    
+  RNGstore &operator()(const int thr = omp_get_thread_num()){ return rngs[thr]; }
+};
+
+threadRNGstore threadRNG;
+
 
 CPSFIT_END_NAMESPACE
 #endif
