@@ -37,6 +37,8 @@ struct SimFitCoordGen{
 
   SimFitCoordGen() = default;
   SimFitCoordGen(const double t, std::unordered_map<std::string, std::string> const* param_map, int fold_offset): t(t), param_map(param_map), fold_offset(fold_offset){}
+
+  inline bool operator==(const SimFitCoordGen &r) const{ return t==r.t && fold_offset == r.fold_offset && param_map == r.param_map; }
 };
 
 class FitSimGenOneState{
