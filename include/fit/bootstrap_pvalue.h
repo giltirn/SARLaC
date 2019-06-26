@@ -31,6 +31,8 @@ double computePvalue(const double q2, const std::vector<double> &dist){
   return (n-b_closest-1)/double(n);
 }
 
+GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(OverlappingBlock)(CircularOverlappingBlock) );
+
 
 //Note, fit_data_cen are the data that was used to obtain the fit parameters. This does not have to be the same size as raw_data nor does its coordinate type have to be the same
 //The details of how the raw data are converted into fit data is left up to the user
@@ -55,14 +57,29 @@ double bootstrapPvalue(const double q2,
 		       const RawDataContainer &raw_data, int nsample,
 		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
 		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
-		       const Resampler &resampler, FitFunctor &fitter, const int nboot = 1000, const int block_size = 1, int nthread = -1, RNGstore &rng = RNG,
+		       const Resampler &resampler, FitFunctor &fitter, const int nboot = 1000, 
+		       const BootResampleTableType table_type = BootResampleTableType::NonOverlappingBlock,
+		       const int block_size = 1, int nthread = -1, RNGstore &rng = RNG,
 		       std::vector<double> *q2_boot_p = NULL){
   const int p_fit = fit_data_cen.size();
   assert(fit_values.size() == p_fit);
 
   if(nthread = -1) nthread = omp_get_max_threads();
   assert(rng.isInitialized());
-  const std::vector<std::vector<int> > otable = bootstrapDistribution<double>::nonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); //[b][s]
+
+  std::vector<std::vector<int> > otable;  //[b][s]
+  switch(table_type){
+  case BootResampleTableType::Basic:
+    otable = bootstrapDistribution<double>::resampleTable(rng,nsample,nboot); break;
+  case BootResampleTableType::NonOverlappingBlock:
+    otable = bootstrapDistribution<double>::nonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+  case BootResampleTableType::OverlappingBlock:
+    otable = bootstrapDistribution<double>::overlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+  case BootResampleTableType::CircularOverlappingBlock:
+    otable = bootstrapDistribution<double>::circularOverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+  default:
+    assert(0);
+  }
   
   if(otable[0].size() != nsample){
     std::cout << "Samples " << nsample << " truncated to " << otable[0].size() << " due to blocking" << std::endl;
@@ -181,8 +198,10 @@ inline double bootstrapPvalue(const double q2,
 			      const correlationFunction<GeneralizedCoordinate, rawDataDistribution<ValueType> > &raw_data,
 			      const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
 			      const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
-			      const FitFunctor &fitter, const int nboot = 1000, const int block_size = 1, int nthread = -1, RNGstore &rng = RNG){
-  return bootstrapPvalue(q2, raw_data, raw_data.value(0).size(), fit_data_cen, fit_values ,CorrFuncResampler<GeneralizedCoordinate, ValueType>(), fitter, nboot, block_size, nthread, rng);
+			      const FitFunctor &fitter, const int nboot = 1000, const BootResampleTableType table_type = BootResampleTableType::NonOverlappingBlock,
+
+			      const int block_size = 1, int nthread = -1, RNGstore &rng = RNG){
+  return bootstrapPvalue(q2, raw_data, raw_data.value(0).size(), fit_data_cen, fit_values ,CorrFuncResampler<GeneralizedCoordinate, ValueType>(), fitter, nboot, table_type, block_size, nthread, rng);
 }
 
 
