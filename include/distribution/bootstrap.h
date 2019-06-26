@@ -9,5 +9,6 @@
 #include<distribution/bootstrap/hdf5_io.h>
 #include<distribution/bootstrap/qdp_binary_read.h>
 #include<distribution/bootstrap/printers.h>
+#include<distribution/bootstrap/resample_table.h>
 
 #endif

@@ -70,13 +70,13 @@ double bootstrapPvalue(const double q2,
   std::vector<std::vector<int> > otable;  //[b][s]
   switch(table_type){
   case BootResampleTableType::Basic:
-    otable = bootstrapDistribution<double>::resampleTable(rng,nsample,nboot); break;
+    otable = resampleTable(rng,nsample,nboot); break;
   case BootResampleTableType::NonOverlappingBlock:
-    otable = bootstrapDistribution<double>::nonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+    otable = nonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
   case BootResampleTableType::OverlappingBlock:
-    otable = bootstrapDistribution<double>::overlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+    otable = overlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
   case BootResampleTableType::CircularOverlappingBlock:
-    otable = bootstrapDistribution<double>::circularOverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+    otable = circularOverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
   default:
     assert(0);
   }
