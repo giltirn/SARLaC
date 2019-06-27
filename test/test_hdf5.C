@@ -1,5 +1,6 @@
 #include<distribution.h>
 #include<random.h>
+#include<containers/constrained_memory_vector.h>
 
 using namespace CPSfit;
 
@@ -262,6 +263,22 @@ int main(void){
   
     for(int i=0;i<3;i++)
       assert(rr[i] == vv[i]);
+  }
+
+  {
+    //Test vector of string
+    std::cout << "Test vector of string" << std::endl;
+    std::vector<std::string> v = { "hello" , "world" };
+    std::vector<std::string> r;
+    {
+      HDF5writer wr("test.hdf5");
+      write(wr, v, "v");
+    }
+    {
+      HDF5reader rd("test.hdf5");
+      read(rd, r, "v");
+    }
+    assert( r == v );
   }
 
   std::cout << "Passed all tests" << std::endl;
