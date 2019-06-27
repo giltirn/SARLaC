@@ -200,6 +200,7 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
     else generatePartiallyFrozenCovMatFromUnbinnedData(fit, *opt.corr_comb_j_unbinned, corr_comb_dj);
   }else{
     if(covariance_matrix == CovarianceMatrix::Frozen) fit.generateCovarianceMatrix(corr_comb_j, cost_type);
+    else if(covariance_matrix == CovarianceMatrix::Block) fit.generateCovarianceMatrix(corr_comb_bdj, cost_type);
     else if(covariance_matrix == CovarianceMatrix::BlockHybrid) fit.generateCovarianceMatrix(corr_comb_dj, corr_comb_bdj, cost_type);
     else fit.generateCovarianceMatrix(corr_comb_dj, cost_type);
   }

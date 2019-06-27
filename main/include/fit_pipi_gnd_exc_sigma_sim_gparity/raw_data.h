@@ -1,6 +1,8 @@
 #ifndef _FIT_PIPI_GND_EXC_SIGMA_GPARITY_RAW_DATA_H
 #define _FIT_PIPI_GND_EXC_SIGMA_GPARITY_RAW_DATA_H
 
+#include<utils/utils/time.h>
+
 class RawData{
   NumericSquareMatrix<bubbleDataAllMomenta> pipi_bubble;
   NumericSquareMatrix<bubbleDataAllMomentaZ> pipi_bubble_Z;
@@ -145,13 +147,49 @@ public:
     wr.leave();
   }
   void read(HDF5reader &rd, const std::string &nm){
+    timer time;
+
     rd.enter(nm);
+    std::cout << "Reading pipi bubble" << std::endl;
+    time.start();
     CPSfit::read(rd, pipi_bubble, "pipi_bubble");
+    time.stop();
+    std::cout << time.elapsed()/1e9 << "s" << std::endl;
+
+    std::cout << "Reading pipi bubbleZ" << std::endl;
+    time.start();
     CPSfit::read(rd, pipi_bubble_Z, "pipi_bubble_Z");
+    time.stop();
+    std::cout << time.elapsed()/1e9 << "s" << std::endl;
+
+
+    std::cout << "Reading correlators" << std::endl;
+    time.start();
     CPSfit::read(rd, correlators, "correlators");
+    time.stop();
+    std::cout << time.elapsed()/1e9 << "s" << std::endl;
+
+
+    std::cout << "Reading sigma bubble" << std::endl;
+    time.start();
     CPSfit::read(rd, sigma_self, "sigma_self");
+    time.stop();
+    std::cout << time.elapsed()/1e9 << "s" << std::endl;
+
+
+    std::cout << "Reading sigma bubbleZ" << std::endl;
+    time.start();
     CPSfit::read(rd, sigma_self_Z, "sigma_self_Z");
+    time.stop();
+    std::cout << time.elapsed()/1e9 << "s" << std::endl;
+
+    std::cout << "Reading map" << std::endl;
+    time.start();
     CPSfit::read(rd, contains, "contains");
+    time.stop();
+    std::cout << time.elapsed()/1e9 << "s" << std::endl;
+
+    std::cout << "Reading complete" << std::endl;
     rd.leave();
   }
 

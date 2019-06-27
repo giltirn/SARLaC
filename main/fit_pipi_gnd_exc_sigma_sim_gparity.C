@@ -74,33 +74,26 @@ int main(const int argc, const char* argv[]){
       raw_data.scrambleSamples();
   }
 
-  bool do_bdj = args.covariance_matrix == CovarianceMatrix::BlockHybrid;
+  bool do_dj = args.covariance_matrix != CovarianceMatrix::Block;
+  bool do_bdj = args.covariance_matrix == CovarianceMatrix::BlockHybrid || args.covariance_matrix == CovarianceMatrix::Block;
 
   ResampledData<jackknifeCorrelationFunctionD> data_j;
   ResampledData<doubleJackknifeCorrelationFunctionD> data_dj;
   ResampledData<blockDoubleJackknifeCorrelationFunctionD> data_bdj;
   if(cmdline.load_combined_data){
-    if(do_bdj) 
-      loadCheckpoint(data_j, data_dj, data_bdj, cmdline.load_combined_data_file);
-    else
-      loadCheckpoint(data_j, data_dj, cmdline.load_combined_data_file);
-
+    loadCheckpoint(data_j, data_dj, data_bdj, do_dj, do_bdj, cmdline.load_combined_data_file);
     for(int i=0;i<ops.size();i++)
       for(int j=i;j<ops.size();j++)
 	if(!data_j.haveData(ops[i],ops[j]))
 	  error_exit(std::cout << "Loaded checkpoint does not contain data for (" << ops[i] << ", " << ops[j] << ")\n");
   }else{
     data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
-    data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
+    if(do_dj) data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
     if(do_bdj) data_bdj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
   }  
 
-  if(cmdline.save_combined_data)     
-    if(do_bdj)
-      saveCheckpoint(data_j, data_dj, data_bdj, cmdline.save_combined_data_file);
-    else
-      saveCheckpoint(data_j, data_dj, cmdline.save_combined_data_file);
-
+  if(cmdline.save_combined_data) saveCheckpoint(data_j, data_dj, data_bdj, do_dj, do_bdj, cmdline.save_combined_data_file);     
+ 
   const int nsample = data_j.getNsample();
   std::cout << "Number of binned samples is " << nsample << std::endl;
 
@@ -117,7 +110,7 @@ int main(const int argc, const char* argv[]){
   correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
   correlationFunction<SimFitCoordGen,  blockDoubleJackknifeDistributionD> corr_comb_bdj;
   filterData(corr_comb_j, data_j, keep, subfit_pmaps, args.tsep_pipi);
-  filterData(corr_comb_dj, data_dj, keep, subfit_pmaps, args.tsep_pipi);
+  if(do_dj) filterData(corr_comb_dj, data_dj, keep, subfit_pmaps, args.tsep_pipi);
   if(do_bdj) filterData(corr_comb_bdj, data_bdj, keep, subfit_pmaps, args.tsep_pipi);
 
   std::cout << "Data in fit:" << std::endl;
@@ -138,7 +131,7 @@ int main(const int argc, const char* argv[]){
  
   std::cout << "Performing any data transformations required by the fit func" << std::endl;
   transformData(corr_comb_j, args.t_min, args.t_max, args.fitfunc);
-  transformData(corr_comb_dj, args.t_min, args.t_max, args.fitfunc);
+  if(do_dj) transformData(corr_comb_dj, args.t_min, args.t_max, args.fitfunc);
   if(do_bdj) transformData(corr_comb_bdj, args.t_min, args.t_max, args.fitfunc);
 
   std::cout << "Data post-transformation:" << std::endl;
@@ -157,7 +150,7 @@ int main(const int argc, const char* argv[]){
   args.exportOptions(opt);
 
   if(cmdline.corr_mat_from_unbinned_data){ //load unbinned data checkpoint for this option
-    assert(args.covariance_matrix != CovarianceMatrix::BlockHybrid);
+    assert(args.covariance_matrix != CovarianceMatrix::BlockHybrid && args.covariance_matrix != CovarianceMatrix::Block);
     ResampledData<jackknifeCorrelationFunctionD> data_j_unbinned;
     loadCheckpoint(data_j_unbinned, cmdline.unbinned_data_checkpoint);
     

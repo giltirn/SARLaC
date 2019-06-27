@@ -105,24 +105,26 @@ public:
 void saveCheckpoint(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
 		    const ResampledData<doubleJackknifeCorrelationFunctionD> &data_dj, 
 		    const ResampledData<blockDoubleJackknifeCorrelationFunctionD> &data_bdj, 
+		    const bool do_dj, const bool do_bdj,
 		    const std::string &file){
   std::cout << "Saving data checkpoint to " << file << std::endl;
   HDF5writer wr(file);
   data_j.write(wr, "j_data");
-  data_dj.write(wr, "dj_data");
-  data_bdj.write(wr, "bdj_data");
+  if(do_dj) data_dj.write(wr, "dj_data");
+  if(do_bdj) data_bdj.write(wr, "bdj_data");
 }
 
 
 void loadCheckpoint(ResampledData<jackknifeCorrelationFunctionD> &data_j,
 		    ResampledData<doubleJackknifeCorrelationFunctionD> &data_dj, 
 		    ResampledData<blockDoubleJackknifeCorrelationFunctionD> &data_bdj,
+		    const bool do_dj, const bool do_bdj,
 		    const std::string &file){
   std::cout << "Reading data checkpoint from " << file << std::endl;
   HDF5reader rd(file);
   data_j.read(rd, "j_data");
-  data_dj.read(rd, "dj_data");
-  data_bdj.read(rd, "bdj_data");
+  if(do_dj) data_dj.read(rd, "dj_data");
+  if(do_bdj) data_bdj.read(rd, "bdj_data");
 }
 
 
