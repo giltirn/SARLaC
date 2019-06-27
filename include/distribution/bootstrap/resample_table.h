@@ -100,6 +100,46 @@ inline static std::vector<std::vector<int> > circularOverlappingBlockResampleTab
 }
 
 
+static std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+									       const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  int nblock = nsample / block_size;
+  int nsample_b = nblock * block_size; //just in case block size doesn't divide the number of samples equally
+    
+  //Generate B copies of the indices 0...nblock-1
+  std::vector<int> idxB( nboots * nblock );
+  int q=0;
+  for(int b=0;b<nboots;b++)
+    for(int i=0;i<nblock;i++)
+      idxB[q++] = i;
+
+  //Randomly permute
+  idxB = randomPermutation(idxB, brng);
+
+  //Generate resample table from the result
+  std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));
+
+  q = 0;
+  for(int b=0;b<nboots;b++){
+    for(int i=0;i<nblock;i++){
+      int block_idx = idxB[q++];
+
+      int to_off = block_size*i;
+      int from_off = block_size*block_idx;
+
+      for(int ss=0;ss<block_size;ss++)
+	out[b][to_off + ss] = from_off + ss;
+    }
+  }
+  return out;
+}
+
+inline static std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(const int nsample, const int block_size,
+										      const int nboots = bootstrapDistributionOptions::defaultBoots(),
+										      const int seed = bootstrapDistributionOptions::defaultSeed()){
+  RNGstore brng(seed);
+  return balancedNonoverlappingBlockResampleTable(brng, nsample, block_size, nboots);
+}
+
 
   
 //Generate the mapping between the resampled ensembles and the original. Output indices are [boot][sample]
@@ -119,6 +159,9 @@ inline static std::vector<std::vector<int> > resampleTable(const int nsample,
   RNGstore brng(seed);
   return resampleTable(brng, nsample, nboots);
 }
+
+
+
 
 
 

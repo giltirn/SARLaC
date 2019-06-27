@@ -31,7 +31,7 @@ double computePvalue(const double q2, const std::vector<double> &dist){
   return (n-b_closest-1)/double(n);
 }
 
-GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(OverlappingBlock)(CircularOverlappingBlock) );
+GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(OverlappingBlock)(CircularOverlappingBlock)(BalancedNonOverlappingBlock) );
 
 
 //Note, fit_data_cen are the data that was used to obtain the fit parameters. This does not have to be the same size as raw_data nor does its coordinate type have to be the same
@@ -77,6 +77,8 @@ double bootstrapPvalue(const double q2,
     otable = overlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
   case BootResampleTableType::CircularOverlappingBlock:
     otable = circularOverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+  case BootResampleTableType::BalancedNonOverlappingBlock:
+    otable = balancedNonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
   default:
     assert(0);
   }

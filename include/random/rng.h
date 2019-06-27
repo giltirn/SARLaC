@@ -7,6 +7,7 @@
 
 #include<config.h>
 #include<utils/macros.h>
+#include<omp.h>
 
 CPSFIT_START_NAMESPACE
 
