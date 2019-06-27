@@ -17,22 +17,6 @@ class HDF5writer{
   H5::H5File file;
   std::vector<H5::Group> group;
 
-  //Write array types
-  template<typename T, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
-  void write(T const* v, const int sz, const std::string &name){
-    using namespace H5;
-    const DataType &type = H5typeMap<T>::type();
-    hsize_t len(sz);
-    DataSpace dataSpace(1, &len);
-    std::size_t byte_size = sz * sizeof(T);    
-    if(byte_size > 64*1024){ //write as a data set
-      DataSet dataSet = group.back().createDataSet(name.c_str(),type, dataSpace);
-      dataSet.write(v,type);
-    }else{
-      Attribute attribute = group.back().createAttribute(name.c_str(),type, dataSpace);
-      attribute.write(type,v);
-    }  
-  }
 public:
   HDF5writer(const std::string &filename): file(filename.c_str(), H5F_ACC_TRUNC ){
     H5::Exception::dontPrint();
@@ -40,7 +24,7 @@ public:
   }
 
   //Write a single value as an attribute
-  template<typename T, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
+  template<typename T, IF_NATIVE(T)>
   void write(const T &v, const std::string &name){
     using namespace H5;
     hsize_t attrDim = 1;
@@ -50,26 +34,26 @@ public:
     attribute.write(type, &v);    
   }
 
-  //Write vector types
-  template<typename T, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
-  inline void write(const std::vector<T> &v, const std::string &name){
-    write(v.data(),v.size(),name);
+  //Write a generic array. Array type must be able to provide a pointer to a contiguous memory region.
+  //Requires a policy class specifying:
+  //ArrayType, ElementType (must be a native type),  static int size(const ArrayType &),  static ElementType const* pointer(const ArrayType &v)
+  template<typename ArrayPolicy, IF_NATIVE(typename ArrayPolicy::ElementType)>
+  void write(const typename ArrayPolicy::ArrayType &v, const std::string &name){
+    typedef typename ArrayPolicy::ElementType T;
+    using namespace H5;
+    const DataType &type = H5typeMap<T>::type();
+    hsize_t len = ArrayPolicy::size(v);
+    DataSpace dataSpace(1, &len);
+    std::size_t byte_size = len * sizeof(T);    
+    T const * ptr = ArrayPolicy::pointer(v);
+    if(byte_size > 64*1024){ //write as a data set
+      DataSet dataSet = group.back().createDataSet(name.c_str(),type, dataSpace);
+      dataSet.write(ptr,type);
+    }else{
+      Attribute attribute = group.back().createAttribute(name.c_str(),type, dataSpace);
+      attribute.write(type,ptr);
+    }  
   }
-  //Write array types
-  template<typename T, std::size_t Size, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
-  inline void write(const std::array<T,Size> &v, const std::string &name){
-    write(v.data(),Size,name);
-  }
-  //Write string
-  inline void write(const std::string &v, const std::string &name){
-    return write(v.data(),v.size(),name);
-  }
-  //Write complex
-  template<typename T>
-  inline void write(const std::complex<T> &v, const std::string &name){
-    return write(reinterpret_cast<T const*>(&v), 2, name);
-  }
-
   
   void enter(const std::string &nm){
     try{
@@ -82,8 +66,6 @@ public:
     group.pop_back();
   }    
 };
-
-
 
 CPSFIT_END_NAMESPACE
 

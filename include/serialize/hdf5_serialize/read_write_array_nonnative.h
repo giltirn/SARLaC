@@ -8,84 +8,21 @@
 
 #include<utils/template_wizardry.h>
 #include<serialize/hdf5_serialize/read_write_basic.h>
+#include<serialize/hdf5_serialize/read_array.h>
+#include<serialize/hdf5_serialize/write_array.h>
 
 CPSFIT_START_NAMESPACE
 
-template<typename T, int>
-struct _isDistributionOfHDF5nativetype{ enum {value = 0}; };
-
-template<typename T>
-struct _isDistributionOfHDF5nativetype<T,1>{ enum {value = H5typeMap<typename T::DataType>::is_native}; }; 
-
-template<typename T>
-struct isDistributionOfHDF5nativetype{ enum {value = _isDistributionOfHDF5nativetype<T,hasSampleMethod<T>::value>::value }; };    
-
-  
-//Non-native vectors (but not distributions, they are specialized elsewhere)
-template<typename T, typename std::enable_if<!H5typeMap<T>::is_native && !isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
-inline static void write(HDF5writer &writer, const std::vector<T> &value, const std::string &tag){
-  writer.enter(tag); //enter a group
-  unsigned long size = value.size();
-  writer.write(size,"size");  
-  for(int i=0;i<value.size();i++){
-    std::ostringstream os;
-    os << "elem_" << i;
-    write(writer,value[i],os.str());
-  }
-  writer.leave();
-}
-template<typename T, typename std::enable_if<!H5typeMap<T>::is_native && !isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
-inline static void read(HDF5reader &reader, std::vector<T> &value, const std::string &tag){
-  reader.enter(tag); //enter a group
-  unsigned long size;
-  reader.read(size,"size");
-  value.resize(size);
-  for(int i=0;i<value.size();i++){
-    std::ostringstream os;
-    os << "elem_" << i;
-    read(reader,value[i],os.str());
-  }
-  reader.leave();
-}
-
-//Non-native arrays
-template<typename T, std::size_t Size, typename std::enable_if<!H5typeMap<T>::is_native, int>::type = 0>
-inline static void write(HDF5writer &writer, const std::array<T,Size> &value, const std::string &tag){
-  writer.enter(tag); //enter a group
-  unsigned long size = value.size();
-  writer.write(size,"size");  
-  for(int i=0;i<value.size();i++){
-    std::ostringstream os;
-    os << "elem_" << i;
-    write(writer,value[i],os.str());
-  }
-  writer.leave();
-}
-template<typename T, std::size_t Size, typename std::enable_if<!H5typeMap<T>::is_native, int>::type = 0>
-inline static void read(HDF5reader &reader, std::array<T,Size> &value, const std::string &tag){
-  reader.enter(tag); //enter a group
-  unsigned long size;
-  reader.read(size,"size");
-  assert(size == Size);
-  for(int i=0;i<value.size();i++){
-    std::ostringstream os;
-    os << "elem_" << i;
-    read(reader,value[i],os.str());
-  }
-  reader.leave();
-}
-
-
-//Non-native vector<vector>
-template<typename T, typename std::enable_if<!H5typeMap<T>::is_native && !isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
+//Non-native vector<vector> collapse the two arrays into one to avoid metadata overheads
+template<typename T, IF_NOT_NATIVE(T), IF_NOT_DISTRIBUTION_NATIVE(T)>
 inline static void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const std::string &tag){
   writer.enter(tag); //enter a group
   unsigned long size1 = value.size();
-  writer.write(size1,"size1");
+  write(writer, size1,"size1");
   
   std::vector<unsigned long> size2(value.size());
   for(int i=0;i<value.size();i++) size2[i] = value[i].size();  
-  writer.write(size2,"size2");
+  writeCompact(writer, size2,"size2");
   
   for(int i=0;i<value.size();i++){
     for(int j=0;j<value[i].size();j++){    
@@ -96,14 +33,14 @@ inline static void write(HDF5writer &writer, const std::vector<std::vector<T> > 
   }
   writer.leave();
 }
-template<typename T, typename std::enable_if<!H5typeMap<T>::is_native && !isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
+template<typename T, IF_NOT_NATIVE(T), IF_NOT_DISTRIBUTION_NATIVE(T)>
 inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::string &tag){
   reader.enter(tag); //enter a group
   unsigned long size1;
-  reader.read(size1,"size1");
+  read(reader, size1,"size1");
   
   std::vector<unsigned long> size2;
-  reader.read(size2,"size2");
+  readCompact(reader, size2,"size2");
 
   value.resize(size1);
   for(int i=0;i<value.size();i++){
@@ -119,21 +56,7 @@ inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value,
 
 
 
-//Non-native complex
-template<typename T, typename std::enable_if<!H5typeMap<T>::is_native, int>::type = 0>
-inline static void write(HDF5writer &writer, const std::complex<T> &value, const std::string &tag){
-  writer.enter(tag); //enter a group
-  write(writer, value.real(), "real");
-  write(writer, value.imag(), "imag");
-  writer.leave();
-}
-template<typename T, typename std::enable_if<!H5typeMap<T>::is_native, int>::type = 0>
-inline static void read(HDF5reader &reader, std::complex<T> &value, const std::string &tag){
-  reader.enter(tag); //enter a group
-  read(reader,reinterpret_cast<T(&)[2]>(value)[0],"real");
-  read(reader,reinterpret_cast<T(&)[2]>(value)[1],"imag");
-  reader.leave();
-}
+
 
 
 CPSFIT_END_NAMESPACE

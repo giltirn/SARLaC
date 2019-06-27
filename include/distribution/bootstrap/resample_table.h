@@ -2,6 +2,7 @@
 #define _BOOTSTRAP_RESAMPLE_TABLE_H_
 
 #include<distribution/bootstrap/class.h>
+#include<random/utils.h>
 
 CPSFIT_START_NAMESPACE
 

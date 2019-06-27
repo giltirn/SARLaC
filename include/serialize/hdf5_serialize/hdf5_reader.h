@@ -13,37 +13,36 @@ CPSFIT_START_NAMESPACE
 
  
 class HDF5reader{
-  template<typename T>
-  struct HDF5readerVectorPolicy{
-    typedef std::vector<T> ArrayType;
-    typedef T ElementType;
-    inline static void resize(ArrayType &v, const int sz){ v.resize(sz); }
-    inline static ElementType* pointer(ArrayType &v){ return v.data(); }
-  };
-  template<typename T, std::size_t Size>
-  struct HDF5readerArrayPolicy{
-    typedef std::array<T,Size> ArrayType;
-    typedef T ElementType;
-    inline static void resize(ArrayType &v, const int sz){ assert(sz == Size); }
-    inline static ElementType* pointer(ArrayType &v){ return v.data(); }
-  };
-  struct HDF5readerStringPolicy{
-    typedef std::string ArrayType;
-    typedef char ElementType;
-    inline static void resize(ArrayType &v, const int sz){ v.resize(sz); }
-    inline static ElementType* pointer(ArrayType &v){ return &v[0]; }
-  };
-  template<typename T>
-  struct HDF5readerComplexPolicy{
-    typedef std::complex<T> ArrayType;
-    typedef T ElementType;
-    inline static void resize(ArrayType &v, const int sz){ assert(sz == 2); }
-    inline static ElementType* pointer(ArrayType &v){ return reinterpret_cast<T*>(&v); }
-  };
   H5::H5File file;
   std::vector<H5::Group> group;
 
-  template<typename ArrayPolicy>
+  static inline std::string filenameCheck(const std::string &filename){
+    if(!fileExists(filename)) error_exit(std::cout << "HDF5reader constructor: File " << filename << " does not exist\n");
+    return filename;
+  }
+
+public:
+  HDF5reader(const std::string &filename): file(filenameCheck(filename).c_str(), H5F_ACC_RDONLY){
+    H5::Exception::dontPrint();
+    group.push_back(file.openGroup("/"));
+  }
+
+  //Read a single value as an attribute
+  template<typename T, IF_NATIVE(T)>
+  void read(T &v, const std::string &name){
+    using namespace H5;
+    Attribute attribute = group.back().openAttribute(name.c_str());
+    DataSpace space = attribute.getSpace();
+    hsize_t sz = space.getSimpleExtentNpoints();
+    assert(sz == 1);
+    const DataType &type = H5typeMap<T>::type();
+    attribute.read(type, &v);
+  }
+
+  //Read a generic array. Array type must be able to provide a pointer to a contiguous memory region.
+  //Requires a policy class specifying:
+  //ArrayType, ElementType (must be a native type),  static void resize(ArrayType &, const hsize_t sz),  static ElementType* pointer(ArrayType &v)
+  template<typename ArrayPolicy, IF_NATIVE(typename ArrayPolicy::ElementType)>
   void read(typename ArrayPolicy::ArrayType &v, const std::string &name){
     typedef typename ArrayPolicy::ElementType T;    
     using namespace H5;
@@ -73,44 +72,6 @@ class HDF5reader{
     }
   }
 
-  static inline std::string filenameCheck(const std::string &filename){
-    if(!fileExists(filename)) error_exit(std::cout << "HDF5reader constructor: File " << filename << " does not exist\n");
-    return filename;
-  }
-
-public:
-  HDF5reader(const std::string &filename): file(filenameCheck(filename).c_str(), H5F_ACC_RDONLY){
-    H5::Exception::dontPrint();
-    group.push_back(file.openGroup("/"));
-  }
-
-  //Read a single value as an attribute
-  template<typename T, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
-  void read(T &v, const std::string &name){
-    using namespace H5;
-    Attribute attribute = group.back().openAttribute(name.c_str());
-    DataSpace space = attribute.getSpace();
-    hsize_t sz = space.getSimpleExtentNpoints();
-    assert(sz == 1);
-    const DataType &type = H5typeMap<T>::type();
-    attribute.read(type, &v);
-  }
-  template<typename T, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
-  inline void read(std::vector<T> &v, const std::string &name){
-    read<HDF5readerVectorPolicy<T> >(v,name);
-  }
-  template<typename T, std::size_t Size, typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0>
-  void read(std::array<T,Size> &v, const std::string &name){
-    read<HDF5readerArrayPolicy<T,Size> >(v,name);
-  }  
-  inline void read(std::string &v, const std::string &name){
-    read<HDF5readerStringPolicy>(v,name);
-  }
-  template<typename T>
-  inline void read(std::complex<T> &v, const std::string &name){
-    read<HDF5readerComplexPolicy<T> >(v,name);
-  }
-
   void enter(const std::string &nm){
     try{
       group.push_back(group.back().openGroup(nm.c_str()));
@@ -120,6 +81,15 @@ public:
   }
   void leave(){
     group.pop_back();
+  }
+
+  inline bool containsGroup(const std::string &name) const{
+    try{
+      H5::Group grp = group.back().openGroup(name.c_str());
+    }catch(H5::Exception& e){
+      return false;
+    }
+    return true;
   }
 
   bool contains(const std::string &name) const{
@@ -149,8 +119,6 @@ public:
     }
   }
 };
-
-
 
 CPSFIT_END_NAMESPACE
 

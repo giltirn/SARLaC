@@ -38,7 +38,7 @@ struct extraFlattenIO{
 };
 
 //Vectors of distributions
-template<typename DistributionType, typename std::enable_if<isDistributionOfHDF5nativetype<DistributionType>::value, int>::type = 0>
+template<typename DistributionType, IF_DISTRIBUTION_NATIVE(DistributionType)>
 void write(HDF5writer &writer, const std::vector<DistributionType> &value, const std::string &tag, bool flatten = true){
   writer.enter(tag);
   unsigned long size = value.size();
@@ -66,7 +66,7 @@ void write(HDF5writer &writer, const std::vector<DistributionType> &value, const
   }    
   writer.leave();
 }
-template<typename DistributionType, typename std::enable_if<isDistributionOfHDF5nativetype<DistributionType>::value, int>::type = 0>
+template<typename DistributionType, IF_DISTRIBUTION_NATIVE(DistributionType)>
 void read(HDF5reader &reader, std::vector<DistributionType> &value, const std::string &tag, bool flattened = true){
   reader.enter(tag);
   unsigned long size;
@@ -98,16 +98,16 @@ void read(HDF5reader &reader, std::vector<DistributionType> &value, const std::s
 }
 
 //Vector-vector of distributions
-template<typename T, typename std::enable_if<isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
+template<typename T, IF_DISTRIBUTION_NATIVE(T)>
 void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const std::string &tag, bool flatten = true){
   writer.enter(tag); //enter a group
 
   unsigned long size1 = value.size();
-  writer.write(size1,"size1");
+  write(writer, size1,"size1");
   
   std::vector<unsigned long> size2(value.size());
   for(int i=0;i<value.size();i++) size2[i] = value[i].size();  
-  writer.write(size2,"size2");
+  writeCompact(writer, size2,"size2");
   
   if(flatten){
     int nsample = value.size() != 0 && value[0].size() != 0 ? value[0][0].size() : 0;    
@@ -143,14 +143,14 @@ void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const 
   writer.leave();
 }
 
-template<typename T, typename std::enable_if<isDistributionOfHDF5nativetype<T>::value, int>::type = 0>
+template<typename T, IF_DISTRIBUTION_NATIVE(T)>
 void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::string &tag, bool flattened = true){
   reader.enter(tag); //enter a group
   unsigned long size1;
-  reader.read(size1,"size1");
+  read(reader, size1,"size1");
   
   std::vector<unsigned long> size2;
-  reader.read(size2,"size2");
+  readCompact(reader, size2,"size2");
 
   value.resize(size1);
   for(int i=0;i<value.size();i++)

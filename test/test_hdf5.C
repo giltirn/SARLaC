@@ -173,6 +173,7 @@ void read(HDF5reader &reader, S &value, const std::string &tag){
 int main(void){
   RNG.initialize(1245);
 #ifdef HAVE_HDF5
+
   std::cout << "Running test\n\n\n";
   testBasic<distribution<double> >();
   testBasic<rawDataDistribution<double> >();
@@ -219,22 +220,51 @@ int main(void){
       read(reader,u,"value");
     }
     assert(v == u);
-
-    std::cout << "Testing IO for std::complex<S>" << std::endl;
-    std::complex<S> s(  S(12.66, 0.354), S(-0.76, 1234) );
-    {
-      HDF5writer writer("test.hdf5");
-      write(writer,s,"value");
-    }
-    std::complex<S> t;
-    {
-      HDF5reader reader("test.hdf5");
-      read(reader,t,"value");
-    }
-    assert(s == t);
   }
-  
 
+  {
+    std::cout << "Testing complex, vector and distribution of complex" << std::endl;
+    std::complex<double> v(2.2,3.3);
+    std::vector<std::complex<double> > vv(3, v);
+    jackknifeDistribution<std::complex<double> > vvv(3, v);
+
+    std::complex<double> r;
+    std::vector<std::complex<double> > rr;
+    jackknifeDistribution<std::complex<double> > rrr;
+
+    {
+      HDF5writer wr("test.hdf5");
+      write(wr, v, "z1");
+      write(wr, vv, "zv1");    
+      write(wr, vvv, "zd1");
+    }
+    {
+      HDF5reader rd("test.hdf5");    
+      read(rd, r, "z1");
+      read(rd, rr, "zv1");
+      read(rd, rrr, "zd1");
+    }
+  
+    assert(r == v);
+    assert(rrr == vvv);
+    for(int i=0;i<3;i++)
+      assert(rr[i] == vv[i]);
+
+    //Test to ensure complex vector writes un uncompact format can also be read by default read command (ensuring backwards compatibility)
+    {
+      HDF5writer wr("test.hdf5");
+      writeUncompact(wr, vv, "zv1");    
+    }
+    {
+      HDF5reader rd("test.hdf5");    
+      read(rd, rr, "zv1");
+    }
+  
+    for(int i=0;i<3;i++)
+      assert(rr[i] == vv[i]);
+  }
+
+  std::cout << "Passed all tests" << std::endl;
 
 #else
   std::cout << "HDF5 not being used\n";

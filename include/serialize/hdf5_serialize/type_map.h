@@ -40,6 +40,24 @@ H5_TYPE_MAP(float, NATIVE_FLOAT);
 H5_TYPE_MAP(double, NATIVE_DOUBLE);
 H5_TYPE_MAP(long double, NATIVE_LDOUBLE);
 
+
+#define IF_NATIVE(T)  typename std::enable_if<H5typeMap<T>::is_native, int>::type = 0
+#define IF_NOT_NATIVE(T)  typename std::enable_if<!H5typeMap<T>::is_native, int>::type = 0
+
+
+
+template<typename T, int>
+struct _isDistributionOfHDF5nativetype{ enum {value = 0}; };
+
+template<typename T>
+struct _isDistributionOfHDF5nativetype<T,1>{ enum {value = H5typeMap<typename T::DataType>::is_native}; }; 
+
+template<typename T>
+struct isDistributionOfHDF5nativetype{ enum {value = _isDistributionOfHDF5nativetype<T,hasSampleMethod<T>::value>::value }; };   
+
+#define IF_DISTRIBUTION_NATIVE(T) typename std::enable_if<isDistributionOfHDF5nativetype<T>::value, int>::type = 0
+#define IF_NOT_DISTRIBUTION_NATIVE(T) typename std::enable_if<!isDistributionOfHDF5nativetype<T>::value, int>::type = 0
+
 CPSFIT_END_NAMESPACE
 
 #endif
