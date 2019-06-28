@@ -17,6 +17,7 @@ typedef std::array<int,3> int_array_3;
   ( int, tstep_pipi) \
   ( bool, do_vacuum_subtraction ) \
   ( int, t_max) \
+  ( bool, double_jackknife_cov)			\
   ( int, fit_tmin )				\
   ( int, fit_tmax )				\
   ( int, fit_t0min )				\
@@ -33,7 +34,7 @@ struct Args{
     pipi_figure_file_format("traj_<TRAJ>_Figure<FIG>_sep<TSEP_PIPI>_p1src<P1SRC>_p2src<P2SRC>_p1snk<P1SNK>_p2snk<P2SNK>_symm"), 
     pipi_bubble_file_format("traj_<TRAJ>_FigureVdis_sep<TSEP_PIPI>_pi1mom<PB>_pi2mom<PA>_symm"),
     operators({Operator::PiPiComoveGnd, Operator::PiPiComoveExc1, Operator::PiPiComoveExc2}),
-    p_tot({{2,0,0}}), do_vacuum_subtraction(false),
+    p_tot({{2,0,0}}), do_vacuum_subtraction(false),double_jackknife_cov(true),
     isospin(0),Lt(64), tsep_pipi(4), tstep_pipi(8), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), bin_size(1), fit_tmin(7), fit_tmax(11), fit_t0min(7), fit_t0max(11){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)

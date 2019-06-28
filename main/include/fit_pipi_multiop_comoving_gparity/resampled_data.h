@@ -75,8 +75,8 @@ void read(HDF5reader &rd, ResampledData<T> &d, const std::string &nm){
 
 
 
-void saveCheckpoint(const std::map<threeMomentum, ResampledData<jackknifeCorrelationFunction> > &data_j,
-		    const std::map<threeMomentum, ResampledData<doubleJackCorrelationFunction> > &data_dj, 
+void saveCheckpoint(const std::map<threeMomentum, ResampledData<jackknifeCorrelationFunctionD> > &data_j,
+		    const std::map<threeMomentum, ResampledData<doubleJackknifeCorrelationFunctionD> > &data_dj, 
 		    const std::string &file){
   std::cout << "Saving data checkpoint to " << file << std::endl;
   HDF5writer wr(file);
@@ -85,8 +85,8 @@ void saveCheckpoint(const std::map<threeMomentum, ResampledData<jackknifeCorrela
 }
 
 
-void loadCheckpoint(std::map<threeMomentum, ResampledData<jackknifeCorrelationFunction> > &data_j,
-		    std::map<threeMomentum, ResampledData<doubleJackCorrelationFunction> > &data_dj,
+void loadCheckpoint(std::map<threeMomentum, ResampledData<jackknifeCorrelationFunctionD> > &data_j,
+		    std::map<threeMomentum, ResampledData<doubleJackknifeCorrelationFunctionD> > &data_dj,
 		    const std::string &file){
   std::cout << "Reading data checkpoint from " << file << std::endl;
   HDF5reader rd(file);

@@ -65,10 +65,15 @@ int main(const int argc, const char* argv[]){
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;      
 
   //Load/generate resampled data
-  std::map<threeMomentum, ResampledData<jackknifeCorrelationFunction> > data_j;
+  std::map<threeMomentum, ResampledData<jackknifeCorrelationFunctionD> > data_j;
+  std::map<threeMomentum, ResampledData<doubleJackknifeCorrelationFunctionD> > data_dj;
 
   if(cmdline.load_combined_data){
-    loadCheckpoint(data_j, cmdline.load_combined_data_file);
+    if(args.double_jackknife_cov)
+      loadCheckpoint(data_j,data_dj, cmdline.load_combined_data_file);
+    else
+      loadCheckpoint(data_j, cmdline.load_combined_data_file);
+
     for(int p=0;p<args.p_tot.size();p++){
       auto it = data_j.find(args.p_tot[p]);
       assert(it!=data_j.end());
@@ -80,57 +85,64 @@ int main(const int argc, const char* argv[]){
   }else{
     for(int p=0;p<args.p_tot.size();p++){
       auto ptot = args.p_tot[p];
-      data_j[ptot].generatedResampledData(raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
+      data_j[ptot].generatedResampledData(ops, raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
+      if(args.double_jackknife_cov)
+	data_dj[ptot].generatedResampledData(ops, raw_data[ptot], args.bin_size, args.isospin, args.Lt, args.tsep_pipi, ptot, args.do_vacuum_subtraction);
     }
-  }  
+  } 
 
   if(cmdline.save_combined_data) saveCheckpoint(data_j, cmdline.save_combined_data_file);
 
   //Put resampled data into matrices
-  correlationFunction<double, NumericSquareMatrix<jackknifeDistributionD> > C(args.Lt);
-  for(int t=0;t<args.Lt;t++){
-    C.coord(t) = t;
-    C.value(t).resize(nop);
+  correlationFunction<double, NumericSquareMatrix<jackknifeDistributionD> > C = createCorrelatorMatrix(data_j,args.Lt,ops,args.p_tot);
+  correlationFunction<double, NumericSquareMatrix<doubleJackknifeDistributionD> > Cdj;
+  if(args.double_jackknife_cov) Cdj = createCorrelatorMatrix(data_dj,args.Lt,ops,args.p_tot);
 
-    for(int i=0;i<nop;i++){
-      for(int j=i;j<nop;j++){
-	//Average over the total momentum values (it is assumed these are equivalent)
-	jackknifeDistributionD value_j(nsample,0.);
-	for(int p=0;p<args.p_tot.size();p++){
-	  auto ptot = args.p_tot[p];
-	  value_j = value_j + data_j[ptot].correlator(ops[i],ops[j]).value(t);
-	}
-	value_j = value_j / double(args.p_tot.size());
-	
-	C.value(t)(i,j) = C.value(t)(j,i) = value_j;
-      }
-    }
-  }
-  
   //Perform transformations on data as desired
-  if(cmdline.subtract_from_data)
+  if(cmdline.subtract_from_data){
     correlatorSubtract(C, cmdline.subtract_from_data_file);
+    if(args.double_jackknife_cov) correlatorSubtract(Cdj, cmdline.subtract_from_data_file);
+  }
 
-  if(cmdline.subtract_nbr_tslice)
+  if(cmdline.subtract_nbr_tslice){
     correlatorSubtractNeighbor(C);
+    if(args.double_jackknife_cov) correlatorSubtractNeighbor(Cdj);
+  }
 
-  if(cmdline.fix_t_sub)
+  if(cmdline.fix_t_sub){
     correlatorSubtractFixedT(C, cmdline.fix_t_sub_time);
+    if(args.double_jackknife_cov) correlatorSubtractFixedT(Cdj, cmdline.fix_t_sub_time);
+  }
 
   //Instantiate the appropriate solver and solve/analyze
 
   if(cmdline.subtract_nbr_tslice){
     GEVPsubNeighborTslice<jackknifeDistributionD> gevp(cmdline.verbose_solver);
     gevp.solve(C, args.t_max);
-    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
+
+    if(args.double_jackknife_cov){
+      GEVPsubNeighborTslice<doubleJackknifeDistributionD> gevp_dj(cmdline.verbose_solver);
+      gevp_dj.solve(Cdj, args.t_max);
+      analyze_GEVP(gevp, gevp_dj, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
+    }else{
+      analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
+    }
   }else if(cmdline.fix_t_sub){
+    if(args.double_jackknife_cov) error_exit(std::cout << "Fixed tsub does not support double-jackknife\n");
     GEVPsubFixedTslice gevp(cmdline.fix_t_sub_time, cmdline.verbose_solver);
     gevp.solve(C, args.t_max);
     analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
   }else{
     GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
     gevp.solve(C, args.t_max);
-    analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
+
+    if(args.double_jackknife_cov){
+      GEVPsolver<doubleJackknifeDistributionD> gevp_dj(cmdline.verbose_solver);
+      gevp_dj.solve(C, args.t_max);
+      analyze_GEVP(gevp, gevp_dj, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
+    }else{
+      analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
+    }
   }
 
   std::cout << "Done\n";

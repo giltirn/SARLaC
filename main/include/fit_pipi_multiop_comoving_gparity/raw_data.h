@@ -3,7 +3,7 @@
 
 class RawData{
   NumericSquareMatrix<bubbleDataAllMomenta> pipi_bubble;
-  NumericSquareMatrix<rawCorrelationFunction> correlators;
+  NumericSquareMatrix<rawDataCorrelationFunctionD> correlators;
   std::set<std::pair<Operator,Operator> > contains;
 public:
   //Real self-contractions
@@ -11,8 +11,8 @@ public:
   inline const bubbleDataAllMomenta & PiPiBubble(const Operator srcop, const Operator snkop) const{  return pipi_bubble((int)srcop, (int)snkop);  }
 
   //Correlator data
-  inline rawCorrelationFunction & correlator(const Operator srcop, const Operator snkop){ return correlators((int)srcop, (int)snkop); }
-  inline const rawCorrelationFunction & correlator(const Operator srcop, const Operator snkop) const{ return correlators((int)srcop, (int)snkop); }
+  inline rawDataCorrelationFunctionD & correlator(const Operator srcop, const Operator snkop){ return correlators((int)srcop, (int)snkop); }
+  inline const rawDataCorrelationFunctionD & correlator(const Operator srcop, const Operator snkop) const{ return correlators((int)srcop, (int)snkop); }
   
   RawData(): pipi_bubble(3), correlators(3){}
 
