@@ -9,6 +9,70 @@
 
 using namespace CPSfit;
 
+#if 0
+struct RawData{
+  ProjectedBubbleData *bubble_data_gnd;
+  ProjectedBubbleData *bubble_data_exc;
+  ProjectedSigmaBubbleData *bubble_data_sigma;
+
+  RawKtoPiPiData *raw_ktopipi_gnd;
+  RawKtoPiPiData *raw_ktopipi_exc;
+  RawKtoSigmaData *raw_ktosigma;
+  
+  RawData(): bubble_data_gnd(NULL), bubble_data_exc(NULL), bubble_data_sigma(NULL),
+	     raw_ktopipi_gnd(NULL), raw_ktopipi_exc(NULL), raw_ktosigma(NULL){}
+  
+  ~RawData(){
+#define DEL(T) if(T) delete T
+    DEL(bubble_data_gnd); DEL(bubble_data_exc); DEL(bubble_data_sigma);
+    DEL(raw_ktopipi_gnd); DEL(raw_ktopipi_exc); DEL(raw_ktosigma);
+#undef DEL
+  }
+
+  void read(const Args &args, const CMDline &cmdline){
+    readKtoPiPiAllDataOptions read_opts;
+
+    if(doOp(PiPiOperator::PiPiGnd, args.operators)){
+      COPYOPTS(read_opts, ktopipi);
+      
+      std::cout << "Reading K->pipi(111) data" << std::endl;
+
+      //Read the bubble data
+       bubble_data = new ProjectedBubbleData(args.data_dir, 
+					     args.pipi_bubble_file_fmt,
+					     args.traj_start, args.traj_inc, args.traj_lessthan, 
+					     args.bin_size, argLt, tsep_pipi, bubble_pimom_proj, resampler, opt.read_opts);
+
+
+
+
+
+
+
+      raw_ktopipi_gnd = new RawKtoPiPiData(args.tsep_k_pi, 
+
+args.tsep_k_pi, args.data_dir, 
+	    args.ktopipi_type_file_fmt, args.ktopipi_type1_pimom_proj, 
+	    args.pipi_bubble_file_fmt, args.pipi_bubble_pimom_proj,
+	    args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, read_opts);
+
+
+tsep_k_pi, bubble_data, data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan, bin_size, 
+		     Lt, tsep_pipi, opt);
+
+
+  }
+
+};
+
+#endif
+
+
+
+
+
+
+
 
 int main(const int argc, const char* argv[]){
   printMem("Beginning of execution");

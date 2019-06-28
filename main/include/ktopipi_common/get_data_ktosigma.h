@@ -10,21 +10,22 @@
 CPSFIT_START_NAMESPACE
 
 template<typename DistributionType, typename Resampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const Resampler &resampler){
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const int bin_size, const Resampler &resampler){
   std::vector<int> nonzero_tK(Lt); for(int t=0;t<Lt;t++) nonzero_tK[t] = t;
 
   //Compute alpha and type4/mix4 vacuum subtractions
   std::cout << "Computing " << descr << " alpha and vacuum subtractions\n";
   NumericTensor<DistributionType,1> alpha_r({Lt}), A0_type4_srcavg_vacsub_r({Lt}), mix4_srcavg_vacsub_r({Lt}); //[t]
   computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
-				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, getResampledSigmaBubble<DistributionType>::get(bubble_data),q, nonzero_tK,tsep_k_sigma,Lt,resampler);
+				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, bubble_data.binResample<DistributionType>(bin_size, resampler),q, 
+				    nonzero_tK,tsep_k_sigma,Lt,bin_size,resampler);
 
   //Compute tK-averages type4 and mix4 diagrams from data including bubble-------------//
   std::cout << "Computing " << descr << " tK averages and mix diagrams\n";
   IndexedContainer<NumericTensor<DistributionType,1>, 3, 2> A0_srcavg_r; //[t]
   IndexedContainer<NumericTensor<DistributionType,1>, 2, 3> mix_srcavg_r; //[t]
-  for(int i=2;i<=4;i++) A0_srcavg_r(i) = resampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, nonzero_tK, Lt, resampler); //[t]
-  for(int i=3;i<=4;i++) mix_srcavg_r(i) = resampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), nonzero_tK, Lt, resampler);
+  for(int i=2;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, nonzero_tK, Lt, bin_size, resampler); //[t]
+  for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), nonzero_tK, Lt, bin_size, resampler);
 
   //Subtract the pseudoscalar operators and mix4 vacuum term
   std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << "\n";
@@ -58,15 +59,15 @@ void getKtoSigmaData(std::vector<correlationFunction<amplitudeDataCoord, jackkni
   std::cout << "Getting K->sigma data for tsep_k_sigma = " <<  tsep_k_sigma << std::endl;
   printMem("getData called");
   
-  RawKtoSigmaData raw(tsep_k_sigma, bubble_data, data_dir, data_file_fmt, traj_start, traj_inc, traj_lessthan, bin_size, Lt, opt);
+  RawKtoSigmaData raw(tsep_k_sigma, bubble_data, data_dir, data_file_fmt, traj_start, traj_inc, traj_lessthan, Lt, opt);
 
   for(int q=0;q<10;q++){
     std::cout << "Starting K->sigma Q" << q+1 << std::endl;
 
     printMem("Starting new K->sigma Q");
  
-    NumericTensor<doubleJackknifeDistributionD,1> A0_full_srcavg_dj = computeQamplitude<doubleJackknifeDistributionD>(q, tsep_k_sigma, raw, bubble_data, Lt, "double jackknife", resampler);
-    NumericTensor<jackknifeDistributionD,1> A0_full_srcavg_j = computeQamplitude<jackknifeDistributionD>(q, tsep_k_sigma, raw, bubble_data, Lt, "single jackknife", resampler);
+    NumericTensor<doubleJackknifeDistributionD,1> A0_full_srcavg_dj = computeQamplitude<doubleJackknifeDistributionD>(q, tsep_k_sigma, raw, bubble_data, Lt, "double jackknife", bin_size, resampler);
+    NumericTensor<jackknifeDistributionD,1> A0_full_srcavg_j = computeQamplitude<jackknifeDistributionD>(q, tsep_k_sigma, raw, bubble_data, Lt, "single jackknife", bin_size, resampler);
 
     //Insert data into output containers    
     for(int t=0;t<Lt;t++){
@@ -97,7 +98,7 @@ void getKtoSigmaData(std::vector<correlationFunction<amplitudeDataCoord, jackkni
 #endif
   }else{
     //Read the bubble data
-    ProjectedSigmaBubbleData bubble_data(data_dir, bubble_file_fmt, traj_start, traj_inc, traj_lessthan, bin_size, Lt, bubble_quarkmom_proj, resampler, opt.read_opts);
+    ProjectedSigmaBubbleData bubble_data(data_dir, bubble_file_fmt, traj_start, traj_inc, traj_lessthan, Lt, bubble_quarkmom_proj, opt.read_opts);
   
     //Read and prepare the amplitude data for fitting
     scratch scratch_store(opt.use_scratch, opt.use_scratch_stub, opt.use_existing_scratch_files, tsep_k_sigma); //Setup scratch space if in use

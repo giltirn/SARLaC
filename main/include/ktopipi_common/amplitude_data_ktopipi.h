@@ -81,30 +81,31 @@ NumericTensor<rawDataDistributionD,1> getProjectedBubble(const std::string &data
 //Structure for containing raw and resampled A2-projected bubble data
 struct ProjectedBubbleData{
   NumericTensor<rawDataDistributionD,1> bubble;
-  NumericTensor<rawDataDistributionD,1> bubble_binned;
-  NumericTensor<jackknifeDistributionD,1> bubble_j;
-  NumericTensor<doubleJackknifeDistributionD,1> bubble_dj;
 
   ProjectedBubbleData(){}
 
-  template<typename Resampler>
   ProjectedBubbleData(const std::string &data_dir, const std::string &file_fmt, \
-	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size,
+	     const int traj_start, const int traj_inc, const int traj_lessthan,
 	     const int Lt, const int tsep_pipi, 
 	     const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
-	     const Resampler &resampler, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+	     const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
   
     bubble = getProjectedBubble(data_dir,file_fmt,
 				traj_start,traj_inc,traj_lessthan,
 				Lt, tsep_pipi, bubble_pimom_proj, opt);
-    bubble_binned = bin(bubble,bin_size);
-    bubble_j = bubble_binned.transform(resampleFunctorGeneral<jackknifeDistributionD,rawDataDistributionD,Resampler>(resampler));
-    bubble_dj = bubble_binned.transform(resampleFunctorGeneral<doubleJackknifeDistributionD,rawDataDistributionD,Resampler>(resampler));
+  }
+
+  template<typename DistributionType, typename Resampler>
+  inline NumericTensor<DistributionType,1> binResample(const int bin_size, const Resampler &resampler) const{
+    NumericTensor<DistributionType,1> out({bubble.size(0)}, 
+					  [&](const int* t){ 
+					    DistributionType r; resampler.resample(r, bubble(t).bin(bin_size)); return r;
+					  }
+					  );
+    return out;
   }
 };
-template<typename DistributionType> struct getResampledBubble{};
-template<> struct getResampledBubble<jackknifeDistributionD>{ static inline const NumericTensor<jackknifeDistributionD,1> &get(const ProjectedBubbleData &bubble_data){ return bubble_data.bubble_j; }  };
-template<> struct getResampledBubble<doubleJackknifeDistributionD>{ static inline const NumericTensor<doubleJackknifeDistributionD,1> &get(const ProjectedBubbleData &bubble_data){ return bubble_data.bubble_dj; }  };
+
 
 
 //Compute and store the raw amplitude data and data necessary for mix and vacuum subtractions
@@ -158,7 +159,7 @@ private:
   template<typename ReadPolicy>
   void getAllData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
 	     const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-	     const int bin_size, const int Lt, const int tsep_pipi, const ReadPolicy &rd,
+	     const int Lt, const int tsep_pipi, const ReadPolicy &rd,
 	     const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
     
     std::cout << "Reading data with tsep_k_pi=" << tsep_k_pi << std::endl;
@@ -203,13 +204,6 @@ private:
 	  A0_alltK(4)({q,tK,t}) = A0_type4_alltK_nobub({q,tK,t})*bubble_data.bubble(&tB);
       }
     
-    //Bin everything we are going to use henceforth
-    std::cout << "Binning data\n";
-    for(int i=1;i<=4;i++) A0_alltK(i) = bin(A0_alltK(i), bin_size);
-    for(int i=3;i<=4;i++) mix_alltK(i) = bin(mix_alltK(i), bin_size);
-    A0_type4_alltK_nobub = bin(A0_type4_alltK_nobub, bin_size);
-    mix4_alltK_nobub = bin(mix4_alltK_nobub, bin_size);  
-    
     std::cout << "Finished reading raw data with tsep_k_pi=" << tsep_k_pi << std::endl;
   }
  
@@ -219,19 +213,19 @@ public:
   template<typename ReadPolicy>
   RawKtoPiPiData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
 		 const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-		 const int bin_size, const int Lt, const int tsep_pipi, const ReadPolicy &rd,
+		 const int Lt, const int tsep_pipi, const ReadPolicy &rd,
 		 const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
-    getAllData(tsep_k_pi, bubble_data, type1_pimom_proj, bin_size, Lt, tsep_pipi, rd, opt);
+    getAllData(tsep_k_pi, bubble_data, type1_pimom_proj, Lt, tsep_pipi, rd, opt);
   }
 
   RawKtoPiPiData(const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
 		 const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
 		 const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-		 const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+		 const int traj_start, const int traj_inc, const int traj_lessthan,
 		 const int Lt, const int tsep_pipi, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
     KtoPiPiFilenamePolicyGen fp(data_file_fmt[0], data_file_fmt[1], data_file_fmt[2], data_file_fmt[3]);
     BasicKtoPiPiReadPolicy<KtoPiPiFilenamePolicyGen> rp(data_dir, traj_start, traj_inc, traj_lessthan, fp);
-    getAllData(tsep_k_pi, bubble_data, type1_pimom_proj, bin_size, Lt, tsep_pipi, rp, opt);
+    getAllData(tsep_k_pi, bubble_data, type1_pimom_proj, Lt, tsep_pipi, rp, opt);
   }
 };
 
