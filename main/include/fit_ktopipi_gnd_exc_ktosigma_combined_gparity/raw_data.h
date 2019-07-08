@@ -102,7 +102,7 @@ struct RawData{
 	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktosigma[x], *bubble_data_sigma, args.Lt, descr, args.bin_size, resampler);
 	  break;
 	}
-	for(int t=0;t<args.Lt;t++)
+	for(int t=0;t<=tsep_k_pi;t++)
 	  A0_all[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg(&t));
       }
     }

@@ -29,31 +29,32 @@ struct computeAmplitudeAlltKtensorControls{
   struct inputType{
     type1234Data const& data;
     std::vector<int> const &nonzero_tK;
-    inputType(type1234Data const& data, std::vector<int> const &nonzero_tK): data(data), nonzero_tK(nonzero_tK){}
+    const int tsep_k_pi;
+    inputType(type1234Data const& data, std::vector<int> const &nonzero_tK, const int tsep_k_pi): data(data), nonzero_tK(nonzero_tK), tsep_k_pi(tsep_k_pi){}
   };
   typedef NumericTensor<rawDataDistributionD,3> outputType; //(Qidx,tK_idx,t)
 
   int ntK;
-  int Lt;
+  int nt;
   outputType out;
   const inputType &in;
   
-  computeAmplitudeAlltKtensorControls(const inputType &_in): Lt(_in.data.getLt()), 
+  computeAmplitudeAlltKtensorControls(const inputType &_in): nt(_in.tsep_k_pi+1), 
 							     ntK(_in.nonzero_tK.size()), 
 							     in(_in), 
-							     out( { 10, int(_in.nonzero_tK.size()), _in.data.getLt() } ){}
+							     out( { 10, int(_in.nonzero_tK.size()), _in.tsep_k_pi+1 } ){}
 
-  inline int size(){ return ntK*Lt; }
+  inline int size(){ return ntK*nt; }
   
-  inline rawDataDistributionD & A(const int I, const int tt){ return out({I,tt/Lt, tt%Lt}); }
+  inline rawDataDistributionD & A(const int I, const int tt){ return out({I,tt/nt, tt%nt}); }
   
   inline rawDataDistributionD C(const int IDX, const int i, const LR g1, const int j, const LR g2, const int tt){
-    int tK_idx=tt/Lt, t=tt%Lt;
+    int tK_idx=tt/nt, t=tt%nt;
     return computeLRcontraction(IDX, i,g1,j,g2, in.data(in.nonzero_tK[tK_idx], t));
   }
 
   inline void normalize(const double nrm, const int tt){
-    int tK_idx=tt/Lt, t=tt%Lt;
+    int tK_idx=tt/nt, t=tt%nt;
     for(int i=0;i<10;i++) out({i,tK_idx,t}) = out({i,tK_idx,t}) * nrm;
   }
 };  

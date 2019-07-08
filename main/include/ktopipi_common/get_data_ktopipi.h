@@ -24,7 +24,7 @@ void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1
   resampledDistributionType zro = bubble_rs({0}); zeroit(zro);
   
 #pragma omp parallel for
-  for(int t=0;t<Lt;t++){
+  for(int t=0;t<=tsep_k_pi;t++){
     mix4_srcavg_vacsub(&t) = zro;
     A0_type4_srcavg_vacsub(&t) = zro;
 
@@ -64,10 +64,10 @@ NumericTensor<DistributionType,1> binResampleAverageTypeData(const NumericTensor
 							     const int q,
 							     const int bin_size, const Resampler &resampler){
   const int ntK = typedata_alltK.size(1);
-  const int Lt = typedata_alltK.size(2);
+  const int nt = typedata_alltK.size(2);
 
-  NumericTensor<DistributionType,1> out({Lt}); //[t]
-  for(int t=0;t<Lt;t++)
+  NumericTensor<DistributionType,1> out({nt}); //[t]
+  for(int t=0;t<nt;t++)
     resampleAverage(out(&t), resampler, [&](const int tK_idx){ return typedata_alltK({q,tK_idx,t}).bin(bin_size); }, ntK);
   return out;
 }
@@ -76,19 +76,21 @@ template<typename DistributionType, typename Resampler>
 NumericTensor<DistributionType,1> binResampleAverageMixDiagram(const NumericTensor<rawDataDistributionD,2> &mixdata_alltK,
 							       const int bin_size, const Resampler &resampler){
   const int ntK = mixdata_alltK.size(0);
-  const int Lt = mixdata_alltK.size(1);
+  const int nt = mixdata_alltK.size(1);
 
-  NumericTensor<DistributionType,1> out({Lt}); //[t]
-  for(int t=0;t<Lt;t++)
+  NumericTensor<DistributionType,1> out({nt}); //[t]
+  for(int t=0;t<nt;t++)
     resampleAverage(out(&t), resampler, [&](const int tK_idx){ return mixdata_alltK({tK_idx,t}).bin(bin_size); }, ntK);
   return out;
 }
 
 template<typename DistributionType, typename Resampler>
 NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const int bin_size, const Resampler &resampler){
+  const int nt = tsep_k_pi + 1; //only compute on  0<=t<=tsep_k_pi
+
   //Compute alpha and type4/mix4 vacuum subtractions
   std::cout << "Computing " << descr << " alpha and vacuum subtractions\n";
-  NumericTensor<DistributionType,1> alpha_r({Lt}), A0_type4_srcavg_vacsub_r({Lt}), mix4_srcavg_vacsub_r({Lt}); //[t]
+  NumericTensor<DistributionType,1> alpha_r({nt}), A0_type4_srcavg_vacsub_r({nt}), mix4_srcavg_vacsub_r({nt}); //[t]
   computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
 				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, resampled_bubble,q, raw.nonzerotK(4),tsep_k_pi,Lt,bin_size,resampler);
 
@@ -149,7 +151,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
     NumericTensor<jackknifeDistributionD,1> A0_full_srcavg_j = computeQamplitude<jackknifeDistributionD>(q, tsep_k_pi, raw, bubble_data, Lt, "single jackknife", bin_size, resampler);
 
     //Insert data into output containers    
-    for(int t=0;t<Lt;t++){
+    for(int t=0;t<=tsep_k_pi;t++){
       A0_all_j[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg_j(&t));
       A0_all_dj[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg_dj(&t));
     }

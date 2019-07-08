@@ -128,6 +128,8 @@ private:
 
     std::cout << "Reading K->sigma data with tsep_k_sigma=" << tsep_k_sigma << std::endl;
     
+    int nt = tsep_k_sigma + 1; //only compute on  0<=t<=tsep_k_sigma
+
     std::vector<int> nonzero_tK(Lt); for(int t=0;t<Lt;t++) nonzero_tK[t] = t;
 
     IndexedContainer<type1234Data, 3, 2> type_data;
@@ -137,13 +139,13 @@ private:
     //Note that we have not yet multiplied the type4/mix4 data by the pipi bubble, hence these  are just the K->vac component which are needed for computing alpha
     std::cout << "Computing raw data diagrams prior to multiplying by bubble\n";
     typedef computeAmplitudeAlltKtensorControls::inputType input;
-    for(int i=2;i<=3;i++) A0_alltK(i) = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(i, input(type_data(i), nonzero_tK) ); //[Qidx][tK][t]
-    A0_type4_alltK_nobub = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(4, input(type_data(4), nonzero_tK) ); //[Qidx][tK][t]
+    for(int i=2;i<=3;i++) A0_alltK(i) = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(i, input(type_data(i), nonzero_tK, tsep_k_sigma) ); //[Qidx][tK][t]
+    A0_type4_alltK_nobub = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(4, input(type_data(4), nonzero_tK, tsep_k_sigma) ); //[Qidx][tK][t]
 
-    mix_alltK(3) = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]
-    mix4_alltK_nobub = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]
+    mix_alltK(3) = NumericTensor<rawDataDistributionD,2>({Lt,nt}); //[tK][t]
+    mix4_alltK_nobub = NumericTensor<rawDataDistributionD,2>({Lt,nt}); //[tK][t]
     for(int tK=0;tK<Lt;tK++)
-      for(int t=0;t<Lt;t++){
+      for(int t=0;t<nt;t++){
 	mix_alltK(3)({tK,t}) = type_data(3)(tK,t).mix();
 	mix4_alltK_nobub({tK,t}) = type_data(4)(tK,t).mix();
       }
@@ -157,9 +159,9 @@ private:
     
     //Compute the type4/mix4 data with the bubble included
     std::cout << "Computing raw type4/mix4 data with bubble included" << std::endl;
-    A0_alltK(4) = NumericTensor<rawDataDistributionD,3>({10,Lt,Lt});
-    mix_alltK(4) = NumericTensor<rawDataDistributionD,2>({Lt,Lt});
-    for(int tK=0;tK<Lt;tK++) for(int t=0;t<Lt;t++){
+    A0_alltK(4) = NumericTensor<rawDataDistributionD,3>({10,Lt,nt});
+    mix_alltK(4) = NumericTensor<rawDataDistributionD,2>({Lt,nt});
+    for(int tK=0;tK<Lt;tK++) for(int t=0;t<nt;t++){
 	int tB = (tK + tsep_k_sigma) % Lt;
 	mix_alltK(4)({tK,t}) = mix4_alltK_nobub({tK,t})*bubble_data.bubble(&tB);
 	for(int q=0;q<10;q++)

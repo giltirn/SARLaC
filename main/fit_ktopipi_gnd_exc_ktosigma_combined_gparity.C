@@ -37,16 +37,20 @@ int main(const int argc, const char* argv[]){
 
   RawData raw;
   if(cmdline.load_raw_data_container_checkpoint){
+    std::cout << "Reading raw data container from checkpoint file" << std::endl;
     HDF5reader rd(cmdline.load_raw_data_container_checkpoint_file);
     read(rd, raw, "raw_data_container");
   }else{
+    std::cout << "Reading raw data" << std::endl;
     raw.read(args, cmdline);
   }  
   if(cmdline.save_raw_data_container_checkpoint){
+    std::cout << "Saving raw data container to checkpoint file" << std::endl;
     HDF5writer wr(cmdline.save_raw_data_container_checkpoint_file);
     write(wr, raw, "raw_data_container");
   }
     
+  std::cout << "Computing resampled data" << std::endl;
   ResampledData<jackknifeDistributionD> data_j;
   ResampledData<doubleJackknifeA0StorageType> data_dj;
   

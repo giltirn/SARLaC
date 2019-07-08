@@ -11,11 +11,13 @@ CPSFIT_START_NAMESPACE
 
 template<typename DistributionType, typename Resampler>
 NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const int bin_size, const Resampler &resampler){
+  int nt = tsep_k_sigma + 1; //only compute on  0<=t<=tsep_k_sigma
+
   std::vector<int> nonzero_tK(Lt); for(int t=0;t<Lt;t++) nonzero_tK[t] = t;
 
   //Compute alpha and type4/mix4 vacuum subtractions
   std::cout << "Computing " << descr << " alpha and vacuum subtractions\n";
-  NumericTensor<DistributionType,1> alpha_r({Lt}), A0_type4_srcavg_vacsub_r({Lt}), mix4_srcavg_vacsub_r({Lt}); //[t]
+  NumericTensor<DistributionType,1> alpha_r({nt}), A0_type4_srcavg_vacsub_r({nt}), mix4_srcavg_vacsub_r({nt}); //[t]
   computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
 				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, bubble_data.binResample<DistributionType>(bin_size, resampler),q, 
 				    nonzero_tK,tsep_k_sigma,Lt,bin_size,resampler);
@@ -70,7 +72,7 @@ void getKtoSigmaData(std::vector<correlationFunction<amplitudeDataCoord, jackkni
     NumericTensor<jackknifeDistributionD,1> A0_full_srcavg_j = computeQamplitude<jackknifeDistributionD>(q, tsep_k_sigma, raw, bubble_data, Lt, "single jackknife", bin_size, resampler);
 
     //Insert data into output containers    
-    for(int t=0;t<Lt;t++){
+    for(int t=0;t<=tsep_k_sigma;t++){
       A0_all_j[q].push_back(amplitudeDataCoord(t,tsep_k_sigma), A0_full_srcavg_j(&t));
       A0_all_dj[q].push_back(amplitudeDataCoord(t,tsep_k_sigma), A0_full_srcavg_dj(&t));
     }
