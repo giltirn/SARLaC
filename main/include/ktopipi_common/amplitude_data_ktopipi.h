@@ -118,14 +118,14 @@ void read(HDF5reader &reader, ProjectedBubbleData &value, const std::string &tag
 class RawKtoPiPiData{
 public:
   //Type data
-  IndexedContainer<NumericTensor<rawDataDistributionD,3>, 4, 1> A0_alltK; //(type idx){q,tK,t}
+  IndexedContainer<NumericTensor<rawDataDistributionD,3>, 4, 1> A0_alltK; //(type idx){q,tK_idx,t}   tK_idx is the index of the non-zero tK for this type
 
-  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub; //{q,tK,t}
+  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub; //{q,tK_idx,t}
   
   //Mix data
-  IndexedContainer<NumericTensor<rawDataDistributionD,2>, 2, 3> mix_alltK; //(mix idx){tK,t}
+  IndexedContainer<NumericTensor<rawDataDistributionD,2>, 2, 3> mix_alltK; //(mix idx){tK_idx,t}
 
-  NumericTensor<rawDataDistributionD,2> mix4_alltK_nobub;  
+  NumericTensor<rawDataDistributionD,2> mix4_alltK_nobub;   //{tK_idx, t}
 
   //Info on non-zero timeslices
   IndexedContainer<std::vector<int>, 4, 1> nonzerotK; //(type idx)
@@ -134,9 +134,9 @@ public:
 
 private:
   template<typename ReadPolicy>
-  void getTypeData(IndexedContainer<type1234Data, 4, 1> &type_data, const int tsep_k_pi, 
-		   const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-		   const int Lt, const int tsep_pipi, const ReadPolicy &rp, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+  static void getTypeData(IndexedContainer<type1234Data, 4, 1> &type_data, const int tsep_k_pi, 
+			  const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
+			  const int Lt, const int tsep_pipi, const ReadPolicy &rp, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
     //Read the data
     if(opt.load_data_checkpoint){
 #ifdef HAVE_HDF5
@@ -175,25 +175,32 @@ private:
     IndexedContainer<type1234Data, 4, 1> type_data;
     getTypeData(type_data, tsep_k_pi, type1_pimom_proj, Lt, tsep_pipi, rd, opt);
     
+    int ntK[5];
+
     for(int i=1;i<=4;i++){
       nonzerotK(i) = type_data(i).getNonZeroKaonTimeslices();
+      ntK[i] = nonzerotK(i).size();
       std::cout << "Type" << i << " data non-zero for tK=" << nonzerotK(i) << std::endl;
     }
     
     //Get the type1-4 and mix3/mix4 components of the data.
     //Note that we have not yet multiplied the type4/mix4 data by the pipi bubble, hence these  are just the K->vac component which are needed for computing alpha
-    std::cout << "Computing raw data diagrams prior to multiplying by bubble\n";
-    for(int i=1;i<=3;i++) A0_alltK(i) = computeAmplitudeType<computeAmplitudeAlltKtensorControls>(i,type_data(i)); //[Qidx][tK][t]
-    A0_type4_alltK_nobub = computeAmplitudeType<computeAmplitudeAlltKtensorControls>(4,type_data(4)); //[Qidx][tK][t]
+    std::cout << "Computing raw data diagrams prior to multiplying by bubble" << std::endl;
+    typedef computeAmplitudeAlltKtensorControls::inputType input;
+    for(int i=1;i<=3;i++) A0_alltK(i) = computeAmplitudeType<computeAmplitudeAlltKtensorControls>(i, input(type_data(i), nonzerotK(i) ) ); //[Qidx][tK_idx][t]
+    A0_type4_alltK_nobub = computeAmplitudeType<computeAmplitudeAlltKtensorControls>(4, input(type_data(4), nonzerotK(4)) ); //[Qidx][tK_idx][t]
     
-    mix_alltK(3) = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]
-    mix4_alltK_nobub = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]
-    for(int tK=0;tK<Lt;tK++)
-      for(int t=0;t<Lt;t++){
-	mix_alltK(3)({tK,t}) = type_data(3)(tK,t).mix();
-	mix4_alltK_nobub({tK,t}) = type_data(4)(tK,t).mix();
-      }
-    
+    mix_alltK(3) = NumericTensor<rawDataDistributionD,2>({ntK[3],Lt}); //[tK_idx][t]
+    for(int tK_idx=0;tK_idx<ntK[3];tK_idx++)
+      for(int t=0;t<Lt;t++)
+	mix_alltK(3)({tK_idx,t}) = type_data(3)(nonzerotK(3)[tK_idx],t).mix();
+
+
+    mix4_alltK_nobub = NumericTensor<rawDataDistributionD,2>({ntK[4],Lt}); //[tK_idx][t]
+    for(int tK_idx=0;tK_idx<ntK[4];tK_idx++)
+      for(int t=0;t<Lt;t++)
+	mix4_alltK_nobub({tK_idx,t}) = type_data(4)(nonzerotK(4)[tK_idx],t).mix();
+  
     printMem("Pre typedata free");
     
     //Data is no longer needed, so free it
@@ -203,14 +210,17 @@ private:
     
     //Compute the type4/mix4 data with the bubble included
     std::cout << "Computing raw type4/mix4 data with bubble included" << std::endl;
-    A0_alltK(4) = NumericTensor<rawDataDistributionD,3>({10,Lt,Lt});
-    mix_alltK(4) = NumericTensor<rawDataDistributionD,2>({Lt,Lt});
-    for(int tK=0;tK<Lt;tK++) for(int t=0;t<Lt;t++){
+    A0_alltK(4) = NumericTensor<rawDataDistributionD,3>({10,ntK[4],Lt});
+    mix_alltK(4) = NumericTensor<rawDataDistributionD,2>({ntK[4],Lt});
+    for(int tK_idx=0;tK_idx<ntK[4];tK_idx++){
+      int tK = nonzerotK(4)[tK_idx];
+      for(int t=0;t<Lt;t++){
 	int tB = (tK + tsep_k_pi) % Lt;
-	mix_alltK(4)({tK,t}) = mix4_alltK_nobub({tK,t})*bubble_data.bubble(&tB);
+	mix_alltK(4)({tK_idx,t}) = mix4_alltK_nobub({tK_idx,t})*bubble_data.bubble(&tB);
 	for(int q=0;q<10;q++)
-	  A0_alltK(4)({q,tK,t}) = A0_type4_alltK_nobub({q,tK,t})*bubble_data.bubble(&tB);
+	  A0_alltK(4)({q,tK_idx,t}) = A0_type4_alltK_nobub({q,tK_idx,t})*bubble_data.bubble(&tB);
       }
+    }
     
     std::cout << "Finished reading raw data with tsep_k_pi=" << tsep_k_pi << std::endl;
   }

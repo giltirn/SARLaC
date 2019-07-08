@@ -24,8 +24,8 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   std::cout << "Computing " << descr << " tK averages and mix diagrams\n";
   IndexedContainer<NumericTensor<DistributionType,1>, 3, 2> A0_srcavg_r; //[t]
   IndexedContainer<NumericTensor<DistributionType,1>, 2, 3> mix_srcavg_r; //[t]
-  for(int i=2;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, nonzero_tK, Lt, bin_size, resampler); //[t]
-  for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), nonzero_tK, Lt, bin_size, resampler);
+  for(int i=2;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, bin_size, resampler); //[t]
+  for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), bin_size, resampler);
 
   //Subtract the pseudoscalar operators and mix4 vacuum term
   std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << "\n";

@@ -127,6 +127,8 @@ private:
 		  const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
 
     std::cout << "Reading K->sigma data with tsep_k_sigma=" << tsep_k_sigma << std::endl;
+    
+    std::vector<int> nonzero_tK(Lt); for(int t=0;t<Lt;t++) nonzero_tK[t] = t;
 
     IndexedContainer<type1234Data, 3, 2> type_data;
     getTypeData(type_data, tsep_k_sigma, Lt, rp, opt);
@@ -134,8 +136,9 @@ private:
     //Get the type1-4 and mix3/mix4 components of the data.
     //Note that we have not yet multiplied the type4/mix4 data by the pipi bubble, hence these  are just the K->vac component which are needed for computing alpha
     std::cout << "Computing raw data diagrams prior to multiplying by bubble\n";
-    for(int i=2;i<=3;i++) A0_alltK(i) = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(i,type_data(i)); //[Qidx][tK][t]
-    A0_type4_alltK_nobub = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(4,type_data(4)); //[Qidx][tK][t]
+    typedef computeAmplitudeAlltKtensorControls::inputType input;
+    for(int i=2;i<=3;i++) A0_alltK(i) = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(i, input(type_data(i), nonzero_tK) ); //[Qidx][tK][t]
+    A0_type4_alltK_nobub = computeKtoSigmaAmplitudeType<computeAmplitudeAlltKtensorControls>(4, input(type_data(4), nonzero_tK) ); //[Qidx][tK][t]
 
     mix_alltK(3) = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]
     mix4_alltK_nobub = NumericTensor<rawDataDistributionD,2>({Lt,Lt}); //[tK][t]

@@ -31,14 +31,14 @@ void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1
     resampledDistributionType mix4_nobub_srcavg = zro;
     resampledDistributionType A0_type4_nobub_srcavg = zro;
     
-    for(int ii=0;ii<type4_nonzerotK.size();ii++){
-      const int tK = type4_nonzerotK[ii];
+    for(int tK_idx=0;tK_idx<type4_nonzerotK.size();tK_idx++){
+      const int tK = type4_nonzerotK[tK_idx];
       const int tB = (tK + tsep_k_pi) % Lt;      
 
-      resampledDistributionType mix4_nobub_rs; resampler.resample(mix4_nobub_rs, mix4_nobub_alltK({tK,t}).bin(bin_size) );
+      resampledDistributionType mix4_nobub_rs; resampler.resample(mix4_nobub_rs, mix4_nobub_alltK({tK_idx,t}).bin(bin_size) );
       resampledDistributionType mix4_vacsub_rs = mix4_nobub_rs * bubble_rs(&tB);
 
-      resampledDistributionType A0_type4_nobub_rs;  resampler.resample(A0_type4_nobub_rs, A0_type4_nobub_alltK({q,tK,t}).bin(bin_size) );
+      resampledDistributionType A0_type4_nobub_rs;  resampler.resample(A0_type4_nobub_rs, A0_type4_nobub_alltK({q,tK_idx,t}).bin(bin_size) );
       resampledDistributionType A0_type4_vacsub_rs = A0_type4_nobub_rs * bubble_rs(&tB);
 
       mix4_srcavg_vacsub(&t) = mix4_srcavg_vacsub(&t) + mix4_vacsub_rs;
@@ -62,21 +62,25 @@ void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1
 template<typename DistributionType, typename Resampler>
 NumericTensor<DistributionType,1> binResampleAverageTypeData(const NumericTensor<rawDataDistributionD,3> &typedata_alltK,
 							     const int q,
-							     const std::vector<int> &typedata_nonzerotK,
-							     const int Lt, const int bin_size, const Resampler &resampler){
+							     const int bin_size, const Resampler &resampler){
+  const int ntK = typedata_alltK.size(1);
+  const int Lt = typedata_alltK.size(2);
+
   NumericTensor<DistributionType,1> out({Lt}); //[t]
   for(int t=0;t<Lt;t++)
-    resampleAverage(out(&t), resampler, [&](const int i){ return typedata_alltK({q,typedata_nonzerotK[i],t}).bin(bin_size); }, typedata_nonzerotK.size());
+    resampleAverage(out(&t), resampler, [&](const int tK_idx){ return typedata_alltK({q,tK_idx,t}).bin(bin_size); }, ntK);
   return out;
 }
 
 template<typename DistributionType, typename Resampler>
 NumericTensor<DistributionType,1> binResampleAverageMixDiagram(const NumericTensor<rawDataDistributionD,2> &mixdata_alltK,
-							       const std::vector<int> &mixdata_nonzerotK,
-							       const int Lt, const int bin_size, const Resampler &resampler){
+							       const int bin_size, const Resampler &resampler){
+  const int ntK = mixdata_alltK.size(0);
+  const int Lt = mixdata_alltK.size(1);
+
   NumericTensor<DistributionType,1> out({Lt}); //[t]
   for(int t=0;t<Lt;t++)
-    resampleAverage(out(&t), resampler, [&](const int i){ return mixdata_alltK({mixdata_nonzerotK[i],t}).bin(bin_size); }, mixdata_nonzerotK.size());
+    resampleAverage(out(&t), resampler, [&](const int tK_idx){ return mixdata_alltK({tK_idx,t}).bin(bin_size); }, ntK);
   return out;
 }
 
@@ -92,8 +96,8 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   std::cout << "Computing " << descr << " tK averages and mix diagrams\n";
   IndexedContainer<NumericTensor<DistributionType,1>, 4, 1> A0_srcavg_r; //[t]
   IndexedContainer<NumericTensor<DistributionType,1>, 2, 3> mix_srcavg_r; //[t]
-  for(int i=1;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, raw.nonzerotK(i), Lt, bin_size,resampler); //[t]
-  for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), raw.nonzerotK(i), Lt, bin_size,resampler);
+  for(int i=1;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, bin_size,resampler); //[t]
+  for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), bin_size,resampler);
 
   //Subtract the pseudoscalar operators and mix4 vacuum term
   std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << "\n";
