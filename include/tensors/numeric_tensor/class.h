@@ -7,6 +7,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<ET/generic_ET.h>
+#include<serialize/hdf5_serialize.h>
 #include<tensors/numeric_tensor/helper_structs.h>
 
 CPSFIT_START_NAMESPACE
@@ -27,6 +28,8 @@ class NumericTensor{
   template<typename T, int R>
   friend class NumericTensor;
 public:
+  GENERATE_HDF5_SERIALIZE_METHOD( (dsizes)(vol)(data) );
+
   inline NumericTensor() = default;
   inline explicit NumericTensor(int const* _size): dsizes(_size,_size+Rank), vol(helper::vol(_size)), data(vol){ }
   inline explicit NumericTensor(const std::vector<int> &_size): NumericTensor(_size.data()){}
@@ -134,6 +137,12 @@ public:
   }
   
 };
+
+template<typename DataType, int Rank>
+inline void write(CPSfit::HDF5writer &writer, const NumericTensor<DataType,Rank> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename DataType, int Rank>
+inline void read(CPSfit::HDF5reader &reader, NumericTensor<DataType,Rank> &d, const std::string &tag){ d.read(reader,tag); }
+
 
 CPSFIT_END_NAMESPACE
 #endif

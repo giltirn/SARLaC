@@ -105,6 +105,12 @@ struct ProjectedBubbleData{
     return out;
   }
 };
+void write(HDF5writer &writer, const ProjectedBubbleData &value, const std::string &tag){
+  writeProjectedBubble(writer,value.bubble,tag);
+}
+void read(HDF5reader &reader, ProjectedBubbleData &value, const std::string &tag){
+  readProjectedBubble(reader,value.bubble,tag);
+}
 
 
 
@@ -124,6 +130,8 @@ public:
   //Info on non-zero timeslices
   IndexedContainer<std::vector<int>, 4, 1> nonzerotK; //(type idx)
 
+  GENERATE_HDF5_SERIALIZE_METHOD( (A0_alltK)(A0_type4_alltK_nobub)(mix_alltK)(mix4_alltK_nobub)(nonzerotK) );
+
 private:
   template<typename ReadPolicy>
   void getTypeData(IndexedContainer<type1234Data, 4, 1> &type_data, const int tsep_k_pi, 
@@ -135,7 +143,7 @@ private:
       std::ostringstream file; file << opt.load_data_checkpoint_stub << "_tsepkpi" << tsep_k_pi << ".hdf5";
       std::cout << "Loading checkpoint data for tsep_k_pi = " << tsep_k_pi << " from " << file.str() << std::endl;
       HDF5reader rd(file.str());
-      for(int i=1;i<=4;i++) read(rd,type_data(i),stringize("type%d",i));
+      for(int i=1;i<=4;i++) CPSfit::read(rd,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -149,7 +157,7 @@ private:
       std::ostringstream file; file << opt.save_data_checkpoint_stub << "_tsepkpi" << tsep_k_pi << ".hdf5";
       std::cout << "Saving checkpoint data for tsep_k_pi = " << tsep_k_pi << " to " << file.str() << std::endl;
       HDF5writer wr(file.str());
-      for(int i=1;i<=4;i++) write(wr,type_data(i),stringize("type%d",i));
+      for(int i=1;i<=4;i++) CPSfit::write(wr,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -228,6 +236,11 @@ public:
     getAllData(tsep_k_pi, bubble_data, type1_pimom_proj, Lt, tsep_pipi, rp, opt);
   }
 };
+
+GENERATE_HDF5_SERIALIZE_FUNC(RawKtoPiPiData);
+
+
+
 
 CPSFIT_END_NAMESPACE
 

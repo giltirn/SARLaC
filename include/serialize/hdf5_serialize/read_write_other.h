@@ -96,6 +96,37 @@ static void read(HDF5reader &reader, std::set<KeyT> &value, const std::string &t
   reader.leave();
 }
 
+
+//These are currently named differently and only callable explicitly. They should be used when a single object is pointed to and the pointer may be NULL, indicating a value does nt exist.
+template<typename T>
+static void writePointer(HDF5writer &writer, T const* v, const std::string &tag){
+  if(v) write(writer, *v, tag);
+}
+template<typename T>
+static void readPointer(HDF5reader &reader, T* &v, const std::string &tag){
+  if(reader.contains(tag)){
+    v =  new T;
+    read(reader, *v, tag);
+  }else v = NULL;
+}
+template<typename T>
+static void writePointer(HDF5writer &writer, const std::vector<T*> &v, const std::string &tag){
+  writer.enter(tag);
+  write(writer, int(v.size()), "size");
+  for(int i=0;i<v.size();i++) writePointer(writer, v[i], stringize("%s_%d", tag.c_str(), i));
+  writer.leave();
+}
+template<typename T>
+static void readPointer(HDF5reader &reader, std::vector<T*> &v, const std::string &tag){
+  reader.enter(tag);
+  int sz;
+  read(reader, sz, "size");
+  v.resize(sz); for(int i=0;i<sz;i++) v[i] = NULL;
+  for(int i=0;i<v.size();i++) readPointer(reader, v[i], stringize("%s_%d", tag.c_str(), i));
+  reader.leave();
+}
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

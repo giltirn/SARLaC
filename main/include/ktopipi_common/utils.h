@@ -7,6 +7,7 @@
 #include<distribution.h>
 #include<tensors.h>
 #include<common.h>
+#include<serialize.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -15,9 +16,15 @@ template<typename T, int Size, int Begin>
 class IndexedContainer{
   std::array<T,Size> v;
 public:
+  GENERATE_HDF5_SERIALIZE_METHOD( (v) );
+
   T & operator()(const int i){ return v[i-Begin]; }
   const T & operator()(const int i) const{ return v[i-Begin]; }
 };
+template<typename T, int Size, int Begin>
+inline void write(CPSfit::HDF5writer &writer, const IndexedContainer<T,Size,Begin> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename T, int Size, int Begin>
+inline void read(CPSfit::HDF5reader &reader, IndexedContainer<T,Size,Begin> &d, const std::string &tag){ d.read(reader,tag); }
 
 
 //Write results at various stages for debugging against other codes

@@ -16,8 +16,8 @@ namespace parser_tools{
   namespace x3 = boost::spirit::x3;
   
   //Use these as lambdas, eg    auto const V_v_def = x3::char_('v') >> '=' >> x3::int_[parser_tools::set_equals];
-  auto push_back = [&](auto& ctx){ x3::_val(ctx).push_back( x3::_attr(ctx) ); };
-  auto set_equals = [&](auto& ctx){ x3::_val(ctx) = x3::_attr(ctx); };
+  auto push_back = [](auto& ctx){ x3::_val(ctx).push_back( x3::_attr(ctx) ); };
+  auto set_equals = [](auto& ctx){ x3::_val(ctx) = x3::_attr(ctx); };
 
   //Use these as function objects, eg     auto const V__def = V_v[parser_tools::member_set_equals<V,std::vector<int>,&V::v>()];
   template<typename T, typename U, U T::* ptr>

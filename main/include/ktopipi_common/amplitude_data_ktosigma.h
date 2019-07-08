@@ -66,7 +66,12 @@ public:
     return out;
   }
 };
-
+void write(HDF5writer &writer, const ProjectedSigmaBubbleData &value, const std::string &tag){
+  writeProjectedBubble(writer,value.bubble,tag);
+}
+void read(HDF5reader &reader, ProjectedSigmaBubbleData &value, const std::string &tag){
+  readProjectedBubble(reader,value.bubble,tag);
+}
 
 //Compute and store the raw amplitude data and data necessary for mix and vacuum subtractions
 //Note: type index 1 is unused for K->sigma
@@ -82,6 +87,8 @@ public:
 
   NumericTensor<rawDataDistributionD,2> mix4_alltK_nobub;  
 
+  GENERATE_HDF5_SERIALIZE_METHOD( (A0_alltK)(A0_type4_alltK_nobub)(mix_alltK)(mix4_alltK_nobub) )
+
 private:
   //Data dir requires *3* formats: type1/2,  type3, type4
   template<typename ReadPolicy>
@@ -93,7 +100,7 @@ private:
       std::ostringstream file; file << opt.load_data_checkpoint_stub << "_ktosigma_tsepksigma" << tsep_k_sigma << ".hdf5";
       std::cout << "Loading K->sigma checkpoint data for tsep_k_sigma = " << tsep_k_sigma << " from " << file.str() << std::endl;
       HDF5reader rd(file.str());
-      for(int i=2;i<=4;i++) read(rd,type_data(i),stringize("type%d",i));
+      for(int i=2;i<=4;i++) CPSfit::read(rd,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -107,7 +114,7 @@ private:
       std::ostringstream file; file << opt.save_data_checkpoint_stub << "_ktosigma_tsepksigma" << tsep_k_sigma << ".hdf5";
       std::cout << "Saving checkpoint data for tsep_k_sigma = " << tsep_k_sigma << " to " << file.str() << std::endl;
       HDF5writer wr(file.str());
-      for(int i=2;i<=4;i++) write(wr,type_data(i),stringize("type%d",i));
+      for(int i=2;i<=4;i++) CPSfit::write(wr,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -179,6 +186,8 @@ public:
   }
 
 };
+
+GENERATE_HDF5_SERIALIZE_FUNC(RawKtoSigmaData);
 
 
 CPSFIT_END_NAMESPACE

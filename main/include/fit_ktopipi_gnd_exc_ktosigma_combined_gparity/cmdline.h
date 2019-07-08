@@ -23,6 +23,13 @@ struct CMDline{
   DEF_ARGS(ktosigma);
 #undef DEF_ARGS
  
+  bool load_raw_data_container_checkpoint;
+  std::string load_raw_data_container_checkpoint_file;
+
+  bool save_raw_data_container_checkpoint;
+  std::string save_raw_data_container_checkpoint_file;
+
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -34,6 +41,9 @@ struct CMDline{
     INIT_ARGS(ktopipi_exc);
     INIT_ARGS(ktosigma);
 #undef INIT_ARGS
+
+    load_raw_data_container_checkpoint = false;
+    save_raw_data_container_checkpoint = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -75,7 +85,14 @@ struct CMDline{
       PARSE_ARGS(ktopipi_exc);
       PARSE_ARGS(ktosigma);
 #undef PARSE_ARGS
-
+      }else if(sargv[i] == "-save_raw_data_container_checkpoint"){
+	save_raw_data_container_checkpoint = true;
+	save_raw_data_container_checkpoint_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_raw_data_container_checkpoint"){
+	load_raw_data_container_checkpoint = true;
+	load_raw_data_container_checkpoint_file = sargv[i+1];
+	i+=2;      
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

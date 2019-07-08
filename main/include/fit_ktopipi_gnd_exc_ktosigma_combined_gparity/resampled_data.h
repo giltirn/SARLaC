@@ -3,6 +3,8 @@
 
 #include<ktopipi_common/basis_convert.h>
 
+#include "raw_data.h"
+
 CPSFIT_START_NAMESPACE
 
 template<typename DistributionType>
@@ -33,11 +35,17 @@ public:
     }
   }
 
+  inline void resample(const RawData &raw, const PiPiOperator op, const Args &args, const CMDline &cmdline, const std::string &descr){
+    raw.resample( (*this)(op), op, args, cmdline, descr);
+  }
+  inline void resample(const RawData &raw, const Args &args, const CMDline &cmdline, const std::string &descr){
+    for(int i=0;i<args.operators.size();i++)
+      raw.resample( (*this)(args.operators[i]), args.operators[i], args, cmdline, descr);
+  }
+
 };
 
-bool doOp(const PiPiOperator op, const std::vector<PiPiOperator> &ops){
-  return std::find(ops.begin(),ops.end(),op) != ops.end();
-}
+
   
 CPSFIT_END_NAMESPACE
 

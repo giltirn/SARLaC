@@ -1,6 +1,7 @@
 #include<distribution.h>
 #include<random.h>
 #include<containers/constrained_memory_vector.h>
+#include<tensors/numeric_tensor.h>
 
 using namespace CPSfit;
 
@@ -168,14 +169,79 @@ void read(HDF5reader &reader, S &value, const std::string &tag){
 }
 #endif
 
-
-
-
 int main(void){
   RNG.initialize(1245);
 #ifdef HAVE_HDF5
 
   std::cout << "Running test\n\n\n";
+
+  {
+    std::cout << "Testing tensor" << std::endl;
+    NumericTensor<rawDataDistribution<double>, 2> wtensor({10,10});
+    NumericTensor<rawDataDistribution<double>, 2> rtensor;
+    for(int i=0;i<10;i++){
+      for(int j=0;j<10;j++){
+	wtensor({i,j}).resize(100);
+	gaussianRandom(wtensor({i,j}), 5.0, 1.0);
+      }
+    }
+
+    {
+      HDF5writer writer("test.hdf5");
+      write(writer,wtensor,"tensor");
+    }
+  
+    {
+      HDF5reader reader("test.hdf5");
+      read(reader,rtensor,"tensor");
+    }
+  
+    assert(rtensor.size(0) == 10 && rtensor.size(1)==10);
+    for(int i=0;i<10;i++)
+      for(int j=0;j<10;j++)
+	assert(rtensor({i,j}) == wtensor({i,j}));
+  }
+
+  {
+    std::cout << "Testing pointer read/write" << std::endl;
+    double v = 1234;
+    std::string s = "hello";
+
+    double const* vp = &v;
+    std::string const *sp = &s;
+    double const* np = NULL;
+
+    std::vector<double*> a = { &v, NULL, &v };
+
+    {
+      HDF5writer writer("test.hdf5");
+      writePointer(writer,vp,"vp");
+      writePointer(writer,sp,"sp");
+      writePointer(writer,np,"np");
+      writePointer(writer,a,"a");
+    }
+  
+    double* vpr, *npr;
+    std::string* spr;
+    std::vector<double*> ar;
+    {
+      HDF5reader reader("test.hdf5");
+      readPointer(reader,vpr,"vp");
+      readPointer(reader,spr,"sp");
+      readPointer(reader,npr,"np");
+      readPointer(reader,ar, "a");
+    }  
+    assert(*vpr == v);
+    assert(*spr == s);
+    assert(npr == NULL);
+    assert(ar.size() == 3);
+    assert(*ar[0] == v);
+    assert(*ar[2] == v);
+    assert(ar[1] == NULL);
+  }
+
+
+
   testBasic<distribution<double> >();
   testBasic<rawDataDistribution<double> >();
   testBasic<jackknifeDistribution<double> >();
@@ -282,7 +348,6 @@ int main(void){
   }
 
   std::cout << "Passed all tests" << std::endl;
-
 #else
   std::cout << "HDF5 not being used\n";
 #endif  

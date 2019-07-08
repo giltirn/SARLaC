@@ -9,66 +9,6 @@
 
 using namespace CPSfit;
 
-#if 0
-struct RawData{
-  ProjectedBubbleData *bubble_data_gnd;
-  ProjectedBubbleData *bubble_data_exc;
-  ProjectedSigmaBubbleData *bubble_data_sigma;
-
-  RawKtoPiPiData *raw_ktopipi_gnd;
-  RawKtoPiPiData *raw_ktopipi_exc;
-  RawKtoSigmaData *raw_ktosigma;
-  
-  RawData(): bubble_data_gnd(NULL), bubble_data_exc(NULL), bubble_data_sigma(NULL),
-	     raw_ktopipi_gnd(NULL), raw_ktopipi_exc(NULL), raw_ktosigma(NULL){}
-  
-  ~RawData(){
-#define DEL(T) if(T) delete T
-    DEL(bubble_data_gnd); DEL(bubble_data_exc); DEL(bubble_data_sigma);
-    DEL(raw_ktopipi_gnd); DEL(raw_ktopipi_exc); DEL(raw_ktosigma);
-#undef DEL
-  }
-
-  void read(const Args &args, const CMDline &cmdline){
-    readKtoPiPiAllDataOptions read_opts;
-
-    if(doOp(PiPiOperator::PiPiGnd, args.operators)){
-      COPYOPTS(read_opts, ktopipi);
-      
-      std::cout << "Reading K->pipi(111) data" << std::endl;
-
-      //Read the bubble data
-       bubble_data = new ProjectedBubbleData(args.data_dir, 
-					     args.pipi_bubble_file_fmt,
-					     args.traj_start, args.traj_inc, args.traj_lessthan, 
-					     args.bin_size, argLt, tsep_pipi, bubble_pimom_proj, resampler, opt.read_opts);
-
-
-
-
-
-
-
-      raw_ktopipi_gnd = new RawKtoPiPiData(args.tsep_k_pi, 
-
-args.tsep_k_pi, args.data_dir, 
-	    args.ktopipi_type_file_fmt, args.ktopipi_type1_pimom_proj, 
-	    args.pipi_bubble_file_fmt, args.pipi_bubble_pimom_proj,
-	    args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, read_opts);
-
-
-tsep_k_pi, bubble_data, data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan, bin_size, 
-		     Lt, tsep_pipi, opt);
-
-
-  }
-
-};
-
-#endif
-
-
-
 
 
 
@@ -95,40 +35,23 @@ int main(const int argc, const char* argv[]){
 
   fitter->load2ptFitParams(args.operators, args.input_params, nsample); 
 
+  RawData raw;
+  if(cmdline.load_raw_data_container_checkpoint){
+    HDF5reader rd(cmdline.load_raw_data_container_checkpoint_file);
+    read(rd, raw, "raw_data_container");
+  }else{
+    raw.read(args, cmdline);
+  }  
+  if(cmdline.save_raw_data_container_checkpoint){
+    HDF5writer wr(cmdline.save_raw_data_container_checkpoint_file);
+    write(wr, raw, "raw_data_container");
+  }
+    
   ResampledData<jackknifeDistributionD> data_j;
   ResampledData<doubleJackknifeA0StorageType> data_dj;
   
-  readKtoPiPiAllDataOptions read_opts;
-
-  if(doOp(PiPiOperator::PiPiGnd, args.operators)){
-    COPYOPTS(read_opts, ktopipi);
-    
-    std::cout << "Reading K->pipi(111) data" << std::endl;
-    getData(data_j(PiPiOperator::PiPiGnd), data_dj(PiPiOperator::PiPiGnd), args.tsep_k_pi, args.data_dir, 
-	    args.ktopipi_type_file_fmt, args.ktopipi_type1_pimom_proj, 
-	    args.pipi_bubble_file_fmt, args.pipi_bubble_pimom_proj,
-	    args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, read_opts);
-  }    
-  if(doOp(PiPiOperator::PiPiExc, args.operators)){
-    COPYOPTS(read_opts, ktopipi_exc);
-
-    std::cout << "Reading K->pipi(311) data" << std::endl;
-    getData(data_j(PiPiOperator::PiPiExc), data_dj(PiPiOperator::PiPiExc), args.tsep_k_pi, args.data_dir, 
-	    args.ktopipi_exc_type_file_fmt, args.ktopipi_exc_type1_pimom_proj, 
-	    args.pipi_bubble_file_fmt, args.pipi_exc_bubble_pimom_proj,
-	    args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, args.tsep_pipi, read_opts);
-  }
-  if(doOp(PiPiOperator::Sigma, args.operators)){
-    static const std::vector<std::pair<threeMomentum, double> > sigma_bub_quarkmom_proj = { { {1,1,1}, 1./8 }, { {-1,-1,-1}, 1./8 },
-											    { {-3,1,1}, 1./8 }, { {3,-1,-1}, 1./8 },
-											    { {1,-3,1}, 1./8 }, { {-1,3,-1}, 1./8 },
-											    { {1,1,-3}, 1./8 }, { {-1,-1,3}, 1./8 }       };
-    COPYOPTS(read_opts, ktosigma);
-
-    std::cout << "Reading K->sigma data" << std::endl;
-    getKtoSigmaData(data_j(PiPiOperator::Sigma), data_dj(PiPiOperator::Sigma), args.tsep_k_sigma, args.data_dir, args.ktosigma_type_file_fmt,  args.sigma_bubble_file_fmt, 
-		    sigma_bub_quarkmom_proj, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size, args.Lt, read_opts);
-  }
+  data_j.resample(raw, args, cmdline, "single jackknife");
+  data_dj.resample(raw, args, cmdline, "double jackknife");
 
   if(args.basis == Basis::Basis7){
     std::cout << "Converting to 7-basis" << std::endl;

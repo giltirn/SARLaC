@@ -14,7 +14,7 @@ namespace _mathExpressionTokenize{
   namespace ascii = boost::spirit::x3::ascii;
   namespace x3 = boost::spirit::x3;
   
-  auto addtoken_ = [&](auto& ctx){
+  auto addtoken_ = [](auto& ctx){
     std::ostringstream os; os << x3::_attr(ctx);
     x3::_val(ctx).push_back(os.str());
   };

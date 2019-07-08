@@ -44,6 +44,7 @@ std::ostream & operator<<(std::ostream &os, const std::array<T,S> &s){
     os << s.back();
   }
   os << ')';
+  return os;
 }
 
 //Ostream output for pair

@@ -72,6 +72,7 @@ public:
     os << "dp="<<dp << " base_pow=" << base_pow << " sgn="<< sgn << " v={";
     for(int i=0;i<v.size();i++){ os << v[i]; if(i==dp) os << '|'; }
     os << "}";
+    return os;
   }
 
   double value() const{
