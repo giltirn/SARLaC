@@ -149,7 +149,17 @@ doubleJackknifeDistribution<DataType,U> jackknifeDistribution<DataType,V>::toDou
   return out;  
 }
 
-
+template<typename T, template<typename> class V>
+doubleJackknifeDistribution<T,V> weightedAvg(const std::vector<doubleJackknifeDistribution<T,V> const*> &v){
+  int nsample = v[0]->size();
+  doubleJackknifeDistribution<T,V> wavg_dj(nsample);
+  std::vector<jackknifeDistribution<T,V> const*> towavg_j(v.size());
+  for(int s=0;s<nsample;s++){ //weighted avg each jackknife distribution, looping over outer index
+    for(int i=0;i<v.size();i++) towavg_j[i] = &v[i]->sample(s);
+    wavg_dj.sample(s) = CPSfit::weightedAvg(towavg_j);
+  }
+  return wavg_dj;
+}
 
 CPSFIT_END_NAMESPACE
 

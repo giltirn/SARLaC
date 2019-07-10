@@ -16,21 +16,21 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   std::vector<int> nonzero_tK(Lt); for(int t=0;t<Lt;t++) nonzero_tK[t] = t;
 
   //Compute alpha and type4/mix4 vacuum subtractions
-  std::cout << "Computing " << descr << " alpha and vacuum subtractions\n";
+  std::cout << "Computing " << descr << " alpha and vacuum subtractions" << std::endl;
   NumericTensor<DistributionType,1> alpha_r({nt}), A0_type4_srcavg_vacsub_r({nt}), mix4_srcavg_vacsub_r({nt}); //[t]
   computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
 				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, bubble_data.binResample<DistributionType>(bin_size, resampler),q, 
 				    nonzero_tK,tsep_k_sigma,Lt,bin_size,resampler);
 
   //Compute tK-averages type4 and mix4 diagrams from data including bubble-------------//
-  std::cout << "Computing " << descr << " tK averages and mix diagrams\n";
+  std::cout << "Computing " << descr << " tK averages and mix diagrams" << std::endl;
   IndexedContainer<NumericTensor<DistributionType,1>, 3, 2> A0_srcavg_r; //[t]
   IndexedContainer<NumericTensor<DistributionType,1>, 2, 3> mix_srcavg_r; //[t]
   for(int i=2;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, bin_size, resampler); //[t]
   for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), bin_size, resampler);
 
   //Subtract the pseudoscalar operators and mix4 vacuum term
-  std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << "\n";
+  std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << std::endl;
   //NOTE: <sigma|P|K> = -|C|*mix3    where the |C| cancels with a corresponding factor absorbed into the definition of alpha here 
   //      (cf https://rbc.phys.columbia.edu/rbc_ukqcd/individual_postings/ckelly/Gparity/operator_subtraction.pdf pg 4)
   A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){ return DistributionType(from + alpha_r(t)*mix_srcavg_r(3)(t)); }); 
@@ -39,11 +39,11 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
     }); 
 
   //Perform the type 4 vacuum subtraction
-  std::cout << "Performing type-4 vacuum subtraction\n";
+  std::cout << "Performing type-4 vacuum subtraction" << std::endl;
   A0_srcavg_r(4) = A0_srcavg_r(4) - A0_type4_srcavg_vacsub_r;
 
   //Get the full double-jackknife amplitude
-  std::cout << "Computing full amplitudes\n";
+  std::cout << "Computing full amplitudes" << std::endl;
   NumericTensor<DistributionType,1> A0_full_srcavg_r = A0_srcavg_r(2) + A0_srcavg_r(3) + A0_srcavg_r(4);
 
   return A0_full_srcavg_r;

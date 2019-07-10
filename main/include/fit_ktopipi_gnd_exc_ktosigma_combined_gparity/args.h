@@ -9,6 +9,17 @@
 CPSFIT_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(PiPiOperator, (PiPiGnd)(PiPiExc)(Sigma) );
+
+inline void write(HDF5writer &wr, const PiPiOperator op, const std::string &tag){
+  CPSfit::write(wr, (int)op, tag);
+}
+inline void read(HDF5reader &rd, PiPiOperator &op, const std::string &tag){
+  int r;
+  CPSfit::read(rd, r, tag);
+  op = (PiPiOperator)r;
+}
+
+
 GENERATE_ENUM_AND_PARSER(SimFitFunction, (MultiState)(MultiStateWavg) );
 GENERATE_ENUM_AND_PARSER(Basis, (Basis10)(Basis7) ); //choose the basis for the operators of the Weak Hamiltonian
 

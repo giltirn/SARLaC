@@ -36,26 +36,42 @@ int main(const int argc, const char* argv[]){
   fitter->load2ptFitParams(args.operators, args.input_params, nsample); 
 
   RawData raw;
-  if(cmdline.load_raw_data_container_checkpoint){
-    std::cout << "Reading raw data container from checkpoint file" << std::endl;
-    HDF5reader rd(cmdline.load_raw_data_container_checkpoint_file);
-    read(rd, raw, "raw_data_container");
-  }else{
-    std::cout << "Reading raw data" << std::endl;
-    raw.read(args, cmdline);
-  }  
-  if(cmdline.save_raw_data_container_checkpoint){
-    std::cout << "Saving raw data container to checkpoint file" << std::endl;
-    HDF5writer wr(cmdline.save_raw_data_container_checkpoint_file);
-    write(wr, raw, "raw_data_container");
+  if(!cmdline.load_resampled_data_container_checkpoint){
+    if(cmdline.load_raw_data_container_checkpoint){
+      std::cout << "Reading raw data container from checkpoint file" << std::endl;
+      HDF5reader rd(cmdline.load_raw_data_container_checkpoint_file);
+      read(rd, raw, "raw_data_container");
+    }else{
+      std::cout << "Reading raw data" << std::endl;
+      raw.read(args, cmdline);
+    }  
+    if(cmdline.save_raw_data_container_checkpoint){
+      std::cout << "Saving raw data container to checkpoint file" << std::endl;
+      HDF5writer wr(cmdline.save_raw_data_container_checkpoint_file);
+      write(wr, raw, "raw_data_container");
+    }
   }
     
   std::cout << "Computing resampled data" << std::endl;
   ResampledData<jackknifeDistributionD> data_j;
   ResampledData<doubleJackknifeA0StorageType> data_dj;
   
-  data_j.resample(raw, args, cmdline, "single jackknife");
-  data_dj.resample(raw, args, cmdline, "double jackknife");
+  if(cmdline.load_resampled_data_container_checkpoint){
+    std::cout << "Reading resampled data container from checkpoint file" << std::endl;
+    HDF5reader rd(cmdline.load_resampled_data_container_checkpoint_file);
+    read(rd, data_j, "data_j");
+    read(rd, data_dj, "data_dj");
+  }else{
+    data_j.resample(raw, args, cmdline, "single jackknife");
+    data_dj.resample(raw, args, cmdline, "double jackknife");
+  }
+  
+  if(cmdline.save_resampled_data_container_checkpoint){
+    std::cout << "Writing resampled data container to checkpoint file" << std::endl;
+    HDF5writer wr(cmdline.save_resampled_data_container_checkpoint_file);
+    write(wr, data_j, "data_j");
+    write(wr, data_dj, "data_dj");
+  }
 
   if(args.basis == Basis::Basis7){
     std::cout << "Converting to 7-basis" << std::endl;

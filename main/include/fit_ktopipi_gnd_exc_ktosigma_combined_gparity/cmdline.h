@@ -29,6 +29,13 @@ struct CMDline{
   bool save_raw_data_container_checkpoint;
   std::string save_raw_data_container_checkpoint_file;
 
+  bool load_resampled_data_container_checkpoint;
+  std::string load_resampled_data_container_checkpoint_file;
+
+  bool save_resampled_data_container_checkpoint;
+  std::string save_resampled_data_container_checkpoint_file;
+
+
 
   CMDline(){
 #define INIT_ARGS(NM)				\
@@ -44,6 +51,9 @@ struct CMDline{
 
     load_raw_data_container_checkpoint = false;
     save_raw_data_container_checkpoint = false;
+
+    load_resampled_data_container_checkpoint = false;
+    save_resampled_data_container_checkpoint = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -93,6 +103,14 @@ struct CMDline{
 	load_raw_data_container_checkpoint = true;
 	load_raw_data_container_checkpoint_file = sargv[i+1];
 	i+=2;      
+      }else if(sargv[i] == "-save_resampled_data_container_checkpoint"){
+	save_resampled_data_container_checkpoint = true;
+	save_resampled_data_container_checkpoint_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_resampled_data_container_checkpoint"){
+	load_resampled_data_container_checkpoint = true;
+	load_resampled_data_container_checkpoint_file = sargv[i+1];
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

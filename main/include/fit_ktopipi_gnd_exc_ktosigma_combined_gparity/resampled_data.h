@@ -13,6 +13,8 @@ class ResampledData{
 
   std::map<PiPiOperator, CorrFuncAllQ> data;
 public:
+  GENERATE_HDF5_SERIALIZE_METHOD( (data) );
+
   bool contains(const PiPiOperator op) const{ return data.find(op) != data.end(); }
   
   CorrFuncAllQ & operator()(const PiPiOperator op){ 
@@ -44,6 +46,10 @@ public:
   }
 
 };
+template<typename DistributionType>
+inline void write(CPSfit::HDF5writer &writer, const ResampledData<DistributionType> &d, const std::string &tag){ d.write(writer,tag); }
+template<typename DistributionType>
+inline void read(CPSfit::HDF5reader &reader, ResampledData<DistributionType> &d, const std::string &tag){ d.read(reader,tag); }
 
 
   
