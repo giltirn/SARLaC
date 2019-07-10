@@ -137,7 +137,7 @@ public:
     this->resample(raw, bin_size);
   }
   
-  ENABLE_GENERIC_ET(blockDoubleJackknifeDistribution, myType, blockDoubleJackknifeDistribution<BaseDataType> );
+  ENABLE_PARALLEL_GENERIC_ET(blockDoubleJackknifeDistribution, myType, blockDoubleJackknifeDistribution<BaseDataType> );
 
   blockDoubleJackknifeDistribution & operator=(const blockDoubleJackknifeDistribution &r){ 
     nsample = r.nsample; bin_size=r.bin_size; static_cast<baseType*>(this)->operator=(r); return *this; 
