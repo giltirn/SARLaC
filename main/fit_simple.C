@@ -12,6 +12,8 @@ using namespace CPSfit;
 #include<fit_simple/fit.h>
 #include<fit_simple/main.h>
 
+
+
 //Basic fitting
 int main(const int argc, const char** argv){
   CMDline cmdline(argc,argv,2);
@@ -25,19 +27,24 @@ int main(const int argc, const char** argv){
   }    
   
   parse(args, argv[1]);
+  
+  bool do_dj, do_bdj;
+  getDJtypes(do_dj, do_bdj, args.covariance_strategy);
+
+  if(do_dj) std::cout << "Using double jackknife" << std::endl;
+  if(do_bdj) std::cout << "Using block double jackknife" << std::endl;
 
   blockDoubleJackknifeCorrelationFunctionD data_bdj;
   doubleJackknifeCorrelationFunctionD data_dj;
   jackknifeCorrelationFunctionD data_j;
-
 
   if(cmdline.load_combined_data){
 #ifdef HAVE_HDF5
     std::cout << "Reading resampled data from " << cmdline.load_combined_data_file << std::endl;
     HDF5reader reader(cmdline.load_combined_data_file);
     read(reader, data_j, "data_j");
-    if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) read(reader, data_dj, "data_dj");
-    if(args.covariance_strategy == CovarianceStrategy::CorrelatedBlockHybrid) read(reader, data_bdj, "data_bdj");
+    if(do_dj) read(reader, data_dj, "data_dj");
+    if(do_bdj) read(reader, data_bdj, "data_bdj");
 #else
     error_exit("main: Loading amplitude data requires HDF5\n");
 #endif
@@ -103,8 +110,8 @@ int main(const int argc, const char** argv){
     }
 
     data_j = resampleAndCombine<jackknifeDistributionD>(channels_raw, args, cmdline);
-    if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) data_dj = resampleAndCombine<doubleJackknifeDistributionD>(channels_raw, args, cmdline);
-    if(args.covariance_strategy == CovarianceStrategy::CorrelatedBlockHybrid) data_bdj = resampleAndCombine<blockDoubleJackknifeDistributionD>(channels_raw, args, cmdline);
+    if(do_dj) data_dj = resampleAndCombine<doubleJackknifeDistributionD>(channels_raw, args, cmdline);
+    if(do_bdj) data_bdj = resampleAndCombine<blockDoubleJackknifeDistributionD>(channels_raw, args, cmdline);
   }
 
   if(cmdline.save_combined_data){
@@ -112,8 +119,8 @@ int main(const int argc, const char** argv){
     std::cout << "Writing resampled data to " << cmdline.save_combined_data_file << std::endl;
     HDF5writer writer(cmdline.save_combined_data_file);
     write(writer, data_j, "data_j");
-    if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) write(writer, data_dj, "data_dj");
-    if(args.covariance_strategy == CovarianceStrategy::CorrelatedBlockHybrid) write(writer, data_bdj, "data_bdj");
+    if(do_dj) write(writer, data_dj, "data_dj");
+    if(do_bdj) write(writer, data_bdj, "data_bdj");
 #else
     error_exit("fitSpecFFcorr: Saving amplitude data requires HDF5\n");
 #endif

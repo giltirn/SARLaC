@@ -3,7 +3,12 @@
 
 #include<fit_simple/data_info.h>
 
-GENERATE_ENUM_AND_PARSER(CovarianceStrategy, (Correlated)(Uncorrelated)(FrozenCorrelated)(CorrelatedBlockHybrid) );
+GENERATE_ENUM_AND_PARSER(CovarianceStrategy, (Correlated)(Uncorrelated)(FrozenCorrelated)(CorrelatedBlockHybrid)(CorrelatedBlock) );
+
+inline void getDJtypes(bool &do_dj, bool &do_bdj, CovarianceStrategy cov){
+  do_dj = cov != CovarianceStrategy::FrozenCorrelated && cov != CovarianceStrategy::CorrelatedBlock;
+  do_bdj = cov == CovarianceStrategy::CorrelatedBlockHybrid || cov == CovarianceStrategy::CorrelatedBlock;
+}
 
 #define ARGS_MEMBERS \
   ( std::vector<DataInfo>, data ) \

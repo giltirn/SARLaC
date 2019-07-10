@@ -46,6 +46,8 @@ struct CmdLine{
   bool factor_out;
   double factor_out_factor;
 
+  bool spec_pub_cen_only;
+
   CmdLine(){
     spec_elem = false;
     spec_format = false;
@@ -57,6 +59,7 @@ struct CmdLine{
     spec_sample_plot_type = false;
     spec_noindex = false;
     factor_out = false;
+    spec_pub_cen_only = false;
   }
   void parse(const int argc, const char* argv[]){
     int i = 2;
@@ -105,7 +108,9 @@ struct CmdLine{
 	spec_pub_exp = true;
 	std::stringstream ss(argv[i+1]); ss >> spec_pub_exp_val;
 	i+=2;
-
+      }else if(si == "-pub_cen_only"){ //Only print the central value
+	spec_pub_cen_only = true;
+	i++;
 
 	//-------------------- Options specific to sample_plot format -------------------------------------
 	//Defaults: scatter plot
@@ -288,31 +293,56 @@ template<typename D>
 struct setFormat{
   static inline formatter<D>* doit(const std::string &format, const CmdLine &cmdline){
     if(format == "publication"){
-      int nsf = 3;
-      SigFigsSource sfsrc = Largest;
+
+      //Print only central value
+      if(cmdline.spec_pub_cen_only){
+	int nsf = 3;
+	if(cmdline.spec_pub_sf)
+	  nsf = cmdline.spec_pub_sf_val;	
+
+	publicationCenOrErrDistributionPrinter<D> *printer = new publicationCenOrErrDistributionPrinter<D>(Central, nsf);
+	
+	if(cmdline.spec_round_pow)
+	  printer->setRoundPower(cmdline.spec_round_pow_val);
+      
+	if(cmdline.spec_sci_fmt_threshold)
+	  printer->setSciFormatThreshold(cmdline.spec_sci_fmt_threshold_val);
+      
+	if(cmdline.spec_pub_exp)
+	  printer->setExponent(cmdline.spec_pub_exp_val);
+      
+	distributionPrint<D>::printer(printer);
+
+	return new formatPrint<D>(!cmdline.spec_noindex);
+      }
+      else{ //Print central value and error
+	int nsf = 3;
+	SigFigsSource sfsrc = Largest;
             
-      if(cmdline.spec_pub_sfsrc){
-	if(cmdline.spec_pub_sfsrc_val == "Central") sfsrc = Central;
-	else if(cmdline.spec_pub_sfsrc_val == "Error") sfsrc = Error;
-	else if(cmdline.spec_pub_sfsrc_val != "Largest") error_exit(std::cout << "setFormat unknown sig.figs. src " << cmdline.spec_pub_sfsrc_val << std::endl);
-      }
-      if(cmdline.spec_pub_sf){
-	nsf = cmdline.spec_pub_sf_val;
-      }
-      publicationDistributionPrinter<D> *printer = new publicationDistributionPrinter<D>(nsf,sfsrc);
+	if(cmdline.spec_pub_sfsrc){
+	  if(cmdline.spec_pub_sfsrc_val == "Central") sfsrc = Central;
+	  else if(cmdline.spec_pub_sfsrc_val == "Error") sfsrc = Error;
+	  else if(cmdline.spec_pub_sfsrc_val != "Largest") error_exit(std::cout << "setFormat unknown sig.figs. src " << cmdline.spec_pub_sfsrc_val << std::endl);
+	}
+	if(cmdline.spec_pub_sf)
+	  nsf = cmdline.spec_pub_sf_val;
 
-      if(cmdline.spec_round_pow)
-	printer->setRoundPower(cmdline.spec_round_pow_val);
-      
-      if(cmdline.spec_sci_fmt_threshold)
-	printer->setSciFormatThreshold(cmdline.spec_sci_fmt_threshold_val);
-      
-      if(cmdline.spec_pub_exp)
-	printer->setExponent(cmdline.spec_pub_exp_val);
-      
-      distributionPrint<D>::printer(printer);
+	publicationDistributionPrinter<D> *printer = new publicationDistributionPrinter<D>(nsf,sfsrc);
 
-      return new formatPrint<D>(!cmdline.spec_noindex);
+	if(cmdline.spec_round_pow)
+	  printer->setRoundPower(cmdline.spec_round_pow_val);
+      
+	if(cmdline.spec_sci_fmt_threshold)
+	  printer->setSciFormatThreshold(cmdline.spec_sci_fmt_threshold_val);
+      
+	if(cmdline.spec_pub_exp)
+	  printer->setExponent(cmdline.spec_pub_exp_val);
+      
+	distributionPrint<D>::printer(printer);
+
+	return new formatPrint<D>(!cmdline.spec_noindex);
+      }
+
     }else if(format == "basic"){
       return new formatPrint<D>(!cmdline.spec_noindex);
     }else if(format == "sample_plot"){

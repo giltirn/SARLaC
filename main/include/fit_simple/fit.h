@@ -123,12 +123,15 @@ void fit(const jackknifeCorrelationFunctionD &data_j,
 	 const blockDoubleJackknifeCorrelationFunctionD &data_bdj,
 	 const ArgsType &args, const CMDlineType &cmdline){
 
+  bool do_dj, do_bdj;
+  getDJtypes(do_dj, do_bdj, args.covariance_strategy);
+
   //Get the data in the fit range
   jackknifeCorrelationFunctionD data_j_inrange = getDataInRange(data_j, args.t_min, args.t_max);
   doubleJackknifeCorrelationFunctionD data_dj_inrange;
-  if(args.covariance_strategy != CovarianceStrategy::FrozenCorrelated) data_dj_inrange = getDataInRange(data_dj, args.t_min, args.t_max);
+  if(do_dj) data_dj_inrange = getDataInRange(data_dj, args.t_min, args.t_max);
   blockDoubleJackknifeCorrelationFunctionD data_bdj_inrange;
-  if(args.covariance_strategy == CovarianceStrategy::CorrelatedBlockHybrid) data_bdj_inrange = getDataInRange(data_bdj, args.t_min, args.t_max);
+  if(do_bdj) data_bdj_inrange = getDataInRange(data_bdj, args.t_min, args.t_max);
 
   std::cout << "All data\n";
   for(int i=0;i<data_j.size();i++){
@@ -178,6 +181,9 @@ void fit(const jackknifeCorrelationFunctionD &data_j,
     break;
   case CovarianceStrategy::Correlated:
     fitter.generateCovarianceMatrix(data_dj_inrange, CostType::Correlated);
+    break;
+  case CovarianceStrategy::CorrelatedBlock:
+    fitter.generateCovarianceMatrix(data_bdj_inrange, CostType::Correlated);
     break;
   case CovarianceStrategy::Uncorrelated:
     fitter.generateCovarianceMatrix(data_dj_inrange, CostType::Uncorrelated);
