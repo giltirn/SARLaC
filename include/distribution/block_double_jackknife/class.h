@@ -198,6 +198,19 @@ struct printStats< blockDoubleJackknifeDistribution<T,V> >{
 
 };
 
+template<typename T, template<typename> class V>
+blockDoubleJackknifeDistribution<T,V> weightedAvg(const std::vector<blockDoubleJackknifeDistribution<T,V> const*> &v){
+  int nsample = v[0]->size();
+  blockDoubleJackknifeDistribution<T,V> wavg_dj(*v[0]);
+  std::vector<jackknifeDistribution<T,V> const*> towavg_j(v.size());
+  for(int s=0;s<nsample;s++){ //weighted avg each jackknife distribution, looping over outer index
+    for(int i=0;i<v.size();i++) towavg_j[i] = &v[i]->sample(s);
+    wavg_dj.sample(s) = CPSfit::weightedAvg(towavg_j);
+  }
+  return wavg_dj;
+}
+
+
 
 CPSFIT_END_NAMESPACE
 

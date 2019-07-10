@@ -47,6 +47,22 @@ struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
 
 };
 
+//True if T is doubleJackknifeDistribution or blockDoubleJackknifeDistribution
+template<typename T>
+struct _is_double_jackknife_type{
+  enum { value = 0 };
+};
+template<typename T, template<typename> class V>
+struct _is_double_jackknife_type< doubleJackknifeDistribution<T,V> >{
+  enum { value = 1 };
+};
+template<typename T, template<typename> class V>
+struct _is_double_jackknife_type< blockDoubleJackknifeDistribution<T,V> >{
+  enum { value = 1 };
+};
+#define ENABLE_IF_DOUBLE_JACK_TYPE(T) typename std::enable_if<_is_double_jackknife_type<T>::value, int>::type = 0
+
+
 //For correlated fits
 template<typename FitPolicies>
 struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
@@ -56,19 +72,20 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
   NumericSquareMatrix<jackknifeDistribution<double> > inv_corr;
   NumericVector<jackknifeDistribution<double> > sigma;
 
-  template<typename GeneralizedCoord, template<typename> class V>
-  importCostFunctionParameters(fitter<FitPolicies> &fitter,
-			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data): sigma(data.size()){
-
+  //Can be a doubleJackknifeDistribution or blockDoubleJackknifeDistribution
+  template<typename GeneralizedCoord, typename DoubleJackknifeDistributionType, ENABLE_IF_DOUBLE_JACK_TYPE(DoubleJackknifeDistributionType)>
+  void import(fitter<FitPolicies> &fitter,
+	      const correlationFunction<GeneralizedCoord, DoubleJackknifeDistributionType> &data){
     const int nsample = data.value(0).size();
     const int ndata = data.size();    
+    sigma.resize(ndata);
     NumericSquareMatrix<jackknifeDistribution<double>> cov(ndata);
     for(int i=0;i<ndata;i++){
-      cov(i,i) = doubleJackknifeDistribution<double,V>::covariance(data.value(i), data.value(i));
+      cov(i,i) = DoubleJackknifeDistributionType::covariance(data.value(i), data.value(i));
       sigma(i) = sqrt(cov(i,i));
 
       for(int j=i+1;j<ndata;j++)
-	cov(i,j) = cov(j,i) = doubleJackknifeDistribution<double,V>::covariance(data.value(i),data.value(j));
+	cov(i,j) = cov(j,i) = DoubleJackknifeDistributionType::covariance(data.value(i),data.value(j));
     }
 
     corr =  NumericSquareMatrix<jackknifeDistribution<double> >(ndata);
@@ -97,10 +114,18 @@ struct importCostFunctionParameters<correlatedFitPolicy,FitPolicies>{
     fitter.importCostFunctionParameters(inv_corr,sigma);
   }
 
-  template<typename GeneralizedCoord, template<typename> class V>
+  importCostFunctionParameters(){}
+
+  template<typename GeneralizedCoord, typename DoubleJackknifeDistributionType, ENABLE_IF_DOUBLE_JACK_TYPE(DoubleJackknifeDistributionType)>
+  importCostFunctionParameters(fitter<FitPolicies> &fitter,
+			       const correlationFunction<GeneralizedCoord, DoubleJackknifeDistributionType> &data){
+    import(fitter, data);
+  }
+
+  template<typename GeneralizedCoord, template<typename> class V, typename DoubleJackknifeDistributionType, ENABLE_IF_DOUBLE_JACK_TYPE(DoubleJackknifeDistributionType)>
   importCostFunctionParameters(fitter<FitPolicies> &fitter,
 			       const correlationFunction<GeneralizedCoord, jackknifeDistribution<double,V> > &data_j,
-			       const correlationFunction<GeneralizedCoord, doubleJackknifeDistribution<double,V> > &data_dj):
+			       const correlationFunction<GeneralizedCoord, DoubleJackknifeDistributionType> &data_dj):
     importCostFunctionParameters(fitter, data_dj){}
 
   void setUncorrelated(){ //because the fitter stores pointers we can modify the correlation matrix in place

@@ -313,19 +313,20 @@ public:
 
     importCovarianceMatrix(cov, cost_type);
   }
+  //Generate the covariance matrix internally from block double-jackknife data. Option to use uncorrelated (diagonal) or correlated matrix
   template<typename T>
-  void generateCovarianceMatrix(const correlationFunction<T, blockDoubleJackknifeDistribution<double>> &data_dj, 
+  void generateCovarianceMatrix(const correlationFunction<T, blockDoubleJackknifeDistribution<double>> &data_bdj, 
 				const CostType cost_type = CostType::Correlated){
-    int ndata = data_dj.size();
+    int ndata = data_bdj.size();
     NumericSquareMatrix<jackknifeDistribution<double>> cov(ndata);
     for(int i=0;i<ndata;i++)
       for(int j=i;j<ndata;j++)
-	cov(i,j) = cov(j,i) = blockDoubleJackknifeDistribution<double>::covariance(data_dj.value(i), data_dj.value(j));
+	cov(i,j) = cov(j,i) = blockDoubleJackknifeDistribution<double>::covariance(data_bdj.value(i), data_bdj.value(j));
 
     importCovarianceMatrix(cov, cost_type);
   }
 
-  //Get the correlation matrix from the block double-jack and sigma from the regular, binned double-jackknife
+  //Get the correlation matrix from the block double-jack and sigma from the regular, binned double-jackknife (the hybrid approach)
   template<typename T>
   void generateCovarianceMatrix(const correlationFunction<T, doubleJackknifeDistribution<double>> &data_dj,
 				const correlationFunction<T, blockDoubleJackknifeDistribution<double>> &data_bdj, 
