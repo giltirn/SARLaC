@@ -257,10 +257,10 @@ void fitCentral(parameterVectorD &params,
   //Get the central values
   const jackknifeCorrelationFunctionD & data_j_inrange_use = do_j_b ?  data_j_inrange : data_j_ub_inrange;
 
-  jackknifeCorrelationFunctionD data_cen_inrange(data_j_inrange_use.size());  
+  correlationFunction<double, double> data_cen_inrange(data_j_inrange_use.size());  
   for(int i=0;i<data_j_inrange_use.size();i++){
     data_cen_inrange.coord(i) = data_j_inrange_use.coord(i);
-    data_cen_inrange.value(i) = jackknifeDistributionD(1, data_j_inrange_use.value(i).mean());
+    data_cen_inrange.value(i) = data_j_inrange_use.value(i).mean();
   }
 
   //Get the fit function manager
@@ -270,21 +270,12 @@ void fitCentral(parameterVectorD &params,
   MarquardtLevenbergParameters<double> minparams;
   if(minparams_in != NULL) minparams = *minparams_in;
   
-  simpleFitWrapper fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
+  simpleSingleFitWrapper fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
 
   //Generate the covariance matrix
-  std::vector<jackknifeDistribution<double> > tmp_sigma;
-  NumericSquareMatrix<jackknifeDistribution<double> > tmp_corrmat;
-
   switch(args.covariance_strategy){
   case CovarianceStrategy::CorrelatedBlockHybrid:
-    fitter.generateCovarianceMatrix(data_j_inrange, CostType::Correlated);
-    tmp_sigma = fitter.getSigma();
-    
-    fitter.generateCovarianceMatrix(data_j_ub_inrange, CostType::Correlated);
-    tmp_corrmat = fitter.getCorrelationMatrix();
-
-    fitter.importCorrelationMatrix(tmp_corrmat, tmp_sigma);
+    fitter.generateCovarianceMatrix(data_j_inrange, data_j_ub_inrange);
     break;
   case CovarianceStrategy::FrozenCorrelated:
     //Freezing the covariance matrix doesn't make any difference if only one sample!
@@ -304,13 +295,8 @@ void fitCentral(parameterVectorD &params,
   }
 
   //Do the fit
-  jackknifeDistribution<parameterVectorD> tmp_params(1, params);
-  jackknifeDistributionD tmp_chisq(1), tmp_chisq_per_dof(1);
-
-  fitter.fit(tmp_params, tmp_chisq, tmp_chisq_per_dof, dof, data_cen_inrange);
-
-  params = tmp_params.sample(0);
-  chisq = tmp_chisq.sample(0);
+  double chisq_per_dof;
+  fitter.fit(params, chisq, chisq_per_dof, dof, data_cen_inrange);
   
   std::cout << "Params: " << params << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;

@@ -4,34 +4,17 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include<fit/simple_fit_wrapper/fitfunc_wrapper.h>
-#include<minimizer/minimizer.h>
-#include<minimizer/gsl_trs_minimizer.h>
-#include<minimizer/gsl_multidim_minimizer.h>
-#include<minimizer/minuit2_minimizer.h>
-#include<fit/fitfunc/fitfunc_frozen.h>
-#include<fit/fitfunc/fitfunc_bounded.h>
-#include<tensors/numeric_square_matrix.h>
+#include<fit/simple_fit_wrapper/fit_common.h>
 #include<distribution/jackknife.h>
 #include<distribution/double_jackknife.h>
 #include<distribution/block_double_jackknife.h>
-#include<data_series/correlationfunction.h>
-#include<fit/cost_function/correlated_chisq.h>
-#include<fit/cost_function/correlated_chisq_terms.h>
 
 CPSFIT_START_NAMESPACE
 
-GENERATE_ENUM_AND_PARSER(MinimizerType, (MarquardtLevenberg)(GSLtrs)(GSLmultimin)(Minuit2) );
-GENERATE_ENUM_AND_PARSER(CostType, (Correlated)(Uncorrelated) );
-
 class simpleFitWrapper{
-  typedef genericFitFuncBase FitFunc;
-  typedef BoundedFitFunc<genericFitFuncBase> FitFuncBounded;
-  typedef FrozenFitFunc<FitFuncBounded> FitFuncFrozenBounded;
+  INHERIT_COMMON_TYPEDEFS;
 
   const FitFunc &fitfunc;
-  typedef FitFunc::ParameterType ParameterType;
-
   MinimizerType min_type;
   generalContainer min_params;
 
@@ -44,164 +27,7 @@ class simpleFitWrapper{
 
   std::vector<boundedParameterTransform> bounded_trans;
 
-  struct Prior{
-    double value;
-    double weight;
-    int param_idx;
-    Prior(const double value, const double weight, const int param_idx): value(value), weight(weight), param_idx(param_idx){}
-  };
   std::vector<Prior> priors;
-
-  template<typename CostFunc, typename FitFuncInternal>
-  void addPriors(CostFunc &cost, const FitFuncInternal &fitfunc_s) const{
-    for(int p=0;p<priors.size();p++){
-      int subset_pidx = fitfunc_s.getParamsSubsetIndex(priors[p].param_idx);
-      if(subset_pidx != -1)
-	cost.addPrior(priors[p].value, priors[p].weight, subset_pidx);
-    }
-  }
-
-  template<typename FitFuncInternal>
-  double fitSampleML(bool &converged, ParameterType &params_s, int &dof,
-		     const correlationFunction<generalContainer, double> &data_s,
-		     const NumericSquareMatrix<double> &inv_corr_s,
-		     const std::vector<double> &sigma_s,
-		     const FitFuncInternal &fitfunc_s,
-		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
-    typedef CorrelatedChisqCostFunction<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
-    CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
-    addPriors(cost, fitfunc_s);
-    
-    dof = cost.Ndof();
-    
-    typedef MarquardtLevenbergMinimizer<CostFunc> Minimizer;
-    typedef typename Minimizer::AlgorithmParameterType MParams;
-
-    if(!min_params.is_null()) assert(min_params.is<MParams>());
-
-    Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
-
-    double chisq = min.fit(params_s);
-
-    converged = min.hasConverged();
-
-    if(chisq_dof_nopriors){
-      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, inv_corr_s);
-      chisq_dof_nopriors->first = cost_nopriors.cost(params_s);
-      chisq_dof_nopriors->second = cost_nopriors.Ndof();
-    }
-
-    return chisq;
-  }
-
-  template<typename FitFuncInternal>
-  double fitSampleGSLtrs(bool &converged, ParameterType &params_s, int &dof,
-		     const correlationFunction<generalContainer, double> &data_s,
-		     const NumericSquareMatrix<double> &corr_s,
-		     const std::vector<double> &sigma_s,
-		     const FitFuncInternal &fitfunc_s,
-		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
-    std::vector<double> corr_evals;
-    std::vector<NumericVector<double> > corr_evecs;
-    symmetricMatrixEigensolve(corr_evecs, corr_evals, corr_s);
-
-    typedef CorrelatedChisqCostFunctionTerms<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
-
-    CostFunc cost(fitfunc_s, data_s, sigma_s, corr_evals, corr_evecs);
-    addPriors(cost, fitfunc_s);
-    
-    dof = cost.Ndof();
-    
-    typedef GSLtrsMinimizer<CostFunc> Minimizer;
-    typedef typename Minimizer::AlgorithmParameterType MParams;
-
-    if(!min_params.is_null()) assert(min_params.is<MParams>());
-
-    Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
-
-    converged = min.hasConverged();
-    
-    double chisq = min.fit(params_s);
-
-    if(chisq_dof_nopriors){
-      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, corr_evals, corr_evecs);
-      NumericVector<double> cost_terms = cost_nopriors.costVector(params_s);
-      chisq_dof_nopriors->first = 0.5*dot(cost_terms,cost_terms);
-      chisq_dof_nopriors->second = cost_nopriors.Ndof();
-    }
-    
-    return chisq;
-  }
-
-  template<typename FitFuncInternal>
-  double fitSampleGSLmultimin(bool &converged, ParameterType &params_s, int &dof,
-		     const correlationFunction<generalContainer, double> &data_s,
-		     const NumericSquareMatrix<double> &inv_corr_s,
-		     const std::vector<double> &sigma_s,
-		     const FitFuncInternal &fitfunc_s,
-		     std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
-    typedef CorrelatedChisqCostFunction<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
-    CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
-    addPriors(cost, fitfunc_s);
-    
-    dof = cost.Ndof();
-    
-    typedef GSLmultidimMinimizer<CostFunc> Minimizer;
-    typedef typename Minimizer::AlgorithmParameterType MParams;
-
-    if(!min_params.is_null()) assert(min_params.is<MParams>());
-
-    Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
-
-    converged = min.hasConverged();
-
-    double chisq = min.fit(params_s);
-
-    if(chisq_dof_nopriors){
-      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, inv_corr_s);
-      chisq_dof_nopriors->first = cost_nopriors.cost(params_s);
-      chisq_dof_nopriors->second = cost_nopriors.Ndof();
-    }
-
-    return chisq;
-  }
-
-  template<typename FitFuncInternal>
-  double fitSampleMinuit2(bool &converged, ParameterType &params_s, int &dof,
-			  const correlationFunction<generalContainer, double> &data_s,
-			  const NumericSquareMatrix<double> &inv_corr_s,
-			  const std::vector<double> &sigma_s,
-			  const FitFuncInternal &fitfunc_s,
-			  std::pair<double, int> *chisq_dof_nopriors = NULL) const{ //for frozen fit funcs, the values of the frozen parameters are sample dependent
-#ifndef HAVE_MINUIT2
-    error_exit(std::cout << "Library not compiled with Minuit2" << std::endl);
-#else
-    typedef CorrelatedChisqCostFunction<FitFuncInternal, correlationFunction<generalContainer, double> > CostFunc;
-    CostFunc cost(fitfunc_s, data_s, sigma_s, inv_corr_s);
-    addPriors(cost, fitfunc_s);
-    
-    dof = cost.Ndof();
-    
-    typedef Minuit2minimizer<CostFunc> Minimizer;
-    typedef typename Minimizer::AlgorithmParameterType MParams;
-
-    if(!min_params.is_null()) assert(min_params.is<MParams>());
-
-    Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
-
-    converged = min.hasConverged();
-
-    double chisq = min.fit(params_s);
-
-    if(chisq_dof_nopriors){
-      CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, inv_corr_s);
-      chisq_dof_nopriors->first = cost_nopriors.cost(params_s);
-      chisq_dof_nopriors->second = cost_nopriors.Ndof();
-    }
-
-    return chisq;
-#endif
-  }
 
   NumericSquareMatrix<jackknifeDistribution<double> > invertCorrelationMatrix() const{
     int nsample = corr_mat(0,0).size();
@@ -489,13 +315,13 @@ public:
       bool converged;
       switch(min_type){
       case MinimizerType::MarquardtLevenberg:
-	chisq.sample(s) = fitSampleML(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = simpleFitCommon::fitSampleML(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::GSLtrs:
-	chisq.sample(s) = fitSampleGSLtrs(converged, params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = simpleFitCommon::fitSampleGSLtrs(converged, params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::GSLmultimin:
-	chisq.sample(s) = fitSampleGSLmultimin(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = simpleFitCommon::fitSampleGSLmultimin(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::Minuit2:
-	chisq.sample(s) = fitSampleMinuit2(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = simpleFitCommon::fitSampleMinuit2(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
       default:
 	assert(0);
       }

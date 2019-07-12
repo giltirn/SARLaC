@@ -3,7 +3,9 @@
 
 //A simpler fit wrapper for distributions which is driven by run-time controls rather than policy classes
 
+#include<fit/simple_fit_wrapper/fit_common.h>
 #include<fit/simple_fit_wrapper/fitter.h>
+#include<fit/simple_fit_wrapper/fitter_single.h>
 #include<fit/simple_fit_wrapper/fit_wrapper_freeze.h>
 #include<fit/simple_fit_wrapper/utils.h>
 
