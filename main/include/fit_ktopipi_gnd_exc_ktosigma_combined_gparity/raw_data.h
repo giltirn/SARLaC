@@ -84,7 +84,7 @@ struct RawData{
 		const Args &args, const CMDline &cmdline, const std::string &descr) const{
     assert(doOp(op, args.operators));
 
-    basic_resampler resampler;    
+    basic_bin_resampler bin_resampler(args.bin_size);    
     NumericTensor<DistributionType,1> A0_full_srcavg;
 
     for(int x=0;x<args.tsep_k_pi.size();x++){
@@ -93,13 +93,13 @@ struct RawData{
       for(int q=0;q<10;q++){
 	switch(op){
 	case PiPiOperator::PiPiGnd:
-	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_gnd[x], *bubble_data_gnd, args.Lt, descr, args.bin_size, resampler);
+	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_gnd[x], *bubble_data_gnd, args.Lt, descr, bin_resampler);
 	  break;
 	case PiPiOperator::PiPiExc:
-	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_exc[x], *bubble_data_exc, args.Lt, descr, args.bin_size, resampler);
+	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_exc[x], *bubble_data_exc, args.Lt, descr, bin_resampler);
 	  break;
 	case PiPiOperator::Sigma:
-	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktosigma[x], *bubble_data_sigma, args.Lt, descr, args.bin_size, resampler);
+	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktosigma[x], *bubble_data_sigma, args.Lt, descr, bin_resampler);
 	  break;
 	}
 	for(int t=0;t<=tsep_k_pi;t++)

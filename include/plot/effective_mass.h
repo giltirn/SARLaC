@@ -15,7 +15,7 @@ CPSFIT_START_NAMESPACE
 
 //For a generic fit form and arbitrary linear combination
 template<typename jackknifeTimeSeriesType, typename FitEffMassFunc>
-  jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, const FitEffMassFunc &fiteffmass, double guess = 0.5){
+  jackknifeTimeSeriesType fitEffectiveMass(const jackknifeTimeSeriesType &edata, const FitEffMassFunc &fiteffmass, double guess = 0.5, bool verbose = false){
   typedef UncorrelatedChisqCostFunction<FitEffMassFunc, dataSeries<double,double> > CostFunction;
   typedef MarquardtLevenbergMinimizer<CostFunction> MinimizerType;
   typedef typename FitEffMassFunc::ParameterType ParameterType;
@@ -50,7 +50,7 @@ template<typename jackknifeTimeSeriesType, typename FitEffMassFunc>
     }
     int did_fail = 0; for(int ii=0;ii<fail.size();ii++) did_fail += fail[ii];
     if(did_fail){
-      std::cout << "Warning: Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
+      if(verbose) std::cout << "Warning: Failed to converge on one or more samples at coord " << effmass.coord(i) << std::endl;
       erase[i] = true;
       erase_required = true;
     }else{
@@ -65,7 +65,7 @@ template<typename jackknifeTimeSeriesType, typename FitEffMassFunc>
 
 	resid.sample(s) = (y.sample(s) - yfit.sample(s))/y.sample(s);
       }
-      std::cout << "Effmass t="<<  effmass.coord(i) << " m=" << effmass.value(i) << " y=" << y << " yfit=" << yfit << " resid=" << resid << std::endl;
+      if(verbose) std::cout << "Effmass t="<<  effmass.coord(i) << " m=" << effmass.value(i) << " y=" << y << " yfit=" << yfit << " resid=" << resid << std::endl;
     }
   }
   distributionPrint<jackknifeDistribution<double> >::printer(orig_printer);

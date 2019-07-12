@@ -70,11 +70,11 @@ public:
   }
 
   template<typename DistributionType> //Assumed to be a raw data distribution
-  void resample(const DistributionType &in, const int bin_size){
-    this->resize(in.size(), bin_size);
+  void resample(const DistributionType &in){
+    int in_nsample_crop = binCrop(in.size(), this->bin_size);
+    assert(this->nsample == in_nsample_crop);
 
     //Number of samples may be cropped if in.size() is not a multiple of bin_size
-
     BaseDataType Nmean = in.sample(0);
     for(int i=1;i<nsample;i++) Nmean = Nmean + in.sample(i); //only include up to cropping
 
@@ -92,15 +92,22 @@ public:
 
       BaseDataType vbase_i = Nmean - bsum;
 
-      for(int j=0;j<nsample - bin_size;j++){
-	int j_true = j < bin_start ? j : j + bin_size; 
-
-	//D_ij = ( N<d> - [ \sum_{k = b*i}^{b*(i+1)} d_k ] - d_j ) / (N-b-1)
-	
-	this->sample(i).sample(j) = (vbase_i - in.sample(j_true)) * nrm;
-      }
+      //D_ij = ( N<d> - [ \sum_{k = b*i}^{b*(i+1)} d_k ] - d_j ) / (N-b-1)
+      int j = 0;
+      for(int j_true = 0; j_true < bin_start; j_true++)
+	this->sample(i).sample(j++) = (vbase_i - in.sample(j_true)) * nrm;
+      for(int j_true = bin_lessthan; j_true < nsample; j_true++)
+	this->sample(i).sample(j++) = (vbase_i - in.sample(j_true)) * nrm;
     }
   }
+
+  //This version allows the user to provide a new bin size or set it if the default constructor was used
+  template<typename DistributionType> //Assumed to be a raw data distribution
+  void resample(const DistributionType &in, const int bin_size){
+    this->resize(in.size(), bin_size);
+    this->resample(in);
+  }
+
   blockDoubleJackknifeDistribution(): baseType(), bin_size(1), nsample(0){}
 
   blockDoubleJackknifeDistribution(const blockDoubleJackknifeDistribution &r): baseType(r), bin_size(r.bin_size), nsample(r.nsample){}

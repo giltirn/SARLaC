@@ -41,7 +41,7 @@ GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(Ove
 
 //FitFunctor should be an object with method 
 //double operator()(const RawDataContainer &raw_data, const correlationFunction<GeneralizedCoordinate, DataType> &corrections, const int b) const
-//where raw_data are the data to be used and corrections are the shifts to the fit data that should be applied by the user prior to fitting
+//where raw_data are the data to be used and corrections are the shifts to the fit data that should be applied by the user prior to fitting (recentering)
 //Note b is the bootstrap sample index. It doesn't have to be used but the user may find it useful in the storage of any results produced from the bootstrap ensembles
 
 //nthread = -1 uses all available threads
@@ -205,6 +205,19 @@ inline double bootstrapPvalue(const double q2,
 			      const int block_size = 1, int nthread = -1, RNGstore &rng = RNG){
   return bootstrapPvalue(q2, raw_data, raw_data.value(0).size(), fit_data_cen, fit_values ,CorrFuncResampler<GeneralizedCoordinate, ValueType>(), fitter, nboot, table_type, block_size, nthread, rng);
 }
+
+//This function performs the "recentering" for correlation functions of jackknife data
+template<typename GeneralizedCoordinate, typename ValueType>
+void recenter(correlationFunction<GeneralizedCoordinate, jackknifeDistribution<ValueType> > &data, const correlationFunction<double, double> &corrections){
+  assert(data.size() == corrections.size());
+  for(int i=0;i<data.size();i++){
+    assert(data.coord(i) == corrections.coord(i));
+    for(int s=0;s<data.value(i).size();s++)
+      data.value(i).sample(s) = data.value(i).sample(s) + corrections.value(i);
+  }
+}
+
+
 
 
 CPSFIT_END_NAMESPACE

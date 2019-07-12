@@ -33,6 +33,9 @@ public:
   //Translate the coordinate into the underlying type T
   template<typename T>
   static inline T getCoord(const GeneralizedCoordinate &x){ assert(x.is<T>()); return x.value<T>(); }
+
+  template<typename T>
+  static inline GeneralizedCoordinate getWrappedCoord(const T &x){ return generalContainer(x); } 
 };  
 
 #define INHERIT_GENERIC_FITFUNC_BASE_TYPEDEFS		\

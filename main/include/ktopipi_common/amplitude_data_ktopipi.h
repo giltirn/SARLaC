@@ -95,11 +95,11 @@ struct ProjectedBubbleData{
 				Lt, tsep_pipi, bubble_pimom_proj, opt);
   }
 
-  template<typename DistributionType, typename Resampler>
-  inline NumericTensor<DistributionType,1> binResample(const int bin_size, const Resampler &resampler) const{
+  template<typename DistributionType, typename BinResampler>
+  inline NumericTensor<DistributionType,1> binResample(const BinResampler &bin_resampler) const{
     NumericTensor<DistributionType,1> out({bubble.size(0)}, 
 					  [&](const int* t){ 
-					    DistributionType r; resampler.resample(r, bubble(t).bin(bin_size)); return r;
+					    DistributionType r; bin_resampler.binResample(r, bubble(t)); return r;
 					  }
 					  );
     return out;

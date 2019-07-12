@@ -22,6 +22,7 @@ inline void read(HDF5reader &rd, PiPiOperator &op, const std::string &tag){
 
 GENERATE_ENUM_AND_PARSER(SimFitFunction, (MultiState)(MultiStateWavg) );
 GENERATE_ENUM_AND_PARSER(Basis, (Basis10)(Basis7) ); //choose the basis for the operators of the Weak Hamiltonian
+GENERATE_ENUM_AND_PARSER(CovarianceMatrix, (Regular)(Block) );
 
 typedef std::pair<threeMomentum, double> momMultiplicityPair;
 typedef std::vector<std::string> typeFileFormat;
@@ -82,6 +83,7 @@ GENERATE_PARSER(InputParamArgs, INPUT_PARAM_ARGS_MEMBERS);
   ( int, nstate )							\
   ( Basis, basis )							\
   ( bool, correlated )							\
+  ( CovarianceMatrix, covariance_matrix )				\
   ( int, tmin_k_op)							\
   ( int, tmin_op_snk)							\
   ( int, bin_size )							\
@@ -139,7 +141,7 @@ struct Args{
 
     basis(Basis::Basis10),
 
-    correlated(false), Lt(64), tsep_pipi(4), tsep_k_pi({10,12,14,16,18}), tsep_k_sigma({10,12,14,16,18}),  tmin_k_op(6), tmin_op_snk(4), traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1){}
+    correlated(false), Lt(64), tsep_pipi(4), tsep_k_pi({10,12,14,16,18}), tsep_k_sigma({10,12,14,16,18}),  tmin_k_op(6), tmin_op_snk(4), traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1), covariance_matrix(CovarianceMatrix::Regular){}
 
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);

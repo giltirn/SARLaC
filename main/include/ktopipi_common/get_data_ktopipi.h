@@ -9,7 +9,7 @@
 
 CPSFIT_START_NAMESPACE
 
-template<typename resampledDistributionType, typename Resampler>
+template<typename resampledDistributionType, typename BinResampler>
 void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1> &alpha,
 				       NumericTensor<resampledDistributionType,1> &A0_type4_srcavg_vacsub,
 				       NumericTensor<resampledDistributionType,1> &mix4_srcavg_vacsub,
@@ -19,7 +19,7 @@ void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1
 				       const int q,
 				       const std::vector<int> &type4_nonzerotK,
 				       const int tsep_k_pi,
-				       const int Lt, const int bin_size, const Resampler &resampler){
+				       const int Lt, const BinResampler &bin_resampler){
   //Compute mix4 double-jackknife and tK average
   resampledDistributionType zro = bubble_rs({0}); zeroit(zro);
   
@@ -30,16 +30,17 @@ void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1
 
     resampledDistributionType mix4_nobub_srcavg = zro;
     resampledDistributionType A0_type4_nobub_srcavg = zro;
-    
+    resampledDistributionType mix4_nobub_rs, mix4_vacsub_rs, A0_type4_nobub_rs, A0_type4_vacsub_rs;
+
     for(int tK_idx=0;tK_idx<type4_nonzerotK.size();tK_idx++){
       const int tK = type4_nonzerotK[tK_idx];
       const int tB = (tK + tsep_k_pi) % Lt;      
 
-      resampledDistributionType mix4_nobub_rs; resampler.resample(mix4_nobub_rs, mix4_nobub_alltK({tK_idx,t}).bin(bin_size) );
-      resampledDistributionType mix4_vacsub_rs = mix4_nobub_rs * bubble_rs(&tB);
+      bin_resampler.binResample(mix4_nobub_rs, mix4_nobub_alltK({tK_idx,t}) );
+      mix4_vacsub_rs = mix4_nobub_rs * bubble_rs(&tB);
 
-      resampledDistributionType A0_type4_nobub_rs;  resampler.resample(A0_type4_nobub_rs, A0_type4_nobub_alltK({q,tK_idx,t}).bin(bin_size) );
-      resampledDistributionType A0_type4_vacsub_rs = A0_type4_nobub_rs * bubble_rs(&tB);
+      bin_resampler.binResample(A0_type4_nobub_rs, A0_type4_nobub_alltK({q,tK_idx,t}) );
+      A0_type4_vacsub_rs = A0_type4_nobub_rs * bubble_rs(&tB);
 
       mix4_srcavg_vacsub(&t) = mix4_srcavg_vacsub(&t) + mix4_vacsub_rs;
       mix4_nobub_srcavg = mix4_nobub_srcavg + mix4_nobub_rs;
@@ -59,48 +60,60 @@ void computeAlphaAndVacuumSubtractions(NumericTensor<resampledDistributionType,1
 }
 
 
-template<typename DistributionType, typename Resampler>
+template<typename DistributionType, typename BinResampler>
 NumericTensor<DistributionType,1> binResampleAverageTypeData(const NumericTensor<rawDataDistributionD,3> &typedata_alltK,
 							     const int q,
-							     const int bin_size, const Resampler &resampler){
+							     const BinResampler &bin_resampler){
   const int ntK = typedata_alltK.size(1);
   const int nt = typedata_alltK.size(2);
 
   NumericTensor<DistributionType,1> out({nt}); //[t]
   for(int t=0;t<nt;t++)
-    resampleAverage(out(&t), resampler, [&](const int tK_idx){ return typedata_alltK({q,tK_idx,t}).bin(bin_size); }, ntK);
+    binResampleAverage(out(&t), bin_resampler, [&](const int tK_idx)->rawDataDistributionD const& { return typedata_alltK({q,tK_idx,t}); }, ntK);
   return out;
 }
 
-template<typename DistributionType, typename Resampler>
+template<typename DistributionType, typename BinResampler>
 NumericTensor<DistributionType,1> binResampleAverageMixDiagram(const NumericTensor<rawDataDistributionD,2> &mixdata_alltK,
-							       const int bin_size, const Resampler &resampler){
+							       const BinResampler &bin_resampler){
   const int ntK = mixdata_alltK.size(0);
   const int nt = mixdata_alltK.size(1);
 
   NumericTensor<DistributionType,1> out({nt}); //[t]
   for(int t=0;t<nt;t++)
-    resampleAverage(out(&t), resampler, [&](const int tK_idx){ return mixdata_alltK({tK_idx,t}).bin(bin_size); }, ntK);
+    binResampleAverage(out(&t), bin_resampler, [&](const int tK_idx)->rawDataDistributionD const& { return mixdata_alltK({tK_idx,t}); }, ntK);
   return out;
 }
 
-template<typename DistributionType, typename Resampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const int bin_size, const Resampler &resampler){
+template<typename DistributionType, typename BinResampler>
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const BinResampler &bin_resampler){
+  std::cout << "Starting generation of resampled amplitude for K->pipi Q" << q+1 << " and t_sep(K->pi)=" << tsep_k_pi << std::endl;
+
   const int nt = tsep_k_pi + 1; //only compute on  0<=t<=tsep_k_pi
+
+  timer time;
 
   //Compute alpha and type4/mix4 vacuum subtractions
   std::cout << "Computing " << descr << " alpha and vacuum subtractions" << std::endl;
+  time.start();
   NumericTensor<DistributionType,1> alpha_r({nt}), A0_type4_srcavg_vacsub_r({nt}), mix4_srcavg_vacsub_r({nt}); //[t]
   computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
-				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, resampled_bubble,q, raw.nonzerotK(4),tsep_k_pi,Lt,bin_size,resampler);
+				    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, resampled_bubble,q, raw.nonzerotK(4),tsep_k_pi,Lt, bin_resampler);
+  time.stop();
+  std::cout << "Alpha and vacuum subtractions: " << time.elapsed()/1.e9 << "s" << std::endl;
+  
 
   //Compute tK-averages type4 and mix4 diagrams from data including bubble-------------//
-  std::cout << "Computing " << descr << " tK averages and mix diagrams" << std::endl;
+  std::cout << "Computing " << descr << " tK averages of binned, resampled data" << std::endl;
+  time.start();
   IndexedContainer<NumericTensor<DistributionType,1>, 4, 1> A0_srcavg_r; //[t]
   IndexedContainer<NumericTensor<DistributionType,1>, 2, 3> mix_srcavg_r; //[t]
-  for(int i=1;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, bin_size,resampler); //[t]
-  for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), bin_size,resampler);
+  for(int i=1;i<=4;i++) A0_srcavg_r(i) = binResampleAverageTypeData<DistributionType>(raw.A0_alltK(i), q, bin_resampler); //[t]
+  for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), bin_resampler);
+  time.stop();
+  std::cout << "tK averages of binned, resampled data: " << time.elapsed()/1.e9 << "s" << std::endl;
 
+  time.start();
   //Subtract the pseudoscalar operators and mix4 vacuum term
   std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << std::endl;
   A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){ return DistributionType(from - alpha_r(t)*mix_srcavg_r(3)(t)); }); 
@@ -115,26 +128,28 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   //Get the full resampled amplitude
   std::cout << "Computing full amplitudes" << std::endl;
   NumericTensor<DistributionType,1> A0_full_srcavg_r = A0_srcavg_r(1) + A0_srcavg_r(2) + A0_srcavg_r(3) + A0_srcavg_r(4);
+  time.stop();
+  std::cout << "Remainder of computation: " << time.elapsed()/1.e9 << "s" << std::endl;
 
   return A0_full_srcavg_r;
 }
-template<typename DistributionType, typename Resampler>
+template<typename DistributionType, typename BinResampler>
 NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const ProjectedBubbleData &bubble_data, 
-						    const int Lt, const std::string &descr, const int bin_size, const Resampler &resampler){
-  return computeQamplitude(q, tsep_k_pi, raw, bubble_data.binResample<DistributionType>(bin_size, resampler), Lt, descr, bin_size, resampler);
+						    const int Lt, const std::string &descr, const BinResampler &bin_resampler){
+  return computeQamplitude(q, tsep_k_pi, raw, bubble_data.binResample<DistributionType>(bin_resampler), Lt, descr, bin_resampler);
 }
 
 
 //Read and prepare the data for a particular tsep_k_pi_idx
-template<typename Resampler>
+template<typename BinResampler>
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 	     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 	     const int tsep_k_pi, const ProjectedBubbleData &bubble_data, 
 	     const std::string &data_dir, const std::vector<std::string> &data_file_fmt,
 	     const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
-	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+	     const int traj_start, const int traj_inc, const int traj_lessthan, 
 	     const int Lt, const int tsep_pipi, 
-	     const Resampler &resampler, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
+	     const BinResampler &bin_resampler, const readKtoPiPiDataOptions &opt = readKtoPiPiDataOptions()){
 
   std::cout << "Getting data for tsep_k_pi = " <<  tsep_k_pi << std::endl;
   printMem("getData called");
@@ -147,8 +162,10 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 
     printMem("Starting new Q");
  
-    NumericTensor<doubleJackknifeDistributionD,1> A0_full_srcavg_dj = computeQamplitude<doubleJackknifeDistributionD>(q, tsep_k_pi, raw, bubble_data, Lt, "double jackknife", bin_size, resampler);
-    NumericTensor<jackknifeDistributionD,1> A0_full_srcavg_j = computeQamplitude<jackknifeDistributionD>(q, tsep_k_pi, raw, bubble_data, Lt, "single jackknife", bin_size, resampler);
+    NumericTensor<doubleJackknifeDistributionD,1> A0_full_srcavg_dj = computeQamplitude<doubleJackknifeDistributionD>(q, tsep_k_pi, raw, bubble_data, Lt, 
+														      "double jackknife", bin_resampler);
+    NumericTensor<jackknifeDistributionD,1> A0_full_srcavg_j = computeQamplitude<jackknifeDistributionD>(q, tsep_k_pi, raw, bubble_data, Lt, 
+													 "single jackknife", bin_resampler);
 
     //Insert data into output containers    
     for(int t=0;t<=tsep_k_pi;t++){
@@ -190,16 +207,16 @@ struct readKtoPiPiAllDataOptions{
 };
 
 
-template<typename Resampler>
+template<typename BinResampler>
 void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j, 
 	     std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_all_dj,
 	     const std::vector<int> &tsep_k_pi,
 	     const std::string &data_dir,  
 	     const std::vector<std::string> &data_file_fmt, const std::vector<std::pair<threeMomentum, double> > &type1_pimom_proj,
 	     const std::string &bubble_file_fmt, const std::vector<std::pair<threeMomentum, double> > &bubble_pimom_proj,
-	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
+	     const int traj_start, const int traj_inc, const int traj_lessthan,
 	     const int Lt, const int tsep_pipi, 
-	     const Resampler &resampler, const readKtoPiPiAllDataOptions &opt = readKtoPiPiAllDataOptions()){
+	     const BinResampler &bin_resampler, const readKtoPiPiAllDataOptions &opt = readKtoPiPiAllDataOptions()){
 
   if(opt.load_amplitude_data){
 #ifdef HAVE_HDF5
@@ -220,8 +237,8 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
       if(scratch_store.doSkipLoad(tsep_k_pi_idx)) continue;
       
       getData(A0_all_j,A0_all_dj,tsep_k_pi[tsep_k_pi_idx],bubble_data,
-	      data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan, bin_size,
-	      Lt, tsep_pipi, resampler, opt.read_opts);
+	      data_dir, data_file_fmt, type1_pimom_proj, traj_start, traj_inc, traj_lessthan,
+	      Lt, tsep_pipi, bin_resampler, opt.read_opts);
 
       scratch_store.writeScratch(A0_all_j, A0_all_dj, tsep_k_pi_idx);
     }	
@@ -251,13 +268,13 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size,
 	     const int Lt, const int tsep_pipi, 
 	     const readKtoPiPiAllDataOptions &opt = readKtoPiPiAllDataOptions()){
-  basic_resampler resampler;
+  basic_bin_resampler bin_resampler(bin_size);
   getData(A0_all_j, A0_all_dj, tsep_k_pi,
 	  data_dir, 
 	  data_file_fmt, type1_pimom_proj, 
 	  bubble_file_fmt, bubble_pimom_proj, 
-	  traj_start, traj_inc, traj_lessthan, bin_size, 
-	  Lt, tsep_pipi, resampler, opt);
+	  traj_start, traj_inc, traj_lessthan, 
+	  Lt, tsep_pipi, bin_resampler, opt);
 }
 
 void checkpointRawOnly(const std::vector<int> &tsep_k_pi,

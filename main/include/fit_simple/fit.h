@@ -116,13 +116,38 @@ struct FitTwoStateCoshManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
   }
 };
 
+template<typename ArgsType, typename CMDlineType>
+std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > getFitFuncManager(const ArgsType &args, const CMDlineType &cmdline){
+  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager;
+
+  switch(args.fitfunc){
+  case FitFuncType::FCosh:
+    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitCosh,ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FSinh:
+    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitSinh,ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FExp:
+    fitfunc_manager.reset(new FitExpManager<ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FConstant:
+    fitfunc_manager.reset(new FitConstantManager<ArgsType,CMDlineType>(args,cmdline)); break;
+  case FitFuncType::FTwoStateCosh:
+    fitfunc_manager.reset(new FitTwoStateCoshManager<ArgsType,CMDlineType>(args,cmdline)); break;
+  default:
+    error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);
+  }
+  
+  return fitfunc_manager;
+}
+
 
 template<typename ArgsType, typename CMDlineType>
-void fit(const jackknifeCorrelationFunctionD &data_j,
+void fit(jackknifeDistribution<parameterVectorD> &params,
+	 jackknifeDistributionD &chisq,
+	 int &dof,
+	 const jackknifeCorrelationFunctionD &data_j,
 	 const doubleJackknifeCorrelationFunctionD &data_dj,
 	 const blockDoubleJackknifeCorrelationFunctionD &data_bdj,
 	 const ArgsType &args, const CMDlineType &cmdline){
-
+  
   bool do_dj, do_bdj;
   getDJtypes(do_dj, do_bdj, args.covariance_strategy);
 
@@ -145,22 +170,7 @@ void fit(const jackknifeCorrelationFunctionD &data_j,
 
 
   //Get the fit function manager
-  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager;
-
-  switch(args.fitfunc){
-  case FitFuncType::FCosh:
-    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitCosh,ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FSinh:
-    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitSinh,ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FExp:
-    fitfunc_manager.reset(new FitExpManager<ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FConstant:
-    fitfunc_manager.reset(new FitConstantManager<ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FTwoStateCosh:
-    fitfunc_manager.reset(new FitTwoStateCoshManager<ArgsType,CMDlineType>(args,cmdline)); break;
-  default:
-    error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);
-  }
+  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager = getFitFuncManager(args, cmdline);
 
   //Set up the minimizer
   MarquardtLevenbergParameters<double> minparams;
@@ -193,12 +203,13 @@ void fit(const jackknifeCorrelationFunctionD &data_j,
   }
 
   //Do the fit
-  parameterVector<double> guess = fitfunc_manager->getGuess();
+  parameterVectorD guess = fitfunc_manager->getGuess();
 
   const int nsample = data_j.value(0).size();
-  jackknifeDistribution<parameterVectorD> params(nsample, guess);
-  jackknifeDistributionD chisq(nsample), chisq_per_dof(nsample);
-  int dof;
+  params = jackknifeDistribution<parameterVectorD>(nsample, guess);
+  chisq = jackknifeDistributionD(nsample);
+    
+  jackknifeDistributionD chisq_per_dof(nsample);
   
   fitter.fit(params, chisq, chisq_per_dof, dof, data_j_inrange);
 
@@ -222,6 +233,90 @@ void fit(const jackknifeCorrelationFunctionD &data_j,
 
   fitfunc_manager->plot(data_j, params);
 }
+
+
+
+template<typename ArgsType, typename CMDlineType>
+void fitCentral(parameterVectorD &params,
+		double &chisq,
+		int &dof,
+		const jackknifeCorrelationFunctionD &data_j,
+		const jackknifeCorrelationFunctionD &data_j_unbinned,
+		const ArgsType &args, const CMDlineType &cmdline, MarquardtLevenbergParameters<double> const *minparams_in = NULL){
+
+  //For block and block-hybrid the unbinned jackknife is used, for the former to compute the covariance matrix 
+  //and for the latter the correlation matrix (with sigma computed from the binned jackknife)
+  bool do_j_b, do_j_ub;
+  getJtypes(do_j_b, do_j_ub, args.covariance_strategy);
+
+  //Get the data in the fit range
+  jackknifeCorrelationFunctionD data_j_inrange, data_j_ub_inrange;
+  if(do_j_b) data_j_inrange = getDataInRange(data_j, args.t_min, args.t_max);
+  if(do_j_ub) data_j_ub_inrange = getDataInRange(data_j_unbinned, args.t_min, args.t_max);
+
+  //Get the central values
+  const jackknifeCorrelationFunctionD & data_j_inrange_use = do_j_b ?  data_j_inrange : data_j_ub_inrange;
+
+  jackknifeCorrelationFunctionD data_cen_inrange(data_j_inrange_use.size());  
+  for(int i=0;i<data_j_inrange_use.size();i++){
+    data_cen_inrange.coord(i) = data_j_inrange_use.coord(i);
+    data_cen_inrange.value(i) = jackknifeDistributionD(1, data_j_inrange_use.value(i).mean());
+  }
+
+  //Get the fit function manager
+  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager = getFitFuncManager(args, cmdline);
+
+  //Set up the minimizer
+  MarquardtLevenbergParameters<double> minparams;
+  if(minparams_in != NULL) minparams = *minparams_in;
+  
+  simpleFitWrapper fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
+
+  //Generate the covariance matrix
+  std::vector<jackknifeDistribution<double> > tmp_sigma;
+  NumericSquareMatrix<jackknifeDistribution<double> > tmp_corrmat;
+
+  switch(args.covariance_strategy){
+  case CovarianceStrategy::CorrelatedBlockHybrid:
+    fitter.generateCovarianceMatrix(data_j_inrange, CostType::Correlated);
+    tmp_sigma = fitter.getSigma();
+    
+    fitter.generateCovarianceMatrix(data_j_ub_inrange, CostType::Correlated);
+    tmp_corrmat = fitter.getCorrelationMatrix();
+
+    fitter.importCorrelationMatrix(tmp_corrmat, tmp_sigma);
+    break;
+  case CovarianceStrategy::FrozenCorrelated:
+    //Freezing the covariance matrix doesn't make any difference if only one sample!
+    fitter.generateCovarianceMatrix(data_j_inrange, CostType::Correlated);
+    break;
+  case CovarianceStrategy::Correlated:
+    fitter.generateCovarianceMatrix(data_j_inrange, CostType::Correlated);
+    break;
+  case CovarianceStrategy::CorrelatedBlock:
+    fitter.generateCovarianceMatrix(data_j_ub_inrange, CostType::Correlated); //unbinned data
+    break;
+  case CovarianceStrategy::Uncorrelated:
+    fitter.generateCovarianceMatrix(data_j_inrange, CostType::Uncorrelated);
+    break;
+  default:
+    assert(0);
+  }
+
+  //Do the fit
+  jackknifeDistribution<parameterVectorD> tmp_params(1, params);
+  jackknifeDistributionD tmp_chisq(1), tmp_chisq_per_dof(1);
+
+  fitter.fit(tmp_params, tmp_chisq, tmp_chisq_per_dof, dof, data_cen_inrange);
+
+  params = tmp_params.sample(0);
+  chisq = tmp_chisq.sample(0);
+  
+  std::cout << "Params: " << params << std::endl;
+  std::cout << "Chisq: " << chisq << std::endl;
+  std::cout << "Dof: " << dof << std::endl;
+}
+
 
   
 #endif

@@ -11,8 +11,7 @@ using namespace CPSfit;
 #include<fit_simple/read_data.h>
 #include<fit_simple/fit.h>
 #include<fit_simple/main.h>
-
-
+#include<fit_simple/bootstrap_pvalue.h>
 
 //Basic fitting
 int main(const int argc, const char** argv){
@@ -27,7 +26,36 @@ int main(const int argc, const char** argv){
   }    
   
   parse(args, argv[1]);
-  
+
+  //Get raw data
+  const int nchannel = args.data.size();
+  std::vector<rawDataCorrelationFunctionD> channels_raw(nchannel);
+
+  if(!cmdline.load_combined_data){
+    //Load from checkpoint if desired
+    if(cmdline.load_raw_data){ 
+      std::cout << "Reading raw data from " << cmdline.load_raw_data_file << std::endl;
+      HDF5reader reader(cmdline.load_raw_data_file);
+      read(reader, channels_raw, "channels_raw");
+    }
+    //Load from original files
+    else{ 
+      for(int i=0;i<nchannel;i++)
+	readData(channels_raw[i], args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+    }
+
+    //Save checkpoint if desired
+    if(cmdline.save_raw_data){
+      std::cout << "Writing raw data to " << cmdline.save_raw_data_file << std::endl;
+      HDF5writer writer(cmdline.save_raw_data_file);
+      write(writer, channels_raw, "channels_raw");
+    }
+
+    //Optional, in-place transformations on raw data
+    transformRaw(channels_raw, args, cmdline); 
+  }
+
+  //Resample the data
   bool do_dj, do_bdj;
   getDJtypes(do_dj, do_bdj, args.covariance_strategy);
 
@@ -39,93 +67,64 @@ int main(const int argc, const char** argv){
   jackknifeCorrelationFunctionD data_j;
 
   if(cmdline.load_combined_data){
-#ifdef HAVE_HDF5
     std::cout << "Reading resampled data from " << cmdline.load_combined_data_file << std::endl;
     HDF5reader reader(cmdline.load_combined_data_file);
     read(reader, data_j, "data_j");
     if(do_dj) read(reader, data_dj, "data_dj");
     if(do_bdj) read(reader, data_bdj, "data_bdj");
-#else
-    error_exit("main: Loading amplitude data requires HDF5\n");
-#endif
   }else{
-    const int nchannel = args.data.size();
-    std::vector<rawDataCorrelationFunctionD> channels_raw(nchannel);
-    if(cmdline.load_raw_data){ //Load from checkpoint if desired
-#ifdef HAVE_HDF5
-      std::cout << "Reading raw data from " << cmdline.load_raw_data_file << std::endl;
-      HDF5reader reader(cmdline.load_raw_data_file);
-      read(reader, channels_raw, "channels_raw");
-#else
-      error_exit("main: Loading raw data requires HDF5\n");
-#endif
-    }else{ //Load from original files
-      for(int i=0;i<nchannel;i++)
-	readData(channels_raw[i], args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
-    }
-    
-    if(cmdline.save_raw_data){
-#ifdef HAVE_HDF5
-      std::cout << "Writing raw data to " << cmdline.save_raw_data_file << std::endl;
-      HDF5writer writer(cmdline.save_raw_data_file);
-      write(writer, channels_raw, "channels_raw");
-#else
-      error_exit("main: Writing raw data requires HDF5\n");
-#endif
-    }
-
-    if(cmdline.remove_samples_in_range){
-      std::cout << "Removing samples in range [" << cmdline.remove_samples_in_range_start << ", " <<  cmdline.remove_samples_in_range_lessthan << ")" << std::endl;
-      for(int c=0;c<nchannel;c++)
-	for(int t=0;t<channels_raw[c].size();t++)
-	  channels_raw[c].value(t) = removeSamplesInRange(channels_raw[c].value(t), cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
-    }
-    if(cmdline.scramble_raw_data){ //useful as a check to see if binning is actually doing anything more than reducing resolution on the covariance matrix
-      int nsample = channels_raw[0].value(0).size();
-      if(!RNG.isInitialized()) RNG.initialize(1234);
-      std::vector<int> reord(nsample);
-      std::list<int> rem; 
-      for(int i=0;i<nsample;i++) rem.push_back(i);
-      
-      for(int i=0;i<nsample;i++){
-	int off = (int)uniformRandom<float>(0,rem.size());
-	auto it = std::next(rem.begin(), off);
-	reord[i] = *it;
-	rem.erase(it);
-      }
-      
-      //Check indices are unique
-      std::cout << "Reordered samples: ";
-      std::set<int> con;
-      for(int i=0;i<nsample;i++){
-	std::cout << reord[i] << " ";
-	con.insert(reord[i]);
-      }
-      std::cout << std::endl;
-      assert(con.size() == nsample); 
-
-      for(int c=0;c<nchannel;c++)
-	for(int t=0;t<channels_raw[c].size();t++)
-	  channels_raw[c].value(t) = rawDataDistributionD(nsample, [&](const int s){ return channels_raw[c].value(t).sample(reord[s]); });
-    }
-
-    data_j = resampleAndCombine<jackknifeDistributionD>(channels_raw, args, cmdline);
-    if(do_dj) data_dj = resampleAndCombine<doubleJackknifeDistributionD>(channels_raw, args, cmdline);
-    if(do_bdj) data_bdj = resampleAndCombine<blockDoubleJackknifeDistributionD>(channels_raw, args, cmdline);
+    data_j = resampleAndCombine<jackknifeDistributionD>(channels_raw, args.Lt, args.bin_size, args.combination, args.outer_time_dep);
+    if(do_dj) data_dj = resampleAndCombine<doubleJackknifeDistributionD>(channels_raw, args.Lt, args.bin_size, args.combination, args.outer_time_dep);
+    if(do_bdj) data_bdj = resampleAndCombine<blockDoubleJackknifeDistributionD>(channels_raw, args.Lt, args.bin_size, args.combination, args.outer_time_dep);
   }
 
   if(cmdline.save_combined_data){
-#ifdef HAVE_HDF5
     std::cout << "Writing resampled data to " << cmdline.save_combined_data_file << std::endl;
     HDF5writer writer(cmdline.save_combined_data_file);
     write(writer, data_j, "data_j");
     if(do_dj) write(writer, data_dj, "data_dj");
     if(do_bdj) write(writer, data_bdj, "data_bdj");
-#else
-    error_exit("fitSpecFFcorr: Saving amplitude data requires HDF5\n");
-#endif
   }
 
-  fit(data_j,data_dj, data_bdj, args, cmdline);
+  //Perform the fit
+  jackknifeDistribution<parameterVectorD> params;
+  jackknifeDistributionD chisq;
+  int dof;
+
+  fit(params, chisq, dof, data_j,data_dj, data_bdj, args, cmdline);
+
+  //Compute the bootstrap p-value
+  {
+    std::cout << "Computing bootstrap p-value" << std::endl;
+    std::cout << "Performing fit to central value of data" << std::endl;
+
+    assert(!cmdline.load_combined_data);
+    
+    bool do_j_b, do_j_ub;
+    getJtypes(do_j_b, do_j_ub, args.covariance_strategy);
+    
+    jackknifeCorrelationFunctionD data_j_unbinned;
+    if(do_j_ub) data_j_unbinned = resampleAndCombine<jackknifeDistributionD>(channels_raw, args.Lt, 1, args.combination, args.outer_time_dep);
+
+    parameterVectorD cen_params = params.mean();
+    double cen_chisq;
+    int cen_dof;
+    
+    fitCentral(cen_params, cen_chisq, cen_dof, data_j, data_j_unbinned, args, cmdline);
+
+    double boot_p = computeBootstrapPvalue(cen_params, cen_chisq, cen_dof, channels_raw, data_j, args, cmdline);
+
+    {
+      std::ofstream of("p_boot.dat");
+      of << boot_p << std::endl;
+    }
+    {
+      std::ofstream of("chisq_cen.dat");
+      of << cen_chisq << std::endl;
+    }
+
+    std::cout << "Bootstrap p-value " << boot_p << std::endl;
+  }
+
 }
 

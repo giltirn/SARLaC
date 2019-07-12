@@ -62,7 +62,7 @@ class simpleFitWrapper{
   }
 
   template<typename FitFuncInternal>
-  double fitSampleML(ParameterType &params_s, int &dof,
+  double fitSampleML(bool &converged, ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &inv_corr_s,
 		     const std::vector<double> &sigma_s,
@@ -83,6 +83,8 @@ class simpleFitWrapper{
 
     double chisq = min.fit(params_s);
 
+    converged = min.hasConverged();
+
     if(chisq_dof_nopriors){
       CostFunc cost_nopriors(fitfunc_s, data_s, sigma_s, inv_corr_s);
       chisq_dof_nopriors->first = cost_nopriors.cost(params_s);
@@ -93,7 +95,7 @@ class simpleFitWrapper{
   }
 
   template<typename FitFuncInternal>
-  double fitSampleGSLtrs(ParameterType &params_s, int &dof,
+  double fitSampleGSLtrs(bool &converged, ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &corr_s,
 		     const std::vector<double> &sigma_s,
@@ -117,6 +119,8 @@ class simpleFitWrapper{
 
     Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
 
+    converged = min.hasConverged();
+    
     double chisq = min.fit(params_s);
 
     if(chisq_dof_nopriors){
@@ -130,7 +134,7 @@ class simpleFitWrapper{
   }
 
   template<typename FitFuncInternal>
-  double fitSampleGSLmultimin(ParameterType &params_s, int &dof,
+  double fitSampleGSLmultimin(bool &converged, ParameterType &params_s, int &dof,
 		     const correlationFunction<generalContainer, double> &data_s,
 		     const NumericSquareMatrix<double> &inv_corr_s,
 		     const std::vector<double> &sigma_s,
@@ -149,6 +153,8 @@ class simpleFitWrapper{
 
     Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
 
+    converged = min.hasConverged();
+
     double chisq = min.fit(params_s);
 
     if(chisq_dof_nopriors){
@@ -161,7 +167,7 @@ class simpleFitWrapper{
   }
 
   template<typename FitFuncInternal>
-  double fitSampleMinuit2(ParameterType &params_s, int &dof,
+  double fitSampleMinuit2(bool &converged, ParameterType &params_s, int &dof,
 			  const correlationFunction<generalContainer, double> &data_s,
 			  const NumericSquareMatrix<double> &inv_corr_s,
 			  const std::vector<double> &sigma_s,
@@ -182,6 +188,8 @@ class simpleFitWrapper{
     if(!min_params.is_null()) assert(min_params.is<MParams>());
 
     Minimizer min( cost, min_params.is_null() ? MParams() : min_params.value<MParams>());
+
+    converged = min.hasConverged();
 
     double chisq = min.fit(params_s);
 
@@ -412,8 +420,22 @@ public:
 	   std::pair<jackknifeDistribution<double>, int>* chisq_dof_nopriors = NULL){
     if(!have_corr_mat) error_exit(std::cout << "simpleFitWrapper::fit  No covariance/correlation matrix available. Make sure you import one before calling this method!\n");
 
-    int nsample = data.value(0).size();
     int ndata = data.size();
+    if(ndata == 0){
+      std::cout << "Warning: Fit data container contains no data! Not performing a fit...." << std::endl;
+      dof = -1;
+      return;
+    }
+    int nsample = data.value(0).size();
+    if(nsample == 0){
+      std::cout << "Warning: Fit data has 0 samples! Not performing a fit...." << std::endl;
+      dof = -1;
+      return;
+    }
+
+    assert(params.size() == nsample);
+    assert(chisq.size() == nsample);
+    assert(chisq_per_dof.size() == nsample);
 
     if(chisq_dof_nopriors) chisq_dof_nopriors->first.resize(nsample);
 
@@ -464,19 +486,23 @@ public:
       std::pair<double,int> *chisq_dof_nopriors_s_ptr = chisq_dof_nopriors != NULL ? &chisq_dof_nopriors_s : NULL;
 
       //Run the fitter
+      bool converged;
       switch(min_type){
       case MinimizerType::MarquardtLevenberg:
-	chisq.sample(s) = fitSampleML(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = fitSampleML(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::GSLtrs:
-	chisq.sample(s) = fitSampleGSLtrs(params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = fitSampleGSLtrs(converged, params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::GSLmultimin:
-	chisq.sample(s) = fitSampleGSLmultimin(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = fitSampleGSLmultimin(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       case MinimizerType::Minuit2:
-	chisq.sample(s) = fitSampleMinuit2(params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
+	chisq.sample(s) = fitSampleMinuit2(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, chisq_dof_nopriors_s_ptr); break;
       default:
 	assert(0);
       }
       
+      //If you want the fitter to fail on non-convergence, set the associated minimizer parameter which typically defaults to do so
+      if(!converged) std::cout << "Warning: thread " << omp_get_thread_num() << " fit did not converge on sample " << s << std::endl;
+
       //Re-enlarge the parameter vector with the frozen fit parameters
       if(freeze_params.size() > 0) params_s = fitfunc_s.mapParamsSubsetToSuperset(params_s);
 

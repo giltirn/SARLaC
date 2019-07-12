@@ -45,12 +45,15 @@ void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistribu
 struct simultaneousFitBase{
   typedef correlationFunction<amplitudeDataCoord, jackknifeDistributionD> CorrFuncJack;
   typedef correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> CorrFuncDJack;
+  typedef correlationFunction<amplitudeDataCoord, blockDoubleJackknifeA0StorageType> CorrFuncBDJack;
   
   typedef std::vector<CorrFuncJack> CorrFuncJackAllQ;
   typedef std::vector<CorrFuncDJack> CorrFuncDJackAllQ;
+  typedef std::vector<CorrFuncBDJack> CorrFuncBDJackAllQ;
   
   typedef correlationFunction<SimFitCoordGen, jackknifeDistributionD> SimFitCorrFuncJack;
   typedef correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> SimFitCorrFuncDJack;
+  typedef correlationFunction<SimFitCoordGen, blockDoubleJackknifeDistributionD> SimFitCorrFuncBDJack;
   
   typedef taggedValueContainer<double,std::string> Params;
   typedef std::unordered_map<std::string, std::string> InnerParamMap;
@@ -67,8 +70,10 @@ struct simultaneousFitBase{
 
 #define CPB(A) typedef simultaneousFitBase::A A
 #define COPY_BASE_TYPEDEFS						\
-  CPB(CorrFuncJack); CPB(CorrFuncDJack); CPB(CorrFuncJackAllQ); CPB(CorrFuncDJackAllQ); \
-  CPB(SimFitCorrFuncJack); CPB(SimFitCorrFuncDJack); CPB(InnerParamMap); CPB(Params); CPB(paramIdxMap); CPB(operatorSubsetMap); CPB(subsetMapDescr);
+  CPB(CorrFuncJack); CPB(CorrFuncDJack); CPB(CorrFuncBDJack); \
+  CPB(CorrFuncJackAllQ); CPB(CorrFuncDJackAllQ); CPB(CorrFuncBDJackAllQ); \
+  CPB(SimFitCorrFuncJack); CPB(SimFitCorrFuncDJack); CPB(SimFitCorrFuncBDJack); \
+  CPB(InnerParamMap); CPB(Params); CPB(paramIdxMap); CPB(operatorSubsetMap); CPB(subsetMapDescr);
  
   virtual void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int nsample) = 0;
 
@@ -98,8 +103,10 @@ struct simultaneousFitBase{
   }
   virtual std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
 							  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+							  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj,
 							  const std::vector<PiPiOperator> &operators,
-							  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated) = 0;
+							  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated,
+							  const CovarianceMatrix covariance_matrix) = 0;
 
   static void printWriteFitData(const std::vector<SimFitCorrFuncJack> &A0_sim_j,
 			   const subsetMapDescr &pmap_descr){
@@ -174,13 +181,19 @@ struct simultaneousFitBase{
   static void runfit(std::vector<typename FitPolicies::FitParameterDistribution> &params,
 		     const std::vector<SimFitCorrFuncJack> &A0_sim_j,
 		     const std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
+		     const std::vector<SimFitCorrFuncBDJack> &A0_sim_bdj,
 		     const subsetMapDescr &pmap_descr,
 		     const typename FitPolicies::baseFitFunc &fitfunc,
 		     const std::vector<int> &freeze_params,
 		     const typename FitPolicies::FitParameterDistribution &freeze_vals,
 		     const typename FitPolicies::baseFitFunc::ParameterType &guess,
-		     const int nsample, const bool correlated){
-    const int nQ = A0_sim_j.size(); assert(A0_sim_dj.size() == nQ);
+		     const int nsample, const bool correlated, const CovarianceMatrix covariance_matrix){
+    bool do_dj = covariance_matrix == CovarianceMatrix::Regular;
+    bool do_bdj = covariance_matrix == CovarianceMatrix::Block;
+
+    const int nQ = A0_sim_j.size(); 
+    if(do_dj) assert(A0_sim_dj.size() == nQ);
+    if(do_bdj) assert(A0_sim_bdj.size() == nQ);
 
     params.resize(nQ);
 
@@ -196,7 +209,10 @@ struct simultaneousFitBase{
       fit.importFitFunc(fitfunc);
       fit.freeze(freeze_params, freeze_vals);
       
-      importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import(fit, A0_sim_dj[q]);
+      importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import;
+      if(do_dj) import.import(fit, A0_sim_dj[q]);
+      if(do_bdj) import.import(fit, A0_sim_bdj[q]);
+
       if(!correlated) import.setUncorrelated();
           
       int ndof;
@@ -364,9 +380,11 @@ public:
 
   std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
 						  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+						  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj,
 						  const std::vector<PiPiOperator> &operators,
-						  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated){
-    
+						  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, const CovarianceMatrix covariance_matrix){
+    bool do_dj = covariance_matrix == CovarianceMatrix::Regular;
+    bool do_bdj = covariance_matrix == CovarianceMatrix::Block;
     assert(loaded_frzparams);
     
     const int nsample = mK.size();
@@ -382,8 +400,10 @@ public:
 
     std::vector<SimFitCorrFuncJack> A0_sim_j;
     std::vector<SimFitCorrFuncDJack> A0_sim_dj;
+    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj;
     generateSimData(A0_sim_j, data_j, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
-    generateSimData(A0_sim_dj, data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    if(do_dj) generateSimData(A0_sim_dj, data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    if(do_bdj) generateSimData(A0_sim_bdj, data_bdj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
  
     //Setup guess
     Params guess(&param_idx_map);
@@ -415,7 +435,7 @@ public:
 
     //Run the actual fit
     std::vector<jackknifeDistribution<Params> > params;    
-    runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
+    runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, A0_sim_bdj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated, covariance_matrix);
  
     //plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
 
@@ -457,9 +477,11 @@ public:
 
   std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
 						  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+						  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj,
 						  const std::vector<PiPiOperator> &operators,
-						  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated){
-    
+						  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, const CovarianceMatrix covariance_matrix){
+    bool do_dj = covariance_matrix == CovarianceMatrix::Regular;
+    bool do_bdj = covariance_matrix == CovarianceMatrix::Block;
     assert(this->loaded_frzparams);
     
     const int nsample = this->mK.size();
@@ -475,19 +497,24 @@ public:
 
     std::vector<SimFitCorrFuncJack> A0_sim_j;
     std::vector<SimFitCorrFuncDJack> A0_sim_dj;
+    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj;
     generateSimData(A0_sim_j, data_j, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
-    generateSimData(A0_sim_dj, data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    if(do_dj) generateSimData(A0_sim_dj, data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    if(do_bdj) generateSimData(A0_sim_bdj, data_bdj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
 
     const int nQ = A0_sim_j.size(); //could be 7 or 10 depending on basis
   
     std::vector<SimFitCorrFuncJack> A0_sim_j_noK;
     std::vector<SimFitCorrFuncDJack> A0_sim_dj_noK;
+    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj_noK;
     A0_sim_j_noK = removeKaonDependence(A0_sim_j);
-    A0_sim_dj_noK = removeKaonDependence(A0_sim_dj);
+    if(do_dj) A0_sim_dj_noK = removeKaonDependence(A0_sim_dj);
+    if(do_bdj) A0_sim_bdj_noK = removeKaonDependence(A0_sim_bdj);
 
     //Do the weighted average
     std::vector<SimFitCorrFuncJack> A0_sim_j_wavg(nQ);
     std::vector<SimFitCorrFuncDJack> A0_sim_dj_wavg(nQ);
+    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj_wavg(nQ);
 
     for(int q=0;q<nQ;q++){
       //Collect data indices of values we wish to wavg
@@ -504,7 +531,8 @@ public:
 	const std::vector<int>& idxv = it->second;	
 
 	A0_sim_j_wavg[q].push_back(c, weightedAvg(A0_sim_j_noK[q], idxv));
-	A0_sim_dj_wavg[q].push_back(c, weightedAvg(A0_sim_dj_noK[q], idxv));
+	if(do_dj) A0_sim_dj_wavg[q].push_back(c, weightedAvg(A0_sim_dj_noK[q], idxv));
+	if(do_bdj) A0_sim_bdj_wavg[q].push_back(c, weightedAvg(A0_sim_bdj_noK[q], idxv));
 
 	//Print some useful information
 	{
@@ -548,7 +576,7 @@ public:
 
     //Run the actual fit
     std::vector<jackknifeDistribution<Params> > params;    
-    runfit<FitPolicies>(params, A0_sim_j_wavg, A0_sim_dj_wavg, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated);
+    runfit<FitPolicies>(params, A0_sim_j_wavg, A0_sim_dj_wavg, A0_sim_bdj_wavg, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated, covariance_matrix);
  
     plotErrorWeightedDataNexpFlat(data_j, operators, fitfunc, params, this->mK, this->cK, Lt, tmin_k_op, tmin_op_snk);
 

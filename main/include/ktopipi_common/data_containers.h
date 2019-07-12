@@ -354,8 +354,10 @@ void read(HDF5reader &reader, type1234Data &value, const std::string &tag){
 
 #ifdef KTOPIPI_USE_CONSTRAINED_MEMORY
 typedef doubleJackknifeDistribution<double, constrainedMemoryVector> doubleJackknifeA0StorageType;
+typedef blockDoubleJackknifeDistribution<double, constrainedMemoryVector> blockDoubleJackknifeA0StorageType;
 #else
 typedef doubleJackknifeDistribution<double, basic_vector> doubleJackknifeA0StorageType;
+typedef blockDoubleJackknifeDistribution<double, basic_vector> blockDoubleJackknifeA0StorageType;
 #endif
 
 

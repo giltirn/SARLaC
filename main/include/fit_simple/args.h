@@ -10,6 +10,15 @@ inline void getDJtypes(bool &do_dj, bool &do_bdj, CovarianceStrategy cov){
   do_bdj = cov == CovarianceStrategy::CorrelatedBlockHybrid || cov == CovarianceStrategy::CorrelatedBlock;
 }
 
+//For fitting to central value or for computing bootstrap p-value, the block double jackknife corresponds to performing the jackknife for the inner index without binning, whereas the binned jackknife used binned data for the inner jackknife. The hybrid uses both.
+//do_j_b - do binned jackknife
+//do_j_ub - do unbinned jackknife
+inline void getJtypes(bool &do_j_b, bool &do_j_ub, CovarianceStrategy cov){
+  do_j_ub = cov == CovarianceStrategy::CorrelatedBlockHybrid || cov == CovarianceStrategy::CorrelatedBlock;
+  do_j_b = cov != CovarianceStrategy::CorrelatedBlock;
+}
+
+
 #define ARGS_MEMBERS \
   ( std::vector<DataInfo>, data ) \
   ( Combination, combination ) \
