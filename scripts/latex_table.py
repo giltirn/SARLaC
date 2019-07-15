@@ -61,6 +61,14 @@ def latex_print(filename, elem, **kwargs):
     out = "$%s$" % out
     return out
 
+#Print the first line stored in a file
+def line_print(filename):
+    if(os.path.isfile(filename) == False):
+        return "ERR %s" % filename
+    file = open(filename, 'r') 
+    out = file.readline()
+    out = out.rstrip('\r\n')
+    return out
 
 def tabulate(cols,args,**kwargs):
     longtable = False
@@ -120,6 +128,8 @@ def tabulate(cols,args,**kwargs):
             sys.stdout.write(args[i])
         elif(isinstance(args[i],int)):
             sys.stdout.write("%d" % args[i])
+        elif(isinstance(args[i],float)):
+            sys.stdout.write("%f" % args[i])
         elif(isinstance(args[i],list)):
             sys.stdout.write(latex_print(args[i][0],args[i][1],**args[i][2]))
         else:
