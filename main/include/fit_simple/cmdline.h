@@ -26,6 +26,15 @@ struct CMDline{
 
   bool scramble_raw_data; //randomly scramble samples of raw data (only works if reading/loading raw data distributions!)
 
+  bool load_boot_resample_table;
+  std::string load_boot_resample_table_file;
+
+  bool save_boot_resample_table;
+  std::string save_boot_resample_table_file;
+
+  bool save_bootstrap_fit_result;
+  std::string save_bootstrap_fit_result_file;
+
   CMDline(){
     load_guess = false;
     save_combined_data = false;
@@ -35,6 +44,9 @@ struct CMDline{
     remove_samples_in_range = false;
     load_mlparams = false;
     scramble_raw_data = false;
+    load_boot_resample_table = false;
+    save_boot_resample_table = false;
+    save_bootstrap_fit_result = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -95,6 +107,18 @@ struct CMDline{
       }else if(sargv[i] == "-scramble_raw_data"){
 	scramble_raw_data = true;
 	i++;
+      }else if(sargv[i] == "-load_boot_resample_table"){ 
+	load_boot_resample_table = true;
+	load_boot_resample_table_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_boot_resample_table"){ 
+	save_boot_resample_table = true;
+	save_boot_resample_table_file = sargv[i+1];
+      	i+=2;
+      }else if(sargv[i] == "-save_bootstrap_fit_result"){ //When bootstrap p-value is computed, store the fit to the (unrecentered) data
+	save_bootstrap_fit_result = true;
+	save_bootstrap_fit_result_file = sargv[i+1];
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

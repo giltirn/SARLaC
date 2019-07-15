@@ -162,7 +162,61 @@ inline static std::vector<std::vector<int> > resampleTable(const int nsample,
 }
 
 
+GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(OverlappingBlock)(CircularOverlappingBlock)(BalancedNonOverlappingBlock) );
+GENERATE_HDF5_ENUM_SERIALIZE(BootResampleTableType);
 
+struct resampleTableOptions{
+  bool read_from_file;
+  std::string read_file;
+
+  bool write_to_file;
+  std::string write_file;
+
+  resampleTableOptions(): read_from_file(false), write_to_file(false){}
+};
+
+std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const size_t nboot, 
+						     const BootResampleTableType table_type,
+						     const size_t block_size, RNGstore &rng=RNG, const resampleTableOptions &opt = resampleTableOptions()){
+  assert(rng.isInitialized());
+
+  std::vector<std::vector<int> > otable;  //[b][s]
+
+  if(opt.read_from_file){ //overrides table_type
+    HDF5reader rd(opt.read_file);
+    BootResampleTableType tt;
+    read(rd, tt, "table_type");
+    
+    if(tt != table_type) std::cout << "Warning: Resample table type of input file differs from requested type" << std::endl;
+    
+    read(rd, otable, "resample_table");
+  }else{
+    switch(table_type){
+    case BootResampleTableType::Basic:
+      otable = resampleTable(rng,nsample,nboot); break;
+    case BootResampleTableType::NonOverlappingBlock:
+      otable = nonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+    case BootResampleTableType::OverlappingBlock:
+      otable = overlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+    case BootResampleTableType::CircularOverlappingBlock:
+      otable = circularOverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+    case BootResampleTableType::BalancedNonOverlappingBlock:
+      otable = balancedNonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+    default:
+      assert(0);
+    }
+  }
+  
+  if(otable[0].size() != nsample)
+    std::cout << "Samples " << nsample << " truncated to " << otable[0].size() << " due to blocking" << std::endl;
+
+  if(opt.write_to_file){
+    HDF5writer wr(opt.write_file);
+    write(wr, table_type, "table_type");
+    write(wr, otable, "resample_table");
+  }
+  return otable;
+}
 
 
 

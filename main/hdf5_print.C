@@ -397,6 +397,8 @@ void run(const std::string &filename, const DistributionTypeEnum type, const int
     specDtype<doubleJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;
   case DistributionTypeEnum::SuperJackknife:
     specDtype<superJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;    
+  case DistributionTypeEnum::Bootstrap:
+    specDtype<bootstrapDistribution<double> >(filename,vector_depth,cmdline);  break;
   default:
     error_exit(std::cout << "run(const DistributionTypeEnum type, const int vector_depth) unknown type " << type << std::endl);
   }

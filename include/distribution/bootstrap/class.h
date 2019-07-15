@@ -18,6 +18,16 @@ struct bootstrapDistributionOptions{
   static int & defaultConfidence(){ static int c=68; return c; }
 };
 
+struct bootstrapInitType: public OstreamHook{
+  int boots;
+  int confidence;
+  bootstrapInitType(const int b = bootstrapDistributionOptions::defaultBoots(), const int c = bootstrapDistributionOptions::defaultConfidence()): boots(b), confidence(c){}
+  inline bool operator==(const bootstrapInitType &r) const{ return boots==r.boots && confidence==r.confidence; }
+  inline bool operator!=(const bootstrapInitType &r) const{ return !(*this == r); }
+  void write(std::ostream &os) const{ os << "(boots=" << boots<< ", confidence=" << confidence <<")"; }
+};
+
+
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class bootstrapDistribution: public distribution<_DataType,_VectorType>{
   typedef distribution<_DataType,_VectorType> baseType;
@@ -35,6 +45,8 @@ class bootstrapDistribution: public distribution<_DataType,_VectorType>{
 public:
   typedef _DataType DataType;
   
+  typedef bootstrapInitType initType; //struct containing information used in constructor
+
   template<typename T>
   using VectorType = _VectorType<T>;
   
@@ -90,7 +102,7 @@ public:
     }
   }
 
-  //This version generates the mapping on-the-fly. The same seed should be used for all data
+  //This version generates the mapping on-the-fly. The same seed should be used for all data. Supports only unblocked resampling
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in, const int seed = bootstrapDistributionOptions::defaultSeed()){
     RNGstore brng(seed);
@@ -151,14 +163,6 @@ public:
   template<template<typename> class U>
   bootstrapDistribution(const bootstrapDistribution<DataType,U> &r): baseType(r), _confidence(r._confidence), avg(r.avg){}
   
-  struct initType: public OstreamHook{
-    int boots;
-    int confidence;
-    initType(const int b = bootstrapDistributionOptions::defaultBoots(), const int c = bootstrapDistributionOptions::defaultConfidence()): boots(b), confidence(c){}
-    inline bool operator==(const initType &r) const{ return boots==r.boots && confidence==r.confidence; }
-    inline bool operator!=(const initType &r) const{ return !(*this == r); }
-    void write(std::ostream &os) const{ os << "(boots=" << boots<< ", confidence=" << confidence <<")"; }
-  };
   bootstrapDistribution(const initType &init = initType()): baseType(init.boots), _confidence(init.confidence){}
 
   bootstrapDistribution(const DataType &initv, const initType &init = initType()): baseType(init.boots,initv), _confidence(init.confidence){ avg = this->mean(); }

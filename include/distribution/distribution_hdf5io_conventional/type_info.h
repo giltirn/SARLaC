@@ -13,7 +13,7 @@ CPSFIT_START_NAMESPACE
 #ifdef HAVE_HDF5
 
 //Open a standard format hdf5 file and query the distribution type and vector depth (i.e. vector<dist>=1, vector<vector<dist> >=2)
-GENERATE_ENUM_AND_PARSER( DistributionTypeEnum, (Jackknife)(JackknifeC)(Raw)(DoubleJackknife)(SuperJackknife)  );
+GENERATE_ENUM_AND_PARSER( DistributionTypeEnum, (Jackknife)(JackknifeC)(Raw)(DoubleJackknife)(SuperJackknife)(Bootstrap)  );
 
 void getTypeInfo(DistributionTypeEnum &type, int & vector_depth, const std::string &filename){
   HDF5reader rd(filename);
@@ -33,6 +33,8 @@ void getTypeInfo(DistributionTypeEnum &type, int & vector_depth, const std::stri
     type = DistributionTypeEnum::DoubleJackknife;
   }else if(typestr == "superJackknifeDistribution<double>"){
     type = DistributionTypeEnum::SuperJackknife;    
+  }else if(typestr == "bootstrapDistribution<double>"){
+    type = DistributionTypeEnum::Bootstrap;
   }else error_exit(std::cout << "getTypeInfo type " << typestr << " unimplemented\n");
 }
 

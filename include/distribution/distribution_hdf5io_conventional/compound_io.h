@@ -24,7 +24,10 @@ void writeParamsStandard(const DistributionOfStructType &params, const std::stri
   assert(nsample > 0);
   const int np = params.sample(0).size();
 
-  std::vector<DistributionOfPODtype> out(np, DistributionOfPODtype(nsample));
+  auto init = getElem<DistributionOfStructType>::common_properties(params);
+  DistributionOfPODtype base(init);
+
+  std::vector<DistributionOfPODtype> out(np, base );
   for(int p=0;p<np;p++)
     standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::extractStructEntry(out[p], params, p);
   

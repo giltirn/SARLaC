@@ -31,9 +31,6 @@ double computePvalue(const double q2, const std::vector<double> &dist){
   return (n-b_closest-1)/double(n);
 }
 
-GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(OverlappingBlock)(CircularOverlappingBlock)(BalancedNonOverlappingBlock) );
-
-
 //Note, fit_data_cen are the data that was used to obtain the fit parameters. This does not have to be the same size as raw_data nor does its coordinate type have to be the same
 //The details of how the raw data are converted into fit data is left up to the user
 //fit_values should be the fit to the original data evaluated at each coordinate
@@ -57,37 +54,17 @@ double bootstrapPvalue(const double q2,
 		       const RawDataContainer &raw_data, int nsample,
 		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
 		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
-		       const Resampler &resampler, FitFunctor &fitter, const int nboot = 1000, 
-		       const BootResampleTableType table_type = BootResampleTableType::NonOverlappingBlock,
-		       const int block_size = 1, int nthread = -1, RNGstore &rng = RNG,
-		       std::vector<double> *q2_boot_p = NULL){
+		       const Resampler &resampler, FitFunctor &fitter, const std::vector<std::vector<int> > &resample_table, 
+		       int nthread = -1, std::vector<double> *q2_boot_p = NULL){
   const int p_fit = fit_data_cen.size();
   assert(fit_values.size() == p_fit);
 
   if(nthread = -1) nthread = omp_get_max_threads();
-  assert(rng.isInitialized());
 
-  std::vector<std::vector<int> > otable;  //[b][s]
-  switch(table_type){
-  case BootResampleTableType::Basic:
-    otable = resampleTable(rng,nsample,nboot); break;
-  case BootResampleTableType::NonOverlappingBlock:
-    otable = nonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
-  case BootResampleTableType::OverlappingBlock:
-    otable = overlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
-  case BootResampleTableType::CircularOverlappingBlock:
-    otable = circularOverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
-  case BootResampleTableType::BalancedNonOverlappingBlock:
-    otable = balancedNonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
-  default:
-    assert(0);
-  }
+  int nboot = resample_table.size();
+  assert(resample_table[0].size() <= nsample);
+  nsample = resample_table[0].size();
   
-  if(otable[0].size() != nsample){
-    std::cout << "Samples " << nsample << " truncated to " << otable[0].size() << " due to blocking" << std::endl;
-    nsample = otable[0].size();
-  }
-
   correlationFunction<GeneralizedCoordinate, ValueType> corrections(p_fit);
   for(int i=0;i<p_fit;i++){
     assert(fit_values.coord(i) == fit_data_cen.coord(i));
@@ -103,7 +80,7 @@ double bootstrapPvalue(const double q2,
     int me = omp_get_thread_num();
     RawDataContainer &boot_data = thr_boot_data[me];
     boot_data = raw_data;    
-    resampler(boot_data, otable[b]);
+    resampler(boot_data, resample_table[b]);
     q2_boot[b] = fitter(boot_data, corrections, b);
   }
   std::sort(q2_boot.begin(), q2_boot.end(), [&](const double a, const double b){ return a<b; });
@@ -112,6 +89,22 @@ double bootstrapPvalue(const double q2,
 
   return computePvalue(q2, q2_boot);
 }
+
+template<typename RawDataContainer, typename GeneralizedCoordinate, typename ValueType, typename Resampler, typename FitFunctor>
+double bootstrapPvalue(const double q2,
+		       const RawDataContainer &raw_data, int nsample,
+		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
+		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
+		       const Resampler &resampler, FitFunctor &fitter, const int nboot = 1000, 
+		       const BootResampleTableType table_type = BootResampleTableType::NonOverlappingBlock,
+		       const int block_size = 1, int nthread = -1, RNGstore &rng = RNG,
+		       std::vector<double> *q2_boot_p = NULL){
+  std::vector<std::vector<int> > otable = generateResampleTable(nsample, nboot, table_type, block_size, rng);  //[b][s]
+
+  return bootstrapPvalue(q2, raw_data, nsample, fit_data_cen, fit_values, resampler, fitter, otable,
+			 nthread, q2_boot_p);
+}
+
 
 //Standard fits where the raw data and fit data have the same coordinate type and the fit data are just the means of the raw data
 template<typename FitFunc>

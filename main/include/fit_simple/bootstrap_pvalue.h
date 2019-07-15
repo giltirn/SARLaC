@@ -16,36 +16,52 @@ struct BootFitter{
   const CMDline &cmdline;
   parameterVectorD guess;
 
+  bootstrapDistribution<parameterVectorD> unrecentered_fit_params; //optional
+
   MarquardtLevenbergParameters<double> min_params;
 
-  BootFitter(const Args &args, const CMDline &cmdline, const parameterVectorD &guess): args(args), cmdline(cmdline), guess(guess){
+  BootFitter(const Args &args, const CMDline &cmdline, const parameterVectorD &guess, const int nboot): args(args), cmdline(cmdline), guess(guess){
     min_params.verbose = false;
     min_params.max_iter = 1e6;
     min_params.lambda_max = 1e10;
     min_params.lambda_factor = 1.5;
+
+    if(cmdline.save_bootstrap_fit_result) unrecentered_fit_params.resize(nboot); 
   }
 
-  double operator()(const std::vector<rawDataCorrelationFunctionD> &raw_data, const correlationFunction<double, double> &corrections, const int b) const{
+  double operator()(const std::vector<rawDataCorrelationFunctionD> &raw_data, const correlationFunction<double, double> &corrections, const int b){
     bool do_j_b, do_j_ub;
     getJtypes(do_j_b, do_j_ub, args.covariance_strategy);
     
     jackknifeCorrelationFunctionD data_j_unbinned, data_j_binned;
-    if(do_j_b){
-      data_j_binned = resampleAndCombine<jackknifeDistributionD>(raw_data, args.Lt, args.bin_size, args.combination, args.outer_time_dep);
-      recenter(data_j_binned, corrections);
-    }
-    if(do_j_ub){
-      data_j_unbinned = resampleAndCombine<jackknifeDistributionD>(raw_data, args.Lt, 1, args.combination, args.outer_time_dep);
-      recenter(data_j_unbinned, corrections);      
-    }
+    if(do_j_b) data_j_binned = resampleAndCombine<jackknifeDistributionD>(raw_data, args.Lt, args.bin_size, args.combination, args.outer_time_dep);
+    if(do_j_ub) data_j_unbinned = resampleAndCombine<jackknifeDistributionD>(raw_data, args.Lt, 1, args.combination, args.outer_time_dep);
 
     parameterVectorD cen_params = guess;
     double cen_chisq;
     int cen_dof;
+
+    if(cmdline.save_bootstrap_fit_result){
+      std::cout << "Fitting sample " << b << " unrecentered" << std::endl;
+      fitCentral(cen_params, cen_chisq, cen_dof, data_j_binned, data_j_unbinned, args, cmdline, &min_params);
+      unrecentered_fit_params.sample(b) = cen_params;
+      cen_params = guess;
+    }
     
+    if(do_j_b) recenter(data_j_binned, corrections);
+    if(do_j_ub) recenter(data_j_unbinned, corrections);      
+
+    std::cout << "Fitting sample " << b << " recentered" << std::endl;
     fitCentral(cen_params, cen_chisq, cen_dof, data_j_binned, data_j_unbinned, args, cmdline, &min_params);
 
     return cen_chisq;
+  }
+
+  ~BootFitter(){
+    if(cmdline.save_bootstrap_fit_result){
+      unrecentered_fit_params.best() = unrecentered_fit_params.mean();
+      writeParamsStandard(unrecentered_fit_params, cmdline.save_bootstrap_fit_result_file);
+    }
   }
 };
 
@@ -55,10 +71,12 @@ double computeBootstrapPvalue(const parameterVectorD &base_params,
 			      const jackknifeCorrelationFunctionD &data_j_binned,
 			      const Args &args, const CMDline &cmdline){
   if(!RNG.isInitialized()) RNG.initialize(1234);  
-
+  
   int nsample = channels_raw[0].value(0).size();
   int ndata = data_j_binned.size();
+  int nboot = 1000;
 
+  //Get the data means and their corresponding fit predictions for use in the recentering
   std::unique_ptr< FitFuncManagerBase<Args,CMDline> > fitfunc_manager = getFitFuncManager(args, cmdline);
   genericFitFuncBase const* fitfunc = fitfunc_manager->getFitFunc();
 
@@ -71,13 +89,15 @@ double computeBootstrapPvalue(const parameterVectorD &base_params,
     fit_data_cen.value(t) = data_j_binned.value(t).mean();
     fit_vals.value(t) = fitfunc->value( genericFitFuncBase::getWrappedCoord(data_j_binned.coord(t)), base_params );
     
-    std::cout << data_j_binned.coord(t) << " fit " << fit_vals.value(t) << " data " << fit_data_cen.value(t) << " diff " << fit_vals.value(t)-fit_data_cen.value(t) <<  std::endl;
+    std::cout << data_j_binned.coord(t) << " fit " << fit_vals.value(t) << " data " << fit_data_cen.value(t) 
+	      << " diff " << fit_vals.value(t)-fit_data_cen.value(t) <<  std::endl;
   }
   
+  //Prepare functors
   BootResampler resampler;
-  BootFitter fitter(args, cmdline, base_params);
+  BootFitter fitter(args, cmdline, base_params, nboot);
   
-  {
+  { //TESTING
     std::cout << "Test fit functor on original data: this should agree with the fit to the central values" << std::endl;
     correlationFunction<double, double> corrections(ndata, [&](const int i){ return typename correlationFunction<double, double>::ElementType(fit_data_cen.coord(i), 0.); });
 
@@ -105,12 +125,24 @@ double computeBootstrapPvalue(const parameterVectorD &base_params,
       resampler(channels_raw_r, bmap[i]);
       fitter(channels_raw_r, corrections, i);
     }
-  }
+  } //TESTING
+
+
   std::cout << "Computing bootstrap p-value" << std::endl;
 
-  int block_size = args.bin_size;
+  //Get the resample table
+  resampleTableOptions opt; 
+  opt.read_from_file = cmdline.load_boot_resample_table;
+  opt.read_file = cmdline.load_boot_resample_table_file;
+
+  opt.write_to_file = cmdline.save_boot_resample_table;
+  opt.write_file = cmdline.save_boot_resample_table_file;
+
+  std::vector<std::vector<int> > resample_table = generateResampleTable(nsample, nboot, BootResampleTableType::NonOverlappingBlock, args.bin_size, RNG, opt);
+
+  //Do the bootstrap fitting
   std::vector<double> q2_boot_p;
-  double boot_p = bootstrapPvalue(base_chisq, channels_raw, nsample, fit_data_cen, fit_vals, resampler, fitter, 1000, BootResampleTableType::NonOverlappingBlock, block_size, -1, RNG, &q2_boot_p);
+  double boot_p = bootstrapPvalue(base_chisq, channels_raw, nsample, fit_data_cen, fit_vals, resampler, fitter, resample_table, -1, &q2_boot_p);
 
   rawDataDistributionD boot_q2(q2_boot_p.size(), [&](const int s){ return q2_boot_p[s]; });
   

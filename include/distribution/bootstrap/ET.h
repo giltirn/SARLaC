@@ -8,7 +8,7 @@
 CPSFIT_START_NAMESPACE
 
 template<typename A, template<typename> class V>
-  struct getElem<bootstrapDistribution<A,V> >{
+struct getElem<bootstrapDistribution<A,V> >{
   static inline auto elem(const bootstrapDistribution<A,V> &v, const int i)->decltype(v.sample(i)){ return i==-1 ? v.best() : v.sample(i); }
   static inline auto elem(bootstrapDistribution<A,V> &v, const int i)->decltype(v.sample(i)){ return i==-1 ? v.best() : v.sample(i); }
   static inline typename bootstrapDistribution<A,V>::initType common_properties(const bootstrapDistribution<A,V> &v){ return typename bootstrapDistribution<A,V>::initType(v.size(),v.confidence()); }

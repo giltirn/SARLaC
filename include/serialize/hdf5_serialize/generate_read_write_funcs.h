@@ -44,6 +44,12 @@ struct _force_external_lookup{
   inline void write(CPSfit::HDF5writer &writer, const CLASSNAME &d, const std::string &tag){ d.write(writer,tag); }\
   inline void read(CPSfit::HDF5reader &reader, CLASSNAME &d, const std::string &tag){ d.read(reader,tag); }
 
+
+#define GENERATE_HDF5_ENUM_SERIALIZE(ENUMNAME) \
+  inline void write(CPSfit::HDF5writer &writer, const ENUMNAME d, const std::string &tag){ write(writer, (int)d, tag); } \
+  inline void read(CPSfit::HDF5reader &reader, ENUMNAME &d, const std::string &tag){ int i; read(reader, i, tag); d = (ENUMNAME)i; }
+
+
 CPSFIT_END_NAMESPACE
 
 #else  //if not HAVE_HDF5
