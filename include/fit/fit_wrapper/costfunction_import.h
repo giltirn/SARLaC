@@ -6,6 +6,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<distribution/double_jackknife.h>
+#include<distribution/block_double_jackknife.h>
 #include<fit/fit_wrapper/costfunction_policy.h>
 #include<fit/fit_wrapper/fitter.h>
 

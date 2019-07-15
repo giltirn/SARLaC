@@ -186,7 +186,7 @@ int main(const int argc, const char* argv[]){
  
   std::vector<double> q2_boot_dist;
 
-  double p_boot = bootstrapPvalue(q2, raw_data, nsample, orig_data_means, orig_data_fitvals, RawDataResampler(), fitter, args.nboot, args.block_size, -1, RNG, &q2_boot_dist);
+  double p_boot = bootstrapPvalue(q2, raw_data, nsample, orig_data_means, orig_data_fitvals, RawDataResampler(), fitter, args.nboot, BootResampleTableType::NonOverlappingBlock, args.block_size, -1, RNG, &q2_boot_dist);
 
   std::cout << "Bootstrap p-value: " << p_boot << std::endl;
 

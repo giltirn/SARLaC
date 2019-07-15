@@ -7,12 +7,14 @@
 #include<utils/macros.h>
 #include<fit/fit_wrapper/fit_wrapper_freeze.h>
 #include<fit/simple_fit_wrapper/fitter.h>
+#include<fit/simple_fit_wrapper/fitter_single.h>
 
 CPSFIT_START_NAMESPACE
 
 //The main function - read and import the  frozen parameters. A struct "FreezeParams" is read in from "freeze_file" and used for perform the required actions
 //For parameter types that don't have a default constructor the user should provide a pointer 'psetup' to a setup instance of the parameter type
-void readFrozenParams(simpleFitWrapper &fitter, const std::string &freeze_file, const int nsample){
+void readFrozenParams(std::vector<int> &freeze, std::vector<jackknifeDistribution<double> > &freeze_vals, 
+		      const std::string &freeze_file, const int nsample){
   if(!fileExists(freeze_file)){
     FreezeParams templ;
     std::ofstream of("freeze_template.dat");
@@ -21,8 +23,6 @@ void readFrozenParams(simpleFitWrapper &fitter, const std::string &freeze_file, 
     error_exit(std::cout << "Failed to read freeze file " << freeze_file << "; wrote template to freeze_template.dat\n");
   } 
   
-  std::vector<int> freeze;
-  std::vector<jackknifeDistribution<double> > freeze_vals;
   FreezeParams fparams;
   parse(fparams,freeze_file);
   
@@ -53,9 +53,33 @@ void readFrozenParams(simpleFitWrapper &fitter, const std::string &freeze_file, 
 
     freeze_vals.push_back(fval);
   }
+}
+
+void readFrozenParams(simpleFitWrapper &fitter, const std::string &freeze_file, const int nsample){ 
+  std::vector<int> freeze;
+  std::vector<jackknifeDistribution<double> > freeze_vals;
+  
+  readFrozenParams(freeze, freeze_vals, freeze_file, nsample);
 
   fitter.freeze(freeze, freeze_vals);
 }
+
+//Use means of input data unless sample != -1
+void readFrozenParams(simpleSingleFitWrapper &fitter, const std::string &freeze_file, const int nsample, const int sample = -1){ 
+  std::vector<int> freeze;
+  std::vector<jackknifeDistribution<double> > freeze_vals;
+  
+  readFrozenParams(freeze, freeze_vals, freeze_file, nsample);
+
+  int nfreeze = freeze_vals.size();
+
+  std::vector<double> freeze_vals_v(nfreeze);
+  if(sample == -1) for(int i=0;i<nfreeze;i++) freeze_vals_v[i] = freeze_vals[i].mean();
+  else             for(int i=0;i<nfreeze;i++) freeze_vals_v[i] = freeze_vals[i].sample(sample);
+
+  fitter.freeze(freeze, freeze_vals_v);
+}
+
 
 CPSFIT_END_NAMESPACE
 

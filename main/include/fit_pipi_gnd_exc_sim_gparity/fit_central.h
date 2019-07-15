@@ -41,7 +41,7 @@ void fitCentral(taggedValueContainer<double,std::string> &params, double &chisq,
   
   generalContainer min_params = getMinimizerParams(opt.minimizer, opt.load_minimizer_params, opt.minimizer_params_file);
 
-  simpleFitWrapper fit(*fitfunc, opt.minimizer, min_params);
+  simpleSingleFitWrapper fit(*fitfunc, opt.minimizer, min_params);
   
   const int nsample = corr_comb_j.value(0).size();
  
@@ -86,19 +86,13 @@ void fitCentral(taggedValueContainer<double,std::string> &params, double &chisq,
   int dof;
 
   
-  correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_cen(corr_comb_j.size());
+  correlationFunction<SimFitCoordGen,  double> corr_comb_cen(corr_comb_j.size());
   for(int i=0;i<corr_comb_j.size();i++){
     corr_comb_cen.coord(i) = corr_comb_j.coord(i);
-    corr_comb_cen.value(i) = jackknifeDistributionD(1, corr_comb_j.value(i).mean());
+    corr_comb_cen.value(i) = corr_comb_j.value(i).mean();
   }
-  jackknifeDistributionD chisq_j(1), chisq_per_dof_j(1);
-  jackknifeDistribution<taggedValueContainer<double,std::string> > params_j(1, params);
   
-  fit.fit(params_j, chisq_j, chisq_per_dof_j, dof, corr_comb_cen);
-  
-  params = params_j.sample(0);
-  chisq = chisq_j.sample(0);
-  chisq_per_dof = chisq_per_dof_j.sample(0);
+  fit.fit(params, chisq, chisq_per_dof, dof, corr_comb_cen);
 }
 
 void fitCentral(taggedValueContainer<double,std::string> &params, double &chisq, double &chisq_per_dof, 
