@@ -87,7 +87,7 @@ int main(const int argc, const char** argv){
   FitFunc fitfunc;
 
   simpleFitFuncWrapper<FitFunc> fwrap(fitfunc); //make the fit function conform the the standard interface
-  simpleFitWrapper fitter(fwrap, MinimizerType::MarquardtLevenberg);
+  simpleFitWrapper<jackknifeDistributionD> fitter(fwrap, MinimizerType::MarquardtLevenberg);
 
   //For testing add a frozen fit parameter and a gaussian prior
   fitter.freeze({0}, { jackknifeDistributionD(nsample, 0.7) });

@@ -81,26 +81,28 @@ GENERATE_PARSER(FreezeParams, FREEZE_PARAMS_MEMBERS);
 
 
 //Apply a math expression to a jackknife of input data
-void applyOperation(jackknifeDistribution<double> &fval, const std::string &operation, const FreezeDataReaderType reader){
+template<typename DistributionType>
+void applyOperation(DistributionType &fval, const std::string &operation, const FreezeDataReaderType reader){
   if(operation == ""){
     if(reader == FreezeDataReaderType::ConstantValue) error_exit(std::cout << "readFrozenParams with ConstantValue, require math expression, got \"" << operation << "\"\n");
     return;
   }
-    
-  const int nsample = fval.size();
+  typedef iterate<DistributionType> iter;
+
+  const int nsample = iter::size(fval);
   expressionAST AST = mathExpressionParse(operation);
 
   if(reader == FreezeDataReaderType::ConstantValue){
     if(AST.nSymbols() != 0) error_exit(std::cout << "readFrozenParams with ConstantValue expects math expression with no symbols, got \"" << operation << "\"\n");
     for(int s=0;s<nsample;s++)
-      fval.sample(s) = AST.value();
+      iter::at(s, fval) = AST.value();
   }else{
     if(AST.nSymbols() != 1) error_exit(std::cout << "readFrozenParams with " << reader << " expects math expression with 1 symbol ('x'), got \"" << operation << "\"\n");
     else if(!AST.containsSymbol("x")) error_exit(std::cout << "readFrozenParams with " << reader << " expects math expression to be a function of 'x', got \"" << operation << "\"\n");
 
     for(int s=0;s<nsample;s++){
-      AST.assignSymbol("x",fval.sample(s));
-      fval.sample(s) = AST.value();
+      AST.assignSymbol("x", iter::at(s, fval));
+      iter::at(s, fval) = AST.value();
     }    
   }
 }

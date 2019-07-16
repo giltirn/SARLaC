@@ -179,7 +179,7 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
     std::cout << "Loaded minimizer params: " << minparams << std::endl;
   }
   
-  simpleFitWrapper fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
+  simpleFitWrapper<jackknifeDistributionD> fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
 
   //Generate the covariance matrix
   switch(args.covariance_strategy){

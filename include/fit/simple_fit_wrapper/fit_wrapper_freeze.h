@@ -13,7 +13,8 @@ CPSFIT_START_NAMESPACE
 
 //The main function - read and import the  frozen parameters. A struct "FreezeParams" is read in from "freeze_file" and used for perform the required actions
 //For parameter types that don't have a default constructor the user should provide a pointer 'psetup' to a setup instance of the parameter type
-void readFrozenParams(std::vector<int> &freeze, std::vector<jackknifeDistribution<double> > &freeze_vals, 
+template<typename DistributionType>
+void readFrozenParams(std::vector<int> &freeze, std::vector<DistributionType> &freeze_vals, 
 		      const std::string &freeze_file, const int nsample){
   if(!fileExists(freeze_file)){
     FreezeParams templ;
@@ -30,7 +31,7 @@ void readFrozenParams(std::vector<int> &freeze, std::vector<jackknifeDistributio
     std::cout << "readFrozenParams loading freeze data for parameter " << fparams.sources[i].param_idx << std::endl;
     freeze.push_back(fparams.sources[i].param_idx);
 
-    jackknifeDistribution<double> fval;
+    DistributionType fval;
 
     //Different sources of data
     FreezeDataReaderType reader = fparams.sources[i].reader;
@@ -45,7 +46,7 @@ void readFrozenParams(std::vector<int> &freeze, std::vector<jackknifeDistributio
       error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
     }
 
-    if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read jackknife of size " << fval.size() << ", expected " << nsample << std::endl);
+    if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read distribution of size " << fval.size() << ", expected " << nsample << std::endl);
 
     applyOperation(fval, fparams.sources[i].operation, reader);
 
@@ -55,9 +56,10 @@ void readFrozenParams(std::vector<int> &freeze, std::vector<jackknifeDistributio
   }
 }
 
-void readFrozenParams(simpleFitWrapper &fitter, const std::string &freeze_file, const int nsample){ 
+template<typename DistributionType>
+void readFrozenParams(simpleFitWrapper<DistributionType> &fitter, const std::string &freeze_file, const int nsample){ 
   std::vector<int> freeze;
-  std::vector<jackknifeDistribution<double> > freeze_vals;
+  std::vector<DistributionType> freeze_vals;
   
   readFrozenParams(freeze, freeze_vals, freeze_file, nsample);
 

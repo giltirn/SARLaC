@@ -13,7 +13,7 @@ class doubleJackknifeDistribution;
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class jackknifeDistribution: public distribution<_DataType,_VectorType>{
   _DataType variance() const{ assert(0); }
-  _DataType standardDeviation() const{ assert(0); };
+
   friend class boost::serialization::access;
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version){
@@ -68,6 +68,9 @@ public:
     Op op(this->mean(),this->_data);
     return sqrt( threadedSum(op) * (double(N-1)/N) );
   }
+
+  //Note: this is the standard deviation of the jackknife samples, not a property of the population mean
+  inline DataType standardDeviation() const{ return this->baseType::standardDeviation(); };
   
   jackknifeDistribution(): baseType(){}
 
@@ -100,7 +103,7 @@ public:
   template<template<typename> class U = VectorType>
   doubleJackknifeDistribution<DataType,U> toDoubleJackknife() const;
 
-  //Covariance of the means
+  //Covariance of the *means*
   static DataType covariance(const jackknifeDistribution<DataType,VectorType> &a, const jackknifeDistribution<DataType,VectorType> &b){
     assert(a.size() == b.size());
     return distribution<DataType,VectorType>::covariance(a,b) * double(a.size()-1);  //like the standard error, the covariance of the jackknife samples is related to the covariance of the underlying distribution by a constant factor
@@ -116,6 +119,15 @@ std::ostream & operator<<(std::ostream &os, const jackknifeDistribution<T,V> &d)
   assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
 }
+
+template<typename T>
+struct is_jackknife{
+  enum {value = 0};
+};
+template<typename T, template<typename> class V>
+struct is_jackknife<jackknifeDistribution<T,V> >{
+  enum {value=1};
+};
 
 CPSFIT_END_NAMESPACE
 

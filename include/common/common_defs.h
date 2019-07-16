@@ -33,6 +33,9 @@ typedef blockDoubleJackknifeDistribution<float> blockDoubleJackknifeDistribution
 typedef bootstrapDistribution<double> bootstrapDistributionD;
 typedef bootstrapDistribution<float> bootstrapDistributionF;
 
+typedef bootJackknifeDistribution<double> bootJackknifeDistributionD;
+typedef bootJackknifeDistribution<float> bootJackknifeDistributionF;
+
 
 //Series types
 typedef dataSeries<int, rawDataDistribution<double> > rawTimeSeriesD; //time, dist(value)

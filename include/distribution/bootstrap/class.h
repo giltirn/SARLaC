@@ -83,11 +83,15 @@ public:
     
     return threadedSum(op)/double(N)/pow(sigma,m);
   }
-
+  
+  //Automatically resizes to match table size
   template<typename DistributionType>
   void resample(const DistributionType &in, const std::vector<std::vector<int> > &table){
-    assert(table.size() == this->size());
-    int boots = this->size();
+    this->avg = in.best();
+
+    int boots = table.size();
+    this->baseType::resize(boots);
+
     assert(table[0].size() <= in.size()); //table generation can discard some data
     int nraw = table[0].size();
 
@@ -102,7 +106,7 @@ public:
     }
   }
 
-  //This version generates the mapping on-the-fly. The same seed should be used for all data. Supports only unblocked resampling
+  //This version generates the mapping on-the-fly. The same seed should be used for all data. Supports only unblocked resampling. Number of boots should be set prior to execution
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method
   void resample(const DistributionType &in, const int seed = bootstrapDistributionOptions::defaultSeed()){
     RNGstore brng(seed);
@@ -151,13 +155,19 @@ public:
     return bounds;
   }
 
-  //standardError assuming symmetric errors
+  //standardError from standard deviation of boot means
   inline DataType standardError() const{
-    std::pair<DataType,DataType> bounds = this->confidenceRegion();      
-    //( (hi-best) + (best-lo) )/2   
-    return (bounds.second-bounds.first)/2.;
+    return this->baseType::standardDeviation();
   }
  
+  //standardError assuming symmetric errors
+  //inline DataType standardError() const{
+  // std::pair<DataType,DataType> bounds = this->confidenceRegion();      
+  // //( (hi-best) + (best-lo) )/2   
+  // return (bounds.second-bounds.first)/2.;
+  //}
+
+
   bootstrapDistribution(const bootstrapDistribution &r) = default;
   
   template<template<typename> class U>
@@ -174,6 +184,12 @@ public:
 
   template< template<typename> class U >
   bootstrapDistribution(const rawDataDistribution<DataType,U> &raw, const initType &init = initType()): bootstrapDistribution(init){ this->resample(raw); }
+  
+  //Boots and samples inferred from table size
+  template< template<typename> class U >
+  bootstrapDistribution(const rawDataDistribution<DataType,U> &raw, const std::vector<std::vector<int> > &resample_table, 
+			const int confidence = bootstrapDistributionOptions::defaultConfidence()): _confidence(confidence), baseType(resample_table.size())
+  { this->resample(raw, resample_table); }
   
 
   typedef myType ET_tag;
@@ -226,6 +242,15 @@ std::ostream & operator<<(std::ostream &os, const bootstrapDistribution<T,V> &d)
   assert(printClass::printer() != NULL); printClass::printer()->print(os, d);
   return os;
 }
+
+template<typename T>
+struct is_bootstrap{
+  enum {value = 0};
+};
+template<typename T, template<typename> class V>
+struct is_bootstrap<bootstrapDistribution<T,V> >{
+  enum {value=1};
+};
 
 CPSFIT_END_NAMESPACE
 

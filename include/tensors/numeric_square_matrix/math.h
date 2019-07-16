@@ -33,7 +33,11 @@ template<typename T,
 				  int >::type = 0
 	 >
 inline T modE(const NumericSquareMatrix<T> &m){
-  return modE(m, [&](const T &v){ return T(v.size(), [&](const int s){ return v.sample(s)*v.sample(s); }); });
+  return modE(m, 
+	      [&](const T &v){ 
+		T out(v); for(int s=0;s<iterate<T>::size(out);s++) iterate<T>::at(s, out) = iterate<T>::at(s, v) * iterate<T>::at(s, v); return out;
+	      });
+    
 }
 
 
