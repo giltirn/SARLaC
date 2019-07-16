@@ -9,8 +9,8 @@ CPSFIT_START_NAMESPACE
 
 template<typename A, template<typename> class V>
   struct getElem<bootJackknifeDistribution<A,V> >{
-  static inline auto elem(const bootJackknifeDistribution<A,V> &v, const int i)->decltype(v.sample(i)){ return v.sample(i); }
-  static inline auto elem(bootJackknifeDistribution<A,V> &v, const int i)->decltype(v.sample(i)){ return v.sample(i); }
+  static inline auto elem(const bootJackknifeDistribution<A,V> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.origEnsJackknife() : v.sample(i); }
+  static inline auto elem(bootJackknifeDistribution<A,V> &v, const int i)->decltype(v.sample(i)){ return i == -1 ? v.origEnsJackknife() : v.sample(i); }
   static inline bootJackknifeInitType common_properties(const bootJackknifeDistribution<A,V> &v){ return v.getInitializer(); }
 };
 

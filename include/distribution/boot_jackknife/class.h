@@ -37,6 +37,7 @@ class bootJackknifeDistribution: public distribution<jackknifeDistribution<BaseD
     ar & boost::serialization::base_object<baseType>(*this);
   }
 
+  jackknifeDistribution<BaseDataType,BaseVectorType> base_jack; //propagate jackknife of original data through as "central value" 
   int _confidence;
 public:
   typedef jackknifeDistribution<BaseDataType,BaseVectorType> DataType;
@@ -49,11 +50,13 @@ public:
   void resize(const int nboots, const int nsample){ 
     this->_data.resize(nboots);
     for(int b=0;b<nboots;b++) this->sample(b).resize(nsample);
+    base_jack.resize(nsample);
   }
   void resize(const initType &init){ 
     this->_confidence = init.confidence;
     this->baseType::resize(init.boots);
     for(int b=0;b<init.boots;b++) this->sample(b).resize(init.nsample);
+    base_jack.resize(init.nsample);
   }
 
   inline bootJackknifeInitType getInitializer() const{ return bootJackknifeInitType(this->sample(0).size(), this->size(), this->_confidence); }
@@ -61,6 +64,13 @@ public:
   int & confidence(){ return _confidence; }
   const int & confidence() const{ return _confidence; }
   
+  inline const DataType & origEnsJackknife() const{ return base_jack; }
+  inline DataType & origEnsJackknife(){ return base_jack; }
+  
+  inline const DataType & best() const{ return origEnsJackknife(); } 
+  inline DataType & best(){ return origEnsJackknife(); }
+
+
   //Assumed to be a raw data distribution. Note confidence will be default value unless manually set. Boots and samples inferred from table
   template<typename DistributionType> 
   void resample(const DistributionType &in, const std::vector<std::vector<int> > &table){
@@ -76,27 +86,47 @@ public:
       for(int s=0;s<nraw;s++) in_r.sample(s) = in.sample(table[b][s]); //generate a resampling of the raw data
       this->sample(b).resample(in_r);
     }
+
+    base_jack.resample(in); //propagate jackknife of original data
   }
   
   bootJackknifeDistribution(): baseType(){}
 
-  bootJackknifeDistribution(const bootJackknifeDistribution &r): baseType(r){}
+  bootJackknifeDistribution(const bootJackknifeDistribution &r): _confidence(r._confidence), base_jack(r.base_jack), baseType(r){}
   
   template<template<typename> class U>
-  bootJackknifeDistribution(const bootJackknifeDistribution<BaseDataType,U> &r): bootJackknifeDistribution(r.size(), r.sample(0).size()){
-    for(int i=0;i<this->size();i++)
-      for(int j=0;j<this->sample(0).size();j++)
+  bootJackknifeDistribution(const bootJackknifeDistribution<BaseDataType,U> &r): baseType(r.size()), _confidence(r._confidence){
+    int nboot = r.size();
+    int nsample = r.sample(0).size();
+
+    for(int i=0;i<nboot;i++){
+      this->sample(i).resize(nsample);
+      for(int j=0;j<nsample;j++)
 	this->sample(i).sample(j) = r.sample(i).sample(j);
+    }
+    base_jack.resize(nsample);
+    for(int j=0;j<nsample;j++)
+      base_jack.sample(j) = r.origEnsJackknife().sample(j);
   }
   
-  explicit bootJackknifeDistribution(const initType &initv): _confidence(initv.confidence), baseType(initv.boots, DataType(initv.nsample)){}
-  bootJackknifeDistribution(const initType &initv, const DataType &init): _confidence(initv.confidence), baseType(initv.boots,init){ assert(init.size() == initv.nsample);  }
-  bootJackknifeDistribution(const initType &initv, const BaseDataType &init): _confidence(initv.confidence), baseType(initv.boots,DataType(initv.nsample,init)){}
+  explicit bootJackknifeDistribution(const initType &initv): _confidence(initv.confidence), base_jack(initv.nsample), baseType(initv.boots, DataType(initv.nsample)){}
+
+  bootJackknifeDistribution(const initType &initv, const DataType &init):
+    _confidence(initv.confidence), baseType(initv.boots,init), base_jack(init){ 
+    assert(init.size() == initv.nsample);  
+  }
+
+  bootJackknifeDistribution(const initType &initv, const BaseDataType &init):
+    _confidence(initv.confidence), baseType(initv.boots,DataType(initv.nsample,init)), base_jack(initv.nsample, init){
+  }
+
   template<typename Initializer>
   bootJackknifeDistribution(const initType &initv, const Initializer &init): _confidence(initv.confidence), baseType(initv.boots,init){ 
     assert(this->sample(0).size() == initv.nsample);  
+    base_jack = this->mean();
   }
-  bootJackknifeDistribution(bootJackknifeDistribution&& o) noexcept : baseType(std::forward<baseType>(o)){}
+
+  bootJackknifeDistribution(bootJackknifeDistribution&& o) noexcept : _confidence(o._confidence), base_jack(std::move(o.base_jack)), baseType(std::forward<baseType>(o)){}
 
   //Boots and samples inferred from table
   bootJackknifeDistribution(const rawDataDistribution<BaseDataType> &raw, const std::vector<std::vector<int> > &table, 
@@ -104,10 +134,38 @@ public:
     this->resample(raw, table);
   }
   
-  ENABLE_PARALLEL_GENERIC_ET(bootJackknifeDistribution, myType, bootJackknifeDistribution<BaseDataType>);
+  //ET stuff
+  typedef myType ET_tag;
+  
+  //common_properties() should return an initType
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,myType >::value, int>::type = 0>
+  bootJackknifeDistribution(U&& expr): bootJackknifeDistribution(expr.common_properties()){
+#pragma omp parallel for
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+    base_jack = expr[-1];
+  }
+  
+  template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,myType >::value, int>::type = 0>
+  myType & operator=(U&& expr){
+    initType init = expr.common_properties();
+    this->resize(init.boots, init.nsample);
+    this->_confidence = init.confidence;
+#pragma omp parallel for
+    for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
+    base_jack = expr[-1];
+    return *this;
+  }
 
-  bootJackknifeDistribution & operator=(const bootJackknifeDistribution &r){ static_cast<baseType*>(this)->operator=(r); return *this; }
-  bootJackknifeDistribution & operator=(bootJackknifeDistribution &&r){ static_cast<baseType*>(this)->operator=(std::move(r)); return *this; }
+  bootJackknifeDistribution & operator=(const bootJackknifeDistribution &r){ 
+    _confidence = r._confidence;
+    base_jack = r.base_jack ; 
+    static_cast<baseType*>(this)->operator=(r); return *this; 
+  }
+  bootJackknifeDistribution & operator=(bootJackknifeDistribution &&r){ 
+    _confidence = r._confidence;
+    base_jack = std::move(r.base_jack); 
+    static_cast<baseType*>(this)->operator=(std::move(r)); return *this; 
+  }
 
   template<template<typename> class U = basic_vector>
   static bootstrapDistribution<BaseDataType,U> covariance(const myType &a, const myType &b){
@@ -118,7 +176,9 @@ public:
 #pragma omp parallel for
     for(int i=0;i<nboot;i++)
       out.sample(i) = DataType::covariance(a.sample(i),b.sample(i));
-    out.best() = out.mean();
+
+    out.propagatedCentral() = DataType::covariance(a.origEnsJackknife(),b.origEnsJackknife()); //covariance for propagated base mean from jackknife of original unresampled data
+
     return out;
   }
 
@@ -128,11 +188,15 @@ public:
 #pragma omp parallel for
     for(int i=0;i<this->size();i++)
       for(int j=0;j<this->sample(i).size();j++)
-	out.sample(i).sample(j) = this->sample(i).sample(j).real();    
+	out.sample(i).sample(j) = this->sample(i).sample(j).real(); 
+
+    for(int i=0;i<base_jack.size();i++)
+      out.origEnsJackknife().sample(i) = base_jack.sample(i).real();
+   
     return out;
   }
 
-  inline bool operator==(const bootJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ return this->baseType::operator==(r); }
+  inline bool operator==(const bootJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ return this->base_jack == r.base_jack && this->baseType::operator==(r); }
   inline bool operator!=(const bootJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ return !( *this == r ); }
 };
 
@@ -167,11 +231,16 @@ bootJackknifeDistribution<T,V> weightedAvg(const std::vector<bootJackknifeDistri
   bootJackknifeInitType initv(v[0]->sample(0)->size(), v[0]->size(), v[0]->confidence());
 
   bootJackknifeDistribution<T,V> wavg_dj(initv);
-  std::vector<jackknifeDistribution<T,V> const*> towavg_j(initv.boots);
+  std::vector<jackknifeDistribution<T,V> const*> towavg_j(v.size());
   for(int s=0;s<initv.boots;s++){ //weighted avg each jackknife distribution, looping over outer index
     for(int i=0;i<v.size();i++) towavg_j[i] = &v[i]->sample(s);
     wavg_dj.sample(s) = CPSfit::weightedAvg(towavg_j);
   }
+  
+  //Jackknife of original ensemble
+  for(int i=0;i<v.size();i++) towavg_j[i] = &v[i]->origEnsJackknife();
+  wavg_dj.origEnsJackknife() = CPSfit::weightedAvg(towavg_j);
+
   return wavg_dj;
 }
 

@@ -7,7 +7,10 @@ using namespace CPSfit;
 template<typename T>
 bool equals(const T &a, const T &b, const double tol){
   if(a.size() != b.size()) return false;
-  for(int i=0;i<a.size();i++) if(!equals(a.sample(i),b.sample(i),tol)) return false;
+  
+  for(int i=0;i<iterate<T>::size(a);i++)
+    if(!equals(iterate<T>::at(i, a), iterate<T>::at(i, b),tol) ) return false;
+
   return true;
 }
 template<>
@@ -55,15 +58,21 @@ int main(void){
     rawDataDistribution<double> a(nsample_orig), b(nsample_orig);
     gaussianRandom(a, 1.0,0.5);
     gaussianRandom(b, 3.0,0.5);
+
+    //Jackknife of original ensemble passes through unmolested
+    jackknifeDistribution<double> a_j(a);
+    jackknifeDistribution<double> b_j(b);
+
+    double cov_j = jackknifeDistribution<double>::covariance(a_j, b_j);
     
     int nsample_trunc = 90;
     rawDataDistribution<double> a_trunc(nsample_trunc, [&](const int s){ return a.sample(s); });
     rawDataDistribution<double> b_trunc(nsample_trunc, [&](const int s){ return b.sample(s); });
 
-    jackknifeDistribution<double> a_j(a_trunc);
-    jackknifeDistribution<double> b_j(b_trunc);
+    jackknifeDistribution<double> a_j_trunc(a_trunc);
+    jackknifeDistribution<double> b_j_trunc(b_trunc);
     
-    double cov_j = jackknifeDistribution<double>::covariance(a_j, b_j);
+    double cov_j_trunc = jackknifeDistribution<double>::covariance(a_j_trunc, b_j_trunc);
 
     std::vector<std::vector<int> > table(nboot, std::vector<int>(nsample_trunc));
     for(int i=0;i<nboot;i++)
@@ -82,7 +91,7 @@ int main(void){
     assert(cov_bj.size() == nboot);
     assert(equals(cov_bj.best(), cov_j, 1e-12));
     for(int b=0;b<nboot;b++)
-      assert(equals(cov_bj.sample(b), cov_j, 1e-12));
+      assert(equals(cov_bj.sample(b), cov_j_trunc, 1e-12));
   
   }
 
@@ -112,6 +121,9 @@ int main(void){
       for(int j=0;j<expect.sample(i).size();j++)
 	expect.sample(i).sample(j) = a_bj.sample(i).sample(j) * a_bj.sample(i).sample(j) + b_bj.sample(i).sample(j);
     
+    jackknifeDistribution<double> a_j(a), b_j(b);
+    expect.origEnsJackknife() = a_j*a_j + b_j;
+    
     bootJackknifeDistribution<double> calc = a_bj*a_bj + b_bj;
   
     assert(equals(calc, expect, 1e-10));
@@ -137,6 +149,8 @@ int main(void){
       HDF5reader rd("test.hdf5");
       read(rd, bj_rd, "test_bj");
     }
+    assert(bj_rd.origEnsJackknife() == bj.origEnsJackknife());
+
     assert(bj_rd == bj);
 
     std::vector<bootJackknifeDistribution<double> > v_bj(2);

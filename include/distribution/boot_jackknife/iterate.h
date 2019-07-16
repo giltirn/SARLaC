@@ -31,13 +31,25 @@ template<typename T, template<typename> class V>
 struct iterate<bootJackknifeDistribution<T,V> >{
   typedef T type;
 
-  static inline int size(const bootJackknifeDistribution<T,V> &from){ return from.size() * (from.size() > 0 ? from.sample(0).size() : 0); } //j + nsample*i
-  static inline const T& at(const int i, const bootJackknifeDistribution<T,V> &from){
-    const int nn = from.sample(0).size();
+  static inline int size(const bootJackknifeDistribution<T,V> &from){ 
+    return (1 + from.size()) * from.origEnsJackknife().size();
+  }
+  static inline const T& at(int i, const bootJackknifeDistribution<T,V> &from){
+    const int nn = from.origEnsJackknife().size();
+
+    if(i < nn) 
+      return from.origEnsJackknife().sample(i);
+    i -= nn;
+
     return from.sample(i/nn).sample(i%nn);
   }
-  static inline T & at(const int i, bootJackknifeDistribution<T,V> &from){
-    const int nn = from.sample(0).size();
+  static inline T & at(int i, bootJackknifeDistribution<T,V> &from){
+    const int nn = from.origEnsJackknife().size();
+
+    if(i < nn) 
+      return from.origEnsJackknife().sample(i);
+    i -= nn;
+
     return from.sample(i/nn).sample(i%nn);
   }
   static inline std::vector<int> unmap(const int i, const bootJackknifeDistribution<T,V> &from){ 
