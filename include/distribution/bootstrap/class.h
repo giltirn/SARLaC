@@ -88,8 +88,8 @@ public:
   void resample(const DistributionType &in, const std::vector<std::vector<int> > &table){
     assert(table.size() == this->size());
     int boots = this->size();
-    assert(table[0].size() == in.size());
-    int nraw = in.size();
+    assert(table[0].size() <= in.size()); //table generation can discard some data
+    int nraw = table[0].size();
 
     for(int b=0;b<boots;b++){
       zeroit(this->sample(b));
