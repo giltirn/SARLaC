@@ -63,6 +63,9 @@ typedef correlationFunction<double,rawDataDistributionD> rawDataCorrelationFunct
 typedef correlationFunction<double,jackknifeDistributionD> jackknifeCorrelationFunctionD;
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackknifeCorrelationFunctionD;
 typedef correlationFunction<double,blockDoubleJackknifeDistributionD> blockDoubleJackknifeCorrelationFunctionD;
+typedef correlationFunction<double,bootstrapDistributionD> bootstrapCorrelationFunctionD;
+typedef correlationFunction<double,bootJackknifeDistributionD> bootJackknifeCorrelationFunctionD;
+
 
 //Tensor types
 typedef NumericSquareMatrix<jackknifeDistribution<double> >  jackknifeSquareMatrixD;

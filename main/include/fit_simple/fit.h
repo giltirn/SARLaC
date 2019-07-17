@@ -1,143 +1,7 @@
 #ifndef _FIT_SIMPLE_FIT_H_
 #define _FIT_SIMPLE_FIT_H_
 
-#include "plot.h"
-
-template<typename DataSeriesType>
-inline DataSeriesType getDataInRange(const DataSeriesType &data, const int tmin, const int tmax){
-  return DataSeriesType(tmax - tmin + 1, [&](const int i){ return data[tmin + i]; });
-}
-
-template<typename Out, typename In>
-Out pconvert(const In &in){ Out out(in.size()); for(int i=0;i<in.size();i++) out(i) = in(i); return out; }
-
-template<typename Out, typename In>
-jackknifeDistribution<Out> pconvert(const jackknifeDistribution<In> &in){ 
-  jackknifeDistribution<Out> out(in.size());
-  for(int s=0;s<in.size();s++) out.sample(s) = pconvert<Out,In>(in.sample(s));
-  return out;
-}
-
-
-typedef parameterVector<double> parameterVectorD;
-
-template<typename ArgsType, typename CMDlineType>
-struct FitFuncManagerBase{
-  const ArgsType &args;
-  const CMDlineType &cmdline;
-  
-  FitFuncManagerBase(const ArgsType &args, const CMDlineType &cmdline): args(args), cmdline(cmdline){}
-  
-  virtual genericFitFuncBase const* getFitFunc() const = 0;
-  virtual parameterVectorD getGuess() const = 0;
-  virtual void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const = 0;
-
-  template<typename FF>
-  parameterVectorD getGuessBase(const FF &ff) const{
-   typename FF::ParameterType guess = ff.guess();
-    if(cmdline.load_guess)
-      parse(guess,cmdline.guess_file);
-    return pconvert<parameterVectorD, typename FF::ParameterType>(guess);
-  }
-  
-  virtual ~FitFuncManagerBase(){}
-};
-
-template<typename HyperbolicFitFunc, typename ArgsType, typename CMDlineType>
-struct FitFuncHyperbolicManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
-  typedef HyperbolicFitFunc FitFunc;
-  simpleFitFuncWrapper<FitFunc> fitfunc;
-
-  FitFuncHyperbolicManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc(args.Lt)){}
-
-  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
-
-  parameterVectorD getGuess() const{ 
-    return this->getGuessBase(fitfunc.fitfunc);
-  }
-
-  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
-    plotEffectiveMass(this->args,fitfunc.fitfunc,data_j,pconvert<typename FitFunc::ParameterType,parameterVectorD>(params),1);
-  }
-};
-
-template<typename ArgsType, typename CMDlineType>
-struct FitExpManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
-  typedef FitExp FitFunc;
-  simpleFitFuncWrapper<FitFunc> fitfunc;
-
-  FitExpManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc()){}
-
-  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
-
-  parameterVectorD getGuess() const{ 
-    return this->getGuessBase(fitfunc.fitfunc);
-  }
-
-  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
-    plotEffectiveMass(this->args,fitfunc.fitfunc,data_j,pconvert<typename FitFunc::ParameterType,parameterVectorD>(params),1);
-  }
-};
-
-template<typename ArgsType, typename CMDlineType>
-struct FitConstantManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
-  typedef FitConstant FitFunc;
-  simpleFitFuncWrapper<FitFunc> fitfunc;
-
-  FitConstantManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc()){}
-
-  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
-
-  parameterVectorD getGuess() const{ 
-    return this->getGuessBase(fitfunc.fitfunc);
-  }
-
-  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
-    plotRaw(this->args,fitfunc.fitfunc,data_j,pconvert<typename FitFunc::ParameterType,parameterVectorD>(params));
-  }
-};
-
-template<typename ArgsType, typename CMDlineType>
-struct FitTwoStateCoshManager: public FitFuncManagerBase<ArgsType,CMDlineType>{
-  typedef FitTwoStateCosh FitFunc;
-  simpleFitFuncWrapper<FitFunc> fitfunc;
-
-  FitTwoStateCoshManager(const ArgsType &args, const CMDlineType &cmdline): FitFuncManagerBase<ArgsType,CMDlineType>(args, cmdline), fitfunc(FitFunc(args.Lt)){}
-
-  genericFitFuncBase const* getFitFunc() const{ return (genericFitFuncBase const*)&fitfunc; }
-
-  parameterVectorD getGuess() const{ 
-    return this->getGuessBase(fitfunc.fitfunc);
-  }
-
-  void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
-    FitCosh fcosh(this->args.Lt);
-    plotTwoStateEffectiveMass<FitTwoStateCosh, FitCosh, ArgsType>(this->args, data_j, pconvert<typename FitFunc::ParameterType,parameterVectorD>(params), fcosh, fitfunc.fitfunc, 1); 
-  }
-};
-
-template<typename ArgsType, typename CMDlineType>
-std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > getFitFuncManager(const ArgsType &args, const CMDlineType &cmdline){
-  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager;
-
-  switch(args.fitfunc){
-  case FitFuncType::FCosh:
-    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitCosh,ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FSinh:
-    fitfunc_manager.reset(new FitFuncHyperbolicManager<FitSinh,ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FExp:
-    fitfunc_manager.reset(new FitExpManager<ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FConstant:
-    fitfunc_manager.reset(new FitConstantManager<ArgsType,CMDlineType>(args,cmdline)); break;
-  case FitFuncType::FTwoStateCosh:
-    fitfunc_manager.reset(new FitTwoStateCoshManager<ArgsType,CMDlineType>(args,cmdline)); break;
-  default:
-    error_exit(std::cout << "fit: Invalid fitfunc " << args.fitfunc << std::endl);
-  }
-  
-  return fitfunc_manager;
-}
-
+#include "fitfunc_manager.h"
 
 template<typename ArgsType, typename CMDlineType>
 void fit(jackknifeDistribution<parameterVectorD> &params,
@@ -170,7 +34,11 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
 
 
   //Get the fit function manager
-  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager = getFitFuncManager(args, cmdline);
+  FitFuncManagerBase::Options opt;
+  opt.load_guess = cmdline.load_guess;
+  opt.guess_file = cmdline.guess_file;
+
+  std::unique_ptr< FitFuncManagerBase > fitfunc_manager = getFitFuncManager(args.fitfunc, args.Lt, args.t_min, args.t_max, opt);
 
   //Set up the minimizer
   MarquardtLevenbergParameters<double> minparams;
@@ -264,7 +132,11 @@ void fitCentral(parameterVectorD &params,
   }
 
   //Get the fit function manager
-  std::unique_ptr< FitFuncManagerBase<ArgsType,CMDlineType> > fitfunc_manager = getFitFuncManager(args, cmdline);
+  FitFuncManagerBase::Options opt;
+  opt.load_guess = cmdline.load_guess;
+  opt.guess_file = cmdline.guess_file;
+
+  std::unique_ptr< FitFuncManagerBase > fitfunc_manager = getFitFuncManager(args.fitfunc, args.Lt, args.t_min, args.t_max, opt);
 
   //Set up the minimizer
   MarquardtLevenbergParameters<double> minparams;

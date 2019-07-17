@@ -9,8 +9,8 @@ using namespace CPSfit;
 #include<fit_simple/cmdline.h>
 #include<fit_simple/args.h>
 #include<fit_simple/read_data.h>
-#include<fit_simple/fit.h>
 #include<fit_simple/main.h>
+#include<fit_simple/fit.h>
 #include<fit_simple/bootstrap_pvalue.h>
 
 //Basic fitting
@@ -52,7 +52,12 @@ int main(const int argc, const char** argv){
     }
 
     //Optional, in-place transformations on raw data
-    transformRaw(channels_raw, args, cmdline); 
+    transformOptions opt;
+#define CP(A) opt.A = cmdline.A
+    CP(remove_samples_in_range); CP(remove_samples_in_range_start); CP(remove_samples_in_range_lessthan); CP(scramble_raw_data);
+#undef CP;
+
+    transformRaw(channels_raw, opt); 
   }
 
   //Resample the data

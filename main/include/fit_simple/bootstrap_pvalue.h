@@ -77,7 +77,12 @@ double computeBootstrapPvalue(const parameterVectorD &base_params,
   int nboot = 1000;
 
   //Get the data means and their corresponding fit predictions for use in the recentering
-  std::unique_ptr< FitFuncManagerBase<Args,CMDline> > fitfunc_manager = getFitFuncManager(args, cmdline);
+  FitFuncManagerBase::Options fopt;
+  fopt.load_guess = cmdline.load_guess;
+  fopt.guess_file = cmdline.guess_file;
+
+  std::unique_ptr< FitFuncManagerBase > fitfunc_manager = getFitFuncManager(args.fitfunc, args.Lt, args.t_min, args.t_max, fopt);
+    
   genericFitFuncBase const* fitfunc = fitfunc_manager->getFitFunc();
 
   correlationFunction<double, double> fit_data_cen(ndata);

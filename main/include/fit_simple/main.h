@@ -1,16 +1,31 @@
 #ifndef _FIT_SIMPLE_MAIN_H_
 #define _FIT_SIMPLE_MAIN_H_
 
-template<typename DistributionType>
+struct basicBinResampler{
+  int bin_size;
+  basicBinResampler(int bin_size): bin_size(bin_size){}
+  basicBinResampler(): bin_size(0){}
+
+  template<typename DistributionType>
+  inline void binResample(DistributionType &out, const rawDataDistributionD &in) const{ out.resample(in.bin(bin_size)); }
+  
+  inline void binResample(blockDoubleJackknifeDistributionD &out, const rawDataDistributionD &in) const{ out.resample(in, bin_size); }
+};
+
+template<typename DistributionType, typename BinResampler>
 correlationFunction<double, DistributionType> resampleAndCombine(const std::vector<rawDataCorrelationFunctionD> &channels_raw,
-								 const int Lt, const int bin_size, Combination combination, TimeDependence outer_time_dep){
+								 const int Lt, Combination combination, TimeDependence outer_time_dep, const BinResampler &bin_resampler){
   const int nchannel = channels_raw.size();
 
   std::vector<correlationFunction<double, DistributionType> > channels_r(nchannel);
   for(int i=0;i<nchannel;i++){
-    channels_r[i] = correlationFunction<double, DistributionType>(Lt, [&](const int t){
-	return typename correlationFunction<double, DistributionType>::ElementType(t, DistributionType(channels_raw[i].value(t).bin(bin_size)));								  });
+    channels_r[i].resize(Lt);
+    for(int t=0;t<Lt;t++){
+      channels_r[i].coord(t) = t;
+      bin_resampler.binResample(channels_r[i].value(t), channels_raw[i].value(t));
+    }
   }
+
   correlationFunction<double, DistributionType> out(Lt);
 
   applyCombination(out,channels_r,combination);
@@ -19,36 +34,32 @@ correlationFunction<double, DistributionType> resampleAndCombine(const std::vect
   return out;
 }
 
-template<>
-correlationFunction<double, blockDoubleJackknifeDistributionD> 
-resampleAndCombine<blockDoubleJackknifeDistributionD>(const std::vector<rawDataCorrelationFunctionD> &channels_raw, 
-						      const int Lt, const int bin_size, Combination combination, TimeDependence outer_time_dep){ 
-  const int nchannel = channels_raw.size();
-
-  std::vector<correlationFunction<double, blockDoubleJackknifeDistributionD> > channels_r(nchannel);
-  for(int i=0;i<nchannel;i++){
-    channels_r[i] = correlationFunction<double, blockDoubleJackknifeDistributionD>(Lt, [&](const int t){
-	return typename correlationFunction<double, blockDoubleJackknifeDistributionD>::ElementType(t, blockDoubleJackknifeDistributionD(channels_raw[i].value(t), bin_size));
-      });
-  }
-  correlationFunction<double, blockDoubleJackknifeDistributionD> out(Lt);
-
-  applyCombination(out,channels_r,combination);
-  applyTimeDep(out, outer_time_dep, Lt);
-
-  return out;
+template<typename DistributionType>
+inline correlationFunction<double, DistributionType> resampleAndCombine(const std::vector<rawDataCorrelationFunctionD> &channels_raw,
+									const int Lt, const int bin_size, Combination combination, TimeDependence outer_time_dep){
+  return ::resampleAndCombine<DistributionType>(channels_raw, Lt, combination, outer_time_dep, basicBinResampler(bin_size));
 }
 
-void transformRaw(std::vector<rawDataCorrelationFunctionD> &channels_raw, const Args &args, const CMDline &cmdline){
+
+struct transformOptions{
+  bool remove_samples_in_range;
+  int remove_samples_in_range_start;
+  int remove_samples_in_range_lessthan;
+
+  bool scramble_raw_data;
+};
+
+
+void transformRaw(std::vector<rawDataCorrelationFunctionD> &channels_raw, const transformOptions &opt){
   int nchannel = channels_raw.size();
 
-  if(cmdline.remove_samples_in_range){
-    std::cout << "Removing samples in range [" << cmdline.remove_samples_in_range_start << ", " <<  cmdline.remove_samples_in_range_lessthan << ")" << std::endl;
+  if(opt.remove_samples_in_range){
+    std::cout << "Removing samples in range [" << opt.remove_samples_in_range_start << ", " <<  opt.remove_samples_in_range_lessthan << ")" << std::endl;
     for(int c=0;c<nchannel;c++)
       for(int t=0;t<channels_raw[c].size();t++)
-	channels_raw[c].value(t) = removeSamplesInRange(channels_raw[c].value(t), cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
+	channels_raw[c].value(t) = removeSamplesInRange(channels_raw[c].value(t), opt.remove_samples_in_range_start, opt.remove_samples_in_range_lessthan);
   }
-  if(cmdline.scramble_raw_data){ //useful as a check to see if binning is actually doing anything more than reducing resolution on the covariance matrix
+  if(opt.scramble_raw_data){ //useful as a check to see if binning is actually doing anything more than reducing resolution on the covariance matrix
     int nsample = channels_raw[0].value(0).size();
     if(!RNG.isInitialized()) RNG.initialize(1234);
     std::vector<int> reord(nsample);
@@ -78,5 +89,30 @@ void transformRaw(std::vector<rawDataCorrelationFunctionD> &channels_raw, const 
   }
 }
 
+
+template<typename DataSeriesType>
+inline DataSeriesType getDataInRange(const DataSeriesType &data, const int tmin, const int tmax){
+  return DataSeriesType(tmax - tmin + 1, [&](const int i){ return data[tmin + i]; });
+}
+
+template<typename Out, typename In>
+Out pconvert(const In &in){ Out out(in.size()); for(int i=0;i<in.size();i++) out(i) = in(i); return out; }
+
+template<typename Out, typename In>
+jackknifeDistribution<Out> pconvert(const jackknifeDistribution<In> &in){ 
+  jackknifeDistribution<Out> out(in.size());
+  for(int s=0;s<in.size();s++) out.sample(s) = pconvert<Out,In>(in.sample(s));
+  return out;
+}
+
+template<typename Out, typename In>
+bootstrapDistribution<Out> pconvert(const bootstrapDistribution<In> &in){ 
+  bootstrapDistribution<Out> out(in.getInitializer());
+  for(int s=0;s<in.size();s++) out.sample(s) = pconvert<Out,In>(in.sample(s));
+  out.best() = pconvert<Out,In>(in.best());
+  return out;
+}
   
+
+
 #endif

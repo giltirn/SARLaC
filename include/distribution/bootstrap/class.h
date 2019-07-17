@@ -53,6 +53,8 @@ public:
   template<typename T>
   using rebase = bootstrapDistribution<T,_VectorType>;
 
+  inline initType getInitializer() const{ return initType(this->size(), this->_confidence); }
+
   inline const DataType & propagatedCentral() const{ return avg; }
   inline DataType & propagatedCentral(){ return avg; }
   
