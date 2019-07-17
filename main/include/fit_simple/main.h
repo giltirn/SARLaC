@@ -10,6 +10,8 @@ struct basicBinResampler{
   inline void binResample(DistributionType &out, const rawDataDistributionD &in) const{ out.resample(in.bin(bin_size)); }
   
   inline void binResample(blockDoubleJackknifeDistributionD &out, const rawDataDistributionD &in) const{ out.resample(in, bin_size); }
+
+  inline void binResample(double &out, const rawDataDistributionD &in) const{  out = in.bin(bin_size).mean(); }
 };
 
 template<typename DistributionType, typename BinResampler>

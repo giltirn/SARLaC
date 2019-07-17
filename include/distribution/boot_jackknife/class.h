@@ -80,9 +80,9 @@ public:
     assert(table[0].size() <= in.size()); //table generation can discard some data
     int nraw = table[0].size();
 
-    DistributionType in_r(nraw);
-
+#pragma omp parallel for
     for(int b=0;b<boots;b++){
+      DistributionType in_r(nraw);
       for(int s=0;s<nraw;s++) in_r.sample(s) = in.sample(table[b][s]); //generate a resampling of the raw data
       this->sample(b).resample(in_r);
     }
@@ -90,8 +90,6 @@ public:
     base_jack.resample(in); //propagate jackknife of original data
   }
   
-  bootJackknifeDistribution(): baseType(){}
-
   bootJackknifeDistribution(const bootJackknifeDistribution &r): _confidence(r._confidence), base_jack(r.base_jack), baseType(r){}
   
   template<template<typename> class U>
@@ -110,6 +108,8 @@ public:
   }
   
   explicit bootJackknifeDistribution(const initType &initv): _confidence(initv.confidence), base_jack(initv.nsample), baseType(initv.boots, DataType(initv.nsample)){}
+
+  bootJackknifeDistribution(): bootJackknifeDistribution(initType(0)){}
 
   bootJackknifeDistribution(const initType &initv, const DataType &init):
     _confidence(initv.confidence), baseType(initv.boots,init), base_jack(init){ 

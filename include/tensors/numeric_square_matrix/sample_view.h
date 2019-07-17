@@ -21,10 +21,10 @@ public:
   
   inline int size() const{ return M.size(); }
 
-  inline const SampleType& operator()(const int i, const int j) const{ return M(i,j).sample(sample); }
+  inline const SampleType& operator()(const int i, const int j) const{ return iterate<DistributionType>::at(sample, M(i,j)); }
   
   template<typename U = NumericSquareMatrixType>
-  inline typename std::enable_if< !std::is_const<U>::value, SampleType& >::type operator()(const int i, const int j){ return M(i,j).sample(sample); }
+  inline typename std::enable_if< !std::is_const<U>::value, SampleType& >::type operator()(const int i, const int j){ return iterate<DistributionType>::at(sample, M(i,j)); }
 };
 
 CPSFIT_END_NAMESPACE

@@ -53,8 +53,8 @@ class simpleFitWrapper{
     BaseDistributionType resid = modE(test);
 
     //Output the mean and standard deviation of the distributions of residual and condition number 
-    std::cout << "Condition number = " << condition_number.mean() << " +- " << condition_number.standardDeviation() << std::endl;
-    std::cout << "||CorrMat * CorrMat^{-1} - 1||_E = " << resid.mean() << " +- " << resid.standardDeviation() << std::endl;
+    std::cout << "Condition number = " << condition_number.best() << " +- " << condition_number.standardDeviation() << std::endl;
+    std::cout << "||CorrMat * CorrMat^{-1} - 1||_E = " << resid.best() << " +- " << resid.standardDeviation() << std::endl;
     return inv_corr_mat;
   }
 
@@ -242,6 +242,25 @@ public:
 
     importCovarianceMatrix(cov, cost_type);
   }
+
+  //Generate the covariance matrix internally from bootstrap data. The resulting covariance matrix is "frozen", i.e. the same for all samples
+  //Option to use uncorrelated (diagonal) or correlated matrix
+  template<typename GeneralizedCoordinate, BOOTSTRAP_ONLY>
+  void generateCovarianceMatrix(const correlationFunction<GeneralizedCoordinate, BaseDistributionType> &data_j, 
+				const CostType cost_type = CostType::Correlated){
+    int ndata = data_j.size();
+    auto binit = data_j.value(0).getInitializer();
+
+    NumericSquareMatrix<BaseDistributionType> cov(ndata);
+    for(int i=0;i<ndata;i++)
+      for(int j=i;j<ndata;j++){
+	double cv = BaseDistributionType::covariance(data_j.value(i), data_j.value(j));
+	cov(i,j) = cov(j,i) = BaseDistributionType(cv, binit);
+      }
+
+    importCovarianceMatrix(cov, cost_type);
+  }
+
 
 
   //Write the covariance matrix to a file in HDF5 format for external manipulation

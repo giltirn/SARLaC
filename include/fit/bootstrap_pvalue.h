@@ -199,14 +199,16 @@ inline double bootstrapPvalue(const double q2,
   return bootstrapPvalue(q2, raw_data, raw_data.value(0).size(), fit_data_cen, fit_values ,CorrFuncResampler<GeneralizedCoordinate, ValueType>(), fitter, nboot, table_type, block_size, nthread, rng);
 }
 
-//This function performs the "recentering" for correlation functions of jackknife data
-template<typename GeneralizedCoordinate, typename ValueType>
-void recenter(correlationFunction<GeneralizedCoordinate, jackknifeDistribution<ValueType> > &data, const correlationFunction<double, double> &corrections){
+//This function performs the "recentering" for correlation functions of distribution data
+template<typename GeneralizedCoordinate, typename DistributionType>
+void recenter(correlationFunction<GeneralizedCoordinate, DistributionType> &data, const correlationFunction<GeneralizedCoordinate, typename DistributionType::DataType> &corrections){
   assert(data.size() == corrections.size());
   for(int i=0;i<data.size();i++){
     assert(data.coord(i) == corrections.coord(i));
-    for(int s=0;s<data.value(i).size();s++)
-      data.value(i).sample(s) = data.value(i).sample(s) + corrections.value(i);
+    for(int s=0;s<iterate<DistributionType>::size(data.value(i));s++){
+      auto &v = iterate<DistributionType>::at(s, data.value(i));
+      v = v + corrections.value(i);
+    }
   }
 }
 
