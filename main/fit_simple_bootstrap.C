@@ -14,17 +14,6 @@ using namespace CPSfit;
 #include<fit_simple_bootstrap/fit.h>
 #include<fit_simple_bootstrap/bootstrap_pvalue.h>
 
-//We don't bin, rather the resample table should use a block resampling strategy
-struct bootstrapResampler{
-  const std::vector<std::vector<int> > &rtable;
-
-  bootstrapResampler(const std::vector<std::vector<int> > &rtable): rtable(rtable){}
-
-  inline void binResample(bootstrapDistributionD &out, const rawDataDistributionD &in) const{ out.resample(in, rtable); }
-  inline void binResample(bootJackknifeDistributionD &out, const rawDataDistributionD &in) const{ out.resample(in, rtable); }
-};
-
-
 //Basic fitting
 int main(const int argc, const char** argv){
   RNG.initialize(1234);
@@ -88,7 +77,7 @@ int main(const int argc, const char** argv){
   bootJackknifeCorrelationFunctionD data_bj;
   bootstrapCorrelationFunctionD data_b;
 
-  bootstrapResampler resampler(rtable);
+  bootstrapBlockResampler resampler(rtable);
 
   if(cmdline.load_combined_data){
     std::cout << "Reading resampled data from " << cmdline.load_combined_data_file << std::endl;

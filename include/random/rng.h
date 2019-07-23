@@ -52,9 +52,10 @@ struct threadRNGstore{
   std::vector<RNGstore> rngs;
   typedef RNGstore::seedType seedType;
 
-  threadRNGstore(int nthr = omp_get_max_threads()): rngs(nthr){}
+  threadRNGstore(){}
 
-  void initialize(const seedType seed){
+  void initialize(const seedType seed, const int nthr = omp_get_max_threads()){
+    rngs.resize(nthr);
     for(int i=0;i<rngs.size();i++)
       rngs[i].initialize( seed + 1 + i );
   }

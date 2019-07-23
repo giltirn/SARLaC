@@ -15,6 +15,22 @@ CPSFIT_START_NAMESPACE
 //Open a standard format hdf5 file and query the distribution type and vector depth (i.e. vector<dist>=1, vector<vector<dist> >=2)
 GENERATE_ENUM_AND_PARSER( DistributionTypeEnum, (Jackknife)(JackknifeC)(Raw)(DoubleJackknife)(SuperJackknife)(Bootstrap)  );
 
+DistributionTypeEnum getTypeEnum(const std::string &typestr){
+  if(typestr == "rawDataDistribution<double>"){
+    return DistributionTypeEnum::Raw;
+  }else if(typestr == "jackknifeDistribution<double>"){
+    return DistributionTypeEnum::Jackknife;
+  }else if(typestr == "jackknifeCdistribution<double>"){
+    return DistributionTypeEnum::JackknifeC;
+  }else if(typestr == "doubleJackknifeDistribution<double>"){
+    return DistributionTypeEnum::DoubleJackknife;
+  }else if(typestr == "superJackknifeDistribution<double>"){
+    return DistributionTypeEnum::SuperJackknife;    
+  }else if(typestr == "bootstrapDistribution<double>"){
+    return DistributionTypeEnum::Bootstrap;
+  }else error_exit(std::cout << "getTypeInfo type " << typestr << " unimplemented\n");
+}
+
 void getTypeInfo(DistributionTypeEnum &type, int & vector_depth, const std::string &filename){
   HDF5reader rd(filename);
   std::string typestr;
@@ -22,20 +38,7 @@ void getTypeInfo(DistributionTypeEnum &type, int & vector_depth, const std::stri
   rd.enter("value");
   if(rd.contains("size2")) vector_depth = 2;
   else vector_depth =1;
-
-  if(typestr == "rawDataDistribution<double>"){
-    type = DistributionTypeEnum::Raw;
-  }else if(typestr == "jackknifeDistribution<double>"){
-    type = DistributionTypeEnum::Jackknife;
-  }else if(typestr == "jackknifeCdistribution<double>"){
-    type = DistributionTypeEnum::JackknifeC;
-  }else if(typestr == "doubleJackknifeDistribution<double>"){
-    type = DistributionTypeEnum::DoubleJackknife;
-  }else if(typestr == "superJackknifeDistribution<double>"){
-    type = DistributionTypeEnum::SuperJackknife;    
-  }else if(typestr == "bootstrapDistribution<double>"){
-    type = DistributionTypeEnum::Bootstrap;
-  }else error_exit(std::cout << "getTypeInfo type " << typestr << " unimplemented\n");
+  type = getTypeEnum(typestr);
 }
 
 #endif

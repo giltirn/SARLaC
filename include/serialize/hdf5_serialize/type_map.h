@@ -8,6 +8,7 @@
 #include<H5Cpp.h>
 
 #include<utils/macros.h>
+#include<utils/template_wizardry/distribution.h>
 
 CPSFIT_START_NAMESPACE
 

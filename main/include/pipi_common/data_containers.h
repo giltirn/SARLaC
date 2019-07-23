@@ -141,6 +141,7 @@ typedef bubbleDataBase<jackknifeDistributionD > bubbleDataJack;
 typedef bubbleDataBase<doubleJackknifeDistributionD > bubbleDataDoubleJack;
 typedef bubbleDataBase<blockDoubleJackknifeDistributionD > bubbleDataBlockDoubleJack;
 typedef bubbleDataBase<bootstrapDistributionD > bubbleDataBoot;
+typedef bubbleDataBase<bootJackknifeDistributionD > bubbleDataBootJack;
 
 template<typename DistributionType>
 struct _bubbleDataTypeSelector{};
@@ -156,6 +157,10 @@ template<>
 struct _bubbleDataTypeSelector<blockDoubleJackknifeDistributionD>{ typedef bubbleDataBlockDoubleJack type; };
 template<>
 struct _bubbleDataTypeSelector<bootstrapDistributionD>{ typedef bubbleDataBoot type; };
+template<>
+struct _bubbleDataTypeSelector<bootJackknifeDistributionD>{ typedef bubbleDataBootJack type; };
+
+
 
 template<typename DistributionType>
 using bubbleDataSelect = typename _bubbleDataTypeSelector<DistributionType>::type;
@@ -357,6 +362,7 @@ typedef figureDataBase<doubleJackknifeDistributionD, figureDataDistributionPolic
 typedef figureDataBase<blockDoubleJackknifeDistributionD, figureDataDistributionPolicies<blockDoubleJackknifeDistributionD> > figureDataBlockDoubleJack;
 typedef figureDataBase<jackknifeDistributionD, figureDataDistributionPolicies<jackknifeDistributionD> > figureDataJack;
 typedef figureDataBase<bootstrapDistributionD, figureDataDistributionPolicies<bootstrapDistributionD> > figureDataBoot;
+typedef figureDataBase<bootJackknifeDistributionD, figureDataDistributionPolicies<bootJackknifeDistributionD> > figureDataBootJack;
 
 template<typename DistributionType>
 struct _figureDataTypeSelector{};
@@ -370,6 +376,9 @@ template<>
 struct _figureDataTypeSelector<blockDoubleJackknifeDistributionD>{ typedef figureDataBlockDoubleJack type; };
 template<>
 struct _figureDataTypeSelector<bootstrapDistributionD>{ typedef figureDataBoot type; };
+template<>
+struct _figureDataTypeSelector<bootJackknifeDistributionD>{ typedef figureDataBootJack type; };
+
 
 template<typename DistributionType>
 using figureDataSelect = typename _figureDataTypeSelector<DistributionType>::type;
@@ -462,6 +471,7 @@ typedef sigmaSelfContractionBase<jackknifeDistributionD> sigmaSelfContractionJac
 typedef sigmaSelfContractionBase<doubleJackknifeDistributionD> sigmaSelfContractionDoubleJack;
 typedef sigmaSelfContractionBase<blockDoubleJackknifeDistributionD> sigmaSelfContractionBlockDoubleJack;
 typedef sigmaSelfContractionBase<bootstrapDistributionD> sigmaSelfContractionBoot;
+typedef sigmaSelfContractionBase<bootJackknifeDistributionD> sigmaSelfContractionBootJack;
 
 template<typename DistributionType>
 struct _sigmaSelfContractionTypeSelector{};
@@ -477,6 +487,9 @@ template<>
 struct _sigmaSelfContractionTypeSelector<blockDoubleJackknifeDistributionD>{ typedef sigmaSelfContractionBlockDoubleJack type; };
 template<>
 struct _sigmaSelfContractionTypeSelector<bootstrapDistributionD>{ typedef sigmaSelfContractionBoot type; };
+template<>
+struct _sigmaSelfContractionTypeSelector<bootJackknifeDistributionD>{ typedef sigmaSelfContractionBootJack type; };
+
 
 template<typename DistributionType>
 using sigmaSelfContractionSelect = typename _sigmaSelfContractionTypeSelector<DistributionType>::type;

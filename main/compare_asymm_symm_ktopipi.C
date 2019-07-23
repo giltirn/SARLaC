@@ -114,7 +114,7 @@ void compare(const NumericTensor<jackknifeDistributionD,1> &asymm,
 void analyze(const ProjectedBubbleData &bubble_data_asymm,
 	     const ProjectedBubbleData &bubble_data_symm,
 	     const int tsep_k_pi_idx, const ComparisonArgs &args, const ComparisonCMDline &cmdline){
-  basic_resampler resampler;
+  basic_bin_resampler resampler(args.bin_size);
 
   std::cout << "Comparing data for tsep_k_pi = " <<  args.tsep_k_pi[tsep_k_pi_idx] << std::endl;
   int tsep_k_pi = args.tsep_k_pi[tsep_k_pi_idx];
@@ -130,20 +130,21 @@ void analyze(const ProjectedBubbleData &bubble_data_asymm,
   std::vector<int> type3_nonzerotK = type3_asymm.getNonZeroKaonTimeslices();
   std::vector<int> type4_nonzerotK = type4_asymm.getNonZeroKaonTimeslices();
 
-
+  typedef computeAmplitudeAlltKtensorControls ctrl;
+  typedef computeAmplitudeAlltKtensorControls::inputType ctrli;
+  
   //Get the type1-4 and mix3/mix4 components of the data.
   //Note that we have not yet multiplied the type4/mix4 data by the pipi bubble, hence these  are just the K->vac component which are needed for computing alpha
   std::cout << "Computing raw data diagrams prior to multiplying by bubble\n";
-  NumericTensor<rawDataDistributionD,3> A0_type1_alltK_asymm = computeAmplitudeType1<computeAmplitudeAlltKtensorControls>(type1_asymm); //[Qidx][tK][t]
-  NumericTensor<rawDataDistributionD,3> A0_type2_alltK_asymm = computeAmplitudeType2<computeAmplitudeAlltKtensorControls>(type2_asymm); //[Qidx][tK][t]
-  NumericTensor<rawDataDistributionD,3> A0_type3_alltK_asymm = computeAmplitudeType3<computeAmplitudeAlltKtensorControls>(type3_asymm); //[Qidx][tK][t]
-  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub_asymm = computeAmplitudeType4<computeAmplitudeAlltKtensorControls>(type4_asymm); //[Qidx][tK][t]
+  NumericTensor<rawDataDistributionD,3> A0_type1_alltK_asymm = computeAmplitudeType1<ctrl>(ctrli(type1_asymm, type1_nonzerotK, tsep_k_pi)  ); //[Qidx][tK][t]
+  NumericTensor<rawDataDistributionD,3> A0_type2_alltK_asymm = computeAmplitudeType2<ctrl>(ctrli(type2_asymm, type2_nonzerotK, tsep_k_pi) ); //[Qidx][tK][t]
+  NumericTensor<rawDataDistributionD,3> A0_type3_alltK_asymm = computeAmplitudeType3<ctrl>(ctrli(type3_asymm, type3_nonzerotK, tsep_k_pi) ); //[Qidx][tK][t]
+  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub_asymm = computeAmplitudeType4<ctrl>(ctrli(type4_asymm, type4_nonzerotK, tsep_k_pi) ); //[Qidx][tK][t]
   
-  NumericTensor<rawDataDistributionD,3> A0_type1_alltK_symm = computeAmplitudeType1<computeAmplitudeAlltKtensorControls>(type1_symm);
-  NumericTensor<rawDataDistributionD,3> A0_type2_alltK_symm = computeAmplitudeType2<computeAmplitudeAlltKtensorControls>(type2_symm);
-  NumericTensor<rawDataDistributionD,3> A0_type3_alltK_symm = computeAmplitudeType3<computeAmplitudeAlltKtensorControls>(type3_symm);
-  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub_symm = computeAmplitudeType4<computeAmplitudeAlltKtensorControls>(type4_symm);
-
+  NumericTensor<rawDataDistributionD,3> A0_type1_alltK_symm = computeAmplitudeType1<ctrl>(ctrli(type1_symm, type1_nonzerotK, tsep_k_pi) );
+  NumericTensor<rawDataDistributionD,3> A0_type2_alltK_symm = computeAmplitudeType2<ctrl>(ctrli(type2_symm, type2_nonzerotK, tsep_k_pi) );
+  NumericTensor<rawDataDistributionD,3> A0_type3_alltK_symm = computeAmplitudeType3<ctrl>(ctrli(type3_symm, type3_nonzerotK, tsep_k_pi) );
+  NumericTensor<rawDataDistributionD,3> A0_type4_alltK_nobub_symm = computeAmplitudeType4<ctrl>(ctrli(type4_symm, type4_nonzerotK, tsep_k_pi) );
 
   NumericTensor<rawDataDistributionD,2> mix3_alltK_asymm({args.Lt,args.Lt}), mix3_alltK_symm({args.Lt,args.Lt}); //[tK][t]
   NumericTensor<rawDataDistributionD,2> mix4_alltK_nobub_asymm({args.Lt,args.Lt}), mix4_alltK_nobub_symm({args.Lt,args.Lt}); //[tK][t]

@@ -108,17 +108,17 @@ struct allRawData{
 
     std::cout << "allRawData loading sloppy_S" << std::endl;
     raw_sloppy_S = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_S, data_dir_S, 
-				  data_file_fmt_sloppy, type1_pimom_proj, traj_start_S, traj_inc, traj_lessthan_S, bin_size,
+				  data_file_fmt_sloppy, type1_pimom_proj, traj_start_S, traj_inc, traj_lessthan_S,
 				  Lt, tsep_pipi, opt.read_opts_sloppy_S);
 
     std::cout << "allRawData loading sloppy_C" << std::endl;
     raw_sloppy_C = RawKtoPiPiData(tsep_k_pi, bubble_sloppy_C, data_dir_C,
-				  data_file_fmt_sloppy, type1_pimom_proj, traj_start_C, traj_inc, traj_lessthan_C, bin_size,
+				  data_file_fmt_sloppy, type1_pimom_proj, traj_start_C, traj_inc, traj_lessthan_C,
 				  Lt, tsep_pipi, opt.read_opts_sloppy_C);
 
     std::cout << "allRawData loading exact_C" << std::endl;
     raw_exact_C = RawKtoPiPiData(tsep_k_pi, bubble_exact_C, data_dir_C,
-				 data_file_fmt_exact, type1_pimom_proj, traj_start_C, traj_inc, traj_lessthan_C, bin_size,
+				 data_file_fmt_exact, type1_pimom_proj, traj_start_C, traj_inc, traj_lessthan_C,
 				 Lt, tsep_pipi, opt.read_opts_exact_C);
   }
 

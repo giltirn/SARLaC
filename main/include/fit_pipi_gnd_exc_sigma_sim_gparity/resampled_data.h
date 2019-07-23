@@ -36,29 +36,30 @@ public:
     for(int i=0;i<out.size();i++) out.value(i) = v;
     return out;
   }
+  template<typename binResampler>
   resampledCorrelationFunctionType computeVacSub(const RawData &raw_data, 
 						 const Operator op1, const Operator op2,
-						 const int bin_size, const int tsep_pipi,
+						 const binResampler &resampler, const int tsep_pipi,
 						 const bool timeslice_avg_vac_sub = false){
     resampledCorrelationFunctionType v;
     if( (op1 == Operator::PiPiGnd || op1 == Operator::PiPiExc) &&
 	(op2 == Operator::PiPiGnd || op2 == Operator::PiPiExc) ){
       PiPiProjector proj_src = op1 == Operator::PiPiGnd ?  PiPiProjector::A1momSet111 :  PiPiProjector::A1momSet311;
       PiPiProjector proj_snk = op2 == Operator::PiPiGnd ?  PiPiProjector::A1momSet111 :  PiPiProjector::A1momSet311;
-      v = computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(op1,op2), bin_size, tsep_pipi, proj_src, proj_snk);
+      v = computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(op1,op2), resampler, tsep_pipi, proj_src, proj_snk);
     }else if( (op1 == Operator::PiPiGnd || op1 == Operator::PiPiExc) &&
 	      op2 == Operator::Sigma ){
       PiPiProjector proj_src = op1 == Operator::PiPiGnd ?  PiPiProjector::A1momSet111 :  PiPiProjector::A1momSet311;
-      v = computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), raw_data.PiPiBubble(op1,op1), proj_src, bin_size);
+      v = computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), raw_data.PiPiBubble(op1,op1), proj_src, resampler);
     }else if( op1 == Operator::Sigma && op2 == Operator::Sigma ){
-      v = computeSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), bin_size);
+      v = computeSigmaVacSub<resampledCorrelationFunctionType>(raw_data.SigmaBubble(), resampler);
     }else assert(0);
     
     if(timeslice_avg_vac_sub) v = timesliceAvg(v);
     return v;
   }
-
-  void generatedResampledData(const RawData &raw_data, const int bin_size, const int Lt, const int tsep_pipi, 
+  template<typename binResampler>
+  void generatedResampledData(const RawData &raw_data, const binResampler &resampler, const int Lt, const int tsep_pipi, 
 			      const bool do_vacuum_subtraction = true, const bool timeslice_avg_vac_sub = false){
 
     const static std::vector<std::pair<Operator,Operator> > rp = {  
@@ -73,11 +74,11 @@ public:
   	auto &corr = correlator(it->first, it->second);
 
   	//Resample	
-  	corr = binResample<resampledCorrelationFunctionType>(raw_data.correlator(it->first,it->second), bin_size);
+  	corr = binResample<resampledCorrelationFunctionType>(raw_data.correlator(it->first,it->second), resampler);
 
   	//Vacuum subtract
   	if(do_vacuum_subtraction) corr = corr - 
-  				    computeVacSub(raw_data, it->first, it->second, bin_size, tsep_pipi, timeslice_avg_vac_sub);
+  				    computeVacSub(raw_data, it->first, it->second, resampler, tsep_pipi, timeslice_avg_vac_sub);
 
   	//Fold
   	corr = fold( 
@@ -101,6 +102,16 @@ public:
     rd.leave();
   }
 };
+
+template<typename T>
+inline void write(HDF5writer &wr, const ResampledData<T> &v, const std::string &nm){
+  v.write(wr, nm);
+}
+template<typename T>
+inline void read(HDF5reader &rd, ResampledData<T> &v, const std::string &nm){
+  v.read(rd, nm);
+}
+
 
 void saveCheckpoint(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
 		    const ResampledData<doubleJackknifeCorrelationFunctionD> &data_dj, 
@@ -175,7 +186,8 @@ struct DataDescr{
   DataDescr(Operator op1, Operator op2, int t): op1(op1),op2(op2),t(t){}
 };
 
-std::vector<DataDescr> getFitDataElemIdx(const ResampledData<jackknifeCorrelationFunctionD> &data_j,
+template<typename CorrelationFunctionType> 
+std::vector<DataDescr> getFitDataElemIdx(const ResampledData<CorrelationFunctionType> &data_j,
 					 const std::vector<Operator> &ops, const int tsep_pipi, const int t_min, const int t_max,
 					 const Filters &filters, const bool use_filters){
   std::vector<DataDescr> keep;

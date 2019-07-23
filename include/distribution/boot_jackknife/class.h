@@ -10,13 +10,16 @@
 CPSFIT_START_NAMESPACE
 
 struct bootJackknifeInitType: public OstreamHook{
-  int nsample;
+  int nsample; //this can be less than the original number of samples depending on how the resample table was generated
+  int nsample_best; //this is always equal to the original number of samples
   int boots;
   int confidence;
-  bootJackknifeInitType(const int nsample, const int b = bootstrapDistributionOptions::defaultBoots(), const int c = bootstrapDistributionOptions::defaultConfidence()): nsample(nsample), boots(b), confidence(c){}
-  inline bool operator==(const bootJackknifeInitType &r) const{ return nsample==r.nsample && boots==r.boots && confidence==r.confidence; }
+  bootJackknifeInitType(const int nsample, const int nsample_best, const int b = bootstrapDistributionOptions::defaultBoots(), const int c = bootstrapDistributionOptions::defaultConfidence()): nsample(nsample), nsample_best(nsample_best), boots(b), confidence(c){}
+  inline bool operator==(const bootJackknifeInitType &r) const{ 
+    return nsample==r.nsample && nsample_best==r.nsample_best && boots==r.boots && confidence==r.confidence; 
+  }
   inline bool operator!=(const bootJackknifeInitType &r) const{ return !(*this == r); }
-  void write(std::ostream &os) const{ os << "(nsample=" << nsample << ", boots=" << boots<< ", confidence=" << confidence <<")"; }
+  void write(std::ostream &os) const{ os << "(nsample=" << nsample << ",nsample_best=" << nsample_best << ", boots=" << boots<< ", confidence=" << confidence <<")"; }
 };
 
 
@@ -47,19 +50,21 @@ public:
 
   typedef bootJackknifeInitType initType; //struct containing information used in constructor  
 
-  void resize(const int nboots, const int nsample){ 
+  void resize(const int nboots, const int nsample, const int nsample_best){ 
     this->_data.resize(nboots);
     for(int b=0;b<nboots;b++) this->sample(b).resize(nsample);
-    base_jack.resize(nsample);
+    base_jack.resize(nsample_best);
   }
   void resize(const initType &init){ 
     this->_confidence = init.confidence;
     this->baseType::resize(init.boots);
     for(int b=0;b<init.boots;b++) this->sample(b).resize(init.nsample);
-    base_jack.resize(init.nsample);
+    base_jack.resize(init.nsample_best);
   }
 
-  inline bootJackknifeInitType getInitializer() const{ return bootJackknifeInitType(this->sample(0).size(), this->size(), this->_confidence); }
+  inline bootJackknifeInitType getInitializer() const{ 
+    return bootJackknifeInitType(this->sample(0).size(), this->origEnsJackknife().size(), this->size(), this->_confidence); 
+  }
 
   int & confidence(){ return _confidence; }
   const int & confidence() const{ return _confidence; }
@@ -87,7 +92,7 @@ public:
       this->sample(b).resample(in_r);
     }
 
-    base_jack.resample(in); //propagate jackknife of original data
+    base_jack.resample(in); //propagate jackknife of original data 
   }
   
   bootJackknifeDistribution(const bootJackknifeDistribution &r): _confidence(r._confidence), base_jack(r.base_jack), baseType(r){}
@@ -96,34 +101,37 @@ public:
   bootJackknifeDistribution(const bootJackknifeDistribution<BaseDataType,U> &r): baseType(r.size()), _confidence(r._confidence){
     int nboot = r.size();
     int nsample = r.sample(0).size();
+    int nsample_best = r.origEnsJackknife().size();
 
     for(int i=0;i<nboot;i++){
       this->sample(i).resize(nsample);
       for(int j=0;j<nsample;j++)
 	this->sample(i).sample(j) = r.sample(i).sample(j);
     }
-    base_jack.resize(nsample);
-    for(int j=0;j<nsample;j++)
+    base_jack.resize(nsample_best);
+    for(int j=0;j<nsample_best;j++)
       base_jack.sample(j) = r.origEnsJackknife().sample(j);
   }
   
-  explicit bootJackknifeDistribution(const initType &initv): _confidence(initv.confidence), base_jack(initv.nsample), baseType(initv.boots, DataType(initv.nsample)){}
+  explicit bootJackknifeDistribution(const initType &initv): _confidence(initv.confidence), base_jack(initv.nsample_best), baseType(initv.boots, DataType(initv.nsample)){}
 
-  bootJackknifeDistribution(): bootJackknifeDistribution(initType(0)){}
+  bootJackknifeDistribution(): bootJackknifeDistribution(initType(0,0)){}
 
   bootJackknifeDistribution(const initType &initv, const DataType &init):
     _confidence(initv.confidence), baseType(initv.boots,init), base_jack(init){ 
-    assert(init.size() == initv.nsample);  
+    assert(init.size() == initv.nsample);
+    assert(initv.nsample == initv.nsample_best);
   }
 
   bootJackknifeDistribution(const initType &initv, const BaseDataType &init):
-    _confidence(initv.confidence), baseType(initv.boots,DataType(initv.nsample,init)), base_jack(initv.nsample, init){
+    _confidence(initv.confidence), baseType(initv.boots,DataType(initv.nsample,init)), base_jack(initv.nsample_best, init){
   }
 
   template<typename Initializer>
   bootJackknifeDistribution(const initType &initv, const Initializer &init): _confidence(initv.confidence), baseType(initv.boots,init){ 
-    assert(this->sample(0).size() == initv.nsample);  
-    base_jack = this->mean();
+    assert(this->sample(0).size() == initv.nsample);
+    this->base_jack = init(-1);
+    assert(this->base_jack.size() == initv.nsample_best);
   }
 
   bootJackknifeDistribution(bootJackknifeDistribution&& o) noexcept : _confidence(o._confidence), base_jack(std::move(o.base_jack)), baseType(std::forward<baseType>(o)){}
@@ -148,8 +156,7 @@ public:
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,myType >::value, int>::type = 0>
   myType & operator=(U&& expr){
     initType init = expr.common_properties();
-    this->resize(init.boots, init.nsample);
-    this->_confidence = init.confidence;
+    this->resize(init);
 #pragma omp parallel for
     for(int i=0;i<this->size();i++) this->sample(i) = expr[i];
     base_jack = expr[-1];

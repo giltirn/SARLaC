@@ -36,6 +36,12 @@ public:
 
   template<typename T>
   static inline GeneralizedCoordinate getWrappedCoord(const T &x){ return generalContainer(x); } 
+
+  template<typename T>
+  static inline ParameterType getWrappedParams(const T &x){ 
+    ParameterType p(x.size()); copyOver(p,x); return p;
+  } 
+
 };  
 
 #define INHERIT_GENERIC_FITFUNC_BASE_TYPEDEFS		\

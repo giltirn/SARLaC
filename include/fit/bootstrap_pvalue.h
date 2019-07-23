@@ -31,6 +31,12 @@ double computePvalue(const double q2, const std::vector<double> &dist){
   return (n-b_closest-1)/double(n);
 }
 
+double computePvalue(const double q2, const bootstrapDistribution<double> &dist){
+  std::vector<double> q2_dist(dist.size()); for(int i=0;i<dist.size();i++) q2_dist[i] = dist.sample(i);
+  std::sort(q2_dist.begin(), q2_dist.end(), [&](const double a, const double b){ return a<b; });
+  return computePvalue(q2, q2_dist);
+}
+
 //Note, fit_data_cen are the data that was used to obtain the fit parameters. This does not have to be the same size as raw_data nor does its coordinate type have to be the same
 //The details of how the raw data are converted into fit data is left up to the user
 //fit_values should be the fit to the original data evaluated at each coordinate

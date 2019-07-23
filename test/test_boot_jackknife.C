@@ -113,7 +113,7 @@ int main(void){
 
     assert(a_bj != b_bj); //test equality
     
-    bootJackknifeDistribution<double> expect(bootJackknifeInitType(nsample, nboot, 68));
+    bootJackknifeDistribution<double> expect(bootJackknifeInitType(nsample, nsample, nboot, 68));
     assert(expect.size() == nboot);
     assert(expect.sample(0).size() == nsample);
     

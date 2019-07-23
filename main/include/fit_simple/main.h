@@ -1,19 +1,6 @@
 #ifndef _FIT_SIMPLE_MAIN_H_
 #define _FIT_SIMPLE_MAIN_H_
 
-struct basicBinResampler{
-  int bin_size;
-  basicBinResampler(int bin_size): bin_size(bin_size){}
-  basicBinResampler(): bin_size(0){}
-
-  template<typename DistributionType>
-  inline void binResample(DistributionType &out, const rawDataDistributionD &in) const{ out.resample(in.bin(bin_size)); }
-  
-  inline void binResample(blockDoubleJackknifeDistributionD &out, const rawDataDistributionD &in) const{ out.resample(in, bin_size); }
-
-  inline void binResample(double &out, const rawDataDistributionD &in) const{  out = in.bin(bin_size).mean(); }
-};
-
 template<typename DistributionType, typename BinResampler>
 correlationFunction<double, DistributionType> resampleAndCombine(const std::vector<rawDataCorrelationFunctionD> &channels_raw,
 								 const int Lt, Combination combination, TimeDependence outer_time_dep, const BinResampler &bin_resampler){

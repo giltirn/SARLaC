@@ -87,9 +87,11 @@ int main(const int argc, const char* argv[]){
 	if(!data_j.haveData(ops[i],ops[j]))
 	  error_exit(std::cout << "Loaded checkpoint does not contain data for (" << ops[i] << ", " << ops[j] << ")\n");
   }else{
-    data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
-    if(do_dj) data_dj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
-    if(do_bdj) data_bdj.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
+    basicBinResampler bin_resampler(args.bin_size);
+
+    data_j.generatedResampledData(raw_data, bin_resampler, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
+    if(do_dj) data_dj.generatedResampledData(raw_data, bin_resampler, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
+    if(do_bdj) data_bdj.generatedResampledData(raw_data, bin_resampler, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
   }  
 
   if(cmdline.save_combined_data) saveCheckpoint(data_j, data_dj, data_bdj, do_dj, do_bdj, cmdline.save_combined_data_file);     

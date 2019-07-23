@@ -93,7 +93,7 @@ inline generalContainer getMinimizerParams(const fitOptions &opt){
 
 
 //For testing bin size dependence it can be useful to fix the correlation matrix from the unbinned data and do a frozen fit
-void generateFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,
+void generateFrozenCovMatFromUnbinnedData(simpleFitWrapper<jackknifeDistributionD> &fit,
 					  const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j_unbinned,
 					  const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j_binned){
   std::cout << "Generating frozen covariance matrix from binned jackknife sigma and unbinned jackknife correlation matrix" << std::endl;
@@ -126,7 +126,7 @@ void generateFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,
 			
 //In this version we allow the weights sigma to fluctuate between jackknife samples but the correlation matrix is fixed to that obtained from 
 //the unbinned data. The idea is that this might capture much of the fluctuations that we would have with a true correlated fit
-void generatePartiallyFrozenCovMatFromUnbinnedData(simpleFitWrapper &fit,
+void generatePartiallyFrozenCovMatFromUnbinnedData(simpleFitWrapper<jackknifeDistributionD> &fit,
 						   const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j_unbinned,
 						   const correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> &corr_comb_dj_binned){
   std::cout << "Generating frozen covariance matrix from binned jackknife sigma and unbinned jackknife correlation matrix" << std::endl;
@@ -174,7 +174,7 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
   
   generalContainer min_params = getMinimizerParams(opt);
 
-  simpleFitWrapper fit(*fitfunc, opt.minimizer, min_params);
+  simpleFitWrapper<jackknifeDistributionD> fit(*fitfunc, opt.minimizer, min_params);
   
   const int nsample = corr_comb_j.value(0).size();
  

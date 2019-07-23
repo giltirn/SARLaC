@@ -10,6 +10,7 @@
 #include<parser/expression_parse.h>
 #include<fit/fit_wrapper/fitter.h>
 #include<distribution/jackknife.h>
+#include<distribution/bootstrap.h>
 #include<distribution/distribution_hdf5io_conventional.h>
 
 CPSFIT_START_NAMESPACE
@@ -25,23 +26,30 @@ void readUKfitVectorEntry(jackknifeDistribution<double> &into, const std::string
   std::cout << "Read " << con.Nentries << " distributions from file " << filename << std::endl;  
   into = con.list[idx];
 }
+void readUKfitVectorEntry(bootstrapDistribution<double> &into, const std::string &filename, const int idx){
+  error_exit(std::cout << "readUKfitVectorEntry not implemented for bootstrap\n");
+}
 
 //Read a jackknife from a HDF5 file
-void readHDF5file(jackknifeDistribution<double> &into, const std::string &filename, const std::vector<int> &idx){
+template<typename DistributionType>
+void readHDF5file(DistributionType &into, const std::string &filename, const std::vector<int> &idx){
 #ifdef HAVE_HDF5
   DistributionTypeEnum type;
   int depth;
   getTypeInfo(type,depth,filename);
-  if(type != DistributionTypeEnum::Jackknife) error_exit(std::cout << "readHDF5file expected a jackknife distribution\n");
+
+  DistributionTypeEnum expect = getTypeEnum(getDistributionTypeString<DistributionType>());
+
+  if(type != expect) error_exit(std::cout << "readHDF5file expected a " << expect << " distribution\n");
 
   if(depth == 1){
     assert(idx.size() == 1);
-    std::vector<jackknifeDistribution<double> > tmp;
+    std::vector<DistributionType> tmp;
     readParamsStandard(tmp,filename);
     into = tmp[idx[0]];
   }else if(depth == 2){
     assert(idx.size() == 2);
-    std::vector<std::vector<jackknifeDistribution<double> > > tmp;
+    std::vector<std::vector<DistributionType> > tmp;
     readParamsStandard(tmp,filename);
     into = tmp[idx[0]][idx[1]];
   }

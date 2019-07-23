@@ -28,6 +28,9 @@ template<typename T, ENABLE_IF_STDCOMPLEX(T)>
 inline T modE(const NumericSquareMatrix<T> &m){
   return modE(m, [&](const T &v){ return std::conj(v)*v; });
 }
+
+template<typename T> struct iterate;
+
 template<typename T, 
 	 typename std::enable_if< hasSampleMethod<T>::value && std::is_floating_point<typename getSampleType<T>::type>::value,
 				  int >::type = 0

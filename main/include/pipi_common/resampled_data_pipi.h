@@ -33,7 +33,8 @@ auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data
 					    );
   int nthr = omp_get_max_threads();
   std::vector<correlationFunction<double,DistributionType> > thr_sum(nthr, out);
-  
+  std::vector<DistributionType> thr_tmp(nthr,zero);
+
   int npsrc = proj_src.nMomenta();
   int npsnk = proj_snk.nMomenta();
 
@@ -47,10 +48,13 @@ auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data
     const auto &Bp1_snk = raw_bubble_data(Sink, psnk); 
     const auto &Bp1_src  = raw_bubble_data(Source,  psrc);
 
-    for(int tsrc=0;tsrc<Lt;tsrc++)
+    for(int tsrc=0;tsrc<Lt;tsrc++){
+      thr_tmp[me] = coeff * Bp1_src( tsrc );
       for(int tsep=0;tsep<Lt;tsep++)
-	thr_sum[me].value(tsep) = thr_sum[me].value(tsep) + coeff * Bp1_snk( (tsrc + tsep) % Lt ) * Bp1_src( tsrc );
+	thr_sum[me].value(tsep) = thr_sum[me].value(tsep) + Bp1_snk( (tsrc + tsep) % Lt ) * thr_tmp[me];
+    }
   }
+#pragma omp parallel for
   for(int tsep=0;tsep<Lt;tsep++){
     for(int thr=0;thr<nthr;thr++)
       out.value(tsep) = out.value(tsep) + thr_sum[thr].value(tsep);
@@ -59,19 +63,19 @@ auto computePiPi2ptFigureVprojectSourceAvg(const BubbleDataType &raw_bubble_data
   return out;  
 }
 
-template<typename resampledCorrelationFunction>
-resampledCorrelationFunction binResample(const rawDataCorrelationFunctionD &raw, const int bin_size){
+template<typename resampledCorrelationFunction, typename binResampler>
+resampledCorrelationFunction binResample(const rawDataCorrelationFunctionD &raw, const binResampler &resampler){
   typedef typename resampledCorrelationFunction::DataType DistributionType;
   return resampledCorrelationFunction(raw.size(),
 				       [&](const int t){ 
-					return typename resampledCorrelationFunction::ElementType(t, binResample<DistributionType>(raw.value(t), bin_size));
+					return typename resampledCorrelationFunction::ElementType(t, binResample<DistributionType>(raw.value(t),resampler));
 				      }
 				      );
 }
 
 
-template<typename resampledBubbleDataAllMomentumType>
-resampledBubbleDataAllMomentumType binResample(const bubbleDataAllMomenta &bubbles, const int bin_size){
+template<typename resampledBubbleDataAllMomentumType, typename binResampler>
+resampledBubbleDataAllMomentumType binResample(const bubbleDataAllMomenta &bubbles, const binResampler &resampler){
   int Lt = bubbles.getLt();
 
   resampledBubbleDataAllMomentumType out(Lt, bubbles.getTsepPiPi());
@@ -79,39 +83,39 @@ resampledBubbleDataAllMomentumType binResample(const bubbleDataAllMomenta &bubbl
   
   for(auto it = bubbles.begin(); it != bubbles.end(); it++){
     for(int t=0;t<Lt;t++)
-      out(it->first)(t) = binResample<DistributionType>(it->second(t), bin_size);
+      out(it->first)(t) = binResample<DistributionType>(it->second(t), resampler);
   }
   return out;
 }
 
-template<typename resampledCorrelationFunction>
-resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, 
+template<typename resampledCorrelationFunction, typename binResampler>
+resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const binResampler &resampler, const int tsep_pipi, 
 						  const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk){
   typedef typename resampledCorrelationFunction::DataType ResampledDistributionType;
   typedef bubbleDataAllMomentaSelect<ResampledDistributionType> bubbleDataAllMomentaType;
 
-  auto dj_bubble_data = binResample<bubbleDataAllMomentaType>(raw, bin_size);
+  auto dj_bubble_data = binResample<bubbleDataAllMomentaType>(raw, resampler);
   auto A2_realavg_V_dj = computePiPi2ptFigureVprojectSourceAvg(dj_bubble_data,tsep_pipi,proj_src,proj_snk);
   return resampledCorrelationFunction(3. * A2_realavg_V_dj);
 }
 
 
 //Vacuum subtraction for p_tot = (0,0,0)
-template<typename resampledCorrelationFunction>
-inline resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, 
+template<typename resampledCorrelationFunction, typename binResampler>
+inline resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const binResampler &resampler, const int tsep_pipi, 
 						   const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111){
   std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
   std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
-  return computePiPi2ptVacSub<resampledCorrelationFunction>(raw, bin_size, tsep_pipi, *proj_src, *proj_snk);
+  return computePiPi2ptVacSub<resampledCorrelationFunction>(raw, resampler, tsep_pipi, *proj_src, *proj_snk);
 }
 
 //Non-zero p_tot
-template<typename resampledCorrelationFunction>
-inline resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const int bin_size, const int tsep_pipi, const threeMomentum &p_tot,
+template<typename resampledCorrelationFunction, typename binResampler>
+inline resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const binResampler &resampler, const int tsep_pipi, const threeMomentum &p_tot,
 						   const PiPiProjector proj_src_t = PiPiProjector::MovingSwaveGround, const PiPiProjector proj_snk_t = PiPiProjector::MovingSwaveGround){
   std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, p_tot) );
   std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, -p_tot) );
-  return computePiPi2ptVacSub<resampledCorrelationFunction>(raw, bin_size, tsep_pipi, *proj_src, *proj_snk);
+  return computePiPi2ptVacSub<resampledCorrelationFunction>(raw, resampler, tsep_pipi, *proj_src, *proj_snk);
 }
 
 
@@ -171,12 +175,14 @@ void getResampledPiPi2ptData(jackknifeCorrelationFunctionD &pipi_j, doubleJackkn
 
   const int nsample = (traj_lessthan - traj_start)/traj_inc/bin_size;
   
-  pipi_j = binResample<jackknifeCorrelationFunctionD>(pipi_raw, bin_size);
-  pipi_dj = binResample<doubleJackknifeCorrelationFunctionD>(pipi_raw, bin_size);
+  basicBinResampler resampler(bin_size);
+
+  pipi_j = binResample<jackknifeCorrelationFunctionD>(pipi_raw, resampler);
+  pipi_dj = binResample<doubleJackknifeCorrelationFunctionD>(pipi_raw, resampler);
 
   if(isospin == 0 && do_vacuum_subtraction){
-    pipi_j = pipi_j - computePiPi2ptVacSub<jackknifeCorrelationFunctionD>(raw_bubble_data, bin_size, tsep_pipi, proj_src, proj_snk);
-    pipi_dj = pipi_dj - computePiPi2ptVacSub<doubleJackknifeCorrelationFunctionD>(raw_bubble_data, bin_size, tsep_pipi, proj_src, proj_snk);
+    pipi_j = pipi_j - computePiPi2ptVacSub<jackknifeCorrelationFunctionD>(raw_bubble_data, resampler, tsep_pipi, proj_src, proj_snk);
+    pipi_dj = pipi_dj - computePiPi2ptVacSub<doubleJackknifeCorrelationFunctionD>(raw_bubble_data, resampler, tsep_pipi, proj_src, proj_snk);
   }
   
   pipi_j = fold(pipi_j, 2*tsep_pipi);

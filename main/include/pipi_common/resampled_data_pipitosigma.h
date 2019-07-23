@@ -32,8 +32,8 @@ correlationFunction<double, DistributionType> computePiPiToSigmaVacSub(const sig
 }
 
 //Compute double-jackknife vacuum-subtraction from raw data
-template<typename resampledCorrelationFunctionType>
-resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleData &pipi_self, const int bin_size){
+template<typename resampledCorrelationFunctionType, typename binResampler>
+resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleData &pipi_self, const binResampler &resampler){
   int Lt = sigma_self.getLt(); assert(pipi_self.getLt() == Lt);
   int nsample_raw = sigma_self(0).size(); assert(pipi_self(0).size() == nsample_raw);
 
@@ -44,20 +44,20 @@ resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContrac
   sigmaSelfContractionType sigma_self_r(Lt);
   pipiSelfContractionType pipi_self_r(Source, Lt, pipi_self.getTsepPiPi());
   for(int t=0;t<Lt;t++){
-    sigma_self_r(t) = binResample<DistributionType>(sigma_self(t), bin_size);
-    pipi_self_r(t) = binResample<DistributionType>(pipi_self(t), bin_size);
+    sigma_self_r(t) = binResample<DistributionType>(sigma_self(t), resampler);
+    pipi_self_r(t) =  binResample<DistributionType>(pipi_self(t), resampler);
   }
   return computePiPiToSigmaVacSub(sigma_self_r, pipi_self_r);
 }
-template<typename resampledCorrelationFunctionType>
-inline resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjectorBase &proj_pipi, const int bin_size){
+template<typename resampledCorrelationFunctionType, typename binResampler>
+inline resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjectorBase &proj_pipi, const binResampler &resampler){
   auto proj_bubble = projectSourcePiPiBubble(pipi_self, proj_pipi);
-  return computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(sigma_self, proj_bubble , bin_size);
+  return computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(sigma_self, proj_bubble , resampler);
 }
-template<typename resampledCorrelationFunctionType>
-inline resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjector proj_pipi, const int bin_size){
+template<typename resampledCorrelationFunctionType, typename binResampler>
+inline resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelfContraction &sigma_self, const bubbleDataAllMomenta &pipi_self, const PiPiProjector proj_pipi, const binResampler &resampler){
   std::unique_ptr<PiPiProjectorBase> proj(getProjector(proj_pipi,{0,0,0}));
-  return computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(sigma_self, pipi_self, *proj, bin_size);
+  return computePiPiToSigmaVacSub<resampledCorrelationFunctionType>(sigma_self, pipi_self, *proj, resampler);
 }
 
 

@@ -26,13 +26,13 @@ correlationFunction<double, DistributionType> computeSigmaVacSub(const sigmaSelf
   return out;
 }
 
-template<typename resampledCorrelationFunctionType>
-resampledCorrelationFunctionType computeSigmaVacSub(const sigmaSelfContraction &raw, const int bin_size){
+template<typename resampledCorrelationFunctionType, typename binResampler>
+resampledCorrelationFunctionType computeSigmaVacSub(const sigmaSelfContraction &raw, const binResampler &resampler){
   typedef typename resampledCorrelationFunctionType::DataType DistributionType;
   int Lt= raw.getLt();
   sigmaSelfContractionSelect<DistributionType> sigma_self_r(Lt);
   for(int t=0;t<Lt;t++)
-    sigma_self_r(t) = binResample<DistributionType>(raw(t), bin_size);
+    sigma_self_r(t) = binResample<DistributionType>(raw(t), resampler);
   return computeSigmaVacSub(sigma_self_r);
 }
 

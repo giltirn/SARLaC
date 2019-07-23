@@ -1,25 +1,11 @@
 #include <fstream>
 #include <sstream>
-#include <boost/timer/timer.hpp>
 
 #include<random.h>
 #include<distribution.h>
+#include<utils/utils/time.h>
 
 using namespace CPSfit;
-
-struct performance{
-  boost::timer::cpu_timer timer;
-
-  double Gflops(const double FLOPs) const{
-    auto dt = timer.elapsed();
-    double time_ns = dt.wall;
-    
-    return FLOPs / time_ns;
-  }
-};
-
-
-
 
 template<typename T>
 struct mul_flops{
@@ -64,6 +50,12 @@ template<typename T, template<typename> class V>
 inline void gaussianRandom(blockDoubleJackknifeDistribution<T,V> &v, const double mean, const double stddev){ 
   for(int i=0;i<v.size();i++) gaussianRandom(v.sample(i),mean,stddev);
 }
+template<typename T, template<typename> class V>
+inline void gaussianRandom(bootJackknifeDistribution<T,V> &v, const double mean, const double stddev){ 
+  typedef iterate<bootJackknifeDistribution<T,V> > iter;
+  for(int i=0;i<iter::size(v);i++) gaussianRandom(iter::at(i,v),mean,stddev);
+}
+
 
 
 //Number of elements in loop, not necessarily equal to nsample
@@ -85,6 +77,13 @@ struct num_elements<blockDoubleJackknifeDistribution>{
     return nsample * (nsample - 1);
   }
 };
+template< >
+struct num_elements<bootJackknifeDistribution>{
+  static inline size_t value(const int nsample){
+    return nsample * (nsample + 1); //nsample+1 jackknifes
+  }
+};
+
 
 template<typename T>
 struct _setupDistribution{
@@ -98,6 +97,12 @@ struct _setupDistribution< blockDoubleJackknifeDistribution<T,V> >{
     return blockDoubleJackknifeDistribution<T,V>(nsample, 1); //bin size 1
   }
 };
+template<typename T, template<typename> class V>
+struct _setupDistribution< bootJackknifeDistribution<T,V> >{
+  static inline bootJackknifeDistribution<T,V> doit(const int nsample){
+    return bootJackknifeDistribution<T,V>(bootJackknifeInitType(nsample,nsample,nsample)); //nsample boots, nsample samples
+  }
+};
 
 template<typename DistributionType, typename BaseType, typename DistributionOp, typename BaseOp>
 void benchmarkOp(const DistributionOp &dop, const BaseOp &bop, const int FLOPS, const std::string &op_descr,
@@ -107,22 +112,37 @@ void benchmarkOp(const DistributionOp &dop, const BaseOp &bop, const int FLOPS, 
 
   {
     std::vector<BaseType> out(nelem);
-    performance perf;
-    for(size_t i=0;i<ntest;i++){
-#pragma omp parallel for	  
-      for(int s=0;s<nelem;s++)
-	out[s] = bop(vects,s);
+#pragma omp parallel for
+    for(int s=0;s<nelem;s++)
+      out[s] = bop(vects,s); //touch cache
+    
+    timer time;
+    {
+      time.start();
+      for(size_t i=0;i<ntest;i++){
+#pragma omp parallel for
+	for(int s=0;s<nelem;s++)
+	  out[s] = bop(vects,s);
+      }
+      time.stop();
     }
-    double Gflops = perf.Gflops(double(ntest) * double(nelem) * double(FLOPS));
+
+    double Gflops = double(ntest) * double(nelem) * double(FLOPS) / time.elapsed();
     std::cout << "std::vector " << op_descr << " with nelem=" << nelem << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
   }
   {
     DistributionType out = dists[0];
-    performance perf;
-    for(size_t i=0;i<ntest;i++){
-      out = dop(dists);
+    out = dop(dists);
+
+    timer time;
+    {
+      time.start();
+      for(size_t i=0;i<ntest;i++){
+	out = dop(dists);
+      }
+      time.stop();
     }
-    double Gflops = perf.Gflops(double(ntest) * double(nelem) * double(FLOPS));
+    double Gflops = double(ntest) * double(nelem) * double(FLOPS) / time.elapsed();
     std::cout << dist_descr << " " << op_descr << " with nelem=" << nelem << " and ntest=" << ntest << " : " << Gflops << " Gflops\n";
   }
    
@@ -174,20 +194,31 @@ int main(const int argc, const char* argv[]){
   size_t nsample = 216;
   size_t ntest = 50000;
   
-  
-
-  int thr[5] = {1,2,4,8,16};
-  for(int t=0;t<5;t++){  
-    omp_set_num_threads(thr[t]);
-    std::cout << "---------------------------------------------" << std::endl;
-    std::cout << "Number of threads " << omp_get_max_threads() << std::endl;
-    std::cout << "---------------------------------------------" << std::endl;
-
-    benchmarkDistribution<rawDataDistribution, double>(nsample, ntest, "raw data distribution");
-    benchmarkDistribution<rawDataDistribution, std::complex<double> >(nsample, ntest, "jackknife distribution");    
-    benchmarkDistribution<doubleJackknifeDistribution, double>(nsample, ntest, "double jackknife distribution");
-    benchmarkDistribution<blockDoubleJackknifeDistribution, double>(nsample, ntest, "block double jackknife distribution");
-
+  int nthr = 1;
+  for(int i=1;i<argc;i++){
+    std::string sargv = argv[i];
+    if(sargv == "-nthread"){
+      nthr = strToAny<int>(argv[i+1]);
+    }else if(sargv == "-ntest"){
+      ntest = strToAny<int>(argv[i+1]);
+    }else if(sargv == "-nsample"){
+      nsample = strToAny<int>(argv[i+1]);
+    }
   }
+
+  omp_set_num_threads(nthr);
+  std::cout << "---------------------------------------------" << std::endl;
+  std::cout << "Number of threads " << omp_get_max_threads() << std::endl;
+  std::cout << "Number of tests " << ntest << std::endl;
+  std::cout << "Number of samples " << nsample << std::endl;
+  std::cout << "---------------------------------------------" << std::endl;
+  
+  benchmarkDistribution<rawDataDistribution, double>(nsample, ntest, "raw data distribution");
+  benchmarkDistribution<rawDataDistribution, std::complex<double> >(nsample, ntest, "jackknife distribution");    
+  benchmarkDistribution<doubleJackknifeDistribution, double>(nsample, ntest, "double jackknife distribution");
+  benchmarkDistribution<blockDoubleJackknifeDistribution, double>(nsample, ntest, "block double jackknife distribution");
+  benchmarkDistribution<bootJackknifeDistribution, double>(nsample, ntest, "boot jackknife distribution");
+
   return 0;
 };
+
