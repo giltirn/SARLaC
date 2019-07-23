@@ -58,11 +58,11 @@ class simpleFitWrapper{
     return inv_corr_mat;
   }
 
-  static inline std::vector<BaseNumericType> sample(std::vector<BaseDistributionType> &v, const int s){
+  static inline std::vector<BaseNumericType> sample(const std::vector<BaseDistributionType> &v, const int s){
     std::vector<BaseNumericType> out(v.size()); for(int i=0;i<v.size();i++) out[i] = iterate<BaseDistributionType>::at(s, v[i]);
     return out;
   }
-  static inline NumericSquareMatrix<BaseNumericType> sample(NumericSquareMatrix<BaseDistributionType> &v, const int s){
+  static inline NumericSquareMatrix<BaseNumericType> sample(const NumericSquareMatrix<BaseDistributionType> &v, const int s){
     NumericSquareMatrix<BaseNumericType> out(v.size()); 
     for(int i=0;i<v.size();i++) 
       for(int j=0;j<v.size();j++) 
@@ -283,6 +283,134 @@ public:
     assert(have_corr_mat); return sigma;
   }
   
+private:
+  bool runSampleFit(ParameterType &params_s,
+		    typename BaseDistributionType::DataType &chisq_s,
+		    int &dof_s,
+		    const correlationFunction<generalContainer, double> &data_s,
+		    const int s,
+		    const FitFuncFrozenBounded &fitfunc_s,
+		    const NumericSquareMatrix<BaseDistributionType> &inv_corr_mat,
+		    std::pair<double,int> *chisq_dof_nopriors_s_ptr) const{ 
+    bool converged;
+    switch(min_type){
+    case MinimizerType::MarquardtLevenberg:
+      chisq_s = simpleFitCommon::fitSampleML(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, 
+					     min_params, priors, chisq_dof_nopriors_s_ptr); break;
+    case MinimizerType::GSLtrs:
+      chisq_s = simpleFitCommon::fitSampleGSLtrs(converged, params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, 
+						 min_params, priors, chisq_dof_nopriors_s_ptr); break;
+    case MinimizerType::GSLmultimin:
+      chisq_s = simpleFitCommon::fitSampleGSLmultimin(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, 
+						      min_params, priors, chisq_dof_nopriors_s_ptr); break;
+    case MinimizerType::Minuit2:
+      chisq_s = simpleFitCommon::fitSampleMinuit2(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, 
+						  min_params, priors, chisq_dof_nopriors_s_ptr); break;
+    default:
+      assert(0);
+    }
+    return converged;
+  }
+
+  inline FitFuncBounded setupParameterBounding(ParameterType &params_s) const{
+    //Setup the sample fit function (frozen fit func needs a properly setup instance of the parameter type even if not freezing anything)
+    FitFuncBounded fitfunc_bs(fitfunc);
+    for(int t=0;t<bounded_trans.size();t++) fitfunc_bs.setBound(bounded_trans[t]);
+      
+    //Map guess parameters to internal params
+    for(int t=0;t<bounded_trans.size();t++) bounded_trans[t].mapBoundedToUnbounded(params_s);
+
+    return fitfunc_bs;
+  }
+  inline void convertBoundedParametersToExternalRep(ParameterType &params_s) const{
+    //Map internal parameters to external params
+    for(int t=0;t<bounded_trans.size();t++) bounded_trans[t].mapUnboundedToBounded(params_s);
+  }  
+
+  inline FitFuncFrozenBounded setupParameterFreezing(const FitFuncBounded &fitfunc_bs,
+						     ParameterType &params_s, const int s) const{
+    typedef iterate<BaseDistributionType> iter;
+    FitFuncFrozenBounded fitfunc_s(fitfunc_bs);
+    if(freeze_params.size() > 0){
+      ParameterType frzp(params_s);
+      for(int p=0;p<freeze_params.size();p++)
+	frzp(freeze_params[p]) = iter::at(s, freeze_values[p]);
+      fitfunc_s.freeze(freeze_params, frzp);
+      params_s = fitfunc_s.mapParamsSupersetToSubset(params_s); //pull out the subset of parameters that are varied; here they are the same type
+    }else{
+      fitfunc_s.freeze({}, params_s);
+    }
+    return fitfunc_s;
+  }
+  inline void convertFrozenParametersToExternalRep(const FitFuncFrozenBounded &fitfunc_s, 
+						   ParameterType &params_s) const{
+    //Re-enlarge the parameter vector with the frozen fit parameters
+    if(freeze_params.size() > 0) params_s = fitfunc_s.mapParamsSubsetToSuperset(params_s);
+  }
+
+
+
+  template<typename InputParameterType, typename GeneralizedCoordinate>
+  void doSample(typename BaseDistributionType::template rebase<InputParameterType> &params,
+		BaseDistributionType &chisq,
+		BaseDistributionType &chisq_per_dof,
+		int &dof,
+		const int s,
+		const correlationFunction<generalContainer, double> &data_sbase,
+		const correlationFunction<GeneralizedCoordinate, BaseDistributionType> &data,
+		const NumericSquareMatrix<BaseDistributionType> &inv_corr_mat,
+		std::pair<BaseDistributionType, int>* chisq_dof_nopriors){
+    typedef typename BaseDistributionType::template rebase<InputParameterType> ParameterDistributionType;
+    typedef iterate<BaseDistributionType> iter;
+    typedef iterate<ParameterDistributionType> iter_p;		
+
+    //Get the sample data
+    int ndata = data_sbase.size();
+    correlationFunction<generalContainer, double> data_s = data_sbase;
+    for(int i=0;i<ndata;i++) data_s.value(i) = iter::at(s, data.value(i));
+
+    //Prepare the inner fit parameter type
+    int nparam = iterate<ParameterDistributionType>::at(s, params).size();
+    ParameterType params_s(nparam);
+    for(int i=0;i<nparam;i++) params_s(i) = iter_p::at(s, params)(i);
+
+    //Setup bounding including parameter transformation to internal representation
+    FitFuncBounded fitfunc_bs = setupParameterBounding(params_s);
+
+    //Setup freezing including parameter transformation to internal representation
+    FitFuncFrozenBounded fitfunc_s = setupParameterFreezing(fitfunc_bs, params_s, s);
+
+    //Prepare locations to store thread-local results
+    int dof_s;
+    std::pair<double,int> chisq_dof_nopriors_s;
+    std::pair<double,int> *chisq_dof_nopriors_s_ptr = chisq_dof_nopriors != NULL ? &chisq_dof_nopriors_s : NULL;
+
+    //Run the fitter
+    auto & chisq_s = iter::at(s, chisq);
+    bool converged = runSampleFit(params_s, chisq_s, dof_s, data_s, s, fitfunc_s, inv_corr_mat, chisq_dof_nopriors_s_ptr);
+
+    //If you want the fitter to fail on non-convergence, set the associated minimizer parameter which typically defaults to do so
+    if(!converged) std::cout << "Warning: thread " << omp_get_thread_num() << " fit did not converge on sample " << s << std::endl;
+
+    //Re-enlarge the parameter vector with the frozen fit parameters
+    convertFrozenParametersToExternalRep(fitfunc_s, params_s);
+
+    //Map internal parameters to external params
+    convertBoundedParametersToExternalRep(params_s);
+
+    //Store outputs
+    if(s==0) dof = dof_s;
+      
+    if(chisq_dof_nopriors){
+      iter::at(s, chisq_dof_nopriors->first) = chisq_dof_nopriors_s.first;
+      if(s==0) chisq_dof_nopriors->second = chisq_dof_nopriors_s.second;
+    }
+
+    iter::at(s, chisq_per_dof) = iter::at(s, chisq)/dof_s;
+    for(int i=0;i<nparam;i++) iter_p::at(s, params)(i) = params_s(i);
+  }
+public:
+
   //Note the parameter type InputParameterType is translated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
   //The coordinate type is wrapped up in a generalContainer as this is only ever needed by the fit function (which knows what type it is and can retrieve it)
   //If chisq_dof_nopriors pointer is provided, the chisq computed without priors and the number of degrees of freedom without priors will be written there (distribution must have correct size
@@ -330,76 +458,17 @@ public:
     
     if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(&thr0_only);
 
+    //Run the first iteration and use the result as a guess for the remainder, speeding up convergence
+    doSample(params, chisq, chisq_per_dof, dof,
+	     0, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);
+
+    //Run the rest of the samples
 #pragma omp parallel for
-    for(int s=0;s<niter;s++){
-      //Get the sample data
-      correlationFunction<generalContainer, double> data_s = data_sbase;
-      for(int i=0;i<ndata;i++) data_s.value(i) = iter::at(s, data.value(i));
-
-      //Prepare the inner fit parameter type
-      int nparam = iterate<ParameterDistributionType>::at(s, params).size();
-      ParameterType params_s(nparam);
-      for(int i=0;i<nparam;i++) params_s(i) = iter_p::at(s, params)(i);
-
-      //Setup the sample fit function (frozen fit func needs a properly setup instance of the parameter type even if not freezing anything)
-      FitFuncBounded fitfunc_bs(fitfunc);
-      for(int t=0;t<bounded_trans.size();t++) fitfunc_bs.setBound(bounded_trans[t]);
+    for(int s=1;s<niter;s++){
+      iter_p::at(s,params) = iter_p::at(0,params);
       
-      //Map guess parameters to internal params
-      for(int t=0;t<bounded_trans.size();t++) bounded_trans[t].mapBoundedToUnbounded(params_s);
-
-      FitFuncFrozenBounded fitfunc_s(fitfunc_bs);
-      if(freeze_params.size() > 0){
-	ParameterType frzp(params_s);
-	for(int p=0;p<freeze_params.size();p++)
-	  frzp(freeze_params[p]) = iter::at(s, freeze_values[p]);
-	fitfunc_s.freeze(freeze_params, frzp);
-	params_s = fitfunc_s.mapParamsSupersetToSubset(params_s); //pull out the subset of parameters that are varied; here they are the same type
-      }else{
-	fitfunc_s.freeze({}, params_s);
-      }
-
-      //Prepare locations to store thread-local results
-      int dof_s;
-      std::pair<double,int> chisq_dof_nopriors_s;
-      std::pair<double,int> *chisq_dof_nopriors_s_ptr = chisq_dof_nopriors != NULL ? &chisq_dof_nopriors_s : NULL;
-
-      //Run the fitter
-      auto & chisq_s = iter::at(s, chisq);
-
-      bool converged;
-      switch(min_type){
-      case MinimizerType::MarquardtLevenberg:
-	chisq_s = simpleFitCommon::fitSampleML(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
-      case MinimizerType::GSLtrs:
-	chisq_s = simpleFitCommon::fitSampleGSLtrs(converged, params_s, dof_s, data_s, sample(corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
-      case MinimizerType::GSLmultimin:
-	chisq_s = simpleFitCommon::fitSampleGSLmultimin(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
-      case MinimizerType::Minuit2:
-	chisq_s = simpleFitCommon::fitSampleMinuit2(converged, params_s, dof_s, data_s, sample(inv_corr_mat,s), sample(sigma,s), fitfunc_s, min_params, priors, chisq_dof_nopriors_s_ptr); break;
-      default:
-	assert(0);
-      }
-      
-      //If you want the fitter to fail on non-convergence, set the associated minimizer parameter which typically defaults to do so
-      if(!converged) std::cout << "Warning: thread " << omp_get_thread_num() << " fit did not converge on sample " << s << std::endl;
-
-      //Re-enlarge the parameter vector with the frozen fit parameters
-      if(freeze_params.size() > 0) params_s = fitfunc_s.mapParamsSubsetToSuperset(params_s);
-
-      //Map internal parameters to external params
-      for(int t=0;t<bounded_trans.size();t++) bounded_trans[t].mapUnboundedToBounded(params_s);
-      
-      //Store outputs
-      if(s==0) dof = dof_s;
-      
-      if(chisq_dof_nopriors){
-	iter::at(s, chisq_dof_nopriors->first) = chisq_dof_nopriors_s.first;
-	if(s==0) chisq_dof_nopriors->second = chisq_dof_nopriors_s.second;
-      }
-
-      iter::at(s, chisq_per_dof) = iter::at(s, chisq)/dof_s;
-      for(int i=0;i<nparam;i++) iter_p::at(s, params)(i) = params_s(i);
+      doSample(params, chisq, chisq_per_dof, dof,
+	       s, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);
     }
 
     if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(cout_rdbuf_orig);
