@@ -55,7 +55,8 @@ struct PiPiFitter{
 
   correlationFunction<SimFitCoordGen,  jackknifeDistributionD> getData(const RawData &raw_data) const{
     ResampledData<jackknifeCorrelationFunctionD> data_j;
-    data_j.generatedResampledData(raw_data, args.bin_size, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
+    basicBinResampler resampler(args.bin_size);
+    data_j.generatedResampledData(raw_data, resampler, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
     
     //Find which data satisfy tmin, tmax, filters
     const std::vector<Operator> &ops = args.operators;
@@ -184,25 +185,43 @@ int main(const int argc, const char* argv[]){
   
   std::cout << "Computing bootstrap p-value:" << std::endl;
  
+  //Get the resample table
+  resampleTableOptions ropt;
+  ropt.read_from_file = cmdline.load_boot_resample_table;
+  ropt.read_file = cmdline.load_boot_resample_table_file;
+  ropt.write_to_file = cmdline.save_boot_resample_table;
+  ropt.write_file = cmdline.save_boot_resample_table_file;
+
+  std::vector<std::vector<int> > rtable = generateResampleTable(nsample, args.nboot, BootResampleTableType::NonOverlappingBlock, args.block_size, RNG, ropt);
+
   std::vector<double> q2_boot_dist;
 
-  double p_boot = bootstrapPvalue(q2, raw_data, nsample, orig_data_means, orig_data_fitvals, RawDataResampler(), fitter, args.nboot, BootResampleTableType::NonOverlappingBlock, args.block_size, -1, RNG, &q2_boot_dist);
+  double p_boot = bootstrapPvalue(q2, raw_data, nsample, orig_data_means, orig_data_fitvals, RawDataResampler(), fitter, rtable, -1, &q2_boot_dist);
 
   std::cout << "Bootstrap p-value: " << p_boot << std::endl;
 
+  {
+    std::ofstream of("p_boot.dat");
+    of << p_boot << std::endl;
+  }
+
   rawDataDistributionD q2_boot_dist_r(args.nboot, [&](const int s){ return q2_boot_dist[s]; });
   std::cout << "Bootstrap distribution mean " << q2_boot_dist_r.mean() << " variance " << q2_boot_dist_r.variance() << std::endl;
+  writeParamsStandard(q2_boot_dist_r, "boot_q2.hdf5");
 
   int nparam = orig_params.size();
   std::vector<bootstrapDistributionD> boot_params(nparam, bootstrapDistributionD(bootstrapDistributionD::initType(args.nboot)));
   for(int p=0;p<nparam;p++){
     for(int b=0;b<args.nboot;b++)
       boot_params[p].sample(b) = fitter.boot_params.sample(b)(p);
+    boot_params[p].best() = orig_params(p); //take bootstrap central value from unresampled fit
   }
+
+  writeParamsStandard(boot_params, "params_boot.hdf5");
 
   std::cout << "Bootstrap params: "<< std::endl;
   for(int p=0;p<nparam;p++)
-    std::cout << orig_params.tag(p) << " " << boot_params[p].mean() << " +- " << boot_params[p].standardDeviation() << " (base central value " << orig_params(p) << ")" << std::endl;
+    std::cout << orig_params.tag(p) << " " << boot_params[p] << std::endl;
 
   int dof = ndata - nparam;
   std::cout << "Dof: " << dof << std::endl;

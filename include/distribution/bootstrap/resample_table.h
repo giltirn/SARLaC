@@ -183,6 +183,8 @@ std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const
   std::vector<std::vector<int> > otable;  //[b][s]
 
   if(opt.read_from_file){ //overrides table_type
+    std::cout << "Reading resample table from " << opt.read_file << std::endl;
+
     HDF5reader rd(opt.read_file);
     BootResampleTableType tt;
     read(rd, tt, "table_type");
@@ -191,6 +193,8 @@ std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const
     
     read(rd, otable, "resample_table");
   }else{
+    std::cout << "Generating resample table" << std::endl;
+
     switch(table_type){
     case BootResampleTableType::Basic:
       otable = resampleTable(rng,nsample,nboot); break;
@@ -211,6 +215,7 @@ std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const
     std::cout << "Samples " << nsample << " truncated to " << otable[0].size() << " due to blocking" << std::endl;
 
   if(opt.write_to_file){
+    std::cout << "Writing resample table to " << opt.write_file << std::endl;
     HDF5writer wr(opt.write_file);
     write(wr, table_type, "table_type");
     write(wr, otable, "resample_table");

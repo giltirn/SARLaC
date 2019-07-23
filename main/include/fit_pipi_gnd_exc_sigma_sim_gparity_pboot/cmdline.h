@@ -28,6 +28,12 @@ struct CMDline{
   bool load_filters;
   std::string load_filters_file;
 
+  bool load_boot_resample_table;
+  std::string load_boot_resample_table_file;
+
+  bool save_boot_resample_table;
+  std::string save_boot_resample_table_file;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -38,6 +44,8 @@ struct CMDline{
     load_bounds = false;
     load_minimizer_params = false;
     load_filters = false;
+    load_boot_resample_table = false;
+    save_boot_resample_table = false;
   }
   CMDline(const int argc, const char** argv, MinimizerType minimizer, const int begin = 0): CMDline(){
     setup(argc,argv,minimizer,begin);
@@ -149,6 +157,14 @@ struct CMDline{
       }else if(sargv[i] == "-allow_bin_cropping"){ //when #configs is not an exact multiple of bin size, allow discarding of excess configs
 	rawDataDistributionOptions::binAllowCropByDefault() = true;
 	i++;
+      }else if(sargv[i] == "-load_boot_resample_table"){ 
+	load_boot_resample_table = true;
+	load_boot_resample_table_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_boot_resample_table"){ 
+	save_boot_resample_table = true;
+	save_boot_resample_table_file = sargv[i+1];
+      	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
