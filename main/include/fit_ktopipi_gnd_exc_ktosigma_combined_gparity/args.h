@@ -6,61 +6,13 @@
 
 #include <pipi_common/threemomentum.h>
 
+#include "enums.h"
+#include "input_param_args.h"
+
 CPSFIT_START_NAMESPACE
-
-GENERATE_ENUM_AND_PARSER(PiPiOperator, (PiPiGnd)(PiPiExc)(Sigma) );
-
-inline void write(HDF5writer &wr, const PiPiOperator op, const std::string &tag){
-  CPSfit::write(wr, (int)op, tag);
-}
-inline void read(HDF5reader &rd, PiPiOperator &op, const std::string &tag){
-  int r;
-  CPSfit::read(rd, r, tag);
-  op = (PiPiOperator)r;
-}
-
-
-GENERATE_ENUM_AND_PARSER(SimFitFunction, (MultiState)(MultiStateWavg) );
-GENERATE_ENUM_AND_PARSER(Basis, (Basis10)(Basis7) ); //choose the basis for the operators of the Weak Hamiltonian
-GENERATE_ENUM_AND_PARSER(CovarianceMatrix, (Regular)(Block) );
 
 typedef std::pair<threeMomentum, double> momMultiplicityPair;
 typedef std::vector<std::string> typeFileFormat;
-
-#define INPUT_PARAM_ARGS_MEMBERS			\
-    ( std::string, kaon2pt_fit_result )						\
-    ( int, idx_cK )							\
-    ( int, idx_mK )							\
-    ( std::string, pipi_sigma_sim_fit_result )				\
-    ( int, idx_E0 )							\
-    ( int, idx_E1 )							\
-    ( int, idx_E2 )							\
-    ( int, idx_coeff_pipi_state0 )					\
-    ( int, idx_coeff_pipi_state1 )					\
-    ( int, idx_coeff_pipi_state2 )					\
-    ( int, idx_coeff_pipi_exc_state0 )					\
-    ( int, idx_coeff_pipi_exc_state1 )					\
-    ( int, idx_coeff_pipi_exc_state2 )					\
-    ( int, idx_coeff_sigma_state0 )					\
-    ( int, idx_coeff_sigma_state1 )					\
-    ( int, idx_coeff_sigma_state2 )					\
-    ( double, pipi_sigma_sim_fit_Ascale )
-
-//State-2 indices are ignored for 2-state fits
-struct InputParamArgs{
-  GENERATE_MEMBERS(INPUT_PARAM_ARGS_MEMBERS);
-
-  InputParamArgs(): kaon2pt_fit_result("/home/ckelly/projects/32nt64_MDWF_DSDR_GparityXYZ_fixedRNG_fullanalysis/87cfgs_DD2_stream_ext/mK/params.hdf5"),
-		    idx_cK(0), idx_mK(1),
-		    pipi_sigma_sim_fit_result("/home/ckelly/projects/32nt64_MDWF_DSDR_GparityXYZ_fixedRNG_fullanalysis/87cfgs_DD2_stream_ext/Epipi/I0/sim_gnd_sigma/params.hdf5"),
-		    idx_coeff_pipi_state0(0), idx_coeff_pipi_state1(1), 
-		    idx_coeff_pipi_exc_state0(2), idx_coeff_pipi_exc_state1(3), 
-		    idx_coeff_sigma_state0(4), idx_coeff_sigma_state1(5), 
-		    idx_E0(6), idx_E1(7),
-		    pipi_sigma_sim_fit_Ascale(1.0){}
-};
-
-GENERATE_PARSER(InputParamArgs, INPUT_PARAM_ARGS_MEMBERS);
 
 #define ARGS_MEMBERS							\
   ( std::string, data_dir )						\
