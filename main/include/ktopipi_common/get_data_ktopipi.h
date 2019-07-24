@@ -268,7 +268,7 @@ void getData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistri
 	     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size,
 	     const int Lt, const int tsep_pipi, 
 	     const readKtoPiPiAllDataOptions &opt = readKtoPiPiAllDataOptions()){
-  basic_bin_resampler bin_resampler(bin_size);
+  basicBinResampler bin_resampler(bin_size);
   getData(A0_all_j, A0_all_dj, tsep_k_pi,
 	  data_dir, 
 	  data_file_fmt, type1_pimom_proj, 

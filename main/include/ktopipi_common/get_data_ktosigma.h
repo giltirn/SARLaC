@@ -156,7 +156,7 @@ void getKtoSigmaData(std::vector<correlationFunction<amplitudeDataCoord, jackkni
 		     const std::string &bubble_file_fmt, const std::vector<std::pair<threeMomentum, double> > &bubble_quarkmom_proj,
 		     const int traj_start, const int traj_inc, const int traj_lessthan, const int bin_size, 
 		     const int Lt, const readKtoPiPiAllDataOptions &opt = readKtoPiPiAllDataOptions()){
-  basic_bin_resampler bin_resampler(bin_size);
+  basicBinResampler bin_resampler(bin_size);
   getKtoSigmaData(A0_all_j, A0_all_dj, tsep_k_sigma,
 		  data_dir, 
 		  data_file_fmt,

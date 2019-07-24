@@ -85,18 +85,6 @@ void average(DistributionType & into, const Accessor &data, const int size){
   into = into/double(size);
 }
 
-
-struct basic_bin_resampler{
-  int bin_size;
-  basic_bin_resampler(int bin_size): bin_size(bin_size){}
-  basic_bin_resampler(): bin_size(0){}
-
-  template<typename DistributionType>
-  inline void binResample(DistributionType &out, const rawDataDistributionD &in) const{ out.resample(in.bin(bin_size)); }
-  
-  inline void binResample(blockDoubleJackknifeDistributionD &out, const rawDataDistributionD &in) const{ out.resample(in, bin_size); }
-};
-
 //On the fly bin-resample data and average
 template<typename DistributionType, typename Accessor, typename BinResampler>
 void binResampleAverage(DistributionType & into, const BinResampler &bin_resampler, const Accessor &data, const int size){

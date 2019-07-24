@@ -84,7 +84,7 @@ struct RawData{
 		const Args &args, const CMDline &cmdline, const std::string &descr) const{
     assert(doOp(op, args.operators));
 
-    basic_bin_resampler bin_resampler(args.bin_size);    
+    basicBinResampler bin_resampler(args.bin_size);    
     NumericTensor<DistributionType,1> A0_full_srcavg;
 
     for(int x=0;x<args.tsep_k_pi.size();x++){
