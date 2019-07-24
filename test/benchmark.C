@@ -213,8 +213,9 @@ int main(const int argc, const char* argv[]){
   std::cout << "Number of samples " << nsample << std::endl;
   std::cout << "---------------------------------------------" << std::endl;
   
-  benchmarkDistribution<rawDataDistribution, double>(nsample, ntest, "raw data distribution");
-  benchmarkDistribution<rawDataDistribution, std::complex<double> >(nsample, ntest, "jackknife distribution");    
+  benchmarkDistribution<rawDataDistribution, double>(nsample, ntest, "raw data distribution (double)");
+  benchmarkDistribution<rawDataDistribution, std::complex<double> >(nsample, ntest, "raw data distribution (complex)");    
+  benchmarkDistribution<jackknifeDistribution, double>(nsample, ntest, "jackknife distribution (double)");
   benchmarkDistribution<doubleJackknifeDistribution, double>(nsample, ntest, "double jackknife distribution");
   benchmarkDistribution<blockDoubleJackknifeDistribution, double>(nsample, ntest, "block double jackknife distribution");
   benchmarkDistribution<bootJackknifeDistribution, double>(nsample, ntest, "boot jackknife distribution");

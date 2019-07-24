@@ -31,7 +31,7 @@ int main(const int argc, const char* argv[]){
 
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
 
-  simultaneousFitBase* fitter = getFitter(args.fitfunc, args.nstate);
+  simultaneousFitBase<jackknifeDistribution>* fitter = getFitter<jackknifeDistribution>(args.fitfunc, args.nstate);
 
   fitter->load2ptFitParams(args.operators, args.input_params, nsample); 
 
@@ -93,45 +93,15 @@ int main(const int argc, const char* argv[]){
   std::cout << "Starting fits" << std::endl;
   typedef taggedValueContainer<double,std::string> Params;
 
-  std::vector<jackknifeDistribution<Params> > params = fitter->fit(data_j, data_dj, data_bdj, args.operators,
+  ResampledDataContainers<jackknifeDistribution> rdata(data_j, data_dj, data_bdj);
+
+  std::vector<jackknifeDistribution<Params> > params = fitter->fit(rdata, args.operators,
 								   args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix);
 
   if(args.basis == Basis::Basis7){
     std::cout << "Converting 7 basis results to 10 basis" << std::endl;
-    std::vector<std::vector<jackknifeDistributionD> > params_10(10, std::vector<jackknifeDistributionD>(args.nstate, jackknifeDistributionD(nsample)));    
-    
-    struct InContainer{
-      size_t s;
-      size_t idx;
-      const std::vector<jackknifeDistribution<Params> > &d;
-      double operator[](const int q) const{ return d[q].sample(s)(idx); }
-      InContainer(size_t s, size_t idx, const std::vector<jackknifeDistribution<Params> > &d): s(s), idx(idx), d(d){}
-    };
-    struct OutContainer{
-      size_t s;
-      size_t state;
-      std::vector<std::vector<jackknifeDistributionD> > &d;
-      double & operator[](const int q){ return d[q][state].sample(s); }
-      OutContainer(size_t s, size_t state, std::vector<std::vector<jackknifeDistributionD> > &d): s(s), state(state), d(d){}
-    };
-
-    auto const* tag_map = params[0].sample(0).getTagMap();
-    assert(tag_map != NULL);
-
-    for(int i=0;i<args.nstate;i++){
-      auto it = tag_map->find(stringize("M%d",i));
-      assert(it != tag_map->end());
-      int Midx = it->second;
-      
-      for(int s=0;s<nsample;s++){
-	InContainer in(s, Midx, params);
-	OutContainer out(s, i, params_10);
-	convert7to10(out,in);
-      }
-    }
-
+    std::vector<std::vector<jackknifeDistributionD> > params_10 = convert7basisTo10basis(args.nstate, params);
     writeParamsStandard(params_10, "matrix_elems_10basis.hdf5");
-
     for(int q=0;q<10;q++){
       std::cout << "Q" << q+1 << std::endl;
       for(int m=0;m<args.nstate;m++)

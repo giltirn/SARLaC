@@ -30,6 +30,10 @@ public:
   template<typename T>
   using rebase = jackknifeDistribution<T,_VectorType>;
 
+  typedef int initType;
+  
+  inline int getInitializer() const{ return this->size(); }
+
   inline DataType best() const{ return this->mean(); }
   
   template<typename DistributionType> //doesn't have to be a distribution, just has to have a .sample and .size method

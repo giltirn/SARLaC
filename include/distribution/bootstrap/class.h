@@ -177,7 +177,11 @@ public:
   
   bootstrapDistribution(const initType &init = initType()): baseType(init.boots), _confidence(init.confidence){}
 
+  //Use global defaults
   bootstrapDistribution(const DataType &initv, const initType &init = initType()): baseType(init.boots,initv), _confidence(init.confidence){ avg = this->mean(); }
+
+  bootstrapDistribution(const initType &init, const DataType &initv): baseType(init.boots,initv), _confidence(init.confidence){ avg = this->mean(); }
+
 
   template<typename Initializer>
   bootstrapDistribution(const Initializer &initf, const initType &init = initType()): baseType(init.boots,initf), _confidence(init.confidence){ avg = this->mean(); }

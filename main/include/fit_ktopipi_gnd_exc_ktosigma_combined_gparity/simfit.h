@@ -20,8 +20,6 @@ std::ostream & operator<<(std::ostream &os, const printCoord &p){
   os << "(" << it->second << ", t=" << p.c.t << " tsep_K_snk=" << p.c.tsep_k_snk << ")";
   return os;
 }
-
-
 template<typename FitFunc>
 void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
 		    const jackknifeDistribution<typename FitFunc::ParameterType> &params, const FitFunc &fitfunc,
@@ -42,19 +40,9 @@ void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistribu
   chisq_analyze.examineProjectedDeviationContribsEvalNorm(Covariance);
 }
 
-struct simultaneousFitBase{
-  typedef correlationFunction<amplitudeDataCoord, jackknifeDistributionD> CorrFuncJack;
-  typedef correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> CorrFuncDJack;
-  typedef correlationFunction<amplitudeDataCoord, blockDoubleJackknifeA0StorageType> CorrFuncBDJack;
-  
-  typedef std::vector<CorrFuncJack> CorrFuncJackAllQ;
-  typedef std::vector<CorrFuncDJack> CorrFuncDJackAllQ;
-  typedef std::vector<CorrFuncBDJack> CorrFuncBDJackAllQ;
-  
-  typedef correlationFunction<SimFitCoordGen, jackknifeDistributionD> SimFitCorrFuncJack;
-  typedef correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> SimFitCorrFuncDJack;
-  typedef correlationFunction<SimFitCoordGen, blockDoubleJackknifeDistributionD> SimFitCorrFuncBDJack;
-  
+
+//Common functionality for bootstrap/jackknife
+struct simultaneousFitCommon{
   typedef taggedValueContainer<double,std::string> Params;
   typedef std::unordered_map<std::string, std::string> InnerParamMap;
   
@@ -68,14 +56,9 @@ struct simultaneousFitBase{
   typedef std::map<PiPiOperator, InnerParamMap> operatorSubsetMap;
   typedef std::map< InnerParamMap const*, std::string> subsetMapDescr;
 
-#define CPB(A) typedef simultaneousFitBase::A A
-#define COPY_BASE_TYPEDEFS						\
-  CPB(CorrFuncJack); CPB(CorrFuncDJack); CPB(CorrFuncBDJack); \
-  CPB(CorrFuncJackAllQ); CPB(CorrFuncDJackAllQ); CPB(CorrFuncBDJackAllQ); \
-  CPB(SimFitCorrFuncJack); CPB(SimFitCorrFuncDJack); CPB(SimFitCorrFuncBDJack); \
-  CPB(InnerParamMap); CPB(Params); CPB(paramIdxMap); CPB(operatorSubsetMap); CPB(subsetMapDescr);
- 
-  virtual void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int nsample) = 0;
+#define CPC(A) typedef simultaneousFitCommon::A A
+#define COPY_COMMON_TYPEDEFS						\
+  CPC(InnerParamMap); CPC(Params); CPC(paramIdxMap); CPC(operatorSubsetMap); CPC(subsetMapDescr);
 
   static inline std::string opAmplitudeParamFmt(PiPiOperator op){
     switch(op){
@@ -100,36 +83,6 @@ struct simultaneousFitBase{
     }
     assert(0);
     return "";
-  }
-  virtual std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
-							  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
-							  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj,
-							  const std::vector<PiPiOperator> &operators,
-							  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated,
-							  const CovarianceMatrix covariance_matrix) = 0;
-
-  static void printWriteFitData(const std::vector<SimFitCorrFuncJack> &A0_sim_j,
-			   const subsetMapDescr &pmap_descr){
-    const int nQ = A0_sim_j.size();
-    std::vector<std::vector<jackknifeDistributionD> > data_in_fit(nQ);
-    std::ofstream data_in_fit_key("data_in_fit.key");
-
-    std::cout << "Data in fit:\n";
-
-    for(int q=0;q<nQ;q++){
-      std::cout << "Q" << q+1 << std::endl;
-      int eidx = 0;
-      for(int i=0;i<A0_sim_j[q].size();i++){
-	const SimFitCoordGen &c = A0_sim_j[q].coord(i);
-	const jackknifeDistributionD &val = A0_sim_j[q].value(i);
-	
-	std::cout << printCoord(c, pmap_descr) << " " << val << std::endl;
-	data_in_fit_key << "Q" << q+1 << " elem " << eidx << " " << pmap_descr.find(c.param_map)->second << " t=" << c.t << " tsep_K_snk=" << c.tsep_k_snk << std::endl;
-	data_in_fit[q].push_back(val);
-	eidx++;
-      }
-    }
-    writeParamsStandard(data_in_fit,"data_in_fit.hdf5");
   }
 
   //Output vectors should be resized to number of matrix elements 
@@ -177,32 +130,156 @@ struct simultaneousFitBase{
     }
   }
 
+  template<typename DistributionType>
+  static void printWriteFitData(const std::vector<correlationFunction<SimFitCoordGen, DistributionType> > &A0_sim_j,
+				const subsetMapDescr &pmap_descr){
+    const int nQ = A0_sim_j.size();
+    std::vector<std::vector<DistributionType> > data_in_fit(nQ);
+    std::ofstream data_in_fit_key("data_in_fit.key");
+
+    std::cout << "Data in fit:\n";
+
+    for(int q=0;q<nQ;q++){
+      std::cout << "Q" << q+1 << std::endl;
+      int eidx = 0;
+      for(int i=0;i<A0_sim_j[q].size();i++){
+	const SimFitCoordGen &c = A0_sim_j[q].coord(i);
+	const DistributionType &val = A0_sim_j[q].value(i);
+	
+	std::cout << printCoord(c, pmap_descr) << " " << val << std::endl;
+	data_in_fit_key << "Q" << q+1 << " elem " << eidx << " " << pmap_descr.find(c.param_map)->second << " t=" << c.t << " tsep_K_snk=" << c.tsep_k_snk << std::endl;
+	data_in_fit[q].push_back(val);
+	eidx++;
+      }
+    }
+    writeParamsStandard(data_in_fit,"data_in_fit.hdf5");
+  }
+
+  template< template<typename, template<typename> class> class DistributionType, template<typename> class V>
+  static void freeze(std::vector<int> &freeze_params,
+		     DistributionType<taggedValueContainer<double,std::string> ,V> &freeze_vals,
+		     const std::string &pname, const DistributionType<double, V> &pval, const std::unordered_map<std::string,size_t> &param_idx_map){
+    typedef iterate< DistributionType<taggedValueContainer<double,std::string> ,V> > iter_p;
+    typedef iterate< DistributionType<double, V> > iter_d;
+
+    auto it = param_idx_map.find(pname); assert(it != param_idx_map.end()); 
+    freeze_params.push_back(it->second);
+    for(int s=0;s<iter_d::size(pval);s++) iter_p::at(s,freeze_vals)(pname) = iter_d::at(s,pval);
+  }
+};
+
+
+template< template<typename, template<typename> class> class DistributionType > 
+struct ResampledDataContainers{};
+
+template<>
+struct ResampledDataContainers<jackknifeDistribution>{
+  const ResampledData<jackknifeDistributionD> &data_j;
+  const ResampledData<doubleJackknifeA0StorageType> &data_dj;
+  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj;
+  
+  ResampledDataContainers(const ResampledData<jackknifeDistributionD> &data_j,
+			  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
+			  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj): data_j(data_j), data_dj(data_dj), data_bdj(data_bdj){}
+};
+
+template< template<typename, template<typename> class> class DistributionType > 
+struct SimFitDataContainers{};
+
+template<>
+struct SimFitDataContainers<jackknifeDistribution>{
+  COPY_COMMON_TYPEDEFS;
+
+  typedef correlationFunction<SimFitCoordGen, jackknifeDistributionD> SimFitCorrFuncJack;
+  typedef correlationFunction<SimFitCoordGen, doubleJackknifeDistributionD> SimFitCorrFuncDJack;
+  typedef correlationFunction<SimFitCoordGen, blockDoubleJackknifeDistributionD> SimFitCorrFuncBDJack;
+
+  std::vector<SimFitCorrFuncJack> A0_sim_j;
+  std::vector<SimFitCorrFuncDJack> A0_sim_dj;
+  std::vector<SimFitCorrFuncBDJack> A0_sim_bdj;
+  
+  int getNq() const{
+    int nq = A0_sim_j.size();
+    return nq;
+  }
+
   template<typename FitPolicies>
-  static void runfit(std::vector<typename FitPolicies::FitParameterDistribution> &params,
-		     const std::vector<SimFitCorrFuncJack> &A0_sim_j,
-		     const std::vector<SimFitCorrFuncDJack> &A0_sim_dj,
-		     const std::vector<SimFitCorrFuncBDJack> &A0_sim_bdj,
-		     const subsetMapDescr &pmap_descr,
-		     const typename FitPolicies::baseFitFunc &fitfunc,
-		     const std::vector<int> &freeze_params,
-		     const typename FitPolicies::FitParameterDistribution &freeze_vals,
-		     const typename FitPolicies::baseFitFunc::ParameterType &guess,
-		     const int nsample, const bool correlated, const CovarianceMatrix covariance_matrix){
+  void generateCovarianceMatrix(importCostFunctionParameters<correlatedFitPolicy, FitPolicies> &import, fitter<FitPolicies> &fit, const CovarianceMatrix covariance_matrix, const int q) const{
     bool do_dj = covariance_matrix == CovarianceMatrix::Regular;
     bool do_bdj = covariance_matrix == CovarianceMatrix::Block;
 
-    const int nQ = A0_sim_j.size(); 
-    if(do_dj) assert(A0_sim_dj.size() == nQ);
-    if(do_bdj) assert(A0_sim_bdj.size() == nQ);
+    if(do_dj) import.import(fit, A0_sim_dj[q]);
+    if(do_bdj) import.import(fit, A0_sim_bdj[q]);
+  }
 
+  int getDistributionInitializer() const{
+    return A0_sim_j[0].value(0).size();
+  }
+
+  void generateSimData(const ResampledDataContainers<jackknifeDistribution> &fit_data,
+		       const std::vector<PiPiOperator> &operators, const int tmin_k_op, const int tmin_op_snk,
+		       const operatorSubsetMap &op_param_maps, const subsetMapDescr &pmap_descr, const CovarianceMatrix covariance_matrix){
+    bool do_dj = covariance_matrix == CovarianceMatrix::Regular;
+    bool do_bdj = covariance_matrix == CovarianceMatrix::Block;
+    simultaneousFitCommon::generateSimData(A0_sim_j, fit_data.data_j, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    if(do_dj) simultaneousFitCommon::generateSimData(A0_sim_dj, fit_data.data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    if(do_bdj) simultaneousFitCommon::generateSimData(A0_sim_bdj, fit_data.data_bdj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+  }
+  
+  const SimFitCorrFuncJack & getFitData(const int q) const{ return A0_sim_j[q]; }
+
+  //Func:  void [](auto &corrfunc, const int q)
+  template<typename Func, typename CorrelationFunctionType>
+  void applyFunctionToInternalCorrFunc(const Func &func, CorrelationFunctionType &corrfunc){
+    for(int q=0;q<corrfunc.size();q++)
+      func(corrfunc[q],q);
+  }
+
+  //Func:  void [](auto &corrfunc, const int q)
+  template<typename Func>
+  void applyFunctionToCorrFunc(const Func &func){
+    applyFunctionToInternalCorrFunc(func, A0_sim_j);
+    applyFunctionToInternalCorrFunc(func, A0_sim_dj);
+    applyFunctionToInternalCorrFunc(func, A0_sim_bdj);
+  }
+
+};
+
+template< template<typename, template<typename> class> class DistributionType > 
+struct simultaneousFitBase: public simultaneousFitCommon{
+  COPY_COMMON_TYPEDEFS;
+
+  virtual void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int dist_size) = 0;
+
+  virtual std::vector<DistributionType<Params, basic_vector> > fit(const ResampledDataContainers<DistributionType> &fit_data,
+								   const std::vector<PiPiOperator> &operators,
+								   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated,
+								   const CovarianceMatrix covariance_matrix) = 0;
+
+  template<typename FitFunc>
+  static void runfit(std::vector<DistributionType<Params, basic_vector> > &params,
+		     const SimFitDataContainers<DistributionType> &fit_data,
+		     const subsetMapDescr &pmap_descr,
+		     const FitFunc &fitfunc,
+		     const std::vector<int> &freeze_params,
+		     const DistributionType<Params, basic_vector> &freeze_vals,
+		     const Params &guess,
+		     const bool correlated, const CovarianceMatrix covariance_matrix){
+
+    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+
+    typedef DistributionType<double, basic_vector> DistributionTypeD;
+    const int nQ = fit_data.getNq();
     params.resize(nQ);
 
-    std::vector<jackknifeDistributionD> chisq(nQ, jackknifeDistributionD(nsample)), 
-      chisq_per_dof(nQ, jackknifeDistributionD(nsample)), 
-      pvalue(nQ, jackknifeDistributionD(nsample));
+    auto init = fit_data.getDistributionInitializer();
+
+    std::vector<DistributionTypeD> chisq(nQ, DistributionTypeD(init)), 
+      chisq_per_dof(nQ, DistributionTypeD(init)), 
+      pvalue(nQ, DistributionTypeD(init));
 
     for(int q=0;q<nQ;q++){
-      params[q] = jackknifeDistribution<Params>(nsample, guess);
+      params[q] = DistributionType<Params, basic_vector>(init, guess);
 
       std::cout << "Performing " << q+1 << " fit" << std::endl;
       fitter<FitPolicies> fit;
@@ -210,25 +287,25 @@ struct simultaneousFitBase{
       fit.freeze(freeze_params, freeze_vals);
       
       importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import;
-      if(do_dj) import.import(fit, A0_sim_dj[q]);
-      if(do_bdj) import.import(fit, A0_sim_bdj[q]);
+      fit_data.generateCovarianceMatrix(import, fit, covariance_matrix, q);
 
       if(!correlated) import.setUncorrelated();
           
       int ndof;
-      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, A0_sim_j[q]);
+      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, fit_data.getFitData(q));
 
-      pvalue[q] = jackknifeDistributionD(nsample, [&](const int s){ return chiSquareDistribution::pvalue(ndof, chisq[q].sample(s)); });
+      pvalue[q] = DistributionTypeD(init);
+      for(int i=0; i<iterate<DistributionTypeD>::size(pvalue[q]); i++) 
+	iterate<DistributionTypeD>::at(i, pvalue[q]) = chiSquareDistribution::pvalue(ndof, iterate<DistributionTypeD>::at(i, chisq[q]) );
 
       std::cout << "Q" << q+1 << std::endl;
       std::cout << "Params:\n" << params[q] << std::endl;
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
-      std::cout << "p-value: " << pvalue[q] << std::endl;
+      std::cout << "p-value(chi^2): " << pvalue[q] << std::endl;
 
-      std::cout << "Analysis of contributions to chi^2" << std::endl;
-      
-      analyzeChisqFF<typename FitPolicies::baseFitFunc>(A0_sim_j[q],params[q],fitfunc,pmap_descr);
+      // std::cout << "Analysis of contributions to chi^2" << std::endl;      
+      // analyzeChisqFF<typename FitPolicies::baseFitFunc>(A0_sim_j[q],params[q],fitfunc,pmap_descr);
     }  
     for(int q=0;q<nQ;q++){
       std::cout << "Q" << q+1 << std::endl;
@@ -243,36 +320,33 @@ struct simultaneousFitBase{
     writeParamsStandard(pvalue, "pvalue.hdf5");
   }
 
-  static void freeze(std::vector<int> &freeze_params,
-	      jackknifeDistribution<taggedValueContainer<double,std::string> > &freeze_vals,
-	      const std::string &pname, const jackknifeDistributionD &pval, const std::unordered_map<std::string,size_t> &param_idx_map){
-    auto it = param_idx_map.find(pname); assert(it != param_idx_map.end()); 
-    freeze_params.push_back(it->second);
-    int nsample = pval.size();
-    for(int s=0;s<nsample;s++) freeze_vals.sample(s)(pname) = pval.sample(s);
-  }
 
   virtual ~simultaneousFitBase(){}
 };
 
-class simultaneousFitMultiState: public simultaneousFitBase{
+template< template<typename, template<typename> class> class DistributionType > 
+class simultaneousFitMultiState: public simultaneousFitBase<DistributionType>{
 public:
-  COPY_BASE_TYPEDEFS;    
+  COPY_COMMON_TYPEDEFS;    
     
 protected:
   int nstate;
 
   //Values for freezing
   bool loaded_frzparams;
-  jackknifeDistributionD mK;
-  jackknifeDistributionD cK;
-  std::vector<jackknifeDistributionD> E;
-  std::map<PiPiOperator, std::vector<jackknifeDistributionD> > coeffs; //for each operator, the frozen amplitudes (0=gnd state, 1=exc state, ...)
+  
+  typedef DistributionType<double, basic_vector> DistributionTypeD;
+  DistributionTypeD mK;
+  DistributionTypeD cK;
+  std::vector<DistributionTypeD> E;
+  std::map<PiPiOperator, std::vector<DistributionTypeD> > coeffs; //for each operator, the frozen amplitudes (0=gnd state, 1=exc state, ...)
 public:
 
-  void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int nsample){
+  typedef FitSimGenMultiState FitFunc;
+
+  void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int dist_size){
     { //Load kaon parameters
-      std::vector<jackknifeDistributionD> p;
+      std::vector<DistributionTypeD> p;
       readParamsStandard(p,  iargs.kaon2pt_fit_result);
       mK = p[iargs.idx_mK];
       cK = sqrt( p[iargs.idx_cK] );
@@ -285,9 +359,9 @@ public:
 
     { //Load coefficients and energies
       const double scale = sqrt(iargs.pipi_sigma_sim_fit_Ascale);
-      std::vector<jackknifeDistributionD> p;
+      std::vector<DistributionTypeD> p;
       readParamsStandard(p, iargs.pipi_sigma_sim_fit_result);
-      for(int i=0;i<p.size();i++) assert(p[i].size() == nsample);
+      for(int i=0;i<p.size();i++) assert(p[i].size() == dist_size);
 
       //(0=gnd state, 1=exc state, ...)
       if(doOp(PiPiOperator::PiPiGnd, operators)){
@@ -328,7 +402,7 @@ public:
     std::string A_op_state[nop][nstate];
     for(int o=0;o<nop;o++)
       for(int s=0;s<nstate;s++)
-	A_op_state[o][s] = stringize(opAmplitudeParamFmt(operators[o]).c_str(),s);
+	A_op_state[o][s] = stringize(this->opAmplitudeParamFmt(operators[o]).c_str(),s);
 
     //Construct parameter names for state energies and matrix elements
     std::string E[nstate], M[nstate];
@@ -373,21 +447,18 @@ public:
     //Finally, associate with each local->global parameter mapping a description
     for(int o=0;o<nop;o++){
       auto & pmap = op_param_maps[operators[o]];
-      pmap_descr[&pmap] = opDescr(operators[o]); 
+      pmap_descr[&pmap] = this->opDescr(operators[o]); 
     }
   }
 
 
-  std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
-						  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
-						  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj,
-						  const std::vector<PiPiOperator> &operators,
-						  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, const CovarianceMatrix covariance_matrix){
-    bool do_dj = covariance_matrix == CovarianceMatrix::Regular;
-    bool do_bdj = covariance_matrix == CovarianceMatrix::Block;
-    assert(loaded_frzparams);
+
+  std::vector<DistributionType<Params, basic_vector> > fit(const ResampledDataContainers<DistributionType> &fit_data,
+							   const std::vector<PiPiOperator> &operators,
+							   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, 
+							   const CovarianceMatrix covariance_matrix){
     
-    const int nsample = mK.size();
+    assert(loaded_frzparams);
     
     //Get the mappings for the fit parameters
     paramIdxMap* param_idx_map_ptr = new paramIdxMap; //ensure it sticks around until end of execution
@@ -398,12 +469,8 @@ public:
 
     constructParameterMaps(param_idx_map, op_param_maps, pmap_descr, operators);
 
-    std::vector<SimFitCorrFuncJack> A0_sim_j;
-    std::vector<SimFitCorrFuncDJack> A0_sim_dj;
-    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj;
-    generateSimData(A0_sim_j, data_j, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
-    if(do_dj) generateSimData(A0_sim_dj, data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
-    if(do_bdj) generateSimData(A0_sim_bdj, data_bdj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    SimFitDataContainers<DistributionType> simfit_data;
+    simfit_data.generateSimData(fit_data, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr, covariance_matrix);
  
     //Setup guess
     Params guess(&param_idx_map);
@@ -411,31 +478,30 @@ public:
     for(int s=0;s<nstate;s++)
       guess(stringize("M%d",s)) = 0.5;
 
-    typedef FitSimGenMultiState FitFunc;
-
     //Setup fitfunc
     FitFunc fitfunc(param_idx_map.size(), nstate);
-    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-       
+    auto init = simfit_data.getDistributionInitializer();
+      
     //Setup frozen fit params
     std::vector<int> freeze_params;
-    jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
+    DistributionType<Params, basic_vector> freeze_vals(init, Params(&param_idx_map));
   
-    freeze(freeze_params, freeze_vals, "AK", cK, param_idx_map);
-    freeze(freeze_params, freeze_vals, "mK", mK, param_idx_map);
+    this->freeze(freeze_params, freeze_vals, "AK", cK, param_idx_map);
+    this->freeze(freeze_params, freeze_vals, "mK", mK, param_idx_map);
     for(int s=0; s<nstate; s++) 
-      freeze(freeze_params, freeze_vals, stringize("E%d",s), E[s], param_idx_map);
+      this->freeze(freeze_params, freeze_vals, stringize("E%d",s), E[s], param_idx_map);
 
     for(int opidx = 0; opidx < operators.size(); opidx++){
       auto op = operators[opidx];
 
       for(int s=0; s<nstate; s++) 
-	freeze(freeze_params, freeze_vals, stringize(opAmplitudeParamFmt(op).c_str(),s), coeffs[op][s], param_idx_map);
+	this->freeze(freeze_params, freeze_vals, stringize(this->opAmplitudeParamFmt(op).c_str(),s), coeffs[op][s], param_idx_map);
     }
 
     //Run the actual fit
-    std::vector<jackknifeDistribution<Params> > params;    
-    runfit<FitPolicies>(params, A0_sim_j, A0_sim_dj, A0_sim_bdj, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated, covariance_matrix);
+    std::vector<DistributionType<Params, basic_vector> > params;    
+  
+    this->runfit(params, simfit_data, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, correlated, covariance_matrix);
  
     //plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
 
@@ -443,48 +509,99 @@ public:
   }
 };
 
-class simultaneousFitMultiStateWavg: public simultaneousFitMultiState{
-public:
-  COPY_BASE_TYPEDEFS;    
-  
-  simultaneousFitMultiStateWavg(const int nstate): simultaneousFitMultiState(nstate){}
 
-  template<typename DistributionType>
-  inline DistributionType weightedAvg(const correlationFunction<SimFitCoordGen, DistributionType> &from, const std::vector<int> &idx){
-    std::vector<DistributionType const*> towavg(idx.size());
+template< template<typename, template<typename> class> class DistributionType > 
+class simultaneousFitMultiStateWavg: public simultaneousFitMultiState<DistributionType>{
+public:
+  COPY_COMMON_TYPEDEFS;    
+
+  typedef DistributionType<double, basic_vector> DistributionTypeD;
+
+  typedef FitSimGenMultiStateWavg FitFunc;
+  
+  simultaneousFitMultiStateWavg(const int nstate): simultaneousFitMultiState<DistributionType>(nstate){}
+
+  template<typename T>
+  static inline T weightedAvg(const correlationFunction<SimFitCoordGen, T> &from, const std::vector<int> &idx){
+    std::vector<T const*> towavg(idx.size());
     for(int i=0;i<idx.size();i++)
       towavg[i] = &from.value(idx[i]);
     return CPSfit::weightedAvg(towavg);
   }
 
-  //Divide out the kaon amplitude and time dependence
-  template<typename DataType>
-  std::vector<DataType> removeKaonDependence(const std::vector<DataType> &from) const{
-    int nsample = from[0].value(0).size();
-    jackknifeDistributionD one(nsample, 1.);
+  void weightedAverage(SimFitDataContainers<DistributionType> &fit_data, const subsetMapDescr &pmap_descr) const{
+    //Collect data indices of values we wish to wavg
+    std::vector< std::map<std::pair<int,InnerParamMap const*>, std::vector<int> > > toavg_q(fit_data.getNq());
 
-    std::vector<DataType> out(from);
-    for(int q=0;q<out.size();q++){
-      for(int d=0;d<out[q].size();d++){
-	int tK_op = (int)out[q].coord(d).t;
-	jackknifeDistributionD fac = one/(this->cK * exp(-this->mK * tK_op));
-	for(int s=0;s<nsample;s++)
-	  out[q].value(d).sample(s) = out[q].value(d).sample(s) * fac.sample(s); //note: for double-jackknife we use the same value for all inner samples - this is a minor effect
+    for(int q=0;q<toavg_q.size();q++){
+      std::map<std::pair<int,InnerParamMap const*>, std::vector<int> > &to_avg = toavg_q[q];  //key is (top_snk, snk_op_pmap_descr)
+      for(int d=0;d< fit_data.getFitData(q).size();d++){
+	auto const &c = fit_data.getFitData(q).coord(d);
+	int tK_op = (int)c.t,   top_snk = (int)c.tsep_k_snk - tK_op;
+	to_avg[{top_snk, c.param_map}].push_back(d);
+
+	//Print some useful information
+	for(auto it = to_avg.begin(); it != to_avg.end(); it++){
+	  SimFitCoordGen c(it->first.first, -1,  it->first.second);
+	  const std::vector<int>& idxv = it->second;	       
+
+	  auto wavg = weightedAvg(fit_data.getFitData(q), idxv);
+	  
+	  std::cout << "Q" << q+1 << " weighted avg with descr " << pmap_descr.find(c.param_map)->second << " and top_snk = " << c.t << " : " << wavg << std::endl;
+	  std::cout << "Data included" << std::endl;
+	  for(int i=0;i<idxv.size();i++){ 
+	    typename std::decay<decltype(fit_data.getFitData(q).value(idxv[i]))>::type 
+	      wavg_diff = fit_data.getFitData(q).value(idxv[i]) - wavg;
+	    std::cout << printCoord(fit_data.getFitData(q).coord(idxv[i]), pmap_descr) << " " 
+		      << fit_data.getFitData(q).value(idxv[i]) 
+		      << " (diff from wavg: " << wavg_diff << ")" << std::endl;
+	  }
+	}
       }
     }
-    return out;
+
+    //Apply the weighted avg to all correlation functions in the container
+    fit_data.applyFunctionToCorrFunc(
+      [&](auto &corrfunc, const int q){
+	typedef typename std::decay<decltype(corrfunc)>::type CorrFuncType;
+	CorrFuncType out;
+
+	const std::map<std::pair<int,InnerParamMap const*>, std::vector<int> > &to_avg = toavg_q[q];
+	
+	//Perform the weighted average and insert into fit data containers
+	for(auto it = to_avg.begin(); it != to_avg.end(); it++){
+	  SimFitCoordGen c(it->first.first, -1,  it->first.second);
+	  const std::vector<int>& idxv = it->second;	       
+	  out.push_back(c, weightedAvg(corrfunc, idxv));
+	}
+
+	corrfunc = out;
+      });
   }
 
-  std::vector<jackknifeDistribution<Params> > fit(const ResampledData<jackknifeDistributionD> &data_j,
-						  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
-						  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj,
-						  const std::vector<PiPiOperator> &operators,
-						  const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, const CovarianceMatrix covariance_matrix){
-    bool do_dj = covariance_matrix == CovarianceMatrix::Regular;
-    bool do_bdj = covariance_matrix == CovarianceMatrix::Block;
+  //Divide out the kaon amplitude and time dependence
+  void removeKaonDependence(SimFitDataContainers<DistributionType> &fit_data) const{
+    fit_data.applyFunctionToCorrFunc(
+      [&](auto &corrfunc, const int q){
+	for(int d=0;d<corrfunc.size();d++){
+	  const SimFitCoordGen &c = corrfunc.coord(d);
+	  for(int s=0;s<corrfunc.value(d).size();s++){ 
+	    //do for each *outer* sample. ValueType is either double or a distribution. We use the same value for each inner sample
+	    double cK_s = this->cK.sample(s);
+	    double mK_s = this->mK.sample(s);
+	    int tK_op = (int)c.t;
+	    corrfunc.value(d).sample(s) = corrfunc.value(d).sample(s) / (cK_s * exp(-mK_s * tK_op)); 
+	  }
+	}
+      }
+   );
+  }   
+
+  std::vector<DistributionType<Params, basic_vector> > fit(const ResampledDataContainers<DistributionType> &fit_data,
+							   const std::vector<PiPiOperator> &operators,
+							   const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+							   bool correlated, const CovarianceMatrix covariance_matrix){
     assert(this->loaded_frzparams);
-    
-    const int nsample = this->mK.size();
     
     //Get the mappings for the fit parameters
     paramIdxMap* param_idx_map_ptr = new paramIdxMap; //ensure it sticks around until end of execution
@@ -493,116 +610,120 @@ public:
     operatorSubsetMap op_param_maps;
     subsetMapDescr pmap_descr;
 
-    constructParameterMaps(param_idx_map, op_param_maps, pmap_descr, operators, false); //don't include kaon parameters as we divide them out
+    this->constructParameterMaps(param_idx_map, op_param_maps, pmap_descr, operators, false); //don't include kaon parameters as we divide them out
 
-    std::vector<SimFitCorrFuncJack> A0_sim_j;
-    std::vector<SimFitCorrFuncDJack> A0_sim_dj;
-    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj;
-    generateSimData(A0_sim_j, data_j, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
-    if(do_dj) generateSimData(A0_sim_dj, data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
-    if(do_bdj) generateSimData(A0_sim_bdj, data_bdj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    SimFitDataContainers<DistributionType> simfit_data;
+    simfit_data.generateSimData(fit_data, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr, covariance_matrix);
 
-    const int nQ = A0_sim_j.size(); //could be 7 or 10 depending on basis
+    const int nQ = simfit_data.getNq(); //could be 7 or 10 depending on basis
   
-    std::vector<SimFitCorrFuncJack> A0_sim_j_noK;
-    std::vector<SimFitCorrFuncDJack> A0_sim_dj_noK;
-    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj_noK;
-    A0_sim_j_noK = removeKaonDependence(A0_sim_j);
-    if(do_dj) A0_sim_dj_noK = removeKaonDependence(A0_sim_dj);
-    if(do_bdj) A0_sim_bdj_noK = removeKaonDependence(A0_sim_bdj);
-
-    //Do the weighted average
-    std::vector<SimFitCorrFuncJack> A0_sim_j_wavg(nQ);
-    std::vector<SimFitCorrFuncDJack> A0_sim_dj_wavg(nQ);
-    std::vector<SimFitCorrFuncBDJack> A0_sim_bdj_wavg(nQ);
-
-    for(int q=0;q<nQ;q++){
-      //Collect data indices of values we wish to wavg
-      std::map<std::pair<int,InnerParamMap const*>, std::vector<int> > to_avg;  //key is (top_snk, snk_op_pmap_descr)
-      for(int d=0;d<A0_sim_j_noK[q].size();d++){
-	auto const &c = A0_sim_j_noK[q].coord(d);
-	int tK_op = (int)c.t,   top_snk = (int)c.tsep_k_snk - tK_op;
-	to_avg[{top_snk, c.param_map}].push_back(d);
-      }
-      
-      //Perform the weighted average and insert into fit data containers
-      for(auto it = to_avg.begin(); it != to_avg.end(); it++){
-	SimFitCoordGen c(it->first.first, -1,  it->first.second);
-	const std::vector<int>& idxv = it->second;	
-
-	A0_sim_j_wavg[q].push_back(c, weightedAvg(A0_sim_j_noK[q], idxv));
-	if(do_dj) A0_sim_dj_wavg[q].push_back(c, weightedAvg(A0_sim_dj_noK[q], idxv));
-	if(do_bdj) A0_sim_bdj_wavg[q].push_back(c, weightedAvg(A0_sim_bdj_noK[q], idxv));
-
-	//Print some useful information
-	{
-	  const jackknifeDistributionD &wavg = A0_sim_j_wavg[q].value(A0_sim_j_wavg[q].size()-1);
-	  std::cout << "Q" << q+1 << " weighted avg with descr " << pmap_descr.find(c.param_map)->second << " and top_snk = " << c.t << " : " << wavg << std::endl;
-	  std::cout << "Data included" << std::endl;
-	  for(int i=0;i<idxv.size();i++){ 
-	    jackknifeDistributionD wavg_diff = A0_sim_j_noK[q].value(idxv[i]) - wavg;
-	    std::cout << printCoord(A0_sim_j_noK[q].coord(idxv[i]), pmap_descr) << " " << A0_sim_j_noK[q].value(idxv[i]) << " (diff from wavg: " << wavg_diff << ")" << std::endl;
-	  }
-	}
-      }
-    }//q loop
-
+    removeKaonDependence(simfit_data);
+    weightedAverage(simfit_data, pmap_descr);
 
     //Setup guess
     Params guess(&param_idx_map);
     for(int i=0;i<guess.size();i++) guess(i) = 1.;
-    for(int s=0;s<nstate;s++)
+    for(int s=0;s<this->nstate;s++)
       guess(stringize("M%d",s)) = 0.5;
 
-    typedef FitSimGenMultiStateWavg FitFunc;
-
     //Setup fitfunc
-    FitFunc fitfunc(param_idx_map.size(), nstate);
-    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
+    FitFunc fitfunc(param_idx_map.size(), this->nstate);
        
     //Setup frozen fit params
+    auto init = simfit_data.getFitData(0).value(0).getInitializer();
+
     std::vector<int> freeze_params;
-    jackknifeDistribution<Params> freeze_vals(nsample, Params(&param_idx_map));
+    DistributionType<Params, basic_vector> freeze_vals(init, Params(&param_idx_map));
   
-    for(int s=0; s<nstate; s++) 
-      freeze(freeze_params, freeze_vals, stringize("E%d",s), E[s], param_idx_map);
+    for(int s=0; s<this->nstate; s++) 
+      this->freeze(freeze_params, freeze_vals, stringize("E%d",s), this->E[s], param_idx_map);
 
     for(int opidx = 0; opidx < operators.size(); opidx++){
       auto op = operators[opidx];
 
-      for(int s=0; s<nstate; s++) 
-	freeze(freeze_params, freeze_vals, stringize(opAmplitudeParamFmt(op).c_str(),s), coeffs[op][s], param_idx_map);
+      for(int s=0; s<this->nstate; s++) 
+	this->freeze(freeze_params, freeze_vals, stringize(this->opAmplitudeParamFmt(op).c_str(),s), this->coeffs[op][s], param_idx_map);
     }
 
+
     //Run the actual fit
-    std::vector<jackknifeDistribution<Params> > params;    
-    runfit<FitPolicies>(params, A0_sim_j_wavg, A0_sim_dj_wavg, A0_sim_bdj_wavg, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, nsample, correlated, covariance_matrix);
+    std::vector<DistributionType<Params, basic_vector> > params;    
+  
+    this->runfit(params, simfit_data, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, correlated, covariance_matrix);
  
-    plotErrorWeightedDataNexpFlat(data_j, operators, fitfunc, params, this->mK, this->cK, Lt, tmin_k_op, tmin_op_snk);
+    //plotErrorWeightedDataNexpFlat(data_j, operators, fitfunc, params, this->mK, this->cK, Lt, tmin_k_op, tmin_op_snk);
 
     return params;
   }
 };
 
 
-
-
-
-
-
-simultaneousFitBase* getFitter(const SimFitFunction ff, const int nstate){
+template< template<typename, template<typename> class> class DistributionType > 
+simultaneousFitBase<DistributionType>* getFitter(const SimFitFunction ff, const int nstate){
   switch(ff){
   case SimFitFunction::MultiState:
-    return new simultaneousFitMultiState(nstate);
+    return new simultaneousFitMultiState<DistributionType>(nstate);
   case SimFitFunction::MultiStateWavg:
-    return new simultaneousFitMultiStateWavg(nstate);
+    return new simultaneousFitMultiStateWavg<DistributionType>(nstate);
   default:
     assert(0);
   }
 };
 
 
+template<template<typename, template<typename> class> class DistributionType, typename Params, template<typename> class V>
+std::vector<std::vector<DistributionType<double,V> > > convert7basisTo10basis(const int nstate,
+									      const std::vector<DistributionType<Params,V> > &params){		    
+
+  std::cout << "Converting 7 basis results to 10 basis" << std::endl;
+  typedef DistributionType<Params,V> DistributionTypeP;
+  typedef iterate<DistributionTypeP> iter_p;
+  typedef DistributionType<double,V> DistributionTypeD;
+  typedef iterate<DistributionTypeD> iter_d;
+  DistributionTypeD zero(params[0].getInitializer()); //will initialize correctly jackknife or bootstrap
+  zeroit(zero);
+
+  std::vector<std::vector<DistributionTypeD> > params_10(10, std::vector<DistributionTypeD>(nstate, zero));    
+    
+  struct InContainer{
+    size_t s;
+    size_t idx;
+    const std::vector<DistributionTypeP> &d;
+    double operator[](const int q) const{ return iter_p::at(s, d[q])(idx); }
+    InContainer(size_t s, size_t idx, const std::vector<DistributionTypeP> &d): s(s), idx(idx), d(d){}
+  };
+  struct OutContainer{
+    size_t s;
+    size_t state;
+    std::vector<std::vector<DistributionTypeD> > &d;
+    double & operator[](const int q){ return iter_d::at(s,d[q][state]); }
+    OutContainer(size_t s, size_t state, std::vector<std::vector<DistributionTypeD> > &d): s(s), state(state), d(d){}
+  };
+
+  auto const* tag_map = params[0].sample(0).getTagMap();
+  assert(tag_map != NULL);
+
+  for(int i=0;i<nstate;i++){
+    auto it = tag_map->find(stringize("M%d",i));
+    assert(it != tag_map->end());
+    int Midx = it->second;
+      
+    for(int s=0;s<iter_d::size(zero);s++){
+      InContainer in(s, Midx, params);
+      OutContainer out(s, i, params_10);
+      convert7to10(out,in);
+    }
+  }
+  return params_10;
+}
+
+
+
+
 #undef COPY_BASE_TYPEDEFS
+#undef COPY_COMMON_TYPEDEFS
+#undef CPC
+#undef CPB
 
 CPSFIT_END_NAMESPACE
 
