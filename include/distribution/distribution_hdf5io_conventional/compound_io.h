@@ -20,11 +20,9 @@ void writeParamsStandard(const DistributionOfStructType &params, const std::stri
 
   //std::cout << "writeParamsStandard: Non-POD - Writing " << printType<DistributionOfStructType>() << " as " << printType<std::vector<DistributionOfPODtype> >() << std::endl;
   
-  const int nsample = params.size();
-  assert(nsample > 0);
   const int np = params.sample(0).size();
 
-  auto init = getElem<DistributionOfStructType>::common_properties(params);
+  auto init = params.getInitializer();
   DistributionOfPODtype base(init);
 
   std::vector<DistributionOfPODtype> out(np, base );
@@ -55,8 +53,9 @@ void readParamsStandard(DistributionOfStructType &params, const std::string &fil
 
   assert(in.size() > 0);
   const int np = in.size();
-  const int nsample = in[0].size();
-  standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::setupDistributionOfStruct(params, np, nsample);  
+
+  auto init = in[0].getInitializer();
+  standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::setupDistributionOfStruct(params, np, init);  
   
   for(int p=0;p<np;p++)
     standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::insertStructEntry(params, in[p], p);
@@ -75,11 +74,11 @@ void writeParamsStandard(const std::vector<DistributionOfStructType> &params, co
   
   const int nouter = params.size();
   assert(nouter > 0);
-  const int nsample = params[0].size();
-  assert(nsample > 0);
   const int np = params[0].sample(0).size();
 
-  std::vector<std::vector<DistributionOfPODtype> > out(nouter, std::vector<DistributionOfPODtype>(np, DistributionOfPODtype(nsample)));
+  auto init = params[0].getInitializer();
+
+  std::vector<std::vector<DistributionOfPODtype> > out(nouter, std::vector<DistributionOfPODtype>(np, DistributionOfPODtype(init)));
   for(int o=0;o<nouter;o++)
     for(int p=0;p<np;p++)
       standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::extractStructEntry(out[o][p], params[o], p);
@@ -108,11 +107,12 @@ void readParamsStandard(std::vector<DistributionOfStructType> &params, const std
   assert(nouter > 0);
   const int np = in[0].size();
   assert(np > 0);
-  const int nsample = in[0][0].size();
+
+  auto init = in[0][0].getInitializer();
   
   params.resize(nouter);      
   for(int o=0;o<nouter;o++){
-    standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::setupDistributionOfStruct(params[o], np, nsample);    
+    standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::setupDistributionOfStruct(params[o], np, init);    
     for(int p=0;p<np;p++)
        standardIOhelper<DistributionOfPODtype, DistributionOfStructType>::insertStructEntry(params[o], in[o][p], p);
   }

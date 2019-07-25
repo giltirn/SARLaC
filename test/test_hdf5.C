@@ -19,26 +19,27 @@ struct createOne<superJackknifeDistribution<T> >{
     return superJackknifeDistribution<T>(*layout,0.);
   }
 };
+template<typename T>
+struct createOne<bootstrapDistribution<T> >{
+  static inline bootstrapDistribution<T> doit(){ return bootstrapDistribution<T>(bootstrapInitType(50, 23)); } //use different numbers than default
+};
+template<typename T>
+struct createOne<bootJackknifeDistribution<T> >{
+  static inline bootJackknifeDistribution<T> doit(){ return bootJackknifeDistribution<T>(bootJackknifeInitType(50,49, 30, 23)); }
+};
 
 
 template<typename DistributionType>
 struct setRandom{
-  static inline void doit(DistributionType &d){ gaussianRandom(d,1.,1.); }
-};
-template<typename T, template<typename> class V>
-struct setRandom<jackknifeCdistribution<T,V> >{
-  static inline void doit(jackknifeCdistribution<T,V> &d){ gaussianRandom(d,1.,1.); d.best() = d.mean(); }
-};
-template<typename T, template<typename> class V>
-struct setRandom<doubleJackknifeDistribution<T,V> >{
-  static inline void doit(doubleJackknifeDistribution<T,V> &d){
-    for(int i=0;i<d.size();i++) gaussianRandom(d.sample(i), 1., 1.);
+  static inline void doit(DistributionType &d){ 
+    typedef iterate<DistributionType> iter;
+    for(int s=0;s<iter::size(d);s++) gaussianRandom(iter::at(s,d), 1.0, 1.0);
   }
 };
 template<typename T>
-struct setRandom<superJackknifeDistribution<T> >{
-  static inline void doit(superJackknifeDistribution<T> &d){
-    for(int i=-1;i<d.size();i++) gaussianRandom<T>(d.osample(i), 1., 1.);
+struct setRandom< distribution<T> >{
+  static inline void doit(distribution<T> &d){ 
+    for(int s=0;s<d.size();s++) gaussianRandom(d.sample(s), 1.0, 1.0);
   }
 };
 
@@ -146,11 +147,14 @@ struct S{
 template<template<typename,template<typename> class> class DistributionType, template<typename> class V>
 struct setRandom<DistributionType<S,V> >{
   static inline void doit(DistributionType<S,V> &d){
-    DistributionType<double,basic_vector> a(d.size()); setRandom<DistributionType<double,basic_vector> >::doit(a);
-    DistributionType<double,basic_vector> b(d.size()); setRandom<DistributionType<double,basic_vector> >::doit(b);
-    for(int s=0;s<d.size();s++){
-      d.sample(s).a = a.sample(s);
-      d.sample(s).b = b.sample(s);
+    typedef iterate<DistributionType<double,basic_vector> > iter_from;
+    typedef iterate<DistributionType<S,V> > iter_to;
+
+    DistributionType<double,basic_vector> a(d.getInitializer()); setRandom<DistributionType<double,basic_vector> >::doit(a);
+    DistributionType<double,basic_vector> b(d.getInitializer()); setRandom<DistributionType<double,basic_vector> >::doit(b);
+    for(int s=0;s<iter_to::size(d);s++){
+      iter_to::at(s, d).a = iter_from::at(s, a);
+      iter_to::at(s, d).b = iter_from::at(s, b);
     }
   }
 };
@@ -247,8 +251,13 @@ int main(void){
   testBasic<jackknifeDistribution<double> >();
   testBasic<jackknifeCdistribution<double> >();
   testBasic<doubleJackknifeDistribution<double> >();
+  testBasic<bootstrapDistribution<double> >();
+  testBasic<bootJackknifeDistribution<double> >();
+
   testBasic<jackknifeDistribution<S> >();
   testBasic<superJackknifeDistribution<double> >();
+  testBasic<bootstrapDistribution<S> >();
+
   {//test std::map
     std::cout << "Testing IO for std::map<std::string, int>\n";
     std::map<std::string, int> mp;

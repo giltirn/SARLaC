@@ -44,7 +44,8 @@ struct extraFlattenIO<bootstrapDistribution<T,V> >{
   static inline void read(HDF5reader &reader, std::vector<bootstrapDistribution<T,V> > &value){
     std::vector<int> conf;
     CPSfit::read(reader,conf,"confidence");
-    for(int i=0;i<conf.size();i++) value[i].confidence() = conf[i];
+    for(int i=0;i<conf.size();i++)
+      value[i].confidence() = conf[i];
 
     std::vector<T> avg;
     CPSfit::read(reader,avg,"avg");
@@ -83,39 +84,6 @@ struct extraFlattenIO<bootstrapDistribution<T,V> >{
 };
 
 #endif //HAVE_HDF5
-
-//Specialize the helper class for conversion to and from vector<Distribution<POD-type> >
-template<typename PODtype, typename StructType, template<typename> class V1, template<typename> class V2>
-struct standardIOhelper<bootstrapDistribution<PODtype,V1>, bootstrapDistribution<StructType,V2> >{
-  typedef bootstrapDistribution<PODtype,V1> DistributionOfPODtype;
-  typedef bootstrapDistribution<StructType,V2> DistributionOfStructType;
-
-  static inline void extractStructEntry(DistributionOfPODtype &to, const DistributionOfStructType &from, const int param_idx){
-    const int nsample = from.size();
-    to.resize(from.size());
-    for(int s=0;s<nsample;s++) to.sample(s) = from.sample(s)(param_idx);
-    to.best() = from.best()(param_idx);
-    to.confidence() = from.confidence();
-  }
-  static inline void setupDistributionOfStruct(DistributionOfStructType &to, const int nparams, const int nsample){
-    to.resize(nsample);
-    StructType base;
-    _actionResize<StructType, hasResizeMethod<StructType>::value>::doit(base, nparams);
-    for(int s=0;s<nsample;s++) to.sample(s) = base;
-    to.best() = base;
-  }
-      
-  static inline void insertStructEntry(DistributionOfStructType &to, const DistributionOfPODtype &from, const int param_idx){
-    const int nsample = from.size();
-    for(int s=0;s<nsample;s++){
-      to.sample(s)(param_idx) = from.sample(s);
-    }
-    to.best()(param_idx) = from.best();
-    to.confidence() = from.confidence();
-  }
-};
-
-
 
 CPSFIT_END_NAMESPACE
 

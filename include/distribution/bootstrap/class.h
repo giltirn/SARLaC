@@ -21,7 +21,7 @@ struct bootstrapDistributionOptions{
 struct bootstrapInitType: public OstreamHook{
   int boots;
   int confidence;
-  bootstrapInitType(const int b = bootstrapDistributionOptions::defaultBoots(), const int c = bootstrapDistributionOptions::defaultConfidence()): boots(b), confidence(c){}
+  explicit bootstrapInitType(const int b = bootstrapDistributionOptions::defaultBoots(), const int c = bootstrapDistributionOptions::defaultConfidence()): boots(b), confidence(c){}
   inline bool operator==(const bootstrapInitType &r) const{ return boots==r.boots && confidence==r.confidence; }
   inline bool operator!=(const bootstrapInitType &r) const{ return !(*this == r); }
   void write(std::ostream &os) const{ os << "(boots=" << boots<< ", confidence=" << confidence <<")"; }
@@ -54,6 +54,15 @@ public:
   using rebase = bootstrapDistribution<T,_VectorType>;
 
   inline initType getInitializer() const{ return initType(this->size(), this->_confidence); }
+
+  inline void resize(int boots){
+    this->baseType::resize(boots);
+  }
+
+  inline void resize(const initType &init){ 
+    this->baseType::resize(init.boots);
+    _confidence = init.confidence;
+  }
 
   inline const DataType & propagatedCentral() const{ return avg; }
   inline DataType & propagatedCentral(){ return avg; }
@@ -238,7 +247,9 @@ public:
     return out;
   }
 
-  inline bool operator==(const bootstrapDistribution<DataType,VectorType> &r) const{ return r._confidence == _confidence && r.avg == avg && this->baseType::operator==(r); }
+  inline bool operator==(const bootstrapDistribution<DataType,VectorType> &r) const{
+    return r._confidence == _confidence && r.avg == avg && this->baseType::operator==(r); 
+  }
   inline bool operator!=(const bootstrapDistribution<DataType,VectorType> &r) const{ return !( *this == r ); }
 };
 

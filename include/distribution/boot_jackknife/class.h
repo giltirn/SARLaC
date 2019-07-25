@@ -203,7 +203,12 @@ public:
     return out;
   }
 
-  inline bool operator==(const bootJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ return this->base_jack == r.base_jack && this->baseType::operator==(r); }
+  inline bool operator==(const bootJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ 
+    return 
+      this->_confidence == r._confidence && 
+      this->base_jack == r.base_jack && 
+      this->baseType::operator==(r); 
+  }
   inline bool operator!=(const bootJackknifeDistribution<BaseDataType,BaseVectorType> &r) const{ return !( *this == r ); }
 };
 
@@ -235,7 +240,7 @@ struct printStats< bootJackknifeDistribution<T,V> >{
 
 template<typename T, template<typename> class V>
 bootJackknifeDistribution<T,V> weightedAvg(const std::vector<bootJackknifeDistribution<T,V> const*> &v){
-  bootJackknifeInitType initv(v[0]->sample(0)->size(), v[0]->size(), v[0]->confidence());
+  bootJackknifeInitType initv(v[0]->sample(0).size(), v[0]->size(), v[0]->confidence());
 
   bootJackknifeDistribution<T,V> wavg_dj(initv);
   std::vector<jackknifeDistribution<T,V> const*> towavg_j(v.size());
