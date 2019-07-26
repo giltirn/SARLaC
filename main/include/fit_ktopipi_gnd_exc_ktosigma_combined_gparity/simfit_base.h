@@ -54,10 +54,12 @@ struct simultaneousFitBase: public simultaneousFitCommon{
 		     const DistributionType<Params, basic_vector> &freeze_vals,
 		     const Params &guess,
 		     const bool correlated, const CovarianceMatrix covariance_matrix){
-
-    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy>::type FitPolicies;
-
+    
     typedef DistributionType<double, basic_vector> DistributionTypeD;
+
+    typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy, 
+				      MarquardtLevenbergMinimizerPolicy, DistributionTypeD>::type FitPolicies;
+
     const int nQ = fit_data.getNq();
     params.resize(nQ);
 

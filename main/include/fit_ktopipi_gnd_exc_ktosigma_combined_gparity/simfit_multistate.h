@@ -190,7 +190,7 @@ public:
   
     this->runfit(params, simfit_data, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, correlated, covariance_matrix);
  
-    //plotErrorWeightedData2expFlat(ktopipi_A0_all_j, ktopipi_exc_A0_all_j, ktosigma_A0_all_j, params, Lt, tmin_k_op, tmin_op_snk, fitfunc);
+    plotErrorWeightedDataNexpFlat(fit_data.getFitData(), operators, params, this->mK, this->cK, this->nstate, Lt, tmin_k_op, tmin_op_snk);
 
     return params;
   }

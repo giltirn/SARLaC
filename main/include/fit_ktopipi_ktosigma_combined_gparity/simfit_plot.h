@@ -6,17 +6,22 @@
 
 CPSFIT_START_NAMESPACE
 
-
-inline jackknifeDistributionD peek(const std::string &tag, const jackknifeDistribution<taggedValueContainer<double,std::string> > &params){
-  int nsample = params.size();
+template< template<typename, template<typename> class> class DistributionType > 
+inline DistributionType<double, basic_vector> peek(const std::string &tag, 
+						   const DistributionType<taggedValueContainer<double,std::string>, basic_vector > &params){
+  typedef iterate< DistributionType<taggedValueContainer<double,std::string>, basic_vector > > iter_p;
+  typedef iterate< DistributionType<double, basic_vector> > iter_v;
   int index = params.sample(0).index(tag);
-  return jackknifeDistributionD(nsample, [&](const int s){ return params.sample(s)(index); });
+  DistributionType<double, basic_vector> out(params.getInitializer());
+  for(int s=0;s<iter_p::size(params);s++) iter_v::at(s, out) = iter_p::at(s, params)(index);
+  return out;
 }
 
-void filterAndErrWeightedAvgData(correlationFunction<double, jackknifeDistributionD> &data_wavg,
-				 std::vector<correlationFunction<double, jackknifeDistributionD> > &data_tsepkpi,
+template<typename DistributionType>
+void filterAndErrWeightedAvgData(correlationFunction<double, DistributionType> &data_wavg,
+				 std::vector<correlationFunction<double, DistributionType> > &data_tsepkpi,
 				 std::map<int, int> &idx_tsep_k_pi_idx_map,
-				 const correlationFunction<amplitudeDataCoord, jackknifeDistributionD> &data_in,
+				 const correlationFunction<amplitudeDataCoord, DistributionType> &data_in,
 				 const int tmin_k_op, const int Lt, const std::string &descr){
   //Pick out data with t >= tmin_k_op and compute weights
   std::vector< std::vector<int> > dmap(Lt); //indices  [t_op_pi]
@@ -67,7 +72,7 @@ void filterAndErrWeightedAvgData(correlationFunction<double, jackknifeDistributi
       }
       
       //Construct weighted avg
-      jackknifeDistributionD v = wmap[t][0] * data_in.value( dmap[t][0] );
+      DistributionType v = wmap[t][0] * data_in.value( dmap[t][0] );
       
       for(int i=1;i<dmap[t].size();i++)
 	v = v + wmap[t][i] * data_in.value( dmap[t][i] );
@@ -83,12 +88,12 @@ void filterAndErrWeightedAvgData(correlationFunction<double, jackknifeDistributi
   }
 }
 
-
-correlationFunction<amplitudeDataCoord, jackknifeDistributionD> removeGroundStateDependence(const correlationFunction<amplitudeDataCoord, jackknifeDistributionD> &in_data,
-											    const jackknifeDistributionD &AK, const jackknifeDistributionD &mK,
-											    const jackknifeDistributionD &Aop0, const jackknifeDistributionD &E0){
-    typedef correlationFunction<amplitudeDataCoord, jackknifeDistributionD> CorrFuncType;
-    typedef CorrFuncType::ElementType Etype;
+template<typename DistributionType>
+inline correlationFunction<amplitudeDataCoord, DistributionType> removeGroundStateDependence(const correlationFunction<amplitudeDataCoord, DistributionType> &in_data,
+											     const DistributionType &AK, const DistributionType &mK,
+											     const DistributionType &Aop0, const DistributionType &E0){
+    typedef correlationFunction<amplitudeDataCoord, DistributionType> CorrFuncType;
+    typedef typename CorrFuncType::ElementType Etype;
 
     return CorrFuncType(in_data.size(),
 			[&](const int i){

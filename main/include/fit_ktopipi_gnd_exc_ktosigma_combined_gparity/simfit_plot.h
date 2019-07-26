@@ -358,20 +358,24 @@ void plotErrorWeightedData3expFlat(const std::vector<correlationFunction<amplitu
   }
 }
 
+//Fit params must contain tagged parameters:  E* M*  Apipi* Apipi_exc_*  Asigma* (* \in (0..nstate-1) ). The last 3 are optional depending on operators used
 
 
-void plotErrorWeightedDataNexpFlat(const ResampledData<jackknifeDistributionD> &data_j,
+template< template<typename, template<typename> class> class DistributionType > 
+void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, basic_vector> > &data_j,
 				   const std::vector<PiPiOperator> &operators,
-				   const FitSimGenMultiStateWavg &fitfunc,
-				   const std::vector<jackknifeDistribution<FitSimGenMultiStateWavg::Params> > &fit_params,
-				   const jackknifeDistributionD &mK, const jackknifeDistributionD &AK,
+				   const std::vector<DistributionType<taggedValueContainer<double,std::string>, basic_vector> > &fit_params,
+				   const DistributionType<double, basic_vector> &mK,
+				   const DistributionType<double, basic_vector> &AK,
+				   const int nstate,
 				   const int Lt, const int tmin_k_op, const int tmin_op_snk){
+  typedef DistributionType<double, basic_vector> DistributionTypeD;
+
   const int nop = operators.size();
-  const int nstate = fitfunc.Nstate();
   const int nQ = fit_params.size();
 
-  typedef FitSimGenMultiStateWavg::Params Params;
-  typedef correlationFunction<amplitudeDataCoord, jackknifeDistributionD> CorrFunc;
+  typedef taggedValueContainer<double,std::string> Params;
+  typedef correlationFunction<amplitudeDataCoord, DistributionTypeD> CorrFunc;
 
   static const std::vector<PiPiOperator> all_ops = {PiPiOperator::PiPiGnd, PiPiOperator::PiPiExc, PiPiOperator::Sigma};
   static const std::vector<std::string> all_ops_pfmt = {"Apipi%d", "Apipi_exc_%d", "Asigma%d"};
@@ -390,7 +394,7 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<jackknifeDistributionD> &
   for(int q=0;q<nQ;q++){
 
     //Get the fit parameters
-    std::vector<std::vector<jackknifeDistributionD> > A(nop, std::vector<jackknifeDistributionD>(nstate));
+    std::vector<std::vector<DistributionTypeD> > A(nop, std::vector<DistributionTypeD>(nstate));
     for(int o=0;o<nop;o++){
       int opidx=op_idx[o];
       for(int s=0;s<nstate;s++){
@@ -399,8 +403,8 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<jackknifeDistributionD> &
 	A[o][s] = peek(pnm, fit_params[q]);
       }
     }
-    std::vector<jackknifeDistributionD> E(nstate);
-    std::vector<jackknifeDistributionD> M(nstate);
+    std::vector<DistributionTypeD> E(nstate);
+    std::vector<DistributionTypeD> M(nstate);
     
     for(int s=0;s<nstate;s++){
       E[s] = peek(stringize("E%d",s),fit_params[q]);
@@ -420,7 +424,7 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<jackknifeDistributionD> &
     //tsep_k_pi - t = t_op_pi
     
     //Generate error weighted average over data with same t_op_pi and also split data out over different tsep_k_op
-    typedef correlationFunction<double, jackknifeDistributionD> PlotCorrFuncType;
+    typedef correlationFunction<double, DistributionTypeD> PlotCorrFuncType;
     std::vector<PlotCorrFuncType> qdata_wavg(nop);
     std::vector<std::vector<PlotCorrFuncType> > qdata_tsepkop(nop);
     std::vector<std::map<int, int> > op_idx_tsepkop_map(nop);
@@ -440,13 +444,13 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<jackknifeDistributionD> &
     double delta = double(tsep_k_op_max-tmin_op_snk)/(npoint - 1);
     for(int i=0;i<npoint;i++){
       double t_op_snk = tmin_op_snk + i*delta;
-      jackknifeDistributionD gnd = M[0];
+      DistributionTypeD gnd = M[0];
       curve_ground.push_back(t_op_snk, gnd);
 
       for(int o=0;o<nop;o++){
-	jackknifeDistributionD sum = gnd;
+	DistributionTypeD sum = gnd;
 	for(int s=1;s<nstate;s++){
-	  jackknifeDistributionD term = A[o][s]*M[s]*exp(-(E[s]-E[0])*t_op_snk)/A[o][0];
+	  DistributionTypeD term = A[o][s]*M[s]*exp(-(E[s]-E[0])*t_op_snk)/A[o][0];
 	  curve_exc[o][s-1].push_back(t_op_snk, term);
 	  sum = sum + term;
 	}
@@ -457,7 +461,7 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<jackknifeDistributionD> &
     {
       //Plot
       MatPlotLibScriptGenerate plotter;
-      typedef DataSeriesAccessor<PlotCorrFuncType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
+      typedef DataSeriesAccessor<PlotCorrFuncType, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<DistributionTypeD> > accessor;
 
       static const char colors[6] = { 'r','g','b','c','m','k' };
       assert(nop <= 6);

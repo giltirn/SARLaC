@@ -1,5 +1,5 @@
-#ifndef _FIT_KTOPIPI_KTOSIGMA_GPARITY_CMDLINE_H
-#define _FIT_KTOPIPI_KTOSIGMA_GPARITY_CMDLINE_H
+#ifndef _FIT_KTOPIPI_KTOSIGMA_GPARITY_BOOTSTRAP_CMDLINE_H
+#define _FIT_KTOPIPI_KTOSIGMA_GPARITY_BOOTSTRAP_CMDLINE_H
 
 #include<config.h>
 #include<utils/macros.h>
@@ -35,7 +35,11 @@ struct CMDline{
   bool save_resampled_data_container_checkpoint;
   std::string save_resampled_data_container_checkpoint_file;
 
+  bool load_boot_resample_table;
+  std::string load_boot_resample_table_file;
 
+  bool save_boot_resample_table;
+  std::string save_boot_resample_table_file;
 
   CMDline(){
 #define INIT_ARGS(NM)				\
@@ -54,6 +58,9 @@ struct CMDline{
 
     load_resampled_data_container_checkpoint = false;
     save_resampled_data_container_checkpoint = false;
+
+    load_boot_resample_table = false;
+    save_boot_resample_table = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -111,14 +118,20 @@ struct CMDline{
 	load_resampled_data_container_checkpoint = true;
 	load_resampled_data_container_checkpoint_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-load_boot_resample_table"){ 
+	load_boot_resample_table = true;
+	load_boot_resample_table_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_boot_resample_table"){ 
+	save_boot_resample_table = true;
+	save_boot_resample_table_file = sargv[i+1];
+      	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
     }
   }
 };
-
-
 
 
 

@@ -2,12 +2,23 @@
 #define _FIT_KTOPIPI_GND_EXC_KTOSIGMA_GPARITY_RAW_DATA_H
 
 #include<ktopipi_common/basis_convert.h>
+#include "enums.h"
 
 CPSFIT_START_NAMESPACE
 
 bool doOp(const PiPiOperator op, const std::vector<PiPiOperator> &ops){
   return std::find(ops.begin(),ops.end(),op) != ops.end();
 }
+
+#define COPYOPTS(INTO, NM) \
+  INTO.load_amplitude_data = cmdline.load_##NM##_amplitude_data; \
+  INTO.load_amplitude_data_file = cmdline.load_##NM##_amplitude_data_file; \
+  INTO.save_amplitude_data = cmdline.save_##NM##_amplitude_data; \
+  INTO.save_amplitude_data_file = cmdline.save_##NM##_amplitude_data_file; \
+  INTO.read_opts.load_data_checkpoint = cmdline.load_##NM##_data_checkpoint; \
+  INTO.read_opts.load_data_checkpoint_stub = cmdline.load_##NM##_data_checkpoint_stub; \
+  INTO.read_opts.save_data_checkpoint = cmdline.save_##NM##_data_checkpoint; \
+  INTO.read_opts.save_data_checkpoint_stub = cmdline.save_##NM##_data_checkpoint_stub
 
 struct RawData{
   ProjectedBubbleData *bubble_data_gnd;
@@ -18,7 +29,15 @@ struct RawData{
   std::vector<RawKtoPiPiData *> raw_ktopipi_exc;
   std::vector<RawKtoSigmaData *> raw_ktosigma;
   
-  void read(const Args &args, const CMDline &cmdline){
+  int nsample() const{
+    if(bubble_data_gnd) return bubble_data_gnd->bubble({0}).size();
+    if(bubble_data_exc) return bubble_data_exc->bubble({0}).size();
+    if(bubble_data_sigma) return bubble_data_sigma->bubble({0}).size();
+    assert(0); return -1;
+  }
+
+  template<typename ArgsType, typename CMDlineType>
+  void read(const ArgsType &args, const CMDlineType &cmdline){
     readKtoPiPiAllDataOptions read_opts;
 
     if(doOp(PiPiOperator::PiPiGnd, args.operators)){
@@ -79,12 +98,11 @@ struct RawData{
     }
   }
 
-  template<typename DistributionType>
+  template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
   void resample(std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > &A0_all, const PiPiOperator op, 
-		const Args &args, const CMDline &cmdline, const std::string &descr) const{
-    assert(doOp(op, args.operators));
+		const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler) const{
 
-    basicBinResampler bin_resampler(args.bin_size);    
+    assert(doOp(op, args.operators));
     NumericTensor<DistributionType,1> A0_full_srcavg;
 
     for(int x=0;x<args.tsep_k_pi.size();x++){
@@ -106,6 +124,13 @@ struct RawData{
 	  A0_all[q].push_back(amplitudeDataCoord(t,tsep_k_pi), A0_full_srcavg(&t));
       }
     }
+  }
+
+  template<typename DistributionType, typename ArgsType, typename CMDlineType>
+  void resample(std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > &A0_all, const PiPiOperator op, 
+		const ArgsType &args, const CMDlineType &cmdline, const std::string &descr) const{
+    basicBinResampler bin_resampler(args.bin_size);  
+    resample(A0_all, op, args, cmdline, descr, bin_resampler);
   }
 
   void write(HDF5writer &writer, const std::string &tag) const{
@@ -136,7 +161,8 @@ struct RawData{
 
   RawData(): bubble_data_gnd(NULL), bubble_data_exc(NULL), bubble_data_sigma(NULL){}
   
-  RawData(const Args &args, const CMDline &cmdline): RawData(){
+  template<typename ArgsType, typename CMDlineType>
+  RawData(const ArgsType &args, const CMDlineType &cmdline): RawData(){
     read(args,cmdline);
   }
 

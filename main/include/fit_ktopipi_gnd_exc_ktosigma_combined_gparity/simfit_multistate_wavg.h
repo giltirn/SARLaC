@@ -149,7 +149,7 @@ public:
   
     this->runfit(params, simfit_data, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, correlated, covariance_matrix);
  
-    plotErrorWeightedDataNexpFlat(fit_data.getFitData(), operators, fitfunc, params, this->mK, this->cK, Lt, tmin_k_op, tmin_op_snk);
+    plotErrorWeightedDataNexpFlat(fit_data.getFitData(), operators, params, this->mK, this->cK, this->nstate, Lt, tmin_k_op, tmin_op_snk);
 
     return params;
   }

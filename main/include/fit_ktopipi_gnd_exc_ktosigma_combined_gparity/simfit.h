@@ -8,6 +8,7 @@
 
 #include "simfit_base.h"
 #include "simfit_jackknife_containers.h"
+#include "simfit_bootstrap_containers.h"
 #include "simfit_multistate.h"
 #include "simfit_multistate_wavg.h"
 

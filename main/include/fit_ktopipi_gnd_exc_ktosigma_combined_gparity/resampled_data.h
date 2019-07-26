@@ -36,14 +36,26 @@ public:
       it->second = std::move(conv);
     }
   }
-
-  inline void resample(const RawData &raw, const PiPiOperator op, const Args &args, const CMDline &cmdline, const std::string &descr){
+  template<typename ArgsType, typename CMDlineType>
+  inline void resample(const RawData &raw, const PiPiOperator op, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr){
     raw.resample( (*this)(op), op, args, cmdline, descr);
   }
-  inline void resample(const RawData &raw, const Args &args, const CMDline &cmdline, const std::string &descr){
+  template<typename ArgsType, typename CMDlineType>
+  inline void resample(const RawData &raw, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr){
     for(int i=0;i<args.operators.size();i++)
       raw.resample( (*this)(args.operators[i]), args.operators[i], args, cmdline, descr);
   }
+
+  template<typename ArgsType, typename CMDlineType, typename BinResampler>
+  inline void resample(const RawData &raw, const PiPiOperator op, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler){
+    raw.resample( (*this)(op), op, args, cmdline, descr, bin_resampler);
+  }
+  template<typename ArgsType, typename CMDlineType, typename BinResampler>
+  inline void resample(const RawData &raw, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler){
+    for(int i=0;i<args.operators.size();i++)
+      raw.resample( (*this)(args.operators[i]), args.operators[i], args, cmdline, descr, bin_resampler);
+  }
+
 
 };
 template<typename DistributionType>
