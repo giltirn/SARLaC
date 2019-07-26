@@ -106,6 +106,7 @@ public:
     assert(table[0].size() <= in.size()); //table generation can discard some data
     int nraw = table[0].size();
 
+#pragma omp parallel for
     for(int b=0;b<boots;b++){
       zeroit(this->sample(b));
 

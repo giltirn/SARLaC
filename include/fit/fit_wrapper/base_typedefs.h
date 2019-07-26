@@ -41,11 +41,11 @@ struct baseFitTypedefs{
 
 
 
-//This is the standard implementation of BaseTypes for some generate coordinate type, with the data contained in a correlationFunction object comprising jackknife distributions
+//This is the standard implementation of BaseTypes for some generate coordinate type, with the data contained in a correlationFunction object comprising some kind of distributions (usually jackknife)
 //Minimizer is assumed to take the cost function as its sole template parameter
-template<typename GeneralizedCoordinate>
+template<typename GeneralizedCoordinate, typename _DistributionType = jackknifeDistribution<double> >
 struct standardInputFitTypes{
-  typedef jackknifeDistribution<double> DistributionType;
+  typedef _DistributionType DistributionType;
   typedef correlationFunction<GeneralizedCoordinate,DistributionType> CorrelationFunctionDistribution;
 };
 

@@ -178,8 +178,6 @@ struct resampleTableOptions{
 std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const size_t nboot, 
 						     const BootResampleTableType table_type,
 						     const size_t block_size, RNGstore &rng=RNG, const resampleTableOptions &opt = resampleTableOptions()){
-  assert(rng.isInitialized());
-
   std::vector<std::vector<int> > otable;  //[b][s]
 
   if(opt.read_from_file){ //overrides table_type
@@ -194,6 +192,7 @@ std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const
     read(rd, otable, "resample_table");
   }else{
     std::cout << "Generating resample table" << std::endl;
+    assert(rng.isInitialized());
 
     switch(table_type){
     case BootResampleTableType::Basic:

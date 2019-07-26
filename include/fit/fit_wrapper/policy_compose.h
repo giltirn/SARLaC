@@ -16,7 +16,9 @@ template<typename FitFunc,
 	 template<typename,typename> class FitFuncPolicy, 
 	 template<typename> class CostFunctionPolicy, 
 	 template<typename> class MinimizerPolicy = MarquardtLevenbergMinimizerPolicy,
-	 typename InputFitTypes = standardInputFitTypes<typename FitFunc::GeneralizedCoordinate> >
+	 typename DistributionType = jackknifeDistribution<double>,
+	 typename InputFitTypes = standardInputFitTypes<typename FitFunc::GeneralizedCoordinate, DistributionType> 
+	 >
 struct composeFitPolicy{
   typedef MinimizerPolicy<
             CostFunctionPolicy<
