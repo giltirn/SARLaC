@@ -40,21 +40,48 @@ struct simultaneousFitBase: public simultaneousFitCommon{
 
   virtual void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int dist_size) = 0;
 
-  virtual std::vector<DistributionType<Params, basic_vector> > fit(const ResampledDataContainers<DistributionType> &fit_data,
-								   const std::vector<PiPiOperator> &operators,
-								   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated,
-								   const CovarianceMatrix covariance_matrix) = 0;
+  virtual double evaluateFitFunc(const SimFitCoordGen &coord, const Params &params) const = 0;
+
+  virtual double evaluateFitFunc(const amplitudeDataCoord &coord, PiPiOperator op, const Params &params) const = 0;
+
+  virtual const subsetMapDescr & getParameterMapDescr() const = 0;
+
+  virtual void fit(std::vector<DistributionType<Params, basic_vector> > &params,
+	   std::vector<DistributionType<double, basic_vector> > &chisq,
+	   SimFitDataContainers<DistributionType> &simfit_data,
+	   const std::vector<PiPiOperator> &operators,
+	   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, 
+	   const CovarianceMatrix covariance_matrix,
+		   bool write_output = true) const = 0;
+
+  virtual void generateSimFitData(SimFitDataContainers<DistributionType> &simfit_data,
+				  const ResampledDataContainers<DistributionType> &fit_data,
+				  const std::vector<PiPiOperator> &operators,
+				  const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+				  const CovarianceMatrix covariance_matrix) const = 0;
+
+  //Combines the above two, with possible extra output (eg plots) that require the raw data
+  virtual void fit(std::vector<DistributionType<Params, basic_vector> > &params,
+		   std::vector<DistributionType<double, basic_vector> > &chisq,		   
+		   const ResampledDataContainers<DistributionType> &fit_data,
+		   const std::vector<PiPiOperator> &operators,
+		   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated,
+		   const CovarianceMatrix covariance_matrix, bool write_output = true) const = 0;
+
 
   template<typename FitFunc>
   static void runfit(std::vector<DistributionType<Params, basic_vector> > &params,
+		     std::vector<DistributionType<double, basic_vector> > &chisq,
 		     const SimFitDataContainers<DistributionType> &fit_data,
 		     const subsetMapDescr &pmap_descr,
 		     const FitFunc &fitfunc,
 		     const std::vector<int> &freeze_params,
 		     const DistributionType<Params, basic_vector> &freeze_vals,
 		     const Params &guess,
-		     const bool correlated, const CovarianceMatrix covariance_matrix){
+		     const bool correlated, const CovarianceMatrix covariance_matrix, bool write_output){
     
+    if(write_output) simultaneousFitCommon::printWriteFitData(fit_data.getFitDataAllQ(),pmap_descr);
+
     typedef DistributionType<double, basic_vector> DistributionTypeD;
 
     typedef typename composeFitPolicy<FitFunc, frozenFitFuncPolicy, correlatedFitPolicy, 
@@ -62,14 +89,15 @@ struct simultaneousFitBase: public simultaneousFitCommon{
 
     const int nQ = fit_data.getNq();
     params.resize(nQ);
+    chisq.resize(nQ);
 
     auto init = fit_data.getDistributionInitializer();
+    DistributionTypeD base(init);
 
-    std::vector<DistributionTypeD> chisq(nQ, DistributionTypeD(init)), 
-      chisq_per_dof(nQ, DistributionTypeD(init)), 
-      pvalue(nQ, DistributionTypeD(init));
+    std::vector<DistributionTypeD>  chisq_per_dof(nQ, base), pvalue(nQ, base);
 
     for(int q=0;q<nQ;q++){
+      chisq[q] = base;
       params[q] = DistributionType<Params, basic_vector>(init, guess);
 
       std::cout << "Performing " << q+1 << " fit" << std::endl;
@@ -82,8 +110,16 @@ struct simultaneousFitBase: public simultaneousFitCommon{
 
       if(!correlated) import.setUncorrelated();
           
+      std::cout << "Data in fit" << std::endl;
+      const auto &data_q = fit_data.getFitData(q);
+
+      for(int i=0;i<data_q.size();i++)
+	std::cout << printCoord(data_q.coord(i), pmap_descr) << " " << data_q.value(i) << std::endl;
+
+      std::cout << "Starting fit" << std::endl;
+
       int ndof;
-      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, fit_data.getFitData(q));
+      fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, data_q);
 
       pvalue[q] = DistributionTypeD(init);
       for(int i=0; i<iterate<DistributionTypeD>::size(pvalue[q]); i++) 
@@ -94,9 +130,6 @@ struct simultaneousFitBase: public simultaneousFitCommon{
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
       std::cout << "p-value(chi^2): " << pvalue[q] << std::endl;
-
-      // std::cout << "Analysis of contributions to chi^2" << std::endl;      
-      // analyzeChisqFF<typename FitPolicies::baseFitFunc>(A0_sim_j[q],params[q],fitfunc,pmap_descr);
     }  
     for(int q=0;q<nQ;q++){
       std::cout << "Q" << q+1 << std::endl;
@@ -105,10 +138,13 @@ struct simultaneousFitBase: public simultaneousFitCommon{
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
       std::cout << "p-value: " << pvalue[q] << std::endl;
     }
-    writeParamsStandard(params, "params.hdf5");
-    writeParamsStandard(chisq, "chisq.hdf5");
-    writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
-    writeParamsStandard(pvalue, "pvalue.hdf5");
+
+    if(write_output){
+      writeParamsStandard(params, "params.hdf5");
+      writeParamsStandard(chisq, "chisq.hdf5");
+      writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
+      writeParamsStandard(pvalue, "pvalue.hdf5");
+    }
   }
 
 

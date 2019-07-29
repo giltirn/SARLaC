@@ -30,20 +30,6 @@ struct readKtoPiPiDataOptions{
   }
 };
 
-
-template<typename Resampled, typename Raw, typename Resampler>
-struct resampleFunctorGeneral{
-  const Resampler &resampler;
-  
-  resampleFunctorGeneral(const Resampler &_resampler): resampler(_resampler){}
-
-  inline Resampled operator()(int const* coord,const Raw &from) const{
-    Resampled o(from.size());
-    resampler.resample(o,from);
-    return o;
-  }
-};
-
 NumericTensor<rawDataDistributionD,1> getProjectedBubble(const std::string &data_dir, const std::string &file_fmt,
 							 const int traj_start, const int traj_inc, const int traj_lessthan, 
 							 const int Lt, const int tsep_pipi, 

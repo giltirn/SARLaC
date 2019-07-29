@@ -65,7 +65,8 @@ struct SimFitDataContainers<jackknifeDistribution>{
   }
   
   const SimFitCorrFuncJack & getFitData(const int q) const{ return A0_sim_j[q]; }
-
+  const std::vector<SimFitCorrFuncJack> & getFitDataAllQ() const{ return A0_sim_j; }
+    
   //Func:  void [](auto &corrfunc, const int q)
   template<typename Func, typename CorrelationFunctionType>
   void applyFunctionToInternalCorrFunc(const Func &func, CorrelationFunctionType &corrfunc){

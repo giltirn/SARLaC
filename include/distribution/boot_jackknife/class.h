@@ -62,6 +62,10 @@ public:
     base_jack.resize(init.nsample_best);
   }
 
+  inline void zero(){
+    zeroit(base_jack); this->baseType::zero();
+  }
+
   inline bootJackknifeInitType getInitializer() const{ 
     return bootJackknifeInitType(this->sample(0).size(), this->origEnsJackknife().size(), this->size(), this->_confidence); 
   }

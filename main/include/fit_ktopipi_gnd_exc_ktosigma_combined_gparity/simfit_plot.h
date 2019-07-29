@@ -369,6 +369,7 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
 				   const DistributionType<double, basic_vector> &AK,
 				   const int nstate,
 				   const int Lt, const int tmin_k_op, const int tmin_op_snk){
+  std::cout << "Generating plots of error weighted data versus fit" << std::endl;
   typedef DistributionType<double, basic_vector> DistributionTypeD;
 
   const int nop = operators.size();
@@ -392,6 +393,7 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
   }
 
   for(int q=0;q<nQ;q++){
+    std::cout << "Starting plot for Q" << q+1 << std::endl;
 
     //Get the fit parameters
     std::vector<std::vector<DistributionTypeD> > A(nop, std::vector<DistributionTypeD>(nstate));
@@ -507,8 +509,11 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
       plotter.createLegend();
       std::ostringstream filename_stub; filename_stub << "plot_errw_Q" << q+1 << "_flat";
       plotter.write( filename_stub.str()+".py", filename_stub.str()+".pdf");
+
+      std::cout << "Finished plotting for Q" << q+1 << std::endl;
     }
   }
+  std::cout << "Finished plotting" << std::endl;
 }
 
 

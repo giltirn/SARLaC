@@ -17,7 +17,8 @@ public:
 
   typedef FitSimGenMultiStateWavg FitFunc;
   
-  simultaneousFitMultiStateWavg(const int nstate): simultaneousFitMultiState<DistributionType>(nstate){}
+private:
+  FitFunc *fitfunc; //this will override the fitfunc in the base class
 
   template<typename T>
   static inline T weightedAvg(const correlationFunction<SimFitCoordGen, T> &from, const std::vector<int> &idx){
@@ -95,63 +96,89 @@ public:
    );
   }   
 
-  std::vector<DistributionType<Params, basic_vector> > fit(const ResampledDataContainers<DistributionType> &fit_data,
-							   const std::vector<PiPiOperator> &operators,
-							   const int Lt, const int tmin_k_op, const int tmin_op_snk, 
-							   bool correlated, const CovarianceMatrix covariance_matrix){
-    assert(this->loaded_frzparams);
-    
-    //Get the mappings for the fit parameters
-    paramIdxMap* param_idx_map_ptr = new paramIdxMap; //ensure it sticks around until end of execution
-    auto &param_idx_map = *param_idx_map_ptr;
-    
-    operatorSubsetMap op_param_maps;
-    subsetMapDescr pmap_descr;
+public:
 
-    this->constructParameterMaps(param_idx_map, op_param_maps, pmap_descr, operators, false); //don't include kaon parameters as we divide them out
+  simultaneousFitMultiStateWavg(const int nstate, const std::vector<PiPiOperator> &operators): simultaneousFitMultiState<DistributionType>(nstate){
+    this->constructParameterMaps(this->param_idx_map, this->op_param_maps, this->pmap_descr, operators, false); //don't include kaon parameters as we divide them out
+    this->fitfunc = new FitFunc(this->param_idx_map.size(), nstate);
+  }
+  virtual ~simultaneousFitMultiStateWavg(){ 
+    delete fitfunc; 
+  }
 
+  double evaluateFitFunc(const SimFitCoordGen &coord, const Params &params) const{
+    return fitfunc->value(coord, params);
+  }
+  double evaluateFitFunc(const amplitudeDataCoord &coord, PiPiOperator op, const Params &params) const{
+    InnerParamMap const* op_map = &this->op_param_maps.find(op)->second;
+    SimFitCoordGen sim_coord(coord.t, coord.tsep_k_pi, op_map);
+    return evaluateFitFunc(sim_coord, params);
+  }
+
+
+  void generateSimFitData(SimFitDataContainers<DistributionType> &simfit_data,
+			  const ResampledDataContainers<DistributionType> &fit_data,
+			  const std::vector<PiPiOperator> &operators,
+			  const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+			  const CovarianceMatrix covariance_matrix) const{
+    simfit_data.generateSimData(fit_data, operators, tmin_k_op, tmin_op_snk, this->op_param_maps, this->pmap_descr, covariance_matrix);
+
+    removeKaonDependence(simfit_data);
+    weightedAverage(simfit_data, this->pmap_descr);
+  }
+
+  void fit(std::vector<DistributionType<Params, basic_vector> > &params,
+	   std::vector<DistributionType<double, basic_vector> > &chisq,
+	   const ResampledDataContainers<DistributionType> &fit_data,
+	   const std::vector<PiPiOperator> &operators,
+	   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, 
+	   const CovarianceMatrix covariance_matrix,
+	   bool write_output = true) const{
     SimFitDataContainers<DistributionType> simfit_data;
-    simfit_data.generateSimData(fit_data, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr, covariance_matrix);
+    generateSimFitData(simfit_data, fit_data, operators, Lt, tmin_k_op, tmin_op_snk, covariance_matrix);
+    
+    fit(params, chisq, simfit_data, operators, Lt, tmin_k_op, tmin_op_snk, correlated, covariance_matrix);
+
+    if(write_output) plotErrorWeightedDataNexpFlat(fit_data.getFitData(), operators, params, this->mK, this->cK, this->nstate, Lt, tmin_k_op, tmin_op_snk);
+  }
+
+
+  void fit(std::vector<DistributionType<Params, basic_vector> > &params,
+	   std::vector<DistributionType<double, basic_vector> > &chisq,
+	   const SimFitDataContainers<DistributionType> &simfit_data,
+	   const std::vector<PiPiOperator> &operators,
+	   const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+	   bool correlated, const CovarianceMatrix covariance_matrix,
+	   bool write_output = true) const{
+    assert(this->loaded_frzparams);
 
     const int nQ = simfit_data.getNq(); //could be 7 or 10 depending on basis
-  
-    removeKaonDependence(simfit_data);
-    weightedAverage(simfit_data, pmap_descr);
 
     //Setup guess
-    Params guess(&param_idx_map);
+    Params guess(&this->param_idx_map);
     for(int i=0;i<guess.size();i++) guess(i) = 1.;
     for(int s=0;s<this->nstate;s++)
       guess(stringize("M%d",s)) = 0.5;
-
-    //Setup fitfunc
-    FitFunc fitfunc(param_idx_map.size(), this->nstate);
-       
+     
     //Setup frozen fit params
     auto init = simfit_data.getFitData(0).value(0).getInitializer();
 
     std::vector<int> freeze_params;
-    DistributionType<Params, basic_vector> freeze_vals(init, Params(&param_idx_map));
+    DistributionType<Params, basic_vector> freeze_vals(init, Params(&this->param_idx_map));
   
     for(int s=0; s<this->nstate; s++) 
-      this->freeze(freeze_params, freeze_vals, stringize("E%d",s), this->E[s], param_idx_map);
+      this->freeze(freeze_params, freeze_vals, stringize("E%d",s), this->E[s], this->param_idx_map);
 
     for(int opidx = 0; opidx < operators.size(); opidx++){
       auto op = operators[opidx];
 
       for(int s=0; s<this->nstate; s++) 
-	this->freeze(freeze_params, freeze_vals, stringize(this->opAmplitudeParamFmt(op).c_str(),s), this->coeffs[op][s], param_idx_map);
+	this->freeze(freeze_params, freeze_vals, stringize(this->opAmplitudeParamFmt(op).c_str(),s), this->coeffs.find(op)->second[s], this->param_idx_map);
     }
 
-
     //Run the actual fit
-    std::vector<DistributionType<Params, basic_vector> > params;    
-  
-    this->runfit(params, simfit_data, pmap_descr, fitfunc, freeze_params, freeze_vals, guess, correlated, covariance_matrix);
- 
-    plotErrorWeightedDataNexpFlat(fit_data.getFitData(), operators, params, this->mK, this->cK, this->nstate, Lt, tmin_k_op, tmin_op_snk);
-
-    return params;
+    
+    this->runfit(params, chisq, simfit_data, this->pmap_descr, *fitfunc, freeze_params, freeze_vals, guess, correlated, covariance_matrix, write_output);
   }
 };
 

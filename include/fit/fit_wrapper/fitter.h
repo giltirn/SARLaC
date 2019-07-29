@@ -34,8 +34,8 @@ public:
     const int nsample = data.value(0).size();
     assert(params.size() == nsample);
         
-    chisq.resize(nsample);
-    chisq_per_dof.resize(nsample);
+    chisq.resize(params.getInitializer());
+    chisq_per_dof.resize(params.getInitializer());
     
     if(min_params.verbose) std::cout << "Starting fit with guess " << params << std::endl;
 

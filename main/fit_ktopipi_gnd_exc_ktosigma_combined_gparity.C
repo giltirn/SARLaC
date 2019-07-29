@@ -31,7 +31,7 @@ int main(const int argc, const char* argv[]){
 
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;
 
-  simultaneousFitBase<jackknifeDistribution>* fitter = getFitter<jackknifeDistribution>(args.fitfunc, args.nstate);
+  simultaneousFitBase<jackknifeDistribution>* fitter = getFitter<jackknifeDistribution>(args.fitfunc, args.nstate, args.operators);
 
   fitter->load2ptFitParams(args.operators, args.input_params, nsample); 
 
@@ -95,8 +95,10 @@ int main(const int argc, const char* argv[]){
 
   ResampledDataContainers<jackknifeDistribution> rdata(data_j, data_dj, data_bdj);
 
-  std::vector<jackknifeDistribution<Params> > params = fitter->fit(rdata, args.operators,
-								   args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix);
+  std::vector<jackknifeDistribution<Params> > params;
+  std::vector<jackknifeDistributionD> chisq;
+  fitter->fit(params, chisq, rdata, args.operators,
+	      args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix);
 
   if(args.basis == Basis::Basis7){
     std::cout << "Converting 7 basis results to 10 basis" << std::endl;

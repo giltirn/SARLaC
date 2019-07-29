@@ -7,6 +7,7 @@
 
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/args.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/cmdline.h>
+#include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/bootstrap_pvalue.h>
 
 using namespace CPSfit;
 
@@ -29,7 +30,7 @@ int main(const int argc, const char* argv[]){
   if(cmdline.load_boot_resample_table) std::cout << "Loading boot resample table" << std::endl;
   else std::cout << "*Not* loading boot resample table" << std::endl;
 
-  simultaneousFitBase<bootstrapDistribution>* fitter = getFitter<bootstrapDistribution>(args.fitfunc, args.nstate);
+  simultaneousFitBase<bootstrapDistribution>* fitter = getFitter<bootstrapDistribution>(args.fitfunc, args.nstate, args.operators);
 
   fitter->load2ptFitParams(args.operators, args.input_params, args.nboot); 
 
@@ -96,8 +97,11 @@ int main(const int argc, const char* argv[]){
 
   ResampledDataContainers<bootstrapDistribution> rdata(data_b, data_bj);
 
-  std::vector<bootstrapDistribution<Params> > params = fitter->fit(rdata, args.operators,
-								   args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix);
+  std::vector<bootstrapDistribution<Params> > params;
+  std::vector<bootstrapDistributionD> chisq;
+    
+  fitter->fit(params, chisq, rdata, args.operators,
+	      args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix);
 
   if(args.basis == Basis::Basis7){
     std::cout << "Converting 7 basis results to 10 basis" << std::endl;
@@ -109,6 +113,11 @@ int main(const int argc, const char* argv[]){
 	std::cout << "M" << m << " = " << params_10[q][m] << std::endl;
     }    
   }
+
+  std::vector<double> q2_best(chisq.size());
+  for(int i=0;i<chisq.size();i++) q2_best[i] = chisq[i].best();
+
+  bootstrapPvalue(q2_best, data_b, data_bj, params, fitter, args.operators, args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix);
 
   std::cout << "Done" << std::endl;
   

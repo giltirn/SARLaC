@@ -15,12 +15,12 @@
 CPSFIT_START_NAMESPACE
 
 template< template<typename, template<typename> class> class DistributionType > 
-simultaneousFitBase<DistributionType>* getFitter(const SimFitFunction ff, const int nstate){
+simultaneousFitBase<DistributionType>* getFitter(const SimFitFunction ff, const int nstate, const std::vector<PiPiOperator> &operators){
   switch(ff){
   case SimFitFunction::MultiState:
-    return new simultaneousFitMultiState<DistributionType>(nstate);
+return new simultaneousFitMultiState<DistributionType>(nstate, operators);
   case SimFitFunction::MultiStateWavg:
-    return new simultaneousFitMultiStateWavg<DistributionType>(nstate);
+return new simultaneousFitMultiStateWavg<DistributionType>(nstate, operators);
   default:
     assert(0);
   }

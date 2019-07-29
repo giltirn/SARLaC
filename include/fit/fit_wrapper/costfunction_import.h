@@ -38,7 +38,6 @@ struct importCostFunctionParameters<uncorrelatedFitPolicy,FitPolicies>{
 
   void writeCovarianceMatrixHDF5(const std::string &file) const{
 #ifdef HAVE_HDF5
-    int nsample = sigma(0).size();
     NumericSquareMatrix<DistributionType> cov(sigma.size());					      
     for(int i=0;i<sigma.size();i++) cov(i,i) = sigma(i) * sigma(i);      
     HDF5writer wr(file);

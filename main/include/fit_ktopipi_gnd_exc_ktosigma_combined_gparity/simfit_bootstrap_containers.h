@@ -54,6 +54,7 @@ struct SimFitDataContainers<bootstrapDistribution>{
   }
   
   const SimFitCorrFuncBoot & getFitData(const int q) const{ return A0_sim_b[q]; }
+  const std::vector<SimFitCorrFuncBoot> & getFitDataAllQ() const{ return A0_sim_b; }
 
   //Func:  void [](auto &corrfunc, const int q)
   template<typename Func, typename CorrelationFunctionType>
