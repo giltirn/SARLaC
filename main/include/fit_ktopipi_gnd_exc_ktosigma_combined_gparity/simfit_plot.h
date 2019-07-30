@@ -425,11 +425,11 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
     //M0 + (A1/A0)*M1*exp(-(E1-E0) * (tsep_k_pi - t)) + (A2/A0)*M2*exp(-(E2-E0) * (tsep_k_pi - t)) + ....  
     //tsep_k_pi - t = t_op_pi
     
-    //Generate error weighted average over data with same t_op_pi and also split data out over different tsep_k_op
+    //Generate error weighted average over data with same t_op_pi and also split data out over different tsep_k_op  (op here refers to the sink operator)
     typedef correlationFunction<double, DistributionTypeD> PlotCorrFuncType;
     std::vector<PlotCorrFuncType> qdata_wavg(nop);
-    std::vector<std::vector<PlotCorrFuncType> > qdata_tsepkop(nop);
-    std::vector<std::map<int, int> > op_idx_tsepkop_map(nop);
+    std::vector<std::vector<PlotCorrFuncType> > qdata_tsepkop(nop); //[op][tsep_k_pi_idx] {data}   note tsep_k_pi_idx is an index for the available tsep_k_pi (mapping below)
+    std::vector<std::map<int, int> > op_idx_tsepkop_map(nop); //for each op, a map of tsep_k_op index to tsep_k_op
 
     int tsep_k_op_max = -1;
     for(int o=0;o<nop;o++){ 
@@ -479,7 +479,7 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
 
       //Individual tseps
       for(int o=0;o<nop;o++){
-	for(int i=0;i<qdata_tsepkop.size();i++){
+	for(int i=0;i<qdata_tsepkop[o].size();i++){
 	  int tsep_k_op = op_idx_tsepkop_map[o][i];
 	  auto handle = plotter.plotData(accessor(qdata_tsepkop[o][i]), {{"color",colors[o]}}, stringize("%s_tsep_k_pi%d", shortd[o].c_str(),tsep_k_op));
 	  plotter.setLegend(handle, stringize("%s $t_{\\rm sep}^{K\\to{\\rm op}}=%d$", latex[o].c_str(),tsep_k_op));

@@ -112,6 +112,8 @@ void run(const std::vector<symbolInfo> &symbols, const DistributionTypeEnum type
     specDtype<doubleJackknifeDistribution<double> >(symbols,type,expr,outfile);  break;
   case DistributionTypeEnum::SuperJackknife:
     specDtype<superJackknifeDistribution<double> >(symbols,type,expr,outfile);  break;    
+  case DistributionTypeEnum::Bootstrap:
+    specDtype<bootstrapDistribution<double> >(symbols,type,expr,outfile);  break;
   default:
     error_exit(std::cout << "run(...) unknown type " << type << std::endl);
   }

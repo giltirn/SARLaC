@@ -61,12 +61,13 @@ def latex_print(filename, elem, **kwargs):
     out = "$%s$" % out
     return out
 
-#Print the first line stored in a file
-def line_print(filename):
+#Print the nth line stored in a file
+def line_print(filename, line=0):
     if(os.path.isfile(filename) == False):
         return "ERR %s" % filename
     file = open(filename, 'r') 
-    out = file.readline()
+    for i in range(line+1):
+        out = file.readline()
     out = out.rstrip('\r\n')
     return out
 

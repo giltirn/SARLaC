@@ -18,9 +18,9 @@ inline DistributionType<double, basic_vector> peek(const std::string &tag,
 }
 
 template<typename DistributionType>
-void filterAndErrWeightedAvgData(correlationFunction<double, DistributionType> &data_wavg,
-				 std::vector<correlationFunction<double, DistributionType> > &data_tsepkpi,
-				 std::map<int, int> &idx_tsep_k_pi_idx_map,
+void filterAndErrWeightedAvgData(correlationFunction<double, DistributionType> &data_wavg, //data that has been weighted avg
+				 std::vector<correlationFunction<double, DistributionType> > &data_tsepkpi, //for each tsep_k_pi index, the data
+				 std::map<int, int> &tsep_k_pi_idx_to_tsep_k_pi_map, //map of tsep_k_pi index to tsep_k_pi
 				 const correlationFunction<amplitudeDataCoord, DistributionType> &data_in,
 				 const int tmin_k_op, const int Lt, const std::string &descr){
   //Pick out data with t >= tmin_k_op and compute weights
@@ -44,7 +44,7 @@ void filterAndErrWeightedAvgData(correlationFunction<double, DistributionType> &
     double w = data_in.value(i).standardError();
     w = 1./w/w;
 
-    std::cout << descr << " including data point " << i << " with t_op_pi " << t_op_pi << " and value " << data_in.value(i) << " and weight " << w << ": running sum of weights for this t " << wsum[t_op_pi] << std::endl;
+    std::cout << descr << " including data point " << i << " with t_op_pi " << t_op_pi << "(tk_pi " << data_in.coord(i).tsep_k_pi << ") and value " << data_in.value(i) << " and weight " << w << ": running sum of weights for this t " << wsum[t_op_pi] << std::endl;
 
     dmap[t_op_pi].push_back(i);
     wmap[t_op_pi].push_back(w);
@@ -54,9 +54,11 @@ void filterAndErrWeightedAvgData(correlationFunction<double, DistributionType> &
   //Map available tsep_k_pi to an index from 0 to the number of available tsep_k_pi
   std::map<int, int> tsep_k_pi_idx_map;
   int idx = 0;
+  std::cout << "t_k_pi index mapping:" << std::endl;
   for(auto it = tsep_k_pi_set.begin(); it != tsep_k_pi_set.end(); ++it){
-    idx_tsep_k_pi_idx_map[idx] = *it;
-    tsep_k_pi_idx_map[*it] = idx++;
+    std::cout << idx << " <-> " << *it << std::endl;
+    tsep_k_pi_idx_to_tsep_k_pi_map[idx] = *it; //idx -> tsep_k_pi
+    tsep_k_pi_idx_map[*it] = idx++; //tsep_k_pi -> idx
   }
     
   //Sort data and construct error weighted averages
