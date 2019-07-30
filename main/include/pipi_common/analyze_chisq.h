@@ -14,16 +14,28 @@ struct CoordPrintPolicyBasic{
 
 enum WhichMatrix{ Covariance, Correlation, CorrelationLedoitWolf };
 
-template<typename FitFunc, typename CoordPrintPolicy = CoordPrintPolicyBasic<typename FitFunc::GeneralizedCoordinate>  >
+//For Covariance matrix
+//q^2 = \sum_ij ( x_i - f_i ) C^-1_ij ( x_j - f_j )
+//    = \sum_a\sum_ij ( x_i - f_i ) v^a_i (1/L^a) v^a_j ( x_j - f_j )  =  \sum_a (1/L^a) [\sum_i (x_i - f_i) v^a_i]^2  
+
+//For Correlation matrix
+//q^2 = \sum_ij ( x_i - f_i )/s_i   C^-1_ij ( x_j - f_j )/ s_j         [s_i are sigma]
+//    = \sum_a\sum_ij ( x_i - f_i )/s_i v^a_i (1/L^a) v^a_j ( x_j - f_j )/s_j  =  \sum_a (1/L^a) [\sum_i (x_i - f_i)/s_i v^a_i]^2
+
+template<typename FitFunc, 
+	 template<typename, template<typename> class> class DistributionType, 
+	 typename CoordPrintPolicy = CoordPrintPolicyBasic<typename FitFunc::GeneralizedCoordinate>  >
 class AnalyzeChisq{
   typedef typename FitFunc::GeneralizedCoordinate GeneralizedCoordinate;
   typedef typename FitFunc::ParameterType ParameterType;
+  typedef DistributionType<double, basic_vector> DistributionTypeD;
+  typedef DistributionType<ParameterType, basic_vector> DistributionTypeP;
   
-  static NumericSquareMatrix<double> computeFrozenCovMat(const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange){
+  static NumericSquareMatrix<double> computeFrozenCovMat(const correlationFunction<GeneralizedCoordinate, DistributionTypeD> &data_inrange){
     NumericSquareMatrix<double> cov(data_inrange.size());
     for(int i=0;i<cov.size();i++)
       for(int j=0;j<cov.size();j++)
-	cov(i,j) = jackknifeDistributionD::covariance(data_inrange.value(i),data_inrange.value(j));
+	cov(i,j) = DistributionTypeD::covariance(data_inrange.value(i),data_inrange.value(j));
     return cov;
   }
   
@@ -71,21 +83,22 @@ class AnalyzeChisq{
   //Evaluate the fit func across the data range using the input parameters
   //Need data only for the generalized coordinates
   static NumericVector<double> evalFitFunc(const FitFunc &fitfunc, const ParameterType &params, 
-				    const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange){
+				    const correlationFunction<GeneralizedCoordinate, DistributionTypeD> &data_inrange){
     NumericVector<double> out(data_inrange.size());
     for(int i=0;i<data_inrange.size();i++)
       out(i) = fitfunc.value(data_inrange.coord(i), params);
     return out;
   }
-  //Same as above but use central value of fit param jackknife
-  static inline NumericVector<double> evalFitFunc(const FitFunc &fitfunc, const jackknifeDistribution<ParameterType> &params, 
-					   const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange){
+  //Same as above but use central value of fit param distribution
+  static inline NumericVector<double> evalFitFunc(const FitFunc &fitfunc, 
+						  const DistributionTypeP &params, 
+						  const correlationFunction<GeneralizedCoordinate, DistributionTypeD> &data_inrange){
     return evalFitFunc(fitfunc, params.best(), data_inrange);
   }
    
-  const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange;
+  const correlationFunction<GeneralizedCoordinate, DistributionTypeD> &data_inrange;
   const FitFunc &fitfunc;
-  const jackknifeDistribution<ParameterType> &params;
+  const DistributionTypeP &params;
 
   NumericSquareMatrix<double> cov;
   std::vector<double> cov_evals;
@@ -129,6 +142,7 @@ class AnalyzeChisq{
   NumericVector<double> delta;
   NumericVector<double> delta_nrm;
 
+  //Return f_i  (Covariance) or  f_i/s_i  (Correlation)
   const NumericVector<double> &getFitVals(const WhichMatrix m) const{
     switch(m){
     case Covariance:
@@ -138,6 +152,8 @@ class AnalyzeChisq{
       return fitval_cen_nrm;
     }
   }     
+
+  //Return x_i  (Covariance) or  x_i/s_i  (Correlation)
   const NumericVector<double> &getDataVals(const WhichMatrix m) const{
     switch(m){
     case Covariance:
@@ -147,6 +163,8 @@ class AnalyzeChisq{
       return dataval_cen_nrm;
     }
   }  
+  
+  //Return (x_i - f_i)  (Covariance) or  (x_i - f_i)/s_i  (Correlation)
   const NumericVector<double> &getDeltaVals(const WhichMatrix m) const{
     switch(m){
     case Covariance:
@@ -170,9 +188,9 @@ class AnalyzeChisq{
 
 public:
 
-  AnalyzeChisq(const correlationFunction<GeneralizedCoordinate, jackknifeDistributionD> &data_inrange,
+  AnalyzeChisq(const correlationFunction<GeneralizedCoordinate, DistributionTypeD> &data_inrange,
 	       const FitFunc &fitfunc,
-	       const jackknifeDistribution<ParameterType> &params,
+	       const DistributionTypeP &params,
 	       double ledoit_wolf_lambda = 0.): data_inrange(data_inrange), fitfunc(fitfunc), params(params){
     //Covariance matrix
     cov = computeFrozenCovMat(data_inrange);

@@ -8,9 +8,10 @@
 
 CPSFIT_START_NAMESPACE
 
-template<typename FitFunc>
-void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,
-		    const jackknifeDistribution<typename FitFunc::ParameterType> &params, const FitFunc &fitfunc,
+template<typename FitFunc,
+	 template<typename, template<typename> class> class DistributionType>
+void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  DistributionType<double, basic_vector> > &corr_comb_j,
+		    const DistributionType<typename FitFunc::ParameterType, basic_vector> &params, const FitFunc &fitfunc,
 		    const std::map<std::unordered_map<std::string, std::string> const*, std::string> &pmap_descr){
   struct PP{
     typedef std::map<std::unordered_map<std::string, std::string> const*, std::string> const* PtrType;
@@ -21,7 +22,7 @@ void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistribu
   };
   PP::descr() = &pmap_descr;
   
-  AnalyzeChisq<FitFunc,PP> chisq_analyze(corr_comb_j, fitfunc, params);
+  AnalyzeChisq<FitFunc,DistributionType,PP> chisq_analyze(corr_comb_j, fitfunc, params);
   chisq_analyze.printChisqContribs(Correlation);
   chisq_analyze.examineProjectedDeviationContribsEvalNorm(Correlation);
   chisq_analyze.printChisqContribs(Covariance);
@@ -130,6 +131,8 @@ struct simultaneousFitBase: public simultaneousFitCommon{
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
       std::cout << "p-value(chi^2): " << pvalue[q] << std::endl;
+
+      if(write_output) analyzeChisqFF(fit_data.getFitData(q), params[q], fitfunc, pmap_descr);
     }  
     for(int q=0;q<nQ;q++){
       std::cout << "Q" << q+1 << std::endl;

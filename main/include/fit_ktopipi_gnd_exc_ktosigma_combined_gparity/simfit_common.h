@@ -14,7 +14,7 @@ struct printCoord{
 };
 std::ostream & operator<<(std::ostream &os, const printCoord &p){ 
   auto it = p.pmap_descr.find(p.c.param_map); assert(it != p.pmap_descr.end());
-  os << "(" << it->second << ", t=" << p.c.t << " tsep_K_snk=" << p.c.tsep_k_snk << ")";
+  os << "(" << it->second << ", t=" << p.c.t << " tsep_K_snk=" << p.c.tsep_k_snk << " tsep_op_snk=" << p.c.tsep_k_snk - p.c.t << ")";
   return os;
 }
 
