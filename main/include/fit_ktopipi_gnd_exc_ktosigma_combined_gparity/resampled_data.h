@@ -15,6 +15,25 @@ class ResampledData{
 public:
   GENERATE_HDF5_SERIALIZE_METHOD( (data) );
 
+  void constrainSourceSinkSep(const PiPiOperator op, const std::vector<int> tsep_k_snk_keep){
+    auto it = data.find(op);
+    if(it != data.end()){
+      CorrFuncAllQ &corr = it->second;
+      int nq = corr.size();
+      for(int q=0;q<nq;q++){
+	auto cit = corr[q].begin();
+	while(cit != corr[q].end()){
+	  int tsep_k_snk = cit->first.tsep_k_pi;
+	  bool not_in_list = std::find(tsep_k_snk_keep.begin(), tsep_k_snk_keep.end(), tsep_k_snk) == tsep_k_snk_keep.end();
+	  if(not_in_list){
+	    std::cout << op << " removing " << cit->first << " as tsep_k_pi not in input list" << std::endl;
+	    cit = corr[q].remove(cit);
+	  }else ++cit;
+	}
+      }
+    }
+  }
+  
   bool contains(const PiPiOperator op) const{ return data.find(op) != data.end(); }
   
   CorrFuncAllQ & operator()(const PiPiOperator op){ 

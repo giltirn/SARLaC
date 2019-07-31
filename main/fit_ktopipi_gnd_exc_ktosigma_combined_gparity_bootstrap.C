@@ -92,6 +92,14 @@ int main(const int argc, const char* argv[]){
     data_bj.convertBasis10to7();
   }
 
+  //Constrain tsep_k_snk to those in input file (in case we read resampled data that contains more)
+  std::map<PiPiOperator, std::vector<int> const*> op_tsep_list = {  {PiPiOperator::PiPiGnd, &args.tsep_k_pi}, {PiPiOperator::PiPiExc, &args.tsep_k_pi}, {PiPiOperator::Sigma, &args.tsep_k_sigma} };
+
+  for(int o=0;o<args.operators.size();o++){
+    data_b.constrainSourceSinkSep(args.operators[o], *op_tsep_list[args.operators[o]]);
+    data_bj.constrainSourceSinkSep(args.operators[o], *op_tsep_list[args.operators[o]]);
+  }
+
   std::cout << "Starting fits" << std::endl;
   typedef taggedValueContainer<double,std::string> Params;
 

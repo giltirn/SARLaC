@@ -119,7 +119,7 @@ public:
   void generateSimFitData(SimFitDataContainers<DistributionType> &simfit_data,
 			  const ResampledDataContainers<DistributionType> &fit_data,
 			  const std::vector<PiPiOperator> &operators,
-			  const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+			  const int Lt, const int tmin_k_op, const int tmin_op_snk,
 			  const CovarianceMatrix covariance_matrix) const{
     simfit_data.generateSimData(fit_data, operators, tmin_k_op, tmin_op_snk, this->op_param_maps, this->pmap_descr, covariance_matrix);
 
@@ -131,13 +131,13 @@ public:
 	   std::vector<DistributionType<double, basic_vector> > &chisq,
 	   const ResampledDataContainers<DistributionType> &fit_data,
 	   const std::vector<PiPiOperator> &operators,
-	   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, 
-	   const CovarianceMatrix covariance_matrix,
+	   const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+	   bool correlated, const CovarianceMatrix covariance_matrix,
 	   bool write_output = true) const{
     SimFitDataContainers<DistributionType> simfit_data;
     generateSimFitData(simfit_data, fit_data, operators, Lt, tmin_k_op, tmin_op_snk, covariance_matrix);
     
-    fit(params, chisq, simfit_data, operators, Lt, tmin_k_op, tmin_op_snk, correlated, covariance_matrix);
+    fit(params, chisq, simfit_data, operators, Lt, correlated, covariance_matrix);
 
     if(write_output) plotErrorWeightedDataNexpFlat(fit_data.getFitData(), operators, params, this->mK, this->cK, this->nstate, Lt, tmin_k_op, tmin_op_snk);
   }
@@ -147,8 +147,8 @@ public:
 	   std::vector<DistributionType<double, basic_vector> > &chisq,
 	   const SimFitDataContainers<DistributionType> &simfit_data,
 	   const std::vector<PiPiOperator> &operators,
-	   const int Lt, const int tmin_k_op, const int tmin_op_snk, 
-	   bool correlated, const CovarianceMatrix covariance_matrix,
+	   const int Lt,  bool correlated, 
+	   const CovarianceMatrix covariance_matrix,
 	   bool write_output = true) const{
     assert(this->loaded_frzparams);
 

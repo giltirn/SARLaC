@@ -55,7 +55,7 @@ void bootstrapPvalue(const std::vector<double> &q2, //one for each q!
   std::vector<bootstrapDistribution<Params> > params;
   std::vector<bootstrapDistributionD> q2_boot;
   
-  fitter->fit(params, q2_boot, simfit_data, operators, Lt, tmin_k_op, tmin_op_snk, correlated, covariance_matrix, false);
+  fitter->fit(params, q2_boot, simfit_data, operators, Lt, correlated, covariance_matrix, false);
 
   //Compute p-value
   std::cout << "Computing p-values" << std::endl;

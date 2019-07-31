@@ -11,7 +11,10 @@ CPSFIT_START_NAMESPACE
 template<typename FitFunc,
 	 template<typename, template<typename> class> class DistributionType>
 void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  DistributionType<double, basic_vector> > &corr_comb_j,
-		    const DistributionType<typename FitFunc::ParameterType, basic_vector> &params, const FitFunc &fitfunc,
+		    const DistributionType<typename FitFunc::ParameterType, basic_vector> &params, 
+		    const FitFunc &fitfunc,
+		    const NumericSquareMatrix<DistributionType<double, basic_vector> > &corr, 
+		    const NumericVector<DistributionType<double, basic_vector> > &sigma,
 		    const std::map<std::unordered_map<std::string, std::string> const*, std::string> &pmap_descr){
   struct PP{
     typedef std::map<std::unordered_map<std::string, std::string> const*, std::string> const* PtrType;
@@ -22,7 +25,7 @@ void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  DistributionType<
   };
   PP::descr() = &pmap_descr;
   
-  AnalyzeChisq<FitFunc,DistributionType,PP> chisq_analyze(corr_comb_j, fitfunc, params);
+  AnalyzeChisq<FitFunc,DistributionType,PP> chisq_analyze(corr_comb_j, fitfunc, params, corr, sigma);
   chisq_analyze.printChisqContribs(Correlation);
   chisq_analyze.examineProjectedDeviationContribsEvalNorm(Correlation);
   chisq_analyze.printChisqContribs(Covariance);
@@ -48,17 +51,17 @@ struct simultaneousFitBase: public simultaneousFitCommon{
   virtual const subsetMapDescr & getParameterMapDescr() const = 0;
 
   virtual void fit(std::vector<DistributionType<Params, basic_vector> > &params,
-	   std::vector<DistributionType<double, basic_vector> > &chisq,
-	   SimFitDataContainers<DistributionType> &simfit_data,
-	   const std::vector<PiPiOperator> &operators,
-	   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated, 
-	   const CovarianceMatrix covariance_matrix,
+		   std::vector<DistributionType<double, basic_vector> > &chisq,
+		   SimFitDataContainers<DistributionType> &simfit_data,
+		   const std::vector<PiPiOperator> &operators,
+		   const int Lt, bool correlated, 
+		   const CovarianceMatrix covariance_matrix,
 		   bool write_output = true) const = 0;
 
   virtual void generateSimFitData(SimFitDataContainers<DistributionType> &simfit_data,
 				  const ResampledDataContainers<DistributionType> &fit_data,
 				  const std::vector<PiPiOperator> &operators,
-				  const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+				  const int Lt, const int tmin_k_op, const int tmin_op_snk,
 				  const CovarianceMatrix covariance_matrix) const = 0;
 
   //Combines the above two, with possible extra output (eg plots) that require the raw data
@@ -66,8 +69,8 @@ struct simultaneousFitBase: public simultaneousFitCommon{
 		   std::vector<DistributionType<double, basic_vector> > &chisq,		   
 		   const ResampledDataContainers<DistributionType> &fit_data,
 		   const std::vector<PiPiOperator> &operators,
-		   const int Lt, const int tmin_k_op, const int tmin_op_snk, bool correlated,
-		   const CovarianceMatrix covariance_matrix, bool write_output = true) const = 0;
+		   const int Lt, const int tmin_k_op, const int tmin_op_snk, 
+		   bool correlated, const CovarianceMatrix covariance_matrix, bool write_output = true) const = 0;
 
 
   template<typename FitFunc>
@@ -132,7 +135,7 @@ struct simultaneousFitBase: public simultaneousFitCommon{
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
       std::cout << "p-value(chi^2): " << pvalue[q] << std::endl;
 
-      if(write_output) analyzeChisqFF(fit_data.getFitData(q), params[q], fitfunc, pmap_descr);
+      if(write_output) analyzeChisqFF(fit_data.getFitData(q), params[q], fitfunc, import.corr, import.sigma, pmap_descr);
     }  
     for(int q=0;q<nQ;q++){
       std::cout << "Q" << q+1 << std::endl;

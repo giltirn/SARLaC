@@ -18,6 +18,8 @@ public:
   typedef _GeneralizedCoordinate GeneralizedCoordinate;
   typedef _DataType DataType;
   typedef _PairType<GeneralizedCoordinate, DataType> ElementType;
+  typedef typename std::vector<ElementType>::iterator iterator;
+  typedef typename std::vector<ElementType>::const_iterator const_iterator;
 private:
   std::vector<ElementType> series;
 
@@ -32,6 +34,13 @@ public:
   dataSeries(){}
   explicit dataSeries(const int n): series(n){}
   dataSeries(const int n, const int samples): series(n, ElementType(GeneralizedCoordinate(), DataType(samples)) ){}; 
+
+  inline iterator begin(){ return series.begin(); }
+  inline const_iterator begin() const{ return series.begin(); }
+
+  inline iterator end(){ return series.end(); }
+  inline const_iterator end() const{ return series.end(); }
+
 
   inline void resize(const int n){ series.resize(n); }
   inline void resize(const int n, const ElementType &init){ series.resize(n,init); }
@@ -66,6 +75,20 @@ public:
   inline void push_back(const GeneralizedCoordinate &c, const DataType &d){ series.push_back(ElementType(c,d)); }
 
   inline void reverse(){ std::reverse(series.begin(),series.end()); }
+  
+  inline iterator remove(iterator it){
+    return series.erase(it);
+  }
+
+  //Remove all data with this coordinate
+  void remove(const GeneralizedCoordinate &c){
+    auto it = series.begin();
+    while(it != series.end()){
+      if(it->first == c){
+	it = series.erase(it);
+      }else ++it;
+    }
+  }
 };
 
 template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType> 

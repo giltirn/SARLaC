@@ -147,6 +147,19 @@ class DataSet:
             for i in range(len(self.x)):
                 self.x[i] = self.x[i] + shift
 
+        def setNaN(self, val=0.):
+            for i in range(len(self.y)):
+                if(math.isnan(float(self.y[i]))):
+                    self.y[i] = val
+            for i in range(len(self.dyp)):
+                if(math.isnan(float(self.dyp[i]))):
+                    self.dyp[i] = val
+            for i in range(len(self.dym)):
+                if(math.isnan(float(self.dym[i]))):
+                    self.dym[i] = val
+            
+                
+
 class ErrorBand:
         def __init__(self):
                 self.x = None

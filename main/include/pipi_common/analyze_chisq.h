@@ -188,6 +188,7 @@ class AnalyzeChisq{
 
 public:
 
+  //This version uses the jackknife/bootstrap data to compute the covariance matrix
   AnalyzeChisq(const correlationFunction<GeneralizedCoordinate, DistributionTypeD> &data_inrange,
 	       const FitFunc &fitfunc,
 	       const DistributionTypeP &params,
@@ -214,7 +215,43 @@ public:
     delta = NumericVector<double>(data_inrange.size(), [&](const int i){ return (dataval_cen(i) - fitval_cen(i)); });  
     delta_nrm = NumericVector<double>(data_inrange.size(), [&](const int i){ return (dataval_cen(i) - fitval_cen(i))/sigma(i); });
   }
-  
+  AnalyzeChisq(const correlationFunction<GeneralizedCoordinate, DistributionTypeD> &data_inrange,
+	       const FitFunc &fitfunc,
+	       const DistributionTypeP &params,
+	       const NumericSquareMatrix<DistributionTypeD> &corr_in, const NumericVector<DistributionTypeD> &sigma_in,
+	       double ledoit_wolf_lambda = 0.): data_inrange(data_inrange), fitfunc(fitfunc), params(params){
+    int ndata = data_inrange.size();
+    assert(sigma_in.size() == ndata);
+    assert(corr_in.size() == ndata);
+
+    corr.resize(ndata);
+    cov.resize(ndata);
+    sigma.resize(ndata);
+    
+    for(int i=0;i<ndata;i++){
+      sigma(i) = sigma_in(i).best();
+      for(int j=0;j<ndata;j++){
+	corr(i,j) = corr_in(i,j).best();
+	cov(i,j) = corr_in(i,j).best() * sigma_in(i).best() * sigma_in(j).best();
+      }
+    }
+    computeLedoitWolfCorr(corrlw, corr, ledoit_wolf_lambda);
+
+    computeEvalsEvecs(cov_evals, cov_evecs, cov);
+    computeEvalsEvecs(corr_evals, corr_evecs, corr);
+    computeEvalsEvecs(corrlw_evals, corrlw_evecs, corrlw);
+
+    //Fit and data
+    fitval_cen = evalFitFunc(fitfunc, params, data_inrange);
+    fitval_cen_nrm = NumericVector<double>(fitval_cen.size(), [&](const int i){ return fitval_cen(i)/sigma(i); });
+
+    dataval_cen = NumericVector<double>(data_inrange.size(), [&](const int i){ return data_inrange.value(i).best(); });
+    dataval_cen_nrm = NumericVector<double>(dataval_cen.size(), [&](const int i){ return dataval_cen(i)/sigma(i); });
+
+    delta = NumericVector<double>(data_inrange.size(), [&](const int i){ return (dataval_cen(i) - fitval_cen(i)); });  
+    delta_nrm = NumericVector<double>(data_inrange.size(), [&](const int i){ return (dataval_cen(i) - fitval_cen(i))/sigma(i); });
+  }
+
   void printChisqContribs(const WhichMatrix mat, std::ostream &os = std::cout) const{
     os << "Examining contributions to chi^2 from eigenmodes of the " << nm(mat) << ":\n";
 
