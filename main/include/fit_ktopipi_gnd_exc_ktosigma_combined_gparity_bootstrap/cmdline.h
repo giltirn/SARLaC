@@ -41,6 +41,8 @@ struct CMDline{
   bool save_boot_resample_table;
   std::string save_boot_resample_table_file;
 
+  bool fronthalf_backhalf;
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -61,6 +63,8 @@ struct CMDline{
 
     load_boot_resample_table = false;
     save_boot_resample_table = false;
+
+    fronthalf_backhalf = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -126,6 +130,9 @@ struct CMDline{
 	save_boot_resample_table = true;
 	save_boot_resample_table_file = sargv[i+1];
       	i+=2;
+      }else if(sargv[i] == "-fronthalf_backhalf"){
+	fronthalf_backhalf = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

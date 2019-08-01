@@ -28,12 +28,23 @@ struct RawData{
   std::vector<RawKtoPiPiData *> raw_ktopipi_gnd; //[tsep_k_pi]
   std::vector<RawKtoPiPiData *> raw_ktopipi_exc;
   std::vector<RawKtoSigmaData *> raw_ktosigma;
-  
+      
   int nsample() const{
     if(bubble_data_gnd) return bubble_data_gnd->bubble({0}).size();
     if(bubble_data_exc) return bubble_data_exc->bubble({0}).size();
     if(bubble_data_sigma) return bubble_data_sigma->bubble({0}).size();
     assert(0); return -1;
+  }
+
+  template<typename Functor> //Functor should act on rawDataDistributionD
+  void applyFunction(const Functor &func){
+    if(bubble_data_gnd) bubble_data_gnd->applyFunction(func);
+    if(bubble_data_exc) bubble_data_exc->applyFunction(func);
+    if(bubble_data_sigma) bubble_data_sigma->applyFunction(func);
+
+    for(int i=0;i<raw_ktopipi_gnd.size();i++) if(raw_ktopipi_gnd[i]) raw_ktopipi_gnd[i]->applyFunction(func);
+    for(int i=0;i<raw_ktopipi_exc.size();i++) if(raw_ktopipi_exc[i]) raw_ktopipi_exc[i]->applyFunction(func);
+    for(int i=0;i<raw_ktosigma.size();i++) if(raw_ktosigma[i]) raw_ktosigma[i]->applyFunction(func);
   }
 
   template<typename ArgsType, typename CMDlineType>
@@ -166,6 +177,24 @@ struct RawData{
     read(args,cmdline);
   }
 
+  RawData(const RawData &r): RawData(){
+    if(r.bubble_data_gnd) bubble_data_gnd = new ProjectedBubbleData(*r.bubble_data_gnd);
+    if(r.bubble_data_exc) bubble_data_exc = new ProjectedBubbleData(*r.bubble_data_exc);
+    if(r.bubble_data_sigma) bubble_data_sigma = new ProjectedSigmaBubbleData(*r.bubble_data_sigma);
+
+    raw_ktopipi_gnd.resize(r.raw_ktopipi_gnd.size(), NULL);
+    for(int i=0;i<r.raw_ktopipi_gnd.size();i++) 
+      if(r.raw_ktopipi_gnd[i]) raw_ktopipi_gnd[i] = new RawKtoPiPiData(*r.raw_ktopipi_gnd[i]);
+
+    raw_ktopipi_exc.resize(r.raw_ktopipi_exc.size(), NULL);
+    for(int i=0;i<r.raw_ktopipi_exc.size();i++) 
+      if(r.raw_ktopipi_exc[i]) raw_ktopipi_exc[i] = new RawKtoPiPiData(*r.raw_ktopipi_exc[i]);
+
+    raw_ktosigma.resize(r.raw_ktosigma.size(), NULL);
+    for(int i=0;i<r.raw_ktosigma.size();i++) 
+      if(r.raw_ktosigma[i]) raw_ktosigma[i] = new RawKtoSigmaData(*r.raw_ktosigma[i]);
+  }
+
   ~RawData(){
 #define DEL(T) if(T) delete T
 #define FORDEL(T) for(int i=0;i<T.size();i++) if(T[i]) delete T[i]    
@@ -176,6 +205,8 @@ struct RawData{
 #undef DEL
 #undef FORDEL
   }
+
+  RawData & operator=(const RawData &r) = delete;
 };
 
 inline void write(CPSfit::HDF5writer &writer, const RawData &d, const std::string &tag){ d.write(writer,tag); }

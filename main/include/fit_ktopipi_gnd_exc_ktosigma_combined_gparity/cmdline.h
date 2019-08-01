@@ -35,8 +35,6 @@ struct CMDline{
   bool save_resampled_data_container_checkpoint;
   std::string save_resampled_data_container_checkpoint_file;
 
-
-
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\

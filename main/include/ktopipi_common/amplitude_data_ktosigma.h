@@ -56,6 +56,11 @@ public:
 				     Lt, bubble_quarkmom_proj, opt);
   }
 
+  template<typename Functor>
+  void applyFunction(const Functor &func){
+    for(int i=0;i<bubble.size(0);i++) func( bubble(&i) );
+  }
+
   template<typename DistributionType, typename BinResampler>
   inline NumericTensor<DistributionType,1> binResample(const BinResampler &bin_resampler) const{
     NumericTensor<DistributionType,1> out({bubble.size(0)}, 
@@ -90,6 +95,7 @@ public:
   GENERATE_HDF5_SERIALIZE_METHOD( (A0_alltK)(A0_type4_alltK_nobub)(mix_alltK)(mix4_alltK_nobub) )
 
 private:
+
   //Data dir requires *3* formats: type1/2,  type3, type4
   template<typename ReadPolicy>
   void getTypeData(IndexedContainer<type1234Data, 3, 2> &type_data, const int tsep_k_sigma, 
@@ -190,6 +196,25 @@ public:
     getAllData(tsep_k_sigma, bubble_data, Lt, rp, opt);
   }
 
+  template<typename Functor>
+  void applyFunction(const Functor &func){
+    typedef iterate<NumericTensor<rawDataDistributionD,3> > iter3;
+    typedef iterate<NumericTensor<rawDataDistributionD,2> > iter2;
+
+    for(int i=2;i<=4;i++)
+      for(int j=0;j<iter3::size(A0_alltK(i));j++)
+	func( iter3::at(j, A0_alltK(i)) );
+    
+    for(int j=0;j<iter3::size(A0_type4_alltK_nobub);j++)
+      func( iter3::at(j, A0_type4_alltK_nobub) );
+
+    for(int i=3;i<=4;i++)
+      for(int j=0;j<iter2::size(mix_alltK(i));j++)
+	func( iter2::at(j, mix_alltK(i)) );
+
+    for(int j=0;j<iter2::size(mix4_alltK_nobub);j++)
+      func( iter2::at(j, mix4_alltK_nobub) );
+  }
 };
 
 GENERATE_HDF5_SERIALIZE_FUNC(RawKtoSigmaData);

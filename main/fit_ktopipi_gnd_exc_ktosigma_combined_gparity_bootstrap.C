@@ -4,6 +4,7 @@
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/resampled_data.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit_plot.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit.h>
+#include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/fronthalf_backhalf.h>
 
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/args.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/cmdline.h>
@@ -48,6 +49,16 @@ int main(const int argc, const char* argv[]){
       std::cout << "Saving raw data container to checkpoint file" << std::endl;
       HDF5writer wr(cmdline.save_raw_data_container_checkpoint_file);
       write(wr, raw, "raw_data_container");
+    }
+
+    if(cmdline.fronthalf_backhalf){
+      if(!RNG.isInitialized()) RNG.initialize(1234);
+      int nsample = raw.nsample();
+      std::vector<std::vector<int> > rtable_fh = generateResampleTable(nsample/2, args.nboot, args.resample_table_type, args.block_size, RNG);
+      std::vector<std::vector<int> > rtable_bh = generateResampleTable(nsample - nsample/2, args.nboot, args.resample_table_type, args.block_size, RNG);
+	
+      frontHalfBackHalfAnalysis<bootstrapDistributionD>(raw, bootstrapBlockResampler(rtable_fh), bootstrapBlockResampler(rtable_bh), args, cmdline);
+      exit(0);
     }
   }
     
