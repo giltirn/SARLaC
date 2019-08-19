@@ -40,6 +40,11 @@ void frontHalfBackHalfAnalysis(const RawData &raw,
   fh_r.resample(fh_raw, args, cmdline, "front half", resampler_fh);
   bh_r.resample(bh_raw, args, cmdline, "back half", resampler_bh);
 
+  if(args.basis == Basis::Basis7){
+    fh_r.convertBasis10to7(); 
+    bh_r.convertBasis10to7(); 
+  }
+
   int nq = fh_r(args.operators[0]).size();
   
   std::cout << "Front-half/back-half analysis" << std::endl;

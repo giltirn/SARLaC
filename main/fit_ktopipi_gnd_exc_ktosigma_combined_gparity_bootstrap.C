@@ -5,6 +5,7 @@
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit_plot.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/fronthalf_backhalf.h>
+#include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/weighted_avg_consistency.h>
 
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/args.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/cmdline.h>
@@ -102,6 +103,8 @@ int main(const int argc, const char* argv[]){
     data_b.convertBasis10to7(); 
     data_bj.convertBasis10to7();
   }
+
+  checkWeightedAvgConsistency(data_b, args.input_params, args.operators, args.tmin_k_op);
 
   //Constrain tsep_k_snk to those in input file (in case we read resampled data that contains more)
   std::map<PiPiOperator, std::vector<int> const*> op_tsep_list = {  {PiPiOperator::PiPiGnd, &args.tsep_k_pi}, {PiPiOperator::PiPiExc, &args.tsep_k_pi}, {PiPiOperator::Sigma, &args.tsep_k_sigma} };
