@@ -3,6 +3,7 @@
 
 #include<distribution/bootstrap/class.h>
 #include<random/utils.h>
+#include<parser/parser.h>
 
 CPSFIT_START_NAMESPACE
 
