@@ -65,6 +65,52 @@ CorrFuncType extractFitData(const CorrFuncType &data, const int t_min, const int
   return Copt_inrange;
 }
 
+class FitMultiExp{
+  int nstate;
+public:
+  typedef parameterVector<double> Params;
+  typedef double ValueType;
+  typedef Params ParameterType;
+  typedef Params ValueDerivativeType;
+  typedef double GeneralizedCoordinate;
+
+  template<typename T, typename Boost>
+  static inline T boostit(const int idx, const ParameterType &p, const Boost &b){
+    return b(p(idx),idx);
+  }
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate &x, const ParameterType &p, const Boost &b) const{  
+    T out(0.);
+    
+    for(int s=0;s<nstate;s++){
+      auto A = boostit<T,Boost>(2*s, p,b);
+      auto E = boostit<T,Boost>(2*s+1, p,b);
+      out = out + A*exp(-E*x);
+    }
+    return out;
+  }
+
+  inline ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    return eval<double>(x,p,[&](const double a, const int i){ return a; });
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    ValueDerivativeType d = p;
+    for(int i=0;i<2*nstate;i++) d(i) = eval<dual>(x,p,[&](const double v, const int j){ return dual(v, j==i ? 1.:0.); }).xp;
+    return d;
+  }
+
+  FitMultiExp(const int nstate): nstate(nstate){}
+
+  inline int Nparams() const{ return 2*nstate; }
+
+  inline int Nstate() const{ return nstate; }
+};
+
+
+
+
+
 int main(const int argc, const char* argv[]){
   RNG.initialize(1234);
 
@@ -82,36 +128,21 @@ int main(const int argc, const char* argv[]){
   }
   CMDline cmdline(argc,argv,2);
 
+  if(cmdline.save_guess_template){
+    parameterVector<double> v(2*args.nstate_fit);
+    std::ofstream of("guess_template.dat");
+    of << v;
+    of.close();
+    exit(0);
+  }
+
   const std::vector<Operator> &ops = args.operators;  
   int nop = ops.size();
 
   assert(args.op_amplitudes.size() == nop);
   for(int i=0;i<nop;i++) assert(args.op_amplitudes[i].idx.size() == nop); //coupling of operators to states
 
-  std::cout << "Populating amplitude matrix for " << nop << " operators" << std::endl;
-
-  //Load amplitude matrix A_ia    i=state  a=op
-  NumericSquareMatrix<bootstrapDistributionD> A(nop);
-  for(int a=0;a<nop;a++){
-    std::cout << a << " " << args.op_amplitudes[a].file << std::endl;
-
-    std::vector<bootstrapDistributionD> v;
-    readParamsStandard(v, args.op_amplitudes[a].file);
-    for(int i=0;i<nop;i++)
-      A(i,a) = v[ args.op_amplitudes[a].idx[i] ] * sqrt(args.Ascale);
-  }
-
-  std::cout << "A: " << std::endl << A << std::endl;
-
-  NumericSquareMatrix<bootstrapDistributionD> Ainv(A);
-  svd_inverse(Ainv, A);
-  
-  std::cout << "A^-1: " << std::endl << Ainv << std::endl;
-
-  std::vector<bootstrapDistributionD> r(nop);
-  for(int a=0;a<nop;a++) r[a] = Ainv(a,0);
-  
-  std::cout << "r: " << r << std::endl;
+  std::vector<bootstrapDistributionD> r = computeR(args.op_amplitudes, args.Ascale);
 
   //Read data
   RawData raw_data;
@@ -182,9 +213,22 @@ int main(const int argc, const char* argv[]){
 
   //Due to the pi-pi separation in the sources, the correlators don't have exactly the same time dependence. However if we restrict ourselves to t_max << Lt we can ignore the backwards propagating state
 
-  typedef FitExp FitFunc;
-  FitFunc fitfunc;
-  StandardFitParams guess(1.,0.4);
+  typedef FitMultiExp FitFunc;
+  typedef parameterVector<double> Params;
+
+  FitFunc fitfunc(args.nstate_fit);
+  Params guess;
+
+  if(cmdline.load_guess)  {
+    parse(guess, cmdline.guess_file);
+    std::cout << "Loaded guess: " << guess << std::endl;
+  }else{
+    guess.resize(2*args.nstate_fit+1);
+    for(int i=0;i<args.nstate_fit;i++){
+      guess(2*i) = 1.;
+      guess(2*i+1) = (1+i)*0.35;
+    }
+  }
 
   genericFitFuncWrapper<FitFunc> fwrap(fitfunc,guess);
  
@@ -195,9 +239,9 @@ int main(const int argc, const char* argv[]){
 
   if(cmdline.load_frozen_fit_params) readFrozenParams<bootstrapDistributionD>(fitter, cmdline.load_frozen_fit_params_file, nboot);
 
-  fitter.generateCovarianceMatrix(Copt_inrange_bj);
+  fitter.generateCovarianceMatrix(Copt_inrange_bj, args.correlated ? CostType::Correlated : CostType::Uncorrelated);
 
-  bootstrapDistribution<StandardFitParams> params(zero.getInitializer(),guess);
+  bootstrapDistribution<Params> params(zero.getInitializer(),guess);
   bootstrapDistributionD chisq(zero), chisq_per_dof(zero);
   int dof;
 
@@ -206,10 +250,11 @@ int main(const int argc, const char* argv[]){
   std::cout << "Params:\n";
   {
     for(int p=0;p<params.sample(0).size();p++){
-      std::string tag = params.sample(0).memberName(p);
+      int s = p/2;
+
       bootstrapDistributionD tmp;
-      standardIOhelper<bootstrapDistributionD, bootstrapDistribution<StandardFitParams> >::extractStructEntry(tmp, params, p);
-      std::cout << tag << " = " << tmp << std::endl;
+      standardIOhelper<bootstrapDistributionD, bootstrapDistribution<Params> >::extractStructEntry(tmp, params, p);
+      std::cout << (p%2 == 0 ? 'A' : 'E') << s << " = " << tmp << std::endl;
     }
   }
 
@@ -232,7 +277,7 @@ int main(const int argc, const char* argv[]){
       double fval = fitfunc.value(t, params.best());
       Copt_inrange_b_rc.value(tt) = Copt_inrange_b_rc.value(tt) + (fval - Copt_inrange_b.value(tt).best());
     }
-    bootstrapDistribution<StandardFitParams> params_rc(zero.getInitializer(),guess);
+    bootstrapDistribution<Params> params_rc(zero.getInitializer(),guess);
     bootstrapDistributionD chisq_rc(zero), chisq_per_dof_rc(zero);
   
     fitter.fit(params_rc, chisq_rc, chisq_per_dof_rc, dof, Copt_inrange_b_rc);
@@ -259,12 +304,13 @@ int main(const int argc, const char* argv[]){
     std::cout << "Bootstrap p-value " << p_boot << std::endl;
   }
   
-  //Plot
+  //Plot single-exponential effective mass
   {
     const int Eidx = 1;
     StandardFitParams base(1., 0.5);
+    FitExp fitfunc_eff;
 
-    correlationFunction<double, bootstrapDistributionD> Ceff = effectiveMass2pt(Copt_b, fitfunc, base, 1, args.Lt, 0.4);
+    correlationFunction<double, bootstrapDistributionD> Ceff = effectiveMass2pt(Copt_b, fitfunc_eff, base, 1, args.Lt, 0.4);
 
     MatPlotLibScriptGenerate plot;
   
@@ -273,7 +319,7 @@ int main(const int argc, const char* argv[]){
     plot.plotData(acc(Ceff), "E_eff");
   
     bootstrapDistributionD tmp;
-    standardIOhelper<bootstrapDistributionD, bootstrapDistribution<StandardFitParams> >::extractStructEntry(tmp, params, Eidx);
+    standardIOhelper<bootstrapDistributionD, bootstrapDistribution<Params> >::extractStructEntry(tmp, params, Eidx);
 
     typedef BandRangeConstantDistributionValue<bootstrapDistributionD, DistributionPlotAccessor<bootstrapDistributionD> > bacc;
     MatPlotLibScriptGenerateBase::kwargsType kwargs;

@@ -2,18 +2,7 @@
 #define _FIT_PIPI_OPTIMAL_ARGS_BOOTSTRAP_H_
 
 #include "fit_pipi_gnd_exc_sigma_sim_gparity/enums.h"
-
-//idx are the indices for the couplings of this operator to each state
-#define PARAM_ELEM_MEMBERS \
-  (std::string, file)				\
-  (std::vector<int>, idx)
-
-struct ParamElem{
-  GENERATE_MEMBERS(PARAM_ELEM_MEMBERS)
-  ParamElem(): file("file.hdf5"), idx({0,1,2}){}
-};
-GENERATE_PARSER(ParamElem, PARAM_ELEM_MEMBERS)
-
+#include "fit_pipi_optimal_bootstrap/compute_r.h"
 
 //Note tstep_pipi is the separation between source timeslices that the C, D, R diagrams were measured upon (i.e. every 8 in the 32^3 job)
 #define ARGS_MEMBERS \
@@ -32,6 +21,8 @@ GENERATE_PARSER(ParamElem, PARAM_ELEM_MEMBERS)
   ( bool, timeslice_avg_vac_sub ) \
   ( int, t_min) \
   ( int, t_max) \
+  ( int, nstate_fit )				\
+  ( bool, correlated )				\
   ( BootResampleTableType, resample_table_type) \
   ( int, nboot)	      \
   ( int, block_size)    \
@@ -53,7 +44,7 @@ struct Args{
     operators({Operator::PiPiGnd, Operator::PiPiExc, Operator::Sigma}),
     Lt(64), tsep_pipi(4), tstep_pipi(8), tstep_pipi_to_sigma(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
     do_vacuum_subtraction(true), timeslice_avg_vac_sub(false), 
-    block_size(1), nboot(1000), resample_table_type(BootResampleTableType::NonOverlappingBlock), op_amplitudes(3){}
+    block_size(1), nboot(1000), resample_table_type(BootResampleTableType::NonOverlappingBlock), op_amplitudes(3), nstate_fit(1), correlated(true){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS)
 

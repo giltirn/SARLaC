@@ -458,23 +458,38 @@ struct ktopipiParamsPrinter<FitKtoPiPiSim<N> >: public distributionPrinter<jackk
 
 
 
-template<typename FitFunc>
+template<typename FitFunc, typename DistributionD>
 struct fitReturnType{};
 
-template<>
-struct fitReturnType<FitKtoPiPi>{ typedef std::vector<jackknifeDistribution<FitKtoPiPi::Params> > type; };
+template<typename DistributionD>
+struct fitReturnType<FitKtoPiPi, DistributionD>{ 
+  typedef typename DistributionD::template rebase<FitKtoPiPi::Params> ParamsDist;
+  typedef std::vector<ParamsDist> type; 
+};
 
-template<>
-struct fitReturnType<FitKtoPiPiWithConstant>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiWithConstant::Params> > type; };
+template<typename DistributionD>
+struct fitReturnType<FitKtoPiPiWithConstant, DistributionD>{ 
+  typedef typename DistributionD::template rebase<FitKtoPiPiWithConstant::Params> ParamsDist;
+  typedef std::vector<ParamsDist> type; 
+};
 
-template<>
-struct fitReturnType<FitKtoPiPiTwoExp>{ typedef std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > type; };
+template<typename DistributionD>
+struct fitReturnType<FitKtoPiPiTwoExp, DistributionD>{ 
+  typedef typename DistributionD::template rebase<FitKtoPiPiTwoExp::Params> ParamsDist;
+  typedef std::vector<ParamsDist> type; 
+};
 
-template<int N>
-struct fitReturnType<FitKtoPiPiSim<N> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> type; };
-  
-template<>
-struct fitReturnType<FitKtoPiPiSim<7> >{ typedef jackknifeDistribution<typename FitKtoPiPiSim<10>::Params> type; }; //return parameters converted to 10-basis
+template<int N, typename DistributionD>
+struct fitReturnType<FitKtoPiPiSim<N>, DistributionD>{ 
+  typedef typename DistributionD::template rebase<typename FitKtoPiPiSim<N>::Params> ParamsDist;
+  typedef ParamsDist type; 
+};
+
+template<typename DistributionD>
+struct fitReturnType<FitKtoPiPiSim<7>, DistributionD>{ 
+  typedef typename DistributionD::template rebase<typename FitKtoPiPiSim<10>::Params> ParamsDist; //converted to 10 basis first
+  typedef ParamsDist type; 
+};
 
 //Call static method 'call' on object with shared inputs type Inputs 
 template<typename Inputs, template<typename> class F>

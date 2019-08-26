@@ -6,4 +6,5 @@
 #include<fit/pvalue.h>
 #include<fit/param_bounds.h>
 #include<fit/simple_fit_wrapper.h>
+#include<fit/bootstrap_pvalue.h>
 #endif

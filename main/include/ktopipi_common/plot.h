@@ -15,13 +15,13 @@
 CPSFIT_START_NAMESPACE
 
 //Perform the error-weighted average of all data with fixed  tsep_op_pi  subject to a cut on the minimum tsep_k_op separation. Output coord is tsep_op_pi
-void errorWeightedAverage(std::vector<correlationFunction<double, jackknifeDistributionD> > &out,
-			  const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &in,
+template<typename DistributionType>
+void errorWeightedAverage(std::vector<correlationFunction<double, DistributionType> > &out,
+			  const std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > &in,
 			  const int tmin_k_op){
   assert(in[0].size() > 0);
-  const int nsample = in[0].value(0).size();
   
-  for(int q=0;q<10;q++){
+  for(int q=0;q<in.size();q++){
     std::map<int, std::vector<int> > dmap;
     for(int d=0;d<in[q].size();d++){
       const int tsep_k_op = int(in[q].coord(d).t);
@@ -33,17 +33,10 @@ void errorWeightedAverage(std::vector<correlationFunction<double, jackknifeDistr
       const int tsep_op_pi = it->first;
       const std::vector<int> &include = it->second;
 
-      double wsum = 0.;
-      jackknifeDistributionD wavg(nsample,0.);
-
-      for(int dd=0; dd<include.size();dd++){
-	const int d = include[dd];
-	const double stderr = in[q].value(d).standardError();
-	const double w = 1/stderr/stderr;
-	wsum = wsum + w;
-	wavg = wavg + w*in[q].value(d);
-      }
-      wavg = wavg / wsum;
+      std::vector<DistributionType const*> ptrs(include.size());
+      for(int dd=0;dd<include.size();dd++) ptrs[dd] = &in[q].value(include[dd]);
+      
+      DistributionType wavg = weightedAvg(ptrs);
 
       out[q].push_back(tsep_op_pi, wavg);
     }
@@ -51,118 +44,158 @@ void errorWeightedAverage(std::vector<correlationFunction<double, jackknifeDistr
   
 }
 
-template<typename FitFunc>
+#define DIST template<typename, template<typename> class> class DistributionType 
+#define VEC template<typename> class V = basic_vector
+
+
+template<typename FitFunc, typename ParamsDist>
 struct extractMdata{};
 
 //Separate Q fit
-template<>
-struct extractMdata<FitKtoPiPi>{
-  const std::vector<jackknifeDistribution<FitKtoPiPi::Params> > &fit_params;
+template<typename ParamsDist>
+struct extractMdata<FitKtoPiPi, ParamsDist>{
+  typedef iterate<ParamsDist> iter;
 
-  extractMdata(const std::vector<jackknifeDistribution<FitKtoPiPi::Params> > &_fit_params): fit_params(_fit_params){}
+  const std::vector<ParamsDist> &fit_params;
+
+  extractMdata(const std::vector<ParamsDist> &_fit_params): fit_params(_fit_params){}
   
   //Extract the matrix element from the data for a given coordinate assuming we know the remaining fit parameters
   double getMdata(const amplitudeDataCoord &x, const double y, const int q, const int sample) const{
-    FitKtoPiPi::Params p1(fit_params[q].sample(sample)); p1.M = 1.;
+    FitKtoPiPi::Params p1(iter::at(sample, fit_params[q])); p1.M = 1.;
     return y/FitKtoPiPi::value(x,p1);
   }
 
-  inline double getMfit(const int q, const int s) const{ return fit_params[q].sample(s).M; }
+  inline double getMfit(const int q, const int s) const{ return iter::at(s, fit_params[q]).M; }
 };
 
 //Simultaneous Q fit
-template<int N>
-struct extractMdata<FitKtoPiPiSim<N> >{
-  const jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> &fit_params;
+template<int N, typename ParamsDist>
+struct extractMdata<FitKtoPiPiSim<N>, ParamsDist>{
+  typedef iterate<ParamsDist> iter;
 
-  extractMdata(const jackknifeDistribution<typename FitKtoPiPiSim<N>::Params> &_fit_params): fit_params(_fit_params){}
+  const ParamsDist &fit_params;
+
+  extractMdata(const ParamsDist &_fit_params): fit_params(_fit_params){}
   
   //Extract the matrix element from the data for a given coordinate assuming we know the remaining fit parameters
   double getMdata(const amplitudeDataCoord &x, const double y, const int q, const int sample) const{
-    typename FitKtoPiPiSim<N>::Params p1(fit_params.sample(sample)); p1.M[q] = 1.;
+    typename FitKtoPiPiSim<N>::Params p1(iter::at(sample, fit_params)); p1.M[q] = 1.;
     amplitudeDataCoordSim xx(x,q);
     return y/FitKtoPiPiSim<N>::value(xx,p1);
   }
 
-  inline double getMfit(const int q, const int s) const{ return fit_params.sample(s).M[q]; }
+  inline double getMfit(const int q, const int s) const{ return iter::at(s, fit_params).M[q]; }
 };
+template<typename ParamsDist>
+struct extractMdata<FitKtoPiPiSim<7>, ParamsDist>{ //These data are converted to the 10 basis prior to plotting
+  typedef iterate<ParamsDist> iter;
 
-template<>
-struct extractMdata<FitKtoPiPiSim<7> >{ //returns data in chiral basis
-  const jackknifeDistribution<typename FitKtoPiPiSim<10>::Params> &fit_params;
+  const ParamsDist &fit_params;
 
-  extractMdata(const jackknifeDistribution<typename FitKtoPiPiSim<10>::Params> &_fit_params): fit_params(_fit_params){}
+  extractMdata(const ParamsDist &_fit_params): fit_params(_fit_params){}
   
   //Extract the matrix element from the data for a given coordinate assuming we know the remaining fit parameters
   double getMdata(const amplitudeDataCoord &x, const double y, const int q, const int sample) const{
-    typename FitKtoPiPiSim<10>::Params p1(fit_params.sample(sample)); p1.M[q] = 1.;
+    typename FitKtoPiPiSim<10>::Params p1(iter::at(sample, fit_params)); p1.M[q] = 1.;
     amplitudeDataCoordSim xx(x,q);
     return y/FitKtoPiPiSim<10>::value(xx,p1);
   }
 
-  inline double getMfit(const int q, const int s) const{ return fit_params.sample(s).M[q]; }
+  inline double getMfit(const int q, const int s) const{ return iter::at(s, fit_params).M[q]; }
 };
 
-//Separate Q fit with constant
-template<>
-struct extractMdata<FitKtoPiPiWithConstant>{
-  const std::vector<jackknifeDistribution<FitKtoPiPiWithConstant::Params> > &fit_params;
 
-  extractMdata(const std::vector<jackknifeDistribution<FitKtoPiPiWithConstant::Params> > &_fit_params): fit_params(_fit_params){}
+//Separate Q fit with constant
+template<typename ParamsDist>
+struct extractMdata<FitKtoPiPiWithConstant, ParamsDist>{
+  typedef iterate<ParamsDist> iter;
+
+  const std::vector<ParamsDist> &fit_params;
+
+  extractMdata(const std::vector<ParamsDist> &_fit_params): fit_params(_fit_params){}
   
   //Extract the matrix element from the data for a given coordinate assuming we know the remaining fit parameters
   double getMdata(const amplitudeDataCoord &x, const double y, const int q, const int sample) const{
-    FitKtoPiPiWithConstant::Params p1(fit_params[q].sample(sample)); p1.M = 1.;
+    FitKtoPiPiWithConstant::Params p1(iter::at(sample, fit_params[q])); p1.M = 1.;
     return y/FitKtoPiPiWithConstant::value(x,p1);
   }
 
-  inline double getMfit(const int q, const int s) const{ return fit_params[q].sample(s).M; }
+  inline double getMfit(const int q, const int s) const{ return iter::at(s, fit_params[q]).M; }
 };
 
 
-template<>
-struct extractMdata<FitKtoPiPiTwoExp>{
-  const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &fit_params;
+template<typename ParamsDist>
+struct extractMdata<FitKtoPiPiTwoExp, ParamsDist>{
+  typedef iterate<ParamsDist> iter;
 
-  extractMdata(const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &_fit_params): fit_params(_fit_params){}
+  const std::vector<ParamsDist> &fit_params;
+
+  extractMdata(const std::vector<ParamsDist> &_fit_params): fit_params(_fit_params){}
   
   //Extract the matrix element from the data for a given coordinate assuming we know the remaining fit parameters
   double getMdata(const amplitudeDataCoord &x, const double y, const int q, const int sample) const{
-    return FitKtoPiPiTwoExp::getM0data(y, x, fit_params[q].sample(sample));
+    return FitKtoPiPiTwoExp::getM0data(y, x, iter::at(sample, fit_params[q]));
   }
 
-  inline double getMfit(const int q, const int s) const{ return fit_params[q].sample(s).M0; }
+  inline double getMfit(const int q, const int s) const{ return iter::at(s, fit_params[q]).M0; }
 };
 
 
-template<typename MdataExtractor>
-void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &data, const MdataExtractor &extractor, const int tmin_k_op, const int tmin_op_pi){
+template<typename MdataExtractor, typename DistributionType>
+void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > &data, const MdataExtractor &extractor, const int tmin_k_op, const int tmin_op_pi){
+  typedef iterate<DistributionType> iter;
+
   //Extract the matrix element from the data
-  std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > Mdata(10);
+  const int nsample = iter::size(data[0].value(0));
+  const int nq = data.size();
+
+  std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > Mdata(nq);
   assert(data[0].size() > 0);
-  const int nsample = data[0].value(0).size();
-    
-  for(int q=0;q<10;q++)
+  
+  for(int q=0;q<nq;q++)
     for(int x=0;x<data[q].size();x++){
-      jackknifeDistributionD tmp = data[q].value(x);
-      for(int s=0;s<nsample;s++) tmp.sample(s) = extractor.getMdata(data[q].coord(x), tmp.sample(s), q, s);
+      DistributionType tmp = data[q].value(x);
+      for(int s=0;s<nsample;s++) iter::at(s, tmp) = extractor.getMdata(data[q].coord(x), iter::at(s, tmp), q, s);
       Mdata[q].push_back(data[q].coord(x),tmp);
     }
   
   //Compute the weighted average
-  std::vector<correlationFunction<double, jackknifeDistributionD> > wavg(10);
+  std::vector<correlationFunction<double, DistributionType> > wavg(nq);
   errorWeightedAverage(wavg, Mdata, tmin_k_op);
+ 
+  typedef DataSeriesAccessor<correlationFunction<double, DistributionType>, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<DistributionType> > accessor;
   
-  typedef DataSeriesAccessor<correlationFunction<double, jackknifeDistributionD>, ScalarCoordinateAccessor<double>, DistributionPlotAccessor<jackknifeDistributionD> > accessor;
-  
-  for(int q=0;q<10;q++){
+  for(int q=0;q<nq;q++){
+    //Break up data by tsep_k_pi
+    std::vector<int> tsep_k_pi_all;
+    std::vector< correlationFunction<double, DistributionType> > tsep_k_pi_data;
+
+    for(int i=0;i<Mdata[q].size();i++){
+      int tsep_k_pi = Mdata[q].coord(i).tsep_k_pi;
+      int top_pi = tsep_k_pi - (int)Mdata[q].coord(i).t;
+
+      int idx = -1;
+      for(int t=0;t<tsep_k_pi_all.size();t++) if(tsep_k_pi_all[t] == tsep_k_pi){ idx = t; break; }
+
+      if(idx == -1){
+	tsep_k_pi_all.push_back(tsep_k_pi);
+	tsep_k_pi_data.push_back(correlationFunction<double, DistributionType>());
+	idx = tsep_k_pi_all.size()-1;
+      }
+
+      tsep_k_pi_data[idx].push_back(top_pi, Mdata[q].value(i));
+    }
+
     //Largest tsep_k_pi
     double largest_tsep_op_pi = -1;
     for(int i=0;i<wavg[q].size();i++) if(wavg[q].coord(i) > largest_tsep_op_pi) largest_tsep_op_pi = wavg[q].coord(i);
 
     //Setup the fit curve
-    jackknifeDistributionD Mfit(nsample, [&](const int s){ return extractor.getMfit(q,s); });
-    correlationFunction<double, jackknifeDistributionD> curve(2);
+    DistributionType Mfit(data[0].value(0).getInitializer());
+    for(int s=0;s<iter::size(Mfit);s++) iter::at(s, Mfit) = extractor.getMfit(q,s);
+
+    correlationFunction<double, DistributionType> curve(2);
     curve.value(0) = Mfit;
     curve.coord(0) = tmin_op_pi;
     curve.value(1) = Mfit;
@@ -170,10 +203,14 @@ void plotErrorWeightedData(const std::vector<correlationFunction<amplitudeDataCo
         
     //Plot
     MatPlotLibScriptGenerate plotter;
-    accessor dset_accessor(wavg[q]);
-    accessor fitcurve_accessor(curve);
-    MatPlotLibScriptGenerate::handleType dset_handle = plotter.plotData(dset_accessor);
-    MatPlotLibScriptGenerate::handleType fitcurve_handle = plotter.errorBand(fitcurve_accessor);
+
+    for(int t=0;t<tsep_k_pi_all.size();t++)
+      plotter.plotData(accessor(tsep_k_pi_data[t]),stringize("tsep_k_pi_%d", tsep_k_pi_all[t]));
+
+    plotter.plotData(accessor(wavg[q]),"wavg");
+
+    MatPlotLibScriptGenerate::kwargsType kwargs; kwargs["alpha"] = 0.6;
+    plotter.errorBand(accessor(curve), kwargs, "fit");
     
     plotter.setXlabel("$t$");
     std::ostringstream ylabel; ylabel << "$M^{1/2,\\ \\rm{lat}}_" << q+1 << "$";
@@ -510,17 +547,17 @@ void plotErrorWeightedData2expFlat(const std::vector<correlationFunction<amplitu
 
 
 
-template<typename FitFunc>
+template<typename FitFunc, typename DistributionD>
 struct plotFF{
-  inline static void plot(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
-			  const typename fitReturnType<FitFunc>::type &fit_params,
+  inline static void plot(const std::vector<correlationFunction<amplitudeDataCoord, DistributionD> > &A0_all_j,
+			  const typename fitReturnType<FitFunc, DistributionD>::type &fit_params,
 			  const int Lt, const int tmin_k_op, const int tmin_op_pi){
-    extractMdata<FitFunc> extractor(fit_params);
+    extractMdata<FitFunc, typename fitReturnType<FitFunc, DistributionD>::ParamsDist> extractor(fit_params);
     plotErrorWeightedData(A0_all_j,extractor,tmin_k_op,tmin_op_pi);
   }
 };
 template<>
-struct plotFF<FitKtoPiPiTwoExp>{
+struct plotFF<FitKtoPiPiTwoExp, jackknifeDistributionD>{
   inline static void plot(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_all_j,
 			  const std::vector<jackknifeDistribution<FitKtoPiPiTwoExp::Params> > &fit_params,
 			  const int Lt, const int tmin_k_op, const int tmin_op_pi){
@@ -553,13 +590,13 @@ struct PlotOnlyCall{
     assert(0);
 #endif
 
-    typename fitReturnType<FitFunc>::type fit_params;
+    typename fitReturnType<FitFunc, jackknifeDistributionD>::type fit_params;
 #ifdef HAVE_HDF5
     readParamsStandard(fit_params, "params.hdf5");
 #else
     assert(0);
 #endif
-    plotFF<FitFunc>::plot(A0_all_j, fit_params, inputs.Lt, inputs.tmin_k_op, inputs.tmin_op_pi);
+    plotFF<FitFunc, jackknifeDistributionD>::plot(A0_all_j, fit_params, inputs.Lt, inputs.tmin_k_op, inputs.tmin_op_pi);
   }
     
 };

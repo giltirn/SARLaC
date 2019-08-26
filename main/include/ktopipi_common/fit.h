@@ -262,7 +262,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
 
 
 template<typename FitFunc>
-inline typename fitReturnType<FitFunc>::type fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
+inline typename fitReturnType<FitFunc,jackknifeDistributionD>::type fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 						 const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 						 const bool correlated,
 						 const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
@@ -310,9 +310,9 @@ inline void fitAndPlotFF(const std::vector<correlationFunction<amplitudeDataCoor
       std::cout << A0_fit_j[q].coord(i) << " : " << A0_fit_j[q].value(i) << std::endl;
   }
   
-  typename fitReturnType<FitFunc>::type fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,correlated,opt);
+  typename fitReturnType<FitFunc,jackknifeDistributionD>::type fit_params = fit<FitFunc>(A0_fit_j,A0_fit_dj,correlated,opt);
 
-  plotFF<FitFunc>::plot(A0_all_j, fit_params, Lt, tmin_k_op, tmin_op_pi);
+  plotFF<FitFunc,jackknifeDistributionD>::plot(A0_all_j, fit_params, Lt, tmin_k_op, tmin_op_pi);
 
 #ifdef HAVE_HDF5
   writeParamsStandard(fit_params, "params.hdf5");
