@@ -6,11 +6,12 @@
 
 #include "scratch.h"
 #include "amplitude_data_ktosigma.h"
+#include "computeQ_amplitude_opts.h"
 
 CPSFIT_START_NAMESPACE
 
 template<typename DistributionType, typename BinResampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const BinResampler &bin_resampler){
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
   std::cout << "Starting generation of resampled amplitude for K->sigma Q" << q+1 << " and t_sep(K->sigma)=" << tsep_k_sigma << std::endl;
   
   int nt = tsep_k_sigma + 1; //only compute on  0<=t<=tsep_k_sigma
@@ -45,9 +46,10 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << std::endl;
   //NOTE: <sigma|P|K> = -|C|*mix3    where the |C| cancels with a corresponding factor absorbed into the definition of alpha here 
   //      (cf https://rbc.phys.columbia.edu/rbc_ukqcd/individual_postings/ckelly/Gparity/operator_subtraction.pdf pg 4)
-  A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){ return DistributionType(from + alpha_r(t)*mix_srcavg_r(3)(t)); }); 
+  A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){
+      return DistributionType(from + opts.alpha_scale*alpha_r(t)*mix_srcavg_r(3)(t)); }); 
   A0_srcavg_r(4) = A0_srcavg_r(4).transform([&](int const* t, const DistributionType &from){
-      return DistributionType(from - alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );
+      return DistributionType(from - opts.alpha_scale*alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );
     }); 
 
   //Perform the type 4 vacuum subtraction

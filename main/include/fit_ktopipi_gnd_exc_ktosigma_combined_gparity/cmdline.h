@@ -35,6 +35,8 @@ struct CMDline{
   bool save_resampled_data_container_checkpoint;
   std::string save_resampled_data_container_checkpoint_file;
 
+  bool write_alpha_and_pseudoscalar_matrix_elem;
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -52,6 +54,8 @@ struct CMDline{
 
     load_resampled_data_container_checkpoint = false;
     save_resampled_data_container_checkpoint = false;
+
+    write_alpha_and_pseudoscalar_matrix_elem = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -109,6 +113,9 @@ struct CMDline{
 	load_resampled_data_container_checkpoint = true;
 	load_resampled_data_container_checkpoint_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-write_alpha_and_pseudoscalar_matrix_elem"){
+	write_alpha_and_pseudoscalar_matrix_elem = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

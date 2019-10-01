@@ -43,6 +43,14 @@ struct CMDline{
 
   bool fronthalf_backhalf;
 
+  bool write_alpha_and_pseudoscalar_matrix_elem;
+
+  bool alpha_vary_plot;  
+  std::string alpha_vary_plot_args;
+
+  bool set_alpha_coeff; //change the coefficient of alpha from 1.0 to some other value to illustrate effect
+  double alpha_coeff;
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -65,6 +73,12 @@ struct CMDline{
     save_boot_resample_table = false;
 
     fronthalf_backhalf = false;
+
+    alpha_vary_plot = false;
+
+    write_alpha_and_pseudoscalar_matrix_elem = false;
+
+    set_alpha_coeff = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -133,6 +147,24 @@ struct CMDline{
       }else if(sargv[i] == "-fronthalf_backhalf"){
 	fronthalf_backhalf = true;
 	i++;
+      }else if(sargv[i] == "-write_alpha_and_pseudoscalar_matrix_elem"){
+	write_alpha_and_pseudoscalar_matrix_elem = true;
+	i++;
+      }else if(sargv[i] == "-alpha_vary_plot"){
+	alpha_vary_plot = true;
+	alpha_vary_plot_args = sargv[i+1];
+	i+=2;
+	std::cout << "Doing alpha vary plot with args from " << alpha_vary_plot_args << std::endl;
+
+	if(alpha_vary_plot_args == "TEMPLATE"){
+	  AlphaVaryPlotArgs pargs;
+	  std::ofstream of("alpha_vary_plot_arg.args"); of << pargs; of.close();	 
+	  exit(0);
+	}
+      }else if(sargv[i] == "-set_alpha_coeff"){
+	set_alpha_coeff = true;
+	alpha_coeff = strToAny<double>(sargv[i+1]);
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

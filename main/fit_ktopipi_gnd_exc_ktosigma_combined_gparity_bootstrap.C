@@ -7,12 +7,31 @@
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/fronthalf_backhalf.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/weighted_avg_consistency.h>
 
+#include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/alpha_vary_plot.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/args.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/cmdline.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/bootstrap_pvalue.h>
 
+
 using namespace CPSfit;
 
+//Make sure you delete the rtable when you are done
+bootstrapBlockResampler getResampler(const RawData &raw, const Args &args, const CMDline &cmdline){
+  int nsample = raw.nsample();
+
+  //Generate the resample table
+  resampleTableOptions ropt;
+  ropt.read_from_file = cmdline.load_boot_resample_table;
+  ropt.read_file = cmdline.load_boot_resample_table_file;
+  ropt.write_to_file = cmdline.save_boot_resample_table;
+  ropt.write_file = cmdline.save_boot_resample_table_file;
+
+  std::vector<std::vector<int> >* rtable = new std::vector<std::vector<int> >(generateResampleTable(nsample, args.nboot, args.resample_table_type, args.block_size, RNG, ropt));
+  if(rtable->size() != args.nboot) error_exit(std::cout << "Expected resample table of size " << args.nboot << ", got " << rtable->size() << std::endl);
+
+  bootstrapBlockResampler resampler(*rtable);
+  return resampler;
+}
 
 int main(const int argc, const char* argv[]){
   printMem("Beginning of execution");
@@ -61,6 +80,46 @@ int main(const int argc, const char* argv[]){
       frontHalfBackHalfAnalysis<bootstrapDistributionD>(raw, bootstrapBlockResampler(rtable_fh), bootstrapBlockResampler(rtable_bh), args, cmdline);
       exit(0);
     }
+
+    if(cmdline.write_alpha_and_pseudoscalar_matrix_elem){
+      bootstrapBlockResampler resampler = getResampler(raw, args, cmdline);
+      std::vector<std::vector<std::vector<std::vector<bootstrapDistributionD> > > > alpha(args.operators.size()); //[op_idx][tsep_k_snk_idx][q][t]
+      std::vector<std::vector<correlationFunction<double, bootstrapDistributionD> > > op_P_K(args.operators.size()); //[op_idx][tsep_k_snk_idx][t]
+      for(int o=0;o<args.operators.size();o++)
+	raw.computeAlphaAndPseudoscalarMatrixElem(alpha[o], op_P_K[o], args.operators[o], args, cmdline, "alpha/op_P_K write", resampler);
+      {
+	HDF5writer wr("alpha.hdf5");
+	write(wr, alpha, "alpha");
+      }
+      {
+	HDF5writer wr("op_P_K.hdf5");
+	write(wr, op_P_K, "op_P_K");
+      }
+      delete &resampler.rtable;
+    }
+
+    if(cmdline.alpha_vary_plot){      
+      AlphaVaryPlotArgs pargs;
+      parse(pargs, cmdline.alpha_vary_plot_args);
+
+      bootstrapBlockResampler resampler = getResampler(raw, args, cmdline);
+      for(int q=0;q<10;q++){
+	for(int o=0;o<args.operators.size();o++){
+	  PiPiOperator op = args.operators[o];
+	  int tsep_k_snk;
+	  if(op == PiPiOperator::PiPiGnd || op == PiPiOperator::PiPiExc) tsep_k_snk =  args.tsep_k_pi[pargs.tsep_k_snk_idx];
+	  else tsep_k_snk =  args.tsep_k_sigma[pargs.tsep_k_snk_idx];
+
+	  std::string file_stub = stringize("alpha_vary_Q%d_%s_tsepksnk%d_tsepopsnk%d", q+1,
+					    simultaneousFitCommon::opDescrFile(args.operators[o]).c_str(),
+					    tsep_k_snk, pargs.tsep_op_snk);
+	  alphaVaryPlot<bootstrapDistributionD>(raw, args.operators[o], q, pargs.tsep_k_snk_idx, pargs.tsep_op_snk,		    
+						args, cmdline, resampler, file_stub, pargs.nstep_each_side, pargs.coeff_step);
+	    
+	}
+      }
+      delete &resampler.rtable;
+    }
   }
     
   std::cout << "Computing resampled data" << std::endl;
@@ -73,22 +132,13 @@ int main(const int argc, const char* argv[]){
     read(rd, data_b, "data_b");
     read(rd, data_bj, "data_bj");
   }else{
-    int nsample = raw.nsample();
+    bootstrapBlockResampler resampler = getResampler(raw, args, cmdline);
 
-    //Generate the resample table
-    resampleTableOptions ropt;
-    ropt.read_from_file = cmdline.load_boot_resample_table;
-    ropt.read_file = cmdline.load_boot_resample_table_file;
-    ropt.write_to_file = cmdline.save_boot_resample_table;
-    ropt.write_file = cmdline.save_boot_resample_table_file;
-    
-    std::vector<std::vector<int> > rtable = generateResampleTable(nsample, args.nboot, args.resample_table_type, args.block_size, RNG, ropt);
-    if(rtable.size() != args.nboot) error_exit(std::cout << "Expected resample table of size " << args.nboot << ", got " << rtable.size() << std::endl);
+    double alpha_coeff = cmdline.set_alpha_coeff ? cmdline.alpha_coeff : 1.;
+    std::cout << "Generating resampled data with alpha coefficient " << alpha_coeff << " (default 1.)" << std::endl;
 
-    bootstrapBlockResampler resampler(rtable);
-
-    data_b.resample(raw, args, cmdline, "bootstrap", resampler);
-    data_bj.resample(raw, args, cmdline, "boot-jackknife", resampler);
+    data_b.resample(raw, args, cmdline, "bootstrap", resampler, alpha_coeff);
+    data_bj.resample(raw, args, cmdline, "boot-jackknife", resampler, alpha_coeff);
   }
   
   if(cmdline.save_resampled_data_container_checkpoint){

@@ -103,7 +103,10 @@ public:
     int boots = table.size();
     this->baseType::resize(boots);
 
-    assert(table[0].size() <= in.size()); //table generation can discard some data
+    if(table[0].size() > in.size()) 
+      error_exit(std::cout << "bootstrapDistribution::resample boot resample table has " << table[0].size() << " entries (Nboot=" << boots 
+		 << ") but the number of configurations is only " << in.size() << std::endl); //table generation can discard some data
+
     int nraw = table[0].size();
 
 #pragma omp parallel for

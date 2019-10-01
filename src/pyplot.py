@@ -158,7 +158,19 @@ class DataSet:
                 if(math.isnan(float(self.dym[i]))):
                     self.dym[i] = val
             
-                
+        def append(self, x,y,dx,dy):
+            if(self.x == None):
+                self.createEmpty()
+
+            self.x.append(float(x))
+            self.y.append(float(y))
+            self.dxm.append(float(dx))
+            self.dxp.append(float(dx))
+            self.dym.append(float(dy))
+            self.dyp.append(float(dy))
+
+            
+
 
 class ErrorBand:
         def __init__(self):

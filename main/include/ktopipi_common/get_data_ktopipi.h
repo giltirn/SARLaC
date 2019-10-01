@@ -6,6 +6,7 @@
 
 #include "scratch.h"
 #include "amplitude_data_ktopipi.h"
+#include "computeQ_amplitude_opts.h"
 
 CPSFIT_START_NAMESPACE
 
@@ -86,7 +87,7 @@ NumericTensor<DistributionType,1> binResampleAverageMixDiagram(const NumericTens
 }
 
 template<typename DistributionType, typename BinResampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const BinResampler &bin_resampler){
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
   std::cout << "Starting generation of resampled amplitude for K->pipi Q" << q+1 << " and t_sep(K->pi)=" << tsep_k_pi << std::endl;
 
   const int nt = tsep_k_pi + 1; //only compute on  0<=t<=tsep_k_pi
@@ -116,9 +117,10 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   time.start();
   //Subtract the pseudoscalar operators and mix4 vacuum term
   std::cout << "Subtracting pseudoscalar operators and mix4 vacuum term under " << descr << std::endl;
-  A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){ return DistributionType(from - alpha_r(t)*mix_srcavg_r(3)(t)); }); 
+  A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){ 
+      return DistributionType(from - opts.alpha_scale*alpha_r(t)*mix_srcavg_r(3)(t)); }); 
   A0_srcavg_r(4) = A0_srcavg_r(4).transform([&](int const* t, const DistributionType &from){
-      return DistributionType(from - alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );
+      return DistributionType(from - opts.alpha_scale*alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );
     }); 
 
   //Perform the type 4 vacuum subtraction
@@ -135,8 +137,9 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
 }
 template<typename DistributionType, typename BinResampler>
 NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const ProjectedBubbleData &bubble_data, 
-						    const int Lt, const std::string &descr, const BinResampler &bin_resampler){
-  return computeQamplitude(q, tsep_k_pi, raw, bubble_data.binResample<DistributionType>(bin_resampler), Lt, descr, bin_resampler);
+						    const int Lt, const std::string &descr, const BinResampler &bin_resampler, 
+						    const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
+  return computeQamplitude(q, tsep_k_pi, raw, bubble_data.binResample<DistributionType>(bin_resampler), Lt, descr, bin_resampler,opts);
 }
 
 

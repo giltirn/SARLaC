@@ -111,24 +111,26 @@ struct RawData{
 
   template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
   void resample(std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > &A0_all, const PiPiOperator op, 
-		const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler) const{
+		const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler, const double alpha_coeff = 1.) const{
 
     assert(doOp(op, args.operators));
     NumericTensor<DistributionType,1> A0_full_srcavg;
-
+    computeQamplitudeOpts opt;
+    opt.alpha_scale = alpha_coeff;
+    
     for(int x=0;x<args.tsep_k_pi.size();x++){
       int tsep_k_pi = args.tsep_k_pi[x];
       
       for(int q=0;q<10;q++){
 	switch(op){
 	case PiPiOperator::PiPiGnd:
-	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_gnd[x], *bubble_data_gnd, args.Lt, descr, bin_resampler);
+	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_gnd[x], *bubble_data_gnd, args.Lt, descr, bin_resampler, opt);
 	  break;
 	case PiPiOperator::PiPiExc:
-	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_exc[x], *bubble_data_exc, args.Lt, descr, bin_resampler);
+	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktopipi_exc[x], *bubble_data_exc, args.Lt, descr, bin_resampler, opt);
 	  break;
 	case PiPiOperator::Sigma:
-	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktosigma[x], *bubble_data_sigma, args.Lt, descr, bin_resampler);
+	  A0_full_srcavg = computeQamplitude<DistributionType>(q, tsep_k_pi, *raw_ktosigma[x], *bubble_data_sigma, args.Lt, descr, bin_resampler, opt);
 	  break;
 	}
 	for(int t=0;t<=tsep_k_pi;t++)
@@ -139,9 +141,99 @@ struct RawData{
 
   template<typename DistributionType, typename ArgsType, typename CMDlineType>
   void resample(std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > &A0_all, const PiPiOperator op, 
-		const ArgsType &args, const CMDlineType &cmdline, const std::string &descr) const{
+		const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const double alpha_coeff = 1.) const{
     basicBinResampler bin_resampler(args.bin_size);  
-    resample(A0_all, op, args, cmdline, descr, bin_resampler);
+    resample(A0_all, op, args, cmdline, descr, bin_resampler,alpha_coeff);
+  }
+
+  //Extract the <op|P|K> matrix element and the coefficients alpha (10-basis) for external analysis
+  template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
+  void computeAlphaAndPseudoscalarMatrixElem(std::vector<std::vector<std::vector<DistributionType> > > &alpha_sep_q_t, //[tsep_k_snk_idx][q][t]
+					     std::vector<correlationFunction<double, DistributionType> > &op_P_K,  //[tsep_k_snk_idx][t]
+					     const PiPiOperator op, 
+					     const ArgsType &args, const CMDlineType &cmdline, 
+					     const std::string &descr, const BinResampler &bin_resampler) const{
+
+    const int Lt = args.Lt;
+
+    if(op == PiPiOperator::PiPiGnd || op == PiPiOperator::PiPiExc){
+      alpha_sep_q_t.resize(args.tsep_k_pi.size());
+      op_P_K.resize(args.tsep_k_pi.size());
+
+      NumericTensor<DistributionType,1> alpha_r({Lt}), A0_type4_srcavg_vacsub_r({Lt}), mix4_srcavg_vacsub_r({Lt}); //[t]
+      ProjectedBubbleData const* bub = op == PiPiOperator::PiPiGnd ? bubble_data_gnd : bubble_data_exc;
+      NumericTensor<DistributionType,1> resampled_bubble = bub->binResample<DistributionType>(bin_resampler);
+
+      for(int x=0;x<args.tsep_k_pi.size();x++){
+	int tsep_k_pi = args.tsep_k_pi[x];
+	const RawKtoPiPiData &raw = op == PiPiOperator::PiPiGnd ? *raw_ktopipi_gnd[x] : *raw_ktopipi_exc[x];
+	
+	alpha_sep_q_t[x].resize(10);
+
+	for(int q=0;q<10;q++){
+	  computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
+					    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, resampled_bubble ,q, raw.nonzerotK(4),tsep_k_pi,Lt,bin_resampler);      
+
+	  alpha_sep_q_t[x][q].resize(tsep_k_pi+1); //0<=t<=tsep_k_pi
+	  for(int t=0;t<=tsep_k_pi;t++)
+	    alpha_sep_q_t[x][q][t] = -sqrt(6.)/3 * alpha_r(&t); //this is the *true* normalization for alpha (internally we use a more convenient normalization to avoid a similar inverse normalization of the matrix elements it multiplies
+	}
+      
+	IndexedContainer<NumericTensor<DistributionType,1>, 2, 3> mix_srcavg_r; //[t]
+	for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), bin_resampler);
+  
+	op_P_K[x].resize(tsep_k_pi+1);
+	for(int t=0;t<=tsep_k_pi;t++){
+	  op_P_K[x].coord(t) = t;
+	  op_P_K[x].value(t) = -3./sqrt(6.)*(mix_srcavg_r(3)(&t) + mix_srcavg_r(4)(&t) - mix4_srcavg_vacsub_r(&t)); //note the inverse normalization
+	}
+      }
+    }else{
+      assert(op == PiPiOperator::Sigma);
+
+      alpha_sep_q_t.resize(args.tsep_k_sigma.size());
+      op_P_K.resize(args.tsep_k_sigma.size());
+
+      NumericTensor<DistributionType,1> alpha_r({Lt}), A0_type4_srcavg_vacsub_r({Lt}), mix4_srcavg_vacsub_r({Lt}); //[t]
+      NumericTensor<DistributionType,1> resampled_bubble = bubble_data_sigma->binResample<DistributionType>(bin_resampler);
+
+      std::vector<int> nonzero_tK(Lt); for(int t=0;t<Lt;t++) nonzero_tK[t] = t;
+
+      for(int x=0;x<args.tsep_k_sigma.size();x++){
+	int tsep_k_sigma = args.tsep_k_sigma[x];
+	const RawKtoSigmaData & raw = *raw_ktosigma[x];
+	
+	alpha_sep_q_t[x].resize(10);
+
+	for(int q=0;q<10;q++){
+	  computeAlphaAndVacuumSubtractions(alpha_r, A0_type4_srcavg_vacsub_r, mix4_srcavg_vacsub_r,
+					    raw.A0_type4_alltK_nobub, raw.mix4_alltK_nobub, resampled_bubble ,q, nonzero_tK,tsep_k_sigma,Lt,bin_resampler);      
+
+	  alpha_sep_q_t[x][q].resize(tsep_k_sigma+1);
+	  for(int t=0;t<=tsep_k_sigma;t++)
+	    alpha_sep_q_t[x][q][t] = 2. * alpha_r(&t); //this is the *true* normalization for alpha (internally we use a more convenient normalization to avoid a similar inverse normalization of the matrix elements it multiplies
+	}
+      
+	IndexedContainer<NumericTensor<DistributionType,1>, 2, 3> mix_srcavg_r; //[t]
+	for(int i=3;i<=4;i++) mix_srcavg_r(i) = binResampleAverageMixDiagram<DistributionType>(raw.mix_alltK(i), bin_resampler);
+  
+	op_P_K[x].resize(tsep_k_sigma+1);
+	for(int t=0;t<=tsep_k_sigma;t++){
+	  op_P_K[x].coord(t) = t;
+	  op_P_K[x].value(t) = 1./2*(-mix_srcavg_r(3)(&t) + mix_srcavg_r(4)(&t) - mix4_srcavg_vacsub_r(&t)); //note - sign on the mix3 diag is intentional
+	}
+      }
+    }
+  }      
+
+  template<typename DistributionType, typename ArgsType, typename CMDlineType>
+  void computeAlphaAndPseudoscalarMatrixElem(std::vector<std::vector<std::vector<DistributionType> > > &alpha_sep_q_t, //[tsep_k_snk_idx][q][t]
+					     std::vector<correlationFunction<double, DistributionType> > &op_P_K,  //[tsep_k_snk_idx][t]
+					     const PiPiOperator op, 
+					     const ArgsType &args, const CMDlineType &cmdline, 
+					     const std::string &descr) const{
+    basicBinResampler bin_resampler(args.bin_size);  
+    computeAlphaAndPseudoscalarMatrixElem(alpha_sep_q_t, op_P_K, op, args, cmdline, descr);
   }
 
   void write(HDF5writer &writer, const std::string &tag) const{

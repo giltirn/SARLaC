@@ -63,6 +63,19 @@ struct simultaneousFitCommon{
     return "";
   }
 
+  static inline std::string opDescrFile(PiPiOperator op){
+    switch(op){
+    case PiPiOperator::PiPiGnd:
+      return "kpipi_111";
+    case PiPiOperator::PiPiExc:
+      return "kpipi_311";
+    case PiPiOperator::Sigma:
+      return "ksigma";
+    }
+    assert(0);
+    return "";
+  }
+
   //Output vectors should be resized to number of matrix elements 
   template<typename DistributionType>
   static void generateSimData(std::vector<correlationFunction<SimFitCoordGen, DistributionType> > &A0_sim_r,

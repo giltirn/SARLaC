@@ -56,23 +56,23 @@ public:
     }
   }
   template<typename ArgsType, typename CMDlineType>
-  inline void resample(const RawData &raw, const PiPiOperator op, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr){
-    raw.resample( (*this)(op), op, args, cmdline, descr);
+  inline void resample(const RawData &raw, const PiPiOperator op, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const double alpha_coeff=1.){
+    raw.resample( (*this)(op), op, args, cmdline, descr, alpha_coeff);
   }
   template<typename ArgsType, typename CMDlineType>
-  inline void resample(const RawData &raw, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr){
+  inline void resample(const RawData &raw, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const double alpha_coeff=1.){
     for(int i=0;i<args.operators.size();i++)
-      raw.resample( (*this)(args.operators[i]), args.operators[i], args, cmdline, descr);
+      raw.resample( (*this)(args.operators[i]), args.operators[i], args, cmdline, descr, alpha_coeff);
   }
 
   template<typename ArgsType, typename CMDlineType, typename BinResampler>
-  inline void resample(const RawData &raw, const PiPiOperator op, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler){
-    raw.resample( (*this)(op), op, args, cmdline, descr, bin_resampler);
+  inline void resample(const RawData &raw, const PiPiOperator op, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler, const double alpha_coeff=1.){
+    raw.resample( (*this)(op), op, args, cmdline, descr, bin_resampler, alpha_coeff);
   }
   template<typename ArgsType, typename CMDlineType, typename BinResampler>
-  inline void resample(const RawData &raw, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler){
+  inline void resample(const RawData &raw, const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler, const double alpha_coeff=1.){
     for(int i=0;i<args.operators.size();i++)
-      raw.resample( (*this)(args.operators[i]), args.operators[i], args, cmdline, descr, bin_resampler);
+      raw.resample( (*this)(args.operators[i]), args.operators[i], args, cmdline, descr, bin_resampler, alpha_coeff);
   }
 
 
