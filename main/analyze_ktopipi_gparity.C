@@ -15,7 +15,7 @@ using namespace CPSfit;
 
 
 int main(const int argc, const char* argv[]){
-  typedef superJackknifeDistribution<double> superJackD;  
+  typedef superMultiDistribution<double> superMultiD;  
 
   if(argc != 2){
     std::cout << "To use ./analyze_ktopipi_gparity <params_file>\n";
@@ -29,8 +29,8 @@ int main(const int argc, const char* argv[]){
   Args args;
   parse(args, argv[1]);
 
-  //Load the data and convert into common superJackknife format
-  superJackknifeData data(args);  
+  //Load the data and convert into common superMulti format
+  superMultiData data(args);  
 
   //Load the Wilson coefficients
   WilsonCoeffs wilson_coeffs(args.wilson_coeffs_file);
@@ -39,12 +39,12 @@ int main(const int argc, const char* argv[]){
   MSbarConvert MSbar(args.renormalization.mu,args.renormalization.scheme);
 
   std::pair<NumericTensor<double,1>, NumericTensor<double,1> > RI_Wilson_coeffs;
-  std::pair<NumericTensor<superJackD,1>, NumericTensor<superJackD,1> > lat_Wilson_coeffs;
+  std::pair<NumericTensor<superMultiD,1>, NumericTensor<superMultiD,1> > lat_Wilson_coeffs;
   
   computeRIandLatticeWilsonCoefficients(RI_Wilson_coeffs,lat_Wilson_coeffs,wilson_coeffs,MSbar,data.NPR_sj,"");
   
   //Compute the Lellouch-Luscher factor
-  superJackD F_sj, delta_0_sj;
+  superMultiD F_sj, delta_0_sj;
   computePhaseShiftAndLLfactor(delta_0_sj, F_sj, data.Epipi_sj, data.mpi_sj, data.mK_sj, data.ainv_sj, args);
 
   {
@@ -52,12 +52,12 @@ int main(const int argc, const char* argv[]){
     std::cout << "Starting computation using standard method\n";
     
     //Compute the MSbar, infinite-volume matrix elements
-    NumericTensor<superJackD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElements(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,args);
+    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElements(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,args);
 
     computeMatrixElementRelations(M_MSbar_std_sj, "");
     
     //Compute A0
-    superJackD ReA0_sj, ImA0_sj;
+    superMultiD ReA0_sj, ImA0_sj;
     computeA0(ReA0_sj, ImA0_sj, M_MSbar_std_sj, wilson_coeffs, args, "");
     
     //Compute epsilon'
@@ -78,12 +78,12 @@ int main(const int argc, const char* argv[]){
     std::ostringstream nm; nm << "elim" << chiralBasisIdx(i) << "_";
         
     //Compute the MSbar, infinite-volume matrix elements
-    NumericTensor<superJackD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0expt(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,lat_Wilson_coeffs.first,data.ReA0_expt_sj,i,args);
+    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0expt(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,lat_Wilson_coeffs.first,data.ReA0_expt_sj,i,args);
 
     computeMatrixElementRelations(M_MSbar_std_sj, nm.str());
     
     //Compute A0
-    superJackD ReA0_sj, ImA0_sj;
+    superMultiD ReA0_sj, ImA0_sj;
     computeA0(ReA0_sj, ImA0_sj, M_MSbar_std_sj, wilson_coeffs, args, nm.str());
     
     //Compute epsilon'

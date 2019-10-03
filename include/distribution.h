@@ -11,6 +11,7 @@
 #include<distribution/jackknife.h>
 #include<distribution/raw_data_distribution.h>
 #include<distribution/superjackknife.h>
+#include<distribution/supermulti.h>
 #include<distribution/bootstrap.h>
 #include<distribution/boot_jackknife.h>
 #include<distribution/distribution_struct_peekpoke.h>

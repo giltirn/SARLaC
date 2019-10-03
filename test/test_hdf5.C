@@ -20,6 +20,15 @@ struct createOne<superJackknifeDistribution<T> >{
   }
 };
 template<typename T>
+struct createOne<superMultiDistribution<T> >{
+  static inline superMultiDistribution<T> doit(){
+    superMultiLayout *layout = new superMultiLayout;
+    layout->addEnsemble("A",MultiType::Jackknife,20);
+    layout->addEnsemble("B",MultiType::Bootstrap,20);
+    return superMultiDistribution<T>(*layout,0.);
+  }
+};
+template<typename T>
 struct createOne<bootstrapDistribution<T> >{
   static inline bootstrapDistribution<T> doit(){ return bootstrapDistribution<T>(bootstrapInitType(50, 23)); } //use different numbers than default
 };
@@ -256,6 +265,7 @@ int main(void){
 
   testBasic<jackknifeDistribution<S> >();
   testBasic<superJackknifeDistribution<double> >();
+  testBasic<superMultiDistribution<double> >();
   testBasic<bootstrapDistribution<S> >();
 
   {//test std::map

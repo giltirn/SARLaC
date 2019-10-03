@@ -203,10 +203,11 @@ public:
   }
 
   //Convert the matrix elements in the RI scheme and chiral basis to MSbar matrix elements in the 10-basis
-  NumericTensor<superJackknifeDistribution<double>,1> convert(const NumericTensor<superJackknifeDistribution<double>,1> &Min) const{
-    superJackknifeDistribution<double> zro(Min({0}).getLayout(),[](const int s){return 0.;} );
+  NumericTensor<superMultiDistribution<double>,1> convert(const NumericTensor<superMultiDistribution<double>,1> &Min) const{
+    superMultiDistribution<double> zro(Min({0}).getLayout());
+    zro.zero();
 
-    NumericTensor<superJackknifeDistribution<double>,1> Mout({10},zro);
+    NumericTensor<superMultiDistribution<double>,1> Mout({10},zro);
     int c[2];
     for(c[0]=0;c[0]<10;c[0]++)
       for(c[1]=0;c[1]<7;c[1]++)

@@ -287,7 +287,15 @@ public:
   void operator()(const std::vector<int> &coord, const superJackknifeDistribution<T> &v){
   }
 };
-
+template<typename T>
+class formatSamplePlot<superMultiDistribution<T> >: public formatter<superMultiDistribution<T> >{
+public:
+  formatSamplePlot(const CmdLine &cmdline){
+    error_exit(std::cout << "formatSamplePlot doesn't support superMultiDistribution\n");
+  }
+  void operator()(const std::vector<int> &coord, const superMultiDistribution<T> &v){
+  }
+};
 
 template<typename D>
 struct setFormat{
@@ -397,6 +405,8 @@ void run(const std::string &filename, const DistributionTypeEnum type, const int
     specDtype<doubleJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;
   case DistributionTypeEnum::SuperJackknife:
     specDtype<superJackknifeDistribution<double> >(filename,vector_depth,cmdline);  break;    
+  case DistributionTypeEnum::SuperMulti:
+    specDtype<superMultiDistribution<double> >(filename,vector_depth,cmdline);  break;    
   case DistributionTypeEnum::Bootstrap:
     specDtype<bootstrapDistribution<double> >(filename,vector_depth,cmdline);  break;
   default:

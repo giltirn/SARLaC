@@ -3,27 +3,29 @@
 
 #include<physics.h>
 
-superJackknifeDistribution<double> getPhaseShift(const LuscherZeta &lz, const superJackknifeDistribution<double> &q_pipi){
+
+superMultiDistribution<double> getPhaseShift(const LuscherZeta &lz, const superMultiDistribution<double> &q_pipi){
   std::cout << "Computing phase shift from lattice values\n";
-  superJackknifeDistribution<double> phi(q_pipi.getLayout(), [&](const int i){ return lz.calcPhi(i==-1 ? q_pipi.best() : q_pipi.sample(i)); } );
+  superMultiDistribution<double> phi(q_pipi.getLayout(), [&](const int i){ return lz.calcPhi(q_pipi.osample(i)); } );
 
   std::cout << "phi(q) = " << phi << std::endl;
   
-  superJackknifeDistribution<double> delta(q_pipi.getLayout(), [&](const int i){
-      double d = -phi.osample(i);
-      if(d<0.) d += ceil(-d/M_PI)*M_PI;
-      if(d>M_PI) d -= floor(d/M_PI)*M_PI;
-      return d;
-    });
+  superMultiDistribution<double> delta(q_pipi.getLayout(), 
+				       [&](const int i){
+					 double d = -phi.osample(i);
+					 if(d<0.) d += ceil(-d/M_PI)*M_PI;
+					 if(d>M_PI) d -= floor(d/M_PI)*M_PI;
+					 return d;
+				       });
     
   std::cout << "delta = " << delta << std::endl;
   return delta;
 }
 
-superJackknifeDistribution<double> getPhaseShiftDerivSchenk(const superJackknifeDistribution<double> &ainv,
-							    const superJackknifeDistribution<double> &Epipi,
-							    const superJackknifeDistribution<double> &q_pipi,
-							    const superJackknifeDistribution<double> &mpi,
+superMultiDistribution<double> getPhaseShiftDerivSchenk(const superMultiDistribution<double> &ainv,
+							    const superMultiDistribution<double> &Epipi,
+							    const superMultiDistribution<double> &q_pipi,
+							    const superMultiDistribution<double> &mpi,
 							    const int L){					     
   //Pheno curve is in terms of Mandelstam variable s = E_pipi^2,
   //q = pL/2pi     p = ( Epipi^2 /4 - mpi^2 )^{1/2}
@@ -43,7 +45,7 @@ superJackknifeDistribution<double> getPhaseShiftDerivSchenk(const superJackknife
   //For the pheno curve, everything needs to be in units of *MeV*
 
   std::cout << "Computing phase shift derivative using Schenk formulae\n";
-  return superJackknifeDistribution<double>(ainv.getLayout(),
+  return superMultiDistribution<double>(ainv.getLayout(),
 					    [&](const int b){
 					      double ainv_b = ainv.osample(b)* 1000; //in MeV
 					      double Epipi_b = Epipi.osample(b) * ainv_b;
@@ -67,13 +69,13 @@ superJackknifeDistribution<double> getPhaseShiftDerivSchenk(const superJackknife
 }
 
 
-superJackknifeDistribution<double> getPhaseShiftDerivColangelo(const superJackknifeDistribution<double> &ainv,
-							       const superJackknifeDistribution<double> &Epipi,
-							       const superJackknifeDistribution<double> &q_pipi,
-							       const superJackknifeDistribution<double> &mpi,
+superMultiDistribution<double> getPhaseShiftDerivColangelo(const superMultiDistribution<double> &ainv,
+							       const superMultiDistribution<double> &Epipi,
+							       const superMultiDistribution<double> &q_pipi,
+							       const superMultiDistribution<double> &mpi,
 							       const int L){					     
   std::cout << "Computing phase shift derivative using Colangelo formulae\n";
-  return superJackknifeDistribution<double>(ainv.getLayout(),
+  return superMultiDistribution<double>(ainv.getLayout(),
 					    [&](const int b){
 					      double ainv_b = ainv.osample(b)* 1000; //in MeV
 					      double Epipi_b = Epipi.osample(b) * ainv_b;
@@ -96,87 +98,87 @@ superJackknifeDistribution<double> getPhaseShiftDerivColangelo(const superJackkn
 
 
 
-superJackknifeDistribution<double> getPhaseShiftDerivLinearEpipi(const superJackknifeDistribution<double> &Epipi,
-								 const superJackknifeDistribution<double> &q_pipi,
-								 const superJackknifeDistribution<double> &mpi,
-								 const superJackknifeDistribution<double> &delta,
+superMultiDistribution<double> getPhaseShiftDerivLinearEpipi(const superMultiDistribution<double> &Epipi,
+								 const superMultiDistribution<double> &q_pipi,
+								 const superMultiDistribution<double> &mpi,
+								 const superMultiDistribution<double> &delta,
 								 const int L){
   //We assume a linear function  f( Epipi ) = C*( Epipi - 2*mpi )
   std::cout << "Computing phase shift derivative using linear derivative in Epipi\n";
       
-  superJackknifeDistribution<double> ddelta_by_Epipi = delta / (Epipi - 2.0*mpi);
+  superMultiDistribution<double> ddelta_by_Epipi = delta / (Epipi - 2.0*mpi);
   //2pi/L q = ( Epipi^2 /4 - mpi^2 )^{1/2}
   //2pi/L dq/dEpipi = ( Epipi^2 /4 - mpi^2 )^{-1/2} * 1/2*2*Epipi/4
   //          =  1/(2pi/L q) * Epipi/4
   //dq/dEpipi = Epipi/(4 q) * 1/(2pi/L)^2
   double Ld(L);
-  superJackknifeDistribution<double> dq_by_dEpipi = Epipi/( 4.*q_pipi ) / (4*M_PI*M_PI/Ld/Ld); 
+  superMultiDistribution<double> dq_by_dEpipi = Epipi/( 4.*q_pipi ) / (4*M_PI*M_PI/Ld/Ld); 
   return ddelta_by_Epipi / dq_by_dEpipi;
 }
 
-superJackknifeDistribution<double> getPhaseShiftDerivLinearQpipi(const superJackknifeDistribution<double> &q_pipi,
-								 const superJackknifeDistribution<double> &delta){								 
+superMultiDistribution<double> getPhaseShiftDerivLinearQpipi(const superMultiDistribution<double> &q_pipi,
+								 const superMultiDistribution<double> &delta){								 
   std::cout << "Computing phase shift derivative using linear derivative in q\n";
   return delta/q_pipi;
 }
 
-superJackknifeDistribution<double> computedPhiDerivativeQ(const superJackknifeDistribution<double> &q_pipi,
+superMultiDistribution<double> computedPhiDerivativeQ(const superMultiDistribution<double> &q_pipi,
 							  const LuscherZeta &zeta){
   std::cout << "Computing Lellouch-Luscher factor Phi derivative term\n";
-  superJackknifeDistribution<double> dphi_by_dq(q_pipi.getLayout(),
+  superMultiDistribution<double> dphi_by_dq(q_pipi.getLayout(),
 						[&](const int b){ return zeta.calcPhiDeriv(b==-1 ? q_pipi.best() : q_pipi.sample(b)); });
 
   std::cout << "dphi(q)/dq = " << dphi_by_dq << std::endl;
   return dphi_by_dq;
 }
 
-superJackknifeDistribution<double> computeLLfactor(const superJackknifeDistribution<double> &Epipi,						   
-						   const superJackknifeDistribution<double> &q_pipi,
-						   const superJackknifeDistribution<double> &p_pipi,
-						   const superJackknifeDistribution<double> &mK,
-						   const superJackknifeDistribution<double> &ddelta_by_dq,
-						   const superJackknifeDistribution<double> &dphi_by_dq,
+superMultiDistribution<double> computeLLfactor(const superMultiDistribution<double> &Epipi,						   
+						   const superMultiDistribution<double> &q_pipi,
+						   const superMultiDistribution<double> &p_pipi,
+						   const superMultiDistribution<double> &mK,
+						   const superMultiDistribution<double> &ddelta_by_dq,
+						   const superMultiDistribution<double> &dphi_by_dq,
 						   const int L){
   std::cout << "Computing Lellouch-Luscher factor\n";
 
-  superJackknifeDistribution<double> ddelta_by_dp = (L/2./M_PI) * ddelta_by_dq;   //d/dp = d/d[2pi/L q] = L/2pi d/dq
+  superMultiDistribution<double> ddelta_by_dp = (L/2./M_PI) * ddelta_by_dq;   //d/dp = d/d[2pi/L q] = L/2pi d/dq
 
   std::cout << "d(delta)/dq = " << ddelta_by_dq << std::endl;
   std::cout << "d(delta)/dp = " << ddelta_by_dp << std::endl;
 
   //Compute F using Eq.23 of arXiv:1106.2714
-  superJackknifeDistribution<double> F2 = 4*M_PI * Epipi*Epipi * mK / p_pipi/p_pipi/p_pipi * (  p_pipi * ddelta_by_dp + q_pipi * dphi_by_dq );
+  superMultiDistribution<double> F2 = 4*M_PI * Epipi*Epipi * mK / p_pipi/p_pipi/p_pipi * (  p_pipi * ddelta_by_dp + q_pipi * dphi_by_dq );
 
-  superJackknifeDistribution<double> F = sqrt(F2);
+  superMultiDistribution<double> F = sqrt(F2);
   std::cout << "Obtained LL factor F = " << F << std::endl;
   
   return F;
 }
 
-void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0, //I=0 phase shift
-				  superJackknifeDistribution<double> &F, //Lellouch-Luscher factor
-				  const superJackknifeDistribution<double> &Epipi, const superJackknifeDistribution<double> &mpi,
-				  const superJackknifeDistribution<double> &mK, const superJackknifeDistribution<double> &ainv, const Args &args, const std::string &file_stub = ""){
-  typedef superJackknifeDistribution<double> superJackD; 
+void computePhaseShiftAndLLfactor(superMultiDistribution<double> &delta_0, //I=0 phase shift
+				  superMultiDistribution<double> &F, //Lellouch-Luscher factor
+				  const superMultiDistribution<double> &Epipi, const superMultiDistribution<double> &mpi,
+				  const superMultiDistribution<double> &mK, const superMultiDistribution<double> &ainv, const Args &args, const std::string &file_stub = ""){
+  typedef superMultiDistribution<double> superMultiD; 
   
   //Compute the phase shift and it's derivative wrt q
   LuscherZeta zeta({args.twists[0],args.twists[1],args.twists[2]},  {0.,0.,0.});
 
-  superJackD p_pipi = sqrt( Epipi*Epipi/4 - mpi*mpi );
-  superJackD q_pipi = args.L * p_pipi /( 2 * M_PI );
+  superMultiD p_pipi = sqrt( Epipi*Epipi/4 - mpi*mpi );
+  superMultiD q_pipi = args.L * p_pipi /( 2 * M_PI );
   std::cout << "p = " << p_pipi << std::endl;
   std::cout << "q = " << q_pipi << std::endl;
 
-  superJackD dphi_by_dq = computedPhiDerivativeQ(q_pipi, zeta);
+  superMultiD dphi_by_dq = computedPhiDerivativeQ(q_pipi, zeta);
   
   delta_0 = getPhaseShift(zeta,q_pipi);
-  superJackD delta_0_deg = delta_0/M_PI * 180;
+  superMultiD delta_0_deg = delta_0/M_PI * 180;
 
   std::cout << "delta_0 = " << delta_0 << " rad = " << delta_0_deg << "deg\n";
 
   writeParamsStandard(delta_0_deg, file_stub+"delta0_deg.hdf5");
 
-  superJackD d_delta_by_dq[4] = { getPhaseShiftDerivSchenk(ainv,Epipi,q_pipi,mpi,args.L),
+  superMultiD d_delta_by_dq[4] = { getPhaseShiftDerivSchenk(ainv,Epipi,q_pipi,mpi,args.L),
 				  getPhaseShiftDerivColangelo(ainv,Epipi,q_pipi,mpi,args.L),
 				  getPhaseShiftDerivLinearEpipi(Epipi,q_pipi,mpi,delta_0,args.L),
 				  getPhaseShiftDerivLinearQpipi(q_pipi,delta_0) };
@@ -188,7 +190,7 @@ void computePhaseShiftAndLLfactor(superJackknifeDistribution<double> &delta_0, /
   
   int i_use = -1;
   for(int i=0;i<4;i++){
-    superJackD F_i = computeLLfactor(Epipi,q_pipi,p_pipi,mK,d_delta_by_dq[i],dphi_by_dq,args.L);
+    superMultiD F_i = computeLLfactor(Epipi,q_pipi,p_pipi,mK,d_delta_by_dq[i],dphi_by_dq,args.L);
     std::cout << "ddelta_0/dq (" << d_delta_by_dq_descr[i] << ") = " << d_delta_by_dq[i] << std::endl;
     std::cout << "F (" << d_delta_by_dq_descr[i] << ") = " << F_i << std::endl;
 

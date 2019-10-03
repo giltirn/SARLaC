@@ -20,6 +20,10 @@ public:
 
   generalContainer &operator=(const generalContainer &r){ v.reset(r.v ? r.v->clone() : NULL); return *this; }
   generalContainer &operator=(generalContainer &&r){ v.reset(r.v ? r.v.release() : NULL); return *this; }
+  template<typename T>
+  generalContainer &operator=(const T &_v){ v.reset(new generalContainerEntry_i<T>(_v)); return *this; }
+  template<typename T>
+  generalContainer &operator=(T &&_v){ v.reset(new generalContainerEntry_i<T>(std::move(_v))); return *this; }
 
   inline bool is_null() const{ return !bool(v); }
   

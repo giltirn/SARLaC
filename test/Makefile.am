@@ -1,6 +1,6 @@
 exampledir = $(prefix)/example
 testdir = $(prefix)/test
-test_PROGRAMS = benchmark test_block_doublejackknife test_boot_jackknife test_boundedfit test_ET test_expression_parse test_gsl_min test_gsl_multidim_min test_hdf5 test_Luscher_zeta test_minuit2_min test_parsers test_simple_fit_wrapper_bootstrap test_simple_fit_wrapper test_tensor
+test_PROGRAMS = benchmark test_block_doublejackknife test_boot_jackknife test_boundedfit test_ET test_expression_parse test_gsl_min test_gsl_multidim_min test_hdf5 test_Luscher_zeta test_minuit2_min test_parsers test_simple_fit_wrapper_bootstrap test_simple_fit_wrapper test_supermulti test_tensor
 benchmark_SOURCES = benchmark.C
 test_block_doublejackknife_SOURCES = test_block_doublejackknife.C
 test_boot_jackknife_SOURCES = test_boot_jackknife.C
@@ -15,6 +15,7 @@ test_minuit2_min_SOURCES = test_minuit2_min.C
 test_parsers_SOURCES = test_parsers.C
 test_simple_fit_wrapper_bootstrap_SOURCES = test_simple_fit_wrapper_bootstrap.C
 test_simple_fit_wrapper_SOURCES = test_simple_fit_wrapper.C
+test_supermulti_SOURCES = test_supermulti.C
 test_tensor_SOURCES = test_tensor.C
 AM_CPPFLAGS = -I$(srcdir)/../include -I$(srcdir)/include
 LDADD =../src/libcpsfit.a
