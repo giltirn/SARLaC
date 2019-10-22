@@ -78,7 +78,7 @@ int main(const int argc, const char* argv[]){
     std::ostringstream nm; nm << "elim" << chiralBasisIdx(i) << "_";
         
     //Compute the MSbar, infinite-volume matrix elements
-    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0expt(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,lat_Wilson_coeffs.first,data.ReA0_expt_sj,i,args);
+    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0expt(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,lat_Wilson_coeffs.first,data.ReA0_expt_sj,i,args,nm.str());
 
     computeMatrixElementRelations(M_MSbar_std_sj, nm.str());
     

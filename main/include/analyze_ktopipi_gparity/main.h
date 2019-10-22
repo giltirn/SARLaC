@@ -30,14 +30,27 @@ NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElemen
   std::cout << "RI-scheme physical matrix elements in chiral basis:\n";
   for(int q=0;q<7;q++)
     std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_RI_chiral_sj(&q) << " GeV^3\n";
+
+  writeParamsStandard(M_RI_chiral_sj, "matrix_elems_SMOM.hdf5");
+
+  //Convert to MSbar in 7 basis
+  NumericTensor<superMultiD,1> M_MSbar_chiral_sj = MSbar.convert(M_RI_chiral_sj, Chiral);
+
+  std::cout << "MSbar-scheme physical matrix elements in chiral basis:\n";
+  for(int q=0;q<7;q++)
+    std::cout << "Q" << q+1 << " = " << M_MSbar_chiral_sj(&q) << " GeV^3\n";
+  
+  writeParamsStandard(M_MSbar_chiral_sj, "matrix_elems_MSbar_chiral.hdf5");
   
   //Convert to MSbar
-  NumericTensor<superMultiD,1> M_MSbar_std_sj = MSbar.convert(M_RI_chiral_sj);
+  NumericTensor<superMultiD,1> M_MSbar_std_sj = MSbar.convert(M_RI_chiral_sj, Standard);
 
   std::cout << "MSbar-scheme physical matrix elements in standard basis:\n";
   for(int q=0;q<10;q++)
     std::cout << "Q" << q+1 << " = " << M_MSbar_std_sj(&q) << " GeV^3\n";
   
+  writeParamsStandard(M_MSbar_std_sj, "matrix_elems_MSbar.hdf5");
+
   return M_MSbar_std_sj;
 }
 
@@ -89,7 +102,7 @@ void computeA0(superMultiDistribution<double> &ReA0_sj,
 NumericTensor<double,1> computeRIwilsonCoefficients(const int reIm,
 						    const MSbarConvert &MSbar,
 						    const WilsonCoeffs &wilson_coeffs){
-  const NumericTensor<double,2> &C_MSbar = MSbar.getConversionMatrix();
+  const NumericTensor<double,2> &C_MSbar = MSbar.getConversionMatrix(Standard);
   NumericTensor<double,1> RI_Wilson_coeffs({7}, 0.);
 
   for(int j=0;j<7;j++)
@@ -146,14 +159,15 @@ void computeRIandLatticeWilsonCoefficients(std::pair<NumericTensor<double,1>, Nu
 
 
 NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElementsUsingReA0expt(const NumericTensor<superMultiDistribution<double>,1> &M_lat_sj, //lattice matrix elements
-												    const superMultiDistribution<double> &ainv_sj, //inverse lattice spacing
-												    const superMultiDistribution<double> &F_sj,  //Lellouch-Luscher factor
-												    const NumericTensor<superMultiDistribution<double>,2> &NPR_sj, //RI-SMOM renormalization factors
-												    const MSbarConvert &MSbar, //MSbar matching coefficients
-												    const NumericTensor<superMultiDistribution<double>,1> &ReA0_lat_Wilson_coeffs,
-												    const superMultiDistribution<double> &ReA0_expt_sj,
-												    const int elim_idx,
-												    const Args &args){
+												const superMultiDistribution<double> &ainv_sj, //inverse lattice spacing
+												const superMultiDistribution<double> &F_sj,  //Lellouch-Luscher factor
+												const NumericTensor<superMultiDistribution<double>,2> &NPR_sj, //RI-SMOM renormalization factors
+												const MSbarConvert &MSbar, //MSbar matching coefficients
+												const NumericTensor<superMultiDistribution<double>,1> &ReA0_lat_Wilson_coeffs,
+												const superMultiDistribution<double> &ReA0_expt_sj,
+												const int elim_idx,
+												const Args &args,
+												const std::string &file_stub){
   typedef superMultiDistribution<double> superMultiD;
   std::cout << "Eliminating Q'" << chiralBasisIdx(elim_idx) << " using experimental ReA0\n";
     
@@ -191,13 +205,26 @@ NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElemen
   for(int q=0;q<7;q++)
     std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_RI_chiral_sj(&q) << " GeV^3\n";
 
-  //Convert to MSbar
-  NumericTensor<superMultiD,1> M_MSbar_std_sj = MSbar.convert(M_RI_chiral_sj);
+  writeParamsStandard(M_RI_chiral_sj, file_stub+"matrix_elems_SMOM.hdf5");
+
+  //Convert to MSbar in 7 basis
+  NumericTensor<superMultiD,1> M_MSbar_chiral_sj = MSbar.convert(M_RI_chiral_sj, Chiral);
+
+  std::cout << "MSbar-scheme physical matrix elements in chiral basis:\n";
+  for(int q=0;q<7;q++)
+    std::cout << "Q" << q+1 << " = " << M_MSbar_chiral_sj(&q) << " GeV^3\n";
+  
+  writeParamsStandard(M_MSbar_chiral_sj, file_stub+"matrix_elems_MSbar_chiral.hdf5");
+
+  //Convert to MSbar in 10 basis
+  NumericTensor<superMultiD,1> M_MSbar_std_sj = MSbar.convert(M_RI_chiral_sj, Standard);
 
   std::cout << "MSbar-scheme physical matrix elements in standard basis:\n";
   for(int q=0;q<10;q++)
     std::cout << "Q" << q+1 << " = " << M_MSbar_std_sj(&q) << " GeV^3\n";
   
+  writeParamsStandard(M_MSbar_std_sj, file_stub+"matrix_elems_MSbar.hdf5");
+
   return M_MSbar_std_sj;
 }
 

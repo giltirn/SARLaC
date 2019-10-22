@@ -66,11 +66,15 @@ NumericTensor<jackknifeDistributionD,2> loadNPR(const std::string &file){
   return npr;
 }
 
+enum OperatorBasis { Standard, Chiral };
+
 //Compute the Delta S=1 RI->MSbar conversion factors using Lehner, Sturm, Phys.Rev. D84 (2011) 014001 
 class MSbarConvert{
   typedef NumericTensor<double,2> MatrixType;
   
-  MatrixType conv; //10x7 matrix
+  MatrixType conv_std; //10x7 matrix
+  MatrixType conv_chiral; //7x7 matrix
+
   MatrixType dr_norm_gamma_gamma; //7x7
   MatrixType dr_norm_qslash_qslash; //7x7
   MatrixType T; //10x7
@@ -157,22 +161,25 @@ public:
     }
   }
   MSbarConvert(const double mu_GeV, const RIscheme scheme): MSbarConvert(){ compute(mu_GeV,scheme); }
-  MSbarConvert(const std::string &file): MSbarConvert(){ read(file); }
+  MSbarConvert(const std::string &file, const OperatorBasis basis): MSbarConvert(){ read(file, basis); }
 
   //Read the MSbar conversion matrix
-  void read(const std::string &file){
+  void read(const std::string &file, const OperatorBasis basis){
     std::ifstream ff(file.c_str());
     if (!ff.good()) error_exit(std::cout << "MSbarConvert::read failed to open file " << file << std::endl);
 
+    int bsz = basis == Standard ? 10 : 7;
+    MatrixType &into = basis == Standard ? conv_std : conv_chiral;
+
     int c[2];
-    for(c[0]=0;c[0]<10;c[0]++)
+    for(c[0]=0;c[0]<bsz;c[0]++)
       for(c[1]=0;c[1]<7;c[1]++){
-	ff >> conv(c);
+	ff >> into(c);
       }
     assert(!ff.bad());    
     ff.close();
 
-    std::cout << "Read MSbar conversion matrix:\n" << conv << std::endl;
+    std::cout << "Read MSbar conversion matrix:\n" << into << std::endl;
   }
 
 
@@ -193,29 +200,33 @@ public:
 
     const MatrixType &dr_norm = scheme == RIscheme::GammaGamma ? dr_norm_gamma_gamma : dr_norm_qslash_qslash;
     MatrixType R = unit_chiral + dr_norm * alpha_s_over_4pi;
-    conv = (T + dT)*R;
+    conv_chiral = R;
+    conv_std = (T + dT)*R;
 
     if(vrb){
       std::cout << "Using \\Delta r/(as/4pi) = \n" << dr_norm << std::endl;
-      std::cout << "\n\nR^RI->MSbar(7x7) =\n" << R << std::endl;
-      std::cout << "\n\nR^RI->MSbar(10x7) =\n" << conv << std::endl;
+      std::cout << "\n\nR^RI->MSbar(7x7) =\n" << conv_chiral << std::endl;
+      std::cout << "\n\nR^RI->MSbar(10x7) =\n" << conv_std << std::endl;
     }
   }
 
   //Convert the matrix elements in the RI scheme and chiral basis to MSbar matrix elements in the 10-basis
-  NumericTensor<superMultiDistribution<double>,1> convert(const NumericTensor<superMultiDistribution<double>,1> &Min) const{
+  NumericTensor<superMultiDistribution<double>,1> convert(const NumericTensor<superMultiDistribution<double>,1> &Min, const OperatorBasis basis) const{
     superMultiDistribution<double> zro(Min({0}).getLayout());
     zro.zero();
 
-    NumericTensor<superMultiDistribution<double>,1> Mout({10},zro);
+    int bsz = basis == Standard ? 10 : 7;
+    const MatrixType &cmat = basis == Standard ? conv_std : conv_chiral;
+
+    NumericTensor<superMultiDistribution<double>,1> Mout({bsz},zro);
     int c[2];
-    for(c[0]=0;c[0]<10;c[0]++)
+    for(c[0]=0;c[0]<bsz;c[0]++)
       for(c[1]=0;c[1]<7;c[1]++)
-	Mout(&c[0]) = Mout(&c[0]) + conv(c) * Min(&c[1]);
+	Mout(&c[0]) = Mout(&c[0]) + cmat(c) * Min(&c[1]);
     return Mout;
   }
 
-  const MatrixType & getConversionMatrix() const{ return conv; }
+  const MatrixType & getConversionMatrix(const OperatorBasis basis) const{ return basis == Standard ? conv_std : conv_chiral; }
 };
 
 
