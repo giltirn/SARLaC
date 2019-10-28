@@ -70,20 +70,20 @@ public:
       if(vrb) printf("Initializing alpha_s computation\n");
       
       //Solve for Lambda_5
-      Lambda[5 -1] = computeLambda(5, mz, as_mz, Nc, vrb);
-      if(vrb) printf("Computed Lambda_5 = %.7f\n", Lambda[5 -1]);
+      Lambda[5 -3] = computeLambda(5, mz, as_mz, Nc, vrb);
+      if(vrb) printf("Computed Lambda_5 = %.7f\n", Lambda[5 -3]);
       
       //Get a_s at mb
       double as_mb = alpha_s(mb, 5, Nc);
       
-      Lambda[4 -1] = computeLambda(4, mb, as_mb, Nc, vrb);
-      if(vrb) printf("Computed Lambda_4 = %.7f\n", Lambda[4 -1]);
+      Lambda[4 -3] = computeLambda(4, mb, as_mb, Nc, vrb);
+      if(vrb) printf("Computed Lambda_4 = %.7f\n", Lambda[4 -3]);
       
       //Get a_s at mc
       double as_mc = alpha_s(mc, 4, Nc);
       
-      Lambda[3 -1] = computeLambda(3, mc, as_mc, Nc, vrb);
-      if(vrb) printf("Computed Lambda_3 = %.7f\n", Lambda[3 -1]);
+      Lambda[3 -3] = computeLambda(3, mc, as_mc, Nc, vrb);
+      if(vrb) printf("Computed Lambda_3 = %.7f\n", Lambda[3 -3]);
 
       for(int i=0;i<3;i++) Lambda_init[i] = Lambda[i];
       initted = true;      
@@ -217,6 +217,41 @@ struct PerturbativeInputs{
     a_s.scale = mbmb;
     a_s.Nf = 4;
   }
+  //Set to values from ep' PRL
+  void setepPRLValues(){
+    mcmc = 1.275;
+    mbmb = 4.18;
+    mWmW = 80.385;
+    mtmt = 160;
+    a_e = 1./127.94;    
+    thetaW = asin(sqrt(0.23126));
+    Nc = 3;
+    
+    double Lambda4 = 0.331416;
+    double as4mb = ComputeAlphaS::alpha_s(mbmb, Lambda4, 4, Nc);
+
+    a_s.value = as4mb;
+    a_s.scale = mbmb;
+    a_s.Nf = 4;
+  }
+  //Set to values from Ziyuan Bai's thesis pg 67
+  void setepZiyuanValues(){
+    mcmc = 1.275; //unknown, leave as PRL
+    mbmb = 4.19;
+    mWmW = 80.4;
+    mtmt = 172.2;
+    a_e = 1./128; //unknown    
+    thetaW = asin(sqrt(0.23126)); //unknown
+    Nc = 3;
+    
+    double mz = 91.1876;
+    double Lambda5 = 0.1184;
+    double as5mz = ComputeAlphaS::alpha_s(mz, Lambda5, 5, Nc);
+
+    a_s.value = as5mz;
+    a_s.scale = mz;
+    a_s.Nf = 5;
+  }
 
   inline double xt() const{ return pow(mtmt/mWmW,2); }
 
@@ -235,40 +270,40 @@ public:
     if(vrb) printf("Initializing perturbative variables\n");
      
     if(inputs.a_s.Nf == 3){
-      Lambda[3 -1] = ComputeAlphaS::computeLambda(3, inputs.a_s.scale, inputs.a_s.value, inputs.Nc, vrb);
+      Lambda[3 -3] = ComputeAlphaS::computeLambda(3, inputs.a_s.scale, inputs.a_s.value, inputs.Nc, vrb);
        
-      double as_mc = ComputeAlphaS::alpha_s(inputs.mcmc, Lambda[3 -1], 3, inputs.Nc);
+      double as_mc = ComputeAlphaS::alpha_s(inputs.mcmc, Lambda[3 -3], 3, inputs.Nc);
 
-      Lambda[4 -1] = ComputeAlphaS::computeLambda(4, inputs.mcmc, as_mc, inputs.Nc, vrb);
+      Lambda[4 -3] = ComputeAlphaS::computeLambda(4, inputs.mcmc, as_mc, inputs.Nc, vrb);
        
-      double as_mb = ComputeAlphaS::alpha_s(inputs.mbmb, Lambda[4 -1], 4, inputs.Nc);
+      double as_mb = ComputeAlphaS::alpha_s(inputs.mbmb, Lambda[4 -3], 4, inputs.Nc);
 
-      Lambda[5 -1] = ComputeAlphaS::computeLambda(5, inputs.mbmb, as_mb, inputs.Nc, vrb);
+      Lambda[5 -3] = ComputeAlphaS::computeLambda(5, inputs.mbmb, as_mb, inputs.Nc, vrb);
     }else if(inputs.a_s.Nf == 4){
-      Lambda[4 -1] = ComputeAlphaS::computeLambda(4, inputs.a_s.scale, inputs.a_s.value, inputs.Nc, vrb);
+      Lambda[4 -3] = ComputeAlphaS::computeLambda(4, inputs.a_s.scale, inputs.a_s.value, inputs.Nc, vrb);
        
-      double as_mc = ComputeAlphaS::alpha_s(inputs.mcmc, Lambda[4 -1], 4, inputs.Nc);
+      double as_mc = ComputeAlphaS::alpha_s(inputs.mcmc, Lambda[4 -3], 4, inputs.Nc);
 
-      Lambda[3 -1] = ComputeAlphaS::computeLambda(3, inputs.mcmc, as_mc, inputs.Nc, vrb);
+      Lambda[3 -3] = ComputeAlphaS::computeLambda(3, inputs.mcmc, as_mc, inputs.Nc, vrb);
 
-      double as_mb = ComputeAlphaS::alpha_s(inputs.mbmb, Lambda[4 -1], 4, inputs.Nc);
+      double as_mb = ComputeAlphaS::alpha_s(inputs.mbmb, Lambda[4 -3], 4, inputs.Nc);
 
-      Lambda[5 -1] = ComputeAlphaS::computeLambda(5, inputs.mbmb, as_mb, inputs.Nc, vrb);
+      Lambda[5 -3] = ComputeAlphaS::computeLambda(5, inputs.mbmb, as_mb, inputs.Nc, vrb);
     }else if(inputs.a_s.Nf == 5){
-      double as_mb = ComputeAlphaS::alpha_s(inputs.mbmb, Lambda[5 -1], 5, inputs.Nc);
+      double as_mb = ComputeAlphaS::alpha_s(inputs.mbmb, Lambda[5 -3], 5, inputs.Nc);
 
-      Lambda[4 -1] = ComputeAlphaS::computeLambda(4, inputs.mbmb, as_mb, inputs.Nc, vrb);
+      Lambda[4 -3] = ComputeAlphaS::computeLambda(4, inputs.mbmb, as_mb, inputs.Nc, vrb);
 
-      double as_mc = ComputeAlphaS::alpha_s(inputs.mcmc, Lambda[4 -1], 4, inputs.Nc);
+      double as_mc = ComputeAlphaS::alpha_s(inputs.mcmc, Lambda[4 -3], 4, inputs.Nc);
        
-      Lambda[3 -1] = ComputeAlphaS::computeLambda(3, inputs.mcmc, as_mc, inputs.Nc, vrb);
+      Lambda[3 -3] = ComputeAlphaS::computeLambda(3, inputs.mcmc, as_mc, inputs.Nc, vrb);
     }else assert(0);
 
 
     if(vrb){
-      printf("Computed Lambda_5 = %.7f\n", Lambda[5 -1]);
-      printf("Computed Lambda_4 = %.7f\n", Lambda[4 -1]);
-      printf("Computed Lambda_3 = %.7f\n", Lambda[3 -1]);      
+      printf("Computed Lambda_5 = %.7f\n", Lambda[5 -3]);
+      printf("Computed Lambda_4 = %.7f\n", Lambda[4 -3]);
+      printf("Computed Lambda_3 = %.7f\n", Lambda[3 -3]);      
     }
   }
 
@@ -278,7 +313,9 @@ public:
   PerturbativeVariables(const bool vrb = true): vrb(vrb){}
   
   const PerturbativeInputs &getInputs() const{ return inputs; }
-  const double getLambda(const int Nf){ assert(Nf>=3 && Nf<=5);  return Lambda[Nf-1]; }
+  double getLambda(const int Nf) const{
+    return Lambda[Nf-3]; 
+  }
 };
 
 

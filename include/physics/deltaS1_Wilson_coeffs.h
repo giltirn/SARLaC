@@ -137,6 +137,32 @@ struct DeltaS1WilsonCoeffs{
     return mCat3fMu_val - zatmu_val;
   }
 
+  //Complete 3f calculation
+  static void compute3fWilsonCoeffs(VectorD &y, VectorD &z, const double mu, const PerturbativeVariables &var){
+    const auto &inputs = var.getInputs();
+    double as4mc = ComputeAlphaS::alpha_s(inputs.mcmc, var.getLambda(4), 4, inputs.Nc);
+    double as4mb = ComputeAlphaS::alpha_s(inputs.mbmb, var.getLambda(4), 4, inputs.Nc);
+    double as5MW = ComputeAlphaS::alpha_s(inputs.mWmW, var.getLambda(5), 5, inputs.Nc);
+    double as3mu = ComputeAlphaS::alpha_s(mu, var.getLambda(3), 3, inputs.Nc);
+
+    MatrixO U3MCtoMU = DeltaS1anomalousDimension::computeUQCDQED(as3mu, as4mc, 1,2, inputs.Nc, inputs.a_e);
+
+    VectorO mCat4fMc = DeltaS1WilsonCoeffs::mCat4fMu(as4mc, as4mb, as5MW, inputs.xt(), inputs.a_e, inputs.thetaW, inputs.Nc, true);
+    VectorO mCat3fMc = DeltaS1WilsonCoeffs::mCat3fMc(mCat4fMc, as4mc, inputs.a_e, true);
+    VectorO mCat3fMu = DeltaS1WilsonCoeffs::mCat3fMu(mCat3fMc, U3MCtoMU, true);
+
+
+    VectorO z1z2mc = DeltaS1WilsonCoeffs::z1z2atmc(as4mc, as4mb, as5MW, inputs.xt(), inputs.a_e, inputs.thetaW, inputs.Nc);
+    VectorO zmc = DeltaS1WilsonCoeffs::zatmc(z1z2mc, as4mc, inputs.a_e);
+    VectorO zmu = DeltaS1WilsonCoeffs::zat3fmu(zmc, U3MCtoMU);
+    
+    VectorO ymu = DeltaS1WilsonCoeffs::yatmu(zmu, mCat3fMu);
+
+    z = VectorD(zmu.size(), [&](const int i){ return zmu(i).value(); });
+    y = VectorD(ymu.size(), [&](const int i){ return ymu(i).value(); });
+  }
+
+
 
 };
 
