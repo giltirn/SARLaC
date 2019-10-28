@@ -274,7 +274,7 @@ inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, con
   //Compute the Lorentz factor gamma = E/E_CM
   double gamma = E/E_CM;
   
-  double k2 = pow(E_CM/2.,2.0) - m*m;
+  double k2 = pow(E_CM/2.,2.0) - m*m; //this should include the dispersion reln! FIXME
   if(fabs(k2) < zero_tol ) k2 = 0.;
 
   double k = sqrt(k2);

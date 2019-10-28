@@ -163,9 +163,11 @@ public:
     }else{ //check if we should convert to decimal format
       int abs_pow10_op;
       {
-	SigFigsSource sff = sfsrc;
-	if(sff == Largest) sff = (mu >= err ? Central : Error); 
-	abs_pow10_op = abs(decimal::pow10(sff == Central ? mu : err));
+	/* SigFigsSource sff = sfsrc; */
+	/* if(sff == Largest) sff = (mu >= err ? Central : Error);  */
+	/* abs_pow10_op = abs(decimal::pow10(sff == Central ? mu : err)); */
+
+	abs_pow10_op = abs(decimal::pow10(mu));
       }
       if(abs_pow10_op <= sci_fmt_threshold)
 	ce.convertDecimal();

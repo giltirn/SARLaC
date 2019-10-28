@@ -55,17 +55,43 @@ public:
     setup(d,init_sz);
   }
 
+  bool isZero() const{
+    bool is_zero = true;
+    for(int i=0;i<v.size();i++) if(v[i]!=0){ is_zero=false; break; }
+    return is_zero;
+  }
+
   std::ostream & print(std::ostream &os, bool incl_exponent = true, bool leading_space_if_positive = false) const{
+    if(isZero()){ os << 0; return os; }
+
     if(leading_space_if_positive) os << ( sgn == -1 ? '-' : ' ' );
     else if(sgn==-1) os << '-';
     
     for(int i=0;i<v.size();i++){
       os << v[i];
-      if(i==dp && i!=v.size()-1) os << '.';
+      if(i==dp && i!=v.size()-1) os << '.';    
     }
     if(incl_exponent && base_pow !=0 ) os << 'e' << base_pow;
     return os;
   }
+
+  //For error printing in parentheses, this function prints the result without leading zeros. It does not print the exponent. Sign must be positive
+  std::ostream & printWithoutLeadingZeros(std::ostream &os) const{
+    assert(sgn == 1);
+    if(isZero() || v[0] != 0) return print(os, false,false);
+    
+    //Remove leading zeroes
+    bool start = false;
+    for(int i=0;i<v.size();i++){
+      if(!start && v[i]!=0) start=true;	
+      if(start){
+	os << v[i];
+	if(i==dp && i!=v.size()-1) os << '.';
+      }
+    }
+    return os;
+  }
+
 
   //For debugging, print the full state
   std::ostream & report(std::ostream &os) const{
@@ -149,14 +175,18 @@ public:
       }
     }
     for(int b=round_idx+1;b<out.v.size();b++) out.v[b]=0;
+
+    out = out.setExp(base_pow); //restore original base power
+
     return out;
   }
 
-  //Remove all digits after power p - base power is changed to p
+  //Remove all digits after power p
   decimal truncateAtPow(const int p) const{
     decimal out = this->setExp(p);
     int nkeep = out.dp+1;
     out.v.resize(nkeep); //just keep all ints up to the decimal point
+    out = out.setExp(base_pow); //restore original base power
     return out;
   }
     

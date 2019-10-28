@@ -74,6 +74,10 @@ public:
 
   inline void push_back(const Numeric &b){ v.push_back(b); }
 
+  NumericVector subvector(const int start, const int size) const{
+    return NumericVector(size, [&](const int i){ return v[i+start]; });
+  }
+
   GENERATE_HDF5_SERIALIZE_METHOD((v));
 };
 

@@ -16,6 +16,9 @@ class cenErr{
   decimal err;
 public:
   
+  const decimal & getCen() const{ return cen; }
+  const decimal & getErr() const{ return err; }
+
   std::ostream & printBasic(std::ostream &os) const{
     os << cen << " +/- " << err; return os;
   }
@@ -23,23 +26,17 @@ public:
     assert(err.exponent() == cen.exponent());
     cen.print(os, false,true);
     os << "(";
-    if(err.value()!=0. && err[0] == 0){
-      //Remove leading zeroes
-      bool start = false;
-      for(int i=0;i<err.nDigits();i++){
-	if(!start && err[i]!=0) start=true;	
-	if(start) os << err[i];
-      }
-    }else err.print(os, false,false);
+    err.printWithoutLeadingZeros(os);
     os << ")";
     if(cen.exponent() != 0) os << "\\times 10^{" << cen.exponent() << "}";
+    
     return os;
   }
   
   cenErr(double c, double e): cen(c), err(e){
     assert(e>=0.);    
     //Put them under a common exponent
-    int exp = cen.exponent() < err.exponent() ? cen.exponent() : err.exponent();
+    int exp = cen.exponent(); // < err.exponent() ? cen.exponent() : err.exponent();
     cen = cen.setExp(exp);
     err = err.setExp(exp);
   }

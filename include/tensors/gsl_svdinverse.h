@@ -19,7 +19,7 @@
 
 CPSFIT_START_NAMESPACE
 
-//Requires a floating point *square* matrix with  (i,j) accessor and size() operation
+//Requires a *real* floating point *square* matrix with  (i,j) accessor and size() operation
 template<typename MatrixOutputType, typename MatrixInputType,
 	 ENABLE_IF_ELEM_TYPE_FLOATINGPT(MatrixInputType)
 	 >

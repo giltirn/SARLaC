@@ -23,6 +23,9 @@ class ComputeAlphaS{
   //Computed
   double Lambda[3];
   
+public:
+  //Static functions public for external use
+
   inline static double beta0(const int Nf, const int Nc = 3){
     return (11.*Nc - 2*Nf)/3.;
   }
@@ -43,7 +46,7 @@ class ComputeAlphaS{
     return pref*brack;
   }
   static double computeLambda(const int Nf, const double match_at, const double match_to, const int Nc=3, const bool vrb = true);
-
+private:
   friend struct as_accessor;
 
   bool vrb; //verbose printing
@@ -120,7 +123,7 @@ inline double as_f (double Lambda, void * p) {
   return diff2;
 }
 
-
+//Compute Lambda_QCD by matching alpha_s in Nf-flavor theory to an input value
 double ComputeAlphaS::computeLambda(const int Nf, const double match_at, const double match_to, const int Nc, bool vrb){
   if(vrb) printf("Starting computeLambda with Nf=%d, match_at=%f match_to=%f, Nc=%d\n",Nf,match_at,match_to,Nc);
   as_params p;

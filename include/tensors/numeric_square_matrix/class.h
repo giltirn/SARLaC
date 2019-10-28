@@ -117,6 +117,10 @@ public:
     return out;
   }
 
+  NumericSquareMatrix submatrix(const int istart, const int jstart, const int size) const{
+    return NumericSquareMatrix(size, [&](const int i, const int j){ return m[i+istart][j+jstart]; });
+  }
+
   GENERATE_HDF5_SERIALIZE_METHOD((m));
 };
 
