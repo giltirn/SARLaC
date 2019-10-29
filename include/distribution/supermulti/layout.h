@@ -40,6 +40,8 @@ public:
   }
   inline const std::string &ensTag(const int i) const{ return ens_tags[i]; }
 
+  void setEnsTag(const int i, const std::string &to){ ens_tags[i] = to; } //use only if you know what you are doing!
+
   void addEnsemble(const std::string &tag, const MultiType type, const int size){
     int ens_idx = ens_tags.size();
     ens_tags.push_back(tag);

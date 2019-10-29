@@ -163,14 +163,18 @@ def tabulate(cols,args,**kwargs):
 def hdf5_calc(outfile, expr, symbols, filenames, index_strings, **kwargs):
     for f in filenames:
         if(os.path.isfile(f) == False):
-            return "ERR"
+            return "(Not a file %s)" % f
 
     nsymb = len(symbols)
     if(len(filenames) != nsymb or len(index_strings) != nsymb):
         print "hdf5_calc Input arrays must be same size"
         exit;
 
-    arg_str = "\"%s\"" % expr
+    arg_str = ""
+    for a in kwargs.keys():
+        arg_str = arg_str+(" -%s %s" % (a,kwargs[a]))
+
+    arg_str = arg_str + ("\"%s\"" % expr)
     for i in range(nsymb):
         arg_str = arg_str + " \"%s\" %s \"%s\"" % (symbols[i], filenames[i], index_strings[i])
 
