@@ -53,7 +53,7 @@ private:
 public:
   inline double alpha_s(double mu, const int Nf, const int Nc=3){ //mu should be in GeV
     assert(Nf >= 3 && Nf <=5);
-    return alpha_s(mu,Lambda[Nf-1],Nf,Nc);
+    return alpha_s(mu,Lambda[Nf-3],Nf,Nc);
   }
   
   ComputeAlphaS(const bool _vrbose = true): vrb(_vrbose){

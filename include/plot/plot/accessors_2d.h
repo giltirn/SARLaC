@@ -39,6 +39,43 @@ public:
   inline int size() const{ return sz; }
 };
 
+class DataVectorInternalAccessor{
+  std::vector<double> _x;
+  std::vector<double> _y;
+  std::vector<double> _dx;
+  std::vector<double> _dy;
+  int sz;
+public:
+  DataVectorInternalAccessor(): sz(0){}
+  DataVectorInternalAccessor(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &dx, const std::vector<double> &dy): _x(x), _y(y), _dx(dx), _dy(dy), sz(y.size()){
+    assert(x.size() == sz && dx.size() == sz && dy.size() == sz);
+  }
+
+  void push_back(const double x, const double y, const double dx, const double dy){ 
+    _x.push_back(x);
+    _y.push_back(y);
+    _dx.push_back(dx);
+    _dy.push_back(dy);
+    ++sz;
+  }
+
+  inline double x(const int i) const{ return _x[i]; }
+  inline double y(const int i) const{ return _y[i]; }
+  inline double dxm(const int i) const{ return _dx[i]; }
+  inline double dxp(const int i) const{ return _dx[i]; }
+  inline double dym(const int i) const{ return _dy[i]; }
+  inline double dyp(const int i) const{ return _dy[i]; }
+
+  inline double upper(const int i) const{ return _y[i]+_dy[i]; }
+  inline double lower(const int i) const{ return _y[i]-_dy[i]; }
+  
+  inline int size() const{ return sz; }
+};
+
+
+
+
+
 //Example accessors for error band with x, upper, lower separate std::vectors
 class BandVectorAccessor{
   const std::vector<double> &_x;

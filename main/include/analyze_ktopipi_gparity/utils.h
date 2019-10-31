@@ -22,7 +22,8 @@ void readFromHDF5(DistributionType &into, const int param, const std::string &fi
 template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
 inline void readFromHDF5(DistributionType &into, const FileIdxPair &p, const std::string &descr){ readFromHDF5(into, p.idx, p.file, descr); }
 
-inline void writeParamsStandard(const NumericTensor<superMultiDistribution<double>,1> &params, const std::string &filename){
+template<int D>
+inline void writeParamsStandard(const NumericTensor<superMultiDistribution<double>,D> &params, const std::string &filename){
   writeParamsStandard(params.internalVector(),filename);
 }
 
@@ -96,7 +97,7 @@ void readFromHDF5(std::vector<superMultiDistribution<double> > &into, const std:
     CD(bootstrapDistribution, Bootstrap);
   }else assert(0);
   
-#undef CD;
+#undef CD
 }
 
   
@@ -116,7 +117,7 @@ void readFromHDF5(std::vector<std::vector<superMultiDistribution<double> > > &in
   into.resize(tmp.size());						\
   for(int i=0;i<tmp.size();i++){					\
     into[i].resize(tmp[i].size());					\
-    for(int j=0;j<tmp[i].size();j++){					\      
+    for(int j=0;j<tmp[i].size();j++){					\
       into[i][j] = superMultiDistribution<double>(*layout, ens_tag, tmp[i][j]); \
     }									\
   }
@@ -127,7 +128,7 @@ void readFromHDF5(std::vector<std::vector<superMultiDistribution<double> > > &in
     CD(bootstrapDistribution, Bootstrap);
   }else assert(0);
   
-#undef CD;
+#undef CD
 }
 
   

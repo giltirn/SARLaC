@@ -79,9 +79,10 @@ class MSbarConvert{
   MatrixType dr_norm_qslash_qslash; //7x7
   MatrixType T; //10x7
   MatrixType unit_chiral; //7x7
-
+ 
+public:
   //The matrix Delta T_1^MSbar defined in Eq 65. Requires precomputation of alpha_s
-  inline MatrixType computedT(const double alpha_s_over_4pi){
+  static inline MatrixType computedT(const double alpha_s_over_4pi){
     const int Nc=3;
     MatrixType dT({10,7}, 0.);
     dT({3,1}) = alpha_s_over_4pi * (3./Nc - 2);
@@ -90,8 +91,7 @@ class MSbarConvert{
     dT({3,4}) = -alpha_s_over_4pi;
     return dT;
   }
-  
-public:
+
   MSbarConvert(): dr_norm_gamma_gamma({7,7}), dr_norm_qslash_qslash({7,7}){
     //Input matrices for compute. These are mu-independent and so can be stored
     unit_chiral = MatrixType({7,7}, [](const int *c){ return c[0]==c[1] ? 1. : 0.; });
@@ -163,6 +163,12 @@ public:
   MSbarConvert(const double mu_GeV, const RIscheme scheme): MSbarConvert(){ compute(mu_GeV,scheme); }
   MSbarConvert(const std::string &file, const OperatorBasis basis): MSbarConvert(){ read(file, basis); }
 
+  //Compute the 10x7 matrix that converts from the chiral to 10-basis in MSbar (Nc=3)
+  MatrixType computeMSbar7to10basisConv(const double alpha_s_over_4pi) const{
+    return MatrixType(T + computedT(alpha_s_over_4pi));
+  }
+
+
   //Read the MSbar conversion matrix
   void read(const std::string &file, const OperatorBasis basis){
     std::ifstream ff(file.c_str());
@@ -210,7 +216,7 @@ public:
     }
   }
 
-  //Convert the matrix elements in the RI scheme and chiral basis to MSbar matrix elements in the 10-basis
+  //Convert the matrix elements in the RI scheme and chiral basis to MSbar matrix elements in the 10-basis or 7-basis
   NumericTensor<superMultiDistribution<double>,1> convert(const NumericTensor<superMultiDistribution<double>,1> &Min, const OperatorBasis basis) const{
     superMultiDistribution<double> zro(Min({0}).getLayout());
     zro.zero();

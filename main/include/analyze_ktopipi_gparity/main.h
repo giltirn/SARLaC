@@ -1,6 +1,28 @@
 #ifndef _ANALYZE_KTOPIPI_GPARITY_MAIN_H_
 #define _ANALYZE_KTOPIPI_GPARITY_MAIN_H_
 
+void checkLatticeWilsonCoefficients(const std::pair<NumericTensor<superMultiDistribution<double>,1>, NumericTensor<superMultiDistribution<double>,1> > &lat_Wilson_coeffs,
+				    const NumericTensor<superMultiDistribution<double>,1> &M_lat_sj, //lattice matrix elements
+				    const superMultiDistribution<double> &ainv_sj, //inverse lattice spacing
+				    const superMultiDistribution<double> &F_sj,  //Lellouch-Luscher factor
+				    const Args &args){
+  std::cout << "Testing lattice Wilson coefficients are computed correctly" << std::endl;
+  typedef superMultiDistribution<double> superMultiD;
+  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj * args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
+  NumericTensor<superMultiD,1> M_unrenorm_phys_std({10}, [&](const int* c){ return coeff * M_lat_sj(c); });
+  NumericTensor<superMultiD,1> M_unrenorm_phys_chiral_sj = convertChiralBasis(M_unrenorm_phys_std);
+
+  superMultiD zero(coeff); zeroit(zero);
+
+  superMultiD reA0(zero), imA0(zero);
+  for(int i=0;i<7;i++){
+    reA0 = reA0 + lat_Wilson_coeffs.first(&i) *  M_unrenorm_phys_chiral_sj(&i);
+    imA0 = imA0 + lat_Wilson_coeffs.second(&i) *  M_unrenorm_phys_chiral_sj(&i);
+  }
+
+  std::cout << "Got ReA0 = " << reA0 << "  ImA0 = " << imA0 << std::endl;
+}
+
 
 NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElements(const NumericTensor<superMultiDistribution<double>,1> &M_lat_sj, //lattice matrix elements
 										       const superMultiDistribution<double> &ainv_sj, //inverse lattice spacing

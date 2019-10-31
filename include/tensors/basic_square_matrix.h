@@ -61,6 +61,17 @@ public:
 
 };
 
+template<typename T>
+std::ostream & operator<<(std::ostream &os, const BasicSquareMatrix<T> &a){
+  for(int i=0;i<a.size();i++){
+    os << a(i,0);
+    for(int j=1;j<a.size();j++)
+      os << " " << a(i,j);
+    os << std::endl;
+  }
+  return os;
+}
+	
 template<typename T, typename U>
 auto operator+(const BasicSquareMatrix<T> &a, const BasicSquareMatrix<U> &b)->BasicSquareMatrix<typename std::decay<decltype(a(0,0)+b(0,0))>::type>{
   int N = a.size(); assert(b.size() == N);

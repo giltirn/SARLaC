@@ -37,6 +37,17 @@ int main(const int argc, const char* argv[]){
   
   //Compute the MSbar matching factors
   MSbarConvert MSbar(args.renormalization.mu,args.renormalization.scheme);
+  
+  {
+    //Compute lattice -> MSbar renormalization matrix
+    NumericTensor<superMultiD,2> NPRlattoMSbar(data.NPR_sj);
+    for(int i=0;i<7;i++)
+      for(int j=0;j<7;j++){
+	NPRlattoMSbar({i,j}) = MSbar.getConversionMatrix(Chiral)({i,0}) * data.NPR_sj({0,j});
+	for(int k=1;k<7;k++) NPRlattoMSbar({i,j}) = NPRlattoMSbar({i,j}) + MSbar.getConversionMatrix(Chiral)({i,k}) * data.NPR_sj({k,j});
+      }
+    writeParamsStandard(NPRlattoMSbar, "NPR_lat_to_MSbar.hdf5");
+  }
 
   std::pair<NumericTensor<double,1>, NumericTensor<double,1> > RI_Wilson_coeffs;
   std::pair<NumericTensor<superMultiD,1>, NumericTensor<superMultiD,1> > lat_Wilson_coeffs;
@@ -46,6 +57,8 @@ int main(const int argc, const char* argv[]){
   //Compute the Lellouch-Luscher factor
   superMultiD F_sj, delta_0_sj;
   computePhaseShiftAndLLfactor(delta_0_sj, F_sj, data.Epipi_sj, data.mpi_sj, data.mK_sj, data.ainv_sj, args);
+
+  checkLatticeWilsonCoefficients(lat_Wilson_coeffs,data.M_lat_sj,data.ainv_sj,F_sj,args);
 
   {
     std::cout << "\n\n---------------------------------------------------------------\n";
