@@ -9,7 +9,8 @@ class WilsonCoeffs{
  public:
   WilsonCoeffs(): y(10),z(10){}
   WilsonCoeffs(const std::string &file): WilsonCoeffs(){ read(file); }
-  
+  WilsonCoeffs(const double mu, const PerturbativeVariables &var, const std::complex<double> &_tau): WilsonCoeffs(){ compute(mu,var,_tau); }
+
   //Expect tau as a pair of doubles on the *first* line
   //After for each Q_i, expect line format   i  z_i  y_i
   void read(const std::string &file, const bool verbose = true){
@@ -36,6 +37,16 @@ class WilsonCoeffs{
     ff.close();
   }
   
+  void compute(const double mu, const PerturbativeVariables &var, const std::complex<double> &_tau){
+    NumericVector<double> zz, yy;
+    DeltaS1WilsonCoeffs::compute3fWilsonCoeffs(yy,zz,mu,var);
+    for(int i=0;i<10;i++){
+      y[i] = yy[i];
+      z[i] = zz[i];
+    }
+    tau = _tau;
+  }       
+
   complexD operator()(const int i) const{ return z[i] + tau * y[i]; }
 };
 

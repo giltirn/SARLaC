@@ -58,10 +58,10 @@ struct Renormalization{
 };
 GENERATE_PARSER(Renormalization, RENORMALIZATION_MEMBERS);
 
-#define CONSTANT_MEMBERS (double, G_F)(double, Vud)(double, Vus)(double, phi_epsilon)
+#define CONSTANT_MEMBERS (double, G_F)(double, Vud)(double, Vus)(double, phi_epsilon)(std::complex<double>, tau)
 struct Constants{ //Currently treated as constants but some could be upgraded to jackknifes to add in errors
   GENERATE_MEMBERS(CONSTANT_MEMBERS);
-  Constants(): G_F(1.1663787e-05), Vud(0.97425), Vus(0.2253), phi_epsilon(0.75956729046793223188){}
+Constants(): G_F(1.1663787e-05), Vud(0.97425), Vus(0.2253), phi_epsilon(0.75956729046793223188), tau(0.001543, -0.000635){}
 };
 GENERATE_PARSER(Constants, CONSTANT_MEMBERS);
 
@@ -72,6 +72,7 @@ GENERATE_PARSER(Constants, CONSTANT_MEMBERS);
   (OtherInputs, other_inputs)			\
   (Renormalization, renormalization)		\
   (Constants, constants)			\
+  (PerturbativeInputs, perturbative_inputs)	\
   (std::string, wilson_coeffs_file)		\
   (std::vector<int>, twists)			\
   (int, L)					\

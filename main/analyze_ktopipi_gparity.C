@@ -32,11 +32,14 @@ int main(const int argc, const char* argv[]){
   //Load the data and convert into common superMulti format
   superMultiData data(args);  
 
-  //Load the Wilson coefficients
-  WilsonCoeffs wilson_coeffs(args.wilson_coeffs_file);
+  //Setup the input parameters to the perturbation theory
+  PerturbativeVariables pv(args.perturbative_inputs);
+
+  //Compute the Wilson coefficients
+  WilsonCoeffs wilson_coeffs(args.renormalization.mu, pv, args.constants.tau);
   
   //Compute the MSbar matching factors
-  MSbarConvert MSbar(args.renormalization.mu,args.renormalization.scheme);
+  MSbarConvert MSbar(args.renormalization.mu,args.renormalization.scheme,pv);
   
   {
     //Compute lattice -> MSbar renormalization matrix

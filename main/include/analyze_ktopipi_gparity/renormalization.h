@@ -166,7 +166,7 @@ public:
 #undef r
     }
   }
-  MSbarConvert(const double mu_GeV, const RIscheme scheme): MSbarConvert(){ compute(mu_GeV,scheme); }
+  MSbarConvert(const double mu_GeV, const RIscheme scheme, const PerturbativeVariables &pv): MSbarConvert(){ compute(mu_GeV,scheme,pv); }
   MSbarConvert(const std::string &file, const OperatorBasis basis): MSbarConvert(){ read(file, basis); }
 
   //Compute the 10x7 matrix that converts from the chiral to 10-basis in MSbar (Nc=3)
@@ -196,10 +196,9 @@ public:
 
 
   //Compute the MSbar conversion matrix
-  void compute(const double mu_GeV, const RIscheme scheme, const bool vrb = true){
+  void compute(const double mu_GeV, const RIscheme scheme, const PerturbativeVariables &pv, const bool vrb = true){
     if(vrb) std::cout << "Computing 2-loop alpha_s at mu=" << mu_GeV << " GeV in MSbar scheme\n";
-    ComputeAlphaS as(vrb);
-    double alpha_s = as.alpha_s(mu_GeV, 3);
+    double alpha_s = ComputeAlphaS::alpha_s(mu_GeV, pv, 3);
     if(vrb) printf("alpha_s at mu=%f: %.8f\n",mu_GeV,alpha_s);
     
     double alpha_s_over_4pi = alpha_s / 4. / M_PI;
