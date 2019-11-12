@@ -9,6 +9,13 @@
 
 CPSFIT_START_NAMESPACE
 
+void cleanup(BasicSquareMatrix<double> &m, const double tol = 1e-12){
+  for(int i=0;i<m.size();i++)
+    for(int j=0;j<m.size();j++) 
+      if(fabs(m(i,j)) < tol) m(i,j) = 0.;
+}
+
+
 //2-loop anomalous dimension
 struct DeltaS1anomalousDimension{
   typedef BasicSquareMatrix<double> MatrixD;
@@ -159,6 +166,7 @@ struct DeltaS1anomalousDimension{
     MatrixD U0D(N);
     U0D.zero();
     for(int i=0;i<N;i++) U0D(i,i) = pow(asM2/asM1, g0D(i,i)/2/beta0);
+    
     MatrixD U0 = V * U0D * Vinv;
     return U0;
   }
@@ -172,10 +180,11 @@ struct DeltaS1anomalousDimension{
   }
 
   //Puts all the pieces together for pure QCD scale evolution
-  static MatrixO computeU(const double asM1, const double asM2, const int u, const int d, const int Nc){
+  static MatrixO computeU(const double asM1, const double asM2, const int u, const int d, const int Nc, const bool shift_beta0_3f = true){
     int Nf = u+d;
 
     double beta0 = computeBeta0(Nf, Nc);
+    if(Nf == 3 && shift_beta0_3f) beta0 += 1e-08;
     double beta1 = computeBeta1(Nf, Nc);
     
     MatrixD g0 = gammas0(Nc, Nf, u,d);

@@ -33,7 +33,7 @@ NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElemen
   typedef superMultiDistribution<double> superMultiD;
   
   //Convert M to physical units and infinite volume
-  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj * args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
+  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj;
   NumericTensor<superMultiD,1> M_unrenorm_phys_std({10}, [&](const int* c){ return coeff * M_lat_sj(c); });
   std::cout << "Unrenormalized physical matrix elements (physical units, infinite volume) and standard basis:\n";
   for(int q=0;q<10;q++)
@@ -88,13 +88,15 @@ void computeA0(superMultiDistribution<double> &ReA0_sj,
 
   const superMultiLayout &layout = M_MSbar_std_sj({0}).getLayout();
   
+  double coeff = args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
+
   //Apply Wilson coefficients
   NumericTensor<superMultiD,1> ReA0_cpts_sj({10}), ImA0_cpts_sj({10});
   ReA0_sj = ImA0_sj = superMultiD(layout,[](const int s){return 0.;});
   for(int q=0;q<10;q++){
     std::complex<double> w = wilson_coeffs(q);    
-    ReA0_cpts_sj(&q) = w.real() * M_MSbar_std_sj(&q);
-    ImA0_cpts_sj(&q) = w.imag() * M_MSbar_std_sj(&q);
+    ReA0_cpts_sj(&q) = coeff * w.real() * M_MSbar_std_sj(&q);
+    ImA0_cpts_sj(&q) = coeff * w.imag() * M_MSbar_std_sj(&q);
     ReA0_sj = ReA0_sj + ReA0_cpts_sj(&q);
     ImA0_sj = ImA0_sj + ImA0_cpts_sj(&q);
   }
@@ -194,7 +196,7 @@ NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElemen
   std::cout << "Eliminating Q'" << chiralBasisIdx(elim_idx) << " using experimental ReA0\n";
     
   //Convert M to physical units and infinite volume
-  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj * args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
+  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj;
   NumericTensor<superMultiD,1> M_unrenorm_phys_std({10}, [&](const int* c){ return coeff * M_lat_sj(c); });
   std::cout << "Unrenormalized physical matrix elements (physical units, infinite volume) and standard basis:\n";
   for(int q=0;q<10;q++)
@@ -208,15 +210,18 @@ NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElemen
     std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_unrenorm_phys_chiral_sj(&q)<< " GeV^3\n";
 
   //Replace one of the chiral basis lattice matrix elements with the linear combination of Re(A0) from expt and the other matrix elements
+
+  double prefactor = args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
+
   const superMultiLayout &layout = NPR_sj({0,0}).getLayout();
   superMultiD sum_other(layout,[](const int s){return 0.;});
 
   for(int i=0;i<7;i++)
     if(i!=elim_idx)
-      sum_other = sum_other + ReA0_lat_Wilson_coeffs(&i) * M_unrenorm_phys_chiral_sj(&i);
+      sum_other = sum_other + prefactor * ReA0_lat_Wilson_coeffs(&i) * M_unrenorm_phys_chiral_sj(&i);
 
   //Perform the elimination
-  M_unrenorm_phys_chiral_sj(&elim_idx) = ( ReA0_expt_sj - sum_other ) / ReA0_lat_Wilson_coeffs(&elim_idx);
+  M_unrenorm_phys_chiral_sj(&elim_idx) = ( ReA0_expt_sj - sum_other ) / ReA0_lat_Wilson_coeffs(&elim_idx) / prefactor;
 
   std::cout << "Unrenormalized physical Q'" << chiralBasisIdx(elim_idx) << " obtained by include Re(A0) from expt: " << M_unrenorm_phys_chiral_sj(&elim_idx) << std::endl;
 

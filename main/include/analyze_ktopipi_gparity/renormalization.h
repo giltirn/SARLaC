@@ -81,7 +81,13 @@ class MSbarConvert{
   MatrixType unit_chiral; //7x7
  
 public:
-  //The matrix Delta T_1^MSbar defined in Eq 65. Requires precomputation of alpha_s
+
+  //O(alpha_s)
+  const MatrixType &getdrNorm(const RIscheme scheme) const{ return scheme == RIscheme::GammaGamma ? dr_norm_gamma_gamma : dr_norm_qslash_qslash; }
+  const MatrixType &getT() const{ return T; }
+
+
+  //The matrix Delta T_1^MSbar defined in Eq 65. Requires precomputation of alpha_s   O(alpha_s)
   static inline MatrixType computedT(const double alpha_s_over_4pi){
     const int Nc=3;
     MatrixType dT({10,7}, 0.);

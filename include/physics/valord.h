@@ -29,7 +29,7 @@ struct ValOrd{
   ValOrd(){
     zero();
   }
-  ValOrd(const int powas, const int powa, const int val): ValOrd(){
+  ValOrd(const int powas, const int powa, const double val): ValOrd(){
     this->operator()(powas,powa) = val;
   }
 
