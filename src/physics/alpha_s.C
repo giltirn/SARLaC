@@ -163,6 +163,8 @@ void PerturbativeVariables::initialize(const PerturbativeInputs &_inputs){
 
     Lambda[5 -3] = ComputeAlphaS::computeLambda(5, inputs.mbmb, as_mb, inputs.Nc, vrb);
   }else if(inputs.a_s.Nf == 5){
+    Lambda[5 -3] = ComputeAlphaS::computeLambda(5, inputs.a_s.scale, inputs.a_s.value, inputs.Nc, vrb);
+
     double as_mb = ComputeAlphaS::alpha_s(inputs.mbmb, Lambda[5 -3], 5, inputs.Nc);
 
     Lambda[4 -3] = ComputeAlphaS::computeLambda(4, inputs.mbmb, as_mb, inputs.Nc, vrb);

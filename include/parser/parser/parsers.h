@@ -206,6 +206,16 @@ namespace parsers{
     static auto const def_ = (inst.parse = parse_def);
     return def_.parse(first, last, context, unused, attr);
   }
+
+  template<typename T>
+  struct parser_instance{
+    inline static const parser<T> &get(){ 
+      static parser<T> p;
+      return p;
+    }
+  };
+    
+
 };
 
 

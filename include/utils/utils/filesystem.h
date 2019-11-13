@@ -19,7 +19,7 @@ inline bool fileExists(const std::string &filename){
   return infile.good();
 }
 
-std::vector<std::string> listFiles(const std::string &dir, const std::string &regex_fmt){
+inline std::vector<std::string> listFiles(const std::string &dir, const std::string &regex_fmt){
   using namespace boost::filesystem;
   path p(dir);
   if(!exists(p)) error_exit(std::cout << "Directory \"" << dir << "\" does not exist!\n");
@@ -40,7 +40,7 @@ std::vector<std::string> listFiles(const std::string &dir, const std::string &re
 }
 
 //returns true if a new directory was created
-bool createDirectory(const std::string &dir){
+inline bool createDirectory(const std::string &dir){
   return boost::filesystem::create_directories(dir);
 }
 

@@ -71,6 +71,9 @@ CPSFIT_START_NAMESPACE
 #define _PARSER_MEMBER_DEF_TYPE_PARSER(r,dummy,elem) CPSfit::parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
 #define _PARSER_DEF_TYPE_PARSERS(structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_TYPE_PARSER, , structmembers)
 
+#define _PARSER_MEMBER_TYPE_PARSER_INST(elem) CPSfit::parsers::parser_instance<_PARSER_MEMBER_GETTYPE(elem)>::get() 
+
+
 //Define and specify the rules for parsing the members
 #define _PARSER_MEMBER_TAG(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse_)
 #define _PARSER_MEMBER_RULE(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse)
@@ -80,14 +83,15 @@ CPSFIT_START_NAMESPACE
 #define _PARSER_MEMBER_DEF_RULE(r,structname,elem) \
   struct _PARSER_MEMBER_TAG(elem): CPSfit::parsers::error_handler{ };									\
   \
-  x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > _PARSER_MEMBER_RULE(elem) = _PARSER_MEMBER_RULESTR(elem); \
-  \
-  auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) > '=' > _PARSER_MEMBER_TYPE_PARSER(elem).parse[CPSfit::parser_tools::set_equals]; \
-  \
+  inline auto & _PARSER_MEMBER_RULE(elem)(){				\
+     static x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > rule_inst = _PARSER_MEMBER_RULESTR(elem); \
+     return rule_inst; \
+  }\
   template <typename Iterator, typename Context, typename Attribute> \
-  inline bool parse_rule( decltype(_PARSER_MEMBER_RULE(elem)) rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
+  inline bool parse_rule( x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
     using boost::spirit::x3::unused; \
-    static auto const def_ = (_PARSER_MEMBER_RULE(elem) = _PARSER_MEMBER_RULE_DEF(elem)); \
+    static auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) > '=' > _PARSER_MEMBER_TYPE_PARSER_INST(elem).parse[CPSfit::parser_tools::set_equals]; \
+    static auto const def_ = (_PARSER_MEMBER_RULE(elem)() = _PARSER_MEMBER_RULE_DEF(elem)); \
     return def_.parse(first, last, context, unused, attr);		\
   };
 
@@ -95,33 +99,42 @@ CPSFIT_START_NAMESPACE
 
 //Define the rule for the main structure
 #define _PARSER_DEF_STRUCT_RULE_MEMBER_GEN(r,structname,elem) \
-  > _PARSER_MEMBER_RULE(elem)[CPSfit::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
+  > _PARSER_MEMBER_RULE(elem)()[CPSfit::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
 
 #define _PARSER_DEF_STRUCT_RULE_DEF(NAME)\
   struct main_rule_handler: CPSfit::parsers::error_handler{ };		\
   									\
-  x3::rule<main_rule_handler, NAME> const main_rule = BOOST_PP_STRINGIZE(NAME);
+  inline auto & main_rule(){						\
+     static x3::rule<main_rule_handler, NAME> const main_rule = BOOST_PP_STRINGIZE(NAME); \
+     return main_rule; \
+  }
 
 //Specify the rules for parsing the structure
 #define _PARSER_DEF_STRUCT_RULE_IMPL(NAME,MEMSEQ) \
-  auto const main_rule_def = x3::char_('{')				\
-  TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_STRUCT_RULE_MEMBER_GEN, NAME, MEMSEQ) \
-    > '}'; \
-  BOOST_SPIRIT_DEFINE(main_rule);
+  template <typename Iterator, typename Context, typename Attribute> \
+  inline bool parse_rule( x3::rule<main_rule_handler, NAME> rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
+    using boost::spirit::x3::unused;					\
+    static auto const main_rule_def = x3::char_('{')			\
+      TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_STRUCT_RULE_MEMBER_GEN, NAME, MEMSEQ) \
+      > '}';								\
+    static auto const def_ = (main_rule() = main_rule_def);		\
+    return def_.parse(first, last, context, unused, attr);		\
+  };
+
 
 //Register the parser
 #define _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(NAME,GRAMMAR)	\
     template<>							\
       struct CPSfit::parsers::parser<NAME>{			\
-      decltype( GRAMMAR::main_rule ) &parse;			\
-      parser(): parse(GRAMMAR::main_rule ){}			\
+      const typename std::decay<decltype(GRAMMAR::main_rule())>::type &parse;	\
+      parser(): parse(GRAMMAR::main_rule() ){}			\
     };
 
 //Write operator<< and operator>>
 #define _PARSER_DEF_OSTREAM_MEMBER_WRITE(r,structname,elem)  os << CPSfit::parser_tools::tabbing::tabs() << BOOST_PP_STRINGIZE(_PARSER_MEMBER_GETNAME(elem)) " = " << CPSfit::parser_tools::parser_output_print(s._PARSER_MEMBER_GETNAME(elem)) << std::endl;
 
 #define _PARSER_DEF_DEFINE_OSTREAM_WRITE(NAME, MEMSEQ) \
-  std::ostream & operator<<(std::ostream &os, const NAME &s){ \
+  inline std::ostream & operator<<(std::ostream &os, const NAME &s){	\
     os << "{\n"; CPSfit::parser_tools::tabbing::increment();		\
     TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_OSTREAM_MEMBER_WRITE, NAME, MEMSEQ) \
       CPSfit::parser_tools::tabbing::decrement(); os << CPSfit::parser_tools::tabbing::tabs() << "}"; \
@@ -132,7 +145,6 @@ CPSFIT_START_NAMESPACE
     namespace grammar{							\
       namespace ascii = boost::spirit::x3::ascii;			\
       namespace x3 = boost::spirit::x3;					\
-      _PARSER_DEF_TYPE_PARSERS(structmembers)				\
       _PARSER_DEF_MEMBER_RULES(structname, structmembers)		\
 									\
       _PARSER_DEF_STRUCT_RULE_DEF(structname)				\
@@ -160,7 +172,7 @@ CPSFIT_START_NAMESPACE
 
 #define _GEN_ENUM_STR_E(r,data,i,elem) BOOST_PP_COMMA_IF(i) BOOST_PP_STRINGIZE(elem)
 #define _GEN_ENUM_STR(enumname, enummembers) \
-  std::string toString(const enumname d){				\
+  inline std::string toString(const enumname d){				\
     const static std::vector<std::string> str = { BOOST_PP_SEQ_FOR_EACH_I(_GEN_ENUM_STR_E,  ,  enummembers) }; \
     int dd = static_cast<int>(d);					\
     if(dd < 0 || dd >= str.size()){ \

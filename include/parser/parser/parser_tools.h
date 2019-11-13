@@ -78,11 +78,11 @@ namespace parser_tools{
   }
 
   template<>
-  void _parser_output_print<std::string>::write(std::ostream &os) const{
+  inline void _parser_output_print<std::string>::write(std::ostream &os) const{
     os << "\"" << val << "\"";
   }
   template<>
-  void _parser_output_print<bool>::write(std::ostream &os) const{
+  inline void _parser_output_print<bool>::write(std::ostream &os) const{
     os << (val ? "true" : "false");
   }
 
