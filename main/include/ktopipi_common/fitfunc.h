@@ -13,14 +13,21 @@
 CPSFIT_START_NAMESPACE
 
 
+//double t; //K->op separation
+//int tsep_k_pi;
+#define ADC_MEM (double,t)(int, tsep_k_pi)
+
 struct amplitudeDataCoord{
-  double t; //K->op separation
-  int tsep_k_pi;
+  _GENERATE_MEMBERS(ADC_MEM);
   inline amplitudeDataCoord(){}
   inline amplitudeDataCoord(double _t, int _tsep_k_pi): t(_t), tsep_k_pi(_tsep_k_pi){}
 
   inline bool operator==(const amplitudeDataCoord &r) const{ return t==r.t && tsep_k_pi==r.tsep_k_pi; }
+  inline bool operator!=(const amplitudeDataCoord &r) const{ return !(*this == r); }
 };
+_GENERATE_PARSER_GRAMMAR(amplitudeDataCoord, _PARSER_DEF_GRAMMAR_NAME(amplitudeDataCoord), ADC_MEM);
+_PARSER_DEF_ADD_PARSER_TO_NAMESPACE(amplitudeDataCoord, _PARSER_DEF_GRAMMAR_NAME(amplitudeDataCoord));
+
 std::ostream & operator<<(std::ostream &os, const amplitudeDataCoord &c){
   os << "(t=" << c.t << ", tsep_k_pi=" << c.tsep_k_pi << ")";
   return os;

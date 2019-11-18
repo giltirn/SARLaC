@@ -7,6 +7,21 @@
 
 CPSFIT_START_NAMESPACE
 
+#define PRUNE_ELEM_MEM (PiPiOperator, op)(int, q)(amplitudeDataCoord, c)
+struct pruneElem{
+  _GENERATE_MEMBERS(PRUNE_ELEM_MEM);
+  pruneElem(): op(PiPiOperator::PiPiGnd), q(-1), c(0,10){} //note  q=-1  applies to all q
+};
+_GENERATE_PARSER(pruneElem, PRUNE_ELEM_MEM);
+
+#define PRUNE_ARGS_MEM (std::vector<pruneElem>, prune)
+struct pruneArgs{
+  _GENERATE_MEMBERS(PRUNE_ARGS_MEM);
+  pruneArgs(): prune(1){}
+};
+_GENERATE_PARSER(pruneArgs, PRUNE_ARGS_MEM);
+
+
 template<typename DistributionType>
 class ResampledData{
   typedef std::vector<correlationFunction<amplitudeDataCoord, DistributionType> >  CorrFuncAllQ;
@@ -14,6 +29,27 @@ class ResampledData{
   std::map<PiPiOperator, CorrFuncAllQ> data;
 public:
   GENERATE_HDF5_SERIALIZE_METHOD( (data) );
+
+  void prune(const pruneArgs &pargs){  //remove particular data points from data set
+    for(int p=0;p<pargs.prune.size();p++){
+      auto op_it = data.find(pargs.prune[p].op);
+      if(op_it != data.end()){
+	int qstart=0, qlessthan=op_it->second.size();
+	if(pargs.prune[p].q != -1){
+	  qstart = pargs.prune[p].q;
+	  qlessthan = qstart+1;
+	}
+	for(int q=qstart; q<qlessthan; q++){
+	  auto data_it = op_it->second[q].begin();
+	  while(data_it->first != pargs.prune[p].c && data_it != op_it->second[q].end()) ++data_it;
+	  if(data_it != op_it->second[q].end()){
+	    std::cout << "Pruning data " << pargs.prune[p] << " with q=" << q << std::endl;
+	    op_it->second[q].remove(data_it);
+	  }
+	}
+      }
+    }
+  }
 
   void constrainSourceSinkSep(const PiPiOperator op, const std::vector<int> tsep_k_snk_keep){
     auto it = data.find(op);

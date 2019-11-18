@@ -51,6 +51,12 @@ struct CMDline{
   bool set_alpha_coeff; //change the coefficient of alpha from 1.0 to some other value to illustrate effect
   double alpha_coeff;
 
+  bool prune_data;
+  std::string prune_data_file;
+
+  bool load_frozen_fit_params;
+  std::string load_frozen_fit_params_file;
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -79,6 +85,10 @@ struct CMDline{
     write_alpha_and_pseudoscalar_matrix_elem = false;
 
     set_alpha_coeff = false;
+
+    prune_data = false;
+
+    load_frozen_fit_params = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -165,6 +175,26 @@ struct CMDline{
 	set_alpha_coeff = true;
 	alpha_coeff = strToAny<double>(sargv[i+1]);
 	i+=2;
+      }else if(sargv[i] == "-prune_data"){
+	prune_data = true;
+	prune_data_file = sargv[i+1];
+	i+=2;
+
+	if(prune_data_file == "TEMPLATE"){
+	  pruneArgs pargs;
+	  std::ofstream of("prune_args_template.args"); of << pargs; of.close();
+	  exit(0);
+	}
+      }else if(sargv[i] == "-load_frozen_fit_params"){
+	load_frozen_fit_params = true;
+	load_frozen_fit_params_file = sargv[i+1];
+	i+=2;
+
+	if(load_frozen_fit_params_file == "TEMPLATE"){
+	  FreezeMatrixElements pargs;
+	  std::ofstream of("freeze_template.args"); of << pargs; of.close();
+	  exit(0);
+	}
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

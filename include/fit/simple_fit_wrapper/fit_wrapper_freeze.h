@@ -13,6 +13,30 @@ CPSFIT_START_NAMESPACE
 
 //The main function - read and import the  frozen parameters. A struct "FreezeParams" is read in from "freeze_file" and used for perform the required actions
 //For parameter types that don't have a default constructor the user should provide a pointer 'psetup' to a setup instance of the parameter type
+
+template<typename DistributionType>
+void readFrozenFitParam(DistributionType &fval, const FreezeParam &param, const int nsample){
+  //Different sources of data
+  FreezeDataReaderType reader = param.reader;
+    
+  if(reader == FreezeDataReaderType::UKfitXMLvectorReader){
+    readUKfitVectorEntry(fval, param.filename, param.input_idx[0]);
+  }else if(reader == FreezeDataReaderType::HDF5fileReader){
+    readHDF5file(fval, param.filename, param.input_idx);
+  }else if(reader == FreezeDataReaderType::ConstantValue){
+    fval.resize(nsample);
+  }else{
+    error_exit(std::cout << "readFrozenParams unknown reader " << param.reader << std::endl);
+  }
+
+  if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read distribution of size " << fval.size() << ", expected " << nsample << std::endl);
+
+  applyOperation(fval, param.operation, reader);
+
+  std::cout << "readFrozenParams read " << fval << std::endl;
+}    
+
+
 template<typename DistributionType>
 void readFrozenParams(std::vector<int> &freeze, std::vector<DistributionType> &freeze_vals, 
 		      const std::string &freeze_file, const int nsample){
@@ -32,26 +56,7 @@ void readFrozenParams(std::vector<int> &freeze, std::vector<DistributionType> &f
     freeze.push_back(fparams.sources[i].param_idx);
 
     DistributionType fval;
-
-    //Different sources of data
-    FreezeDataReaderType reader = fparams.sources[i].reader;
-    
-    if(reader == FreezeDataReaderType::UKfitXMLvectorReader){
-      readUKfitVectorEntry(fval, fparams.sources[i].filename, fparams.sources[i].input_idx[0]);
-    }else if(reader == FreezeDataReaderType::HDF5fileReader){
-      readHDF5file(fval, fparams.sources[i].filename, fparams.sources[i].input_idx);
-    }else if(reader == FreezeDataReaderType::ConstantValue){
-      fval.resize(nsample);
-    }else{
-      error_exit(std::cout << "readFrozenParams unknown reader " << fparams.sources[i].reader << std::endl);
-    }
-
-    if(fval.size() != nsample) error_exit(std::cout << "readFrozenParams read distribution of size " << fval.size() << ", expected " << nsample << std::endl);
-
-    applyOperation(fval, fparams.sources[i].operation, reader);
-
-    std::cout << "readFrozenParams read " << fval << std::endl;
-
+    readFrozenFitParam(fval, fparams.sources[i], nsample);
     freeze_vals.push_back(fval);
   }
 }

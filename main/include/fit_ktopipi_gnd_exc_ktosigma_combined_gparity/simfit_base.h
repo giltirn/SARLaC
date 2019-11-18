@@ -38,9 +38,59 @@ struct ResampledDataContainers{};
 template< template<typename, template<typename> class> class DistributionType > 
 struct SimFitDataContainers{};
 
+//Note the param_idx in the FreezeParam entries should correspond to the state index starting at 0 for the ground state
+struct FreezeMatrixElementOp{
+#define FREEZE_MAT_ELEM_OP_MEMBERS			\
+  (int, q)						\
+  (std::vector<FreezeParam>, sources)
+
+  GENERATE_MEMBERS(FREEZE_MAT_ELEM_OP_MEMBERS);
+  
+  FreezeMatrixElementOp(): sources(1), q(0){}
+};
+GENERATE_PARSER(FreezeMatrixElementOp, FREEZE_MAT_ELEM_OP_MEMBERS);
+#undef FREEZE_MAT_ELEM_OP_MEMBERS
+
+struct FreezeMatrixElements{
+#define FREEZE_MATRIX_ELEMENTS_MEMBERS			\
+  (std::vector<FreezeMatrixElementOp>, operators)
+
+  GENERATE_MEMBERS(FREEZE_MATRIX_ELEMENTS_MEMBERS);
+  
+  FreezeMatrixElements(): operators(1){}
+};
+GENERATE_PARSER(FreezeMatrixElements, FREEZE_MATRIX_ELEMENTS_MEMBERS);
+#undef FREEZE_MATRIX_ELEMENTS_MEMBERS
+
 template< template<typename, template<typename> class> class DistributionType > 
-struct simultaneousFitBase: public simultaneousFitCommon{
+class simultaneousFitBase: public simultaneousFitCommon{
+public:
   COPY_COMMON_TYPEDEFS;
+
+private:
+  FreezeMatrixElements matelem_frz;
+  std::vector<std::vector<DistributionType<double, basic_vector> > > matelem_frz_vals;
+
+public:
+  simultaneousFitBase(){ matelem_frz.operators.resize(0); }
+
+  void loadFrozenMatrixElements(const FreezeMatrixElements &matelem_frz_, const int nsample){
+    matelem_frz = matelem_frz_;
+    matelem_frz_vals.resize(matelem_frz.operators.size());
+
+    for(int qq=0;qq<matelem_frz.operators.size();qq++){
+      matelem_frz_vals[qq].resize(matelem_frz.operators[qq].sources.size());
+
+      for(int s=0;s<matelem_frz.operators[qq].sources.size();s++)
+	readFrozenFitParam(matelem_frz_vals[qq][s], matelem_frz.operators[qq].sources[s], nsample);
+    }
+  }
+  void loadFrozenMatrixElements(const std::string &matelem_frz_file, const int nsample){
+    FreezeMatrixElements pargs;
+    parse(pargs, matelem_frz_file);
+    loadFrozenMatrixElements(pargs, nsample);
+  }
+
 
   virtual void load2ptFitParams(const std::vector<PiPiOperator> &operators, const InputParamArgs &iargs, const int dist_size) = 0;
 
@@ -74,7 +124,7 @@ struct simultaneousFitBase: public simultaneousFitCommon{
 
 
   template<typename FitFunc>
-  static void runfit(std::vector<DistributionType<Params, basic_vector> > &params,
+  void runfit(std::vector<DistributionType<Params, basic_vector> > &params,
 		     std::vector<DistributionType<double, basic_vector> > &chisq,
 		     const SimFitDataContainers<DistributionType> &fit_data,
 		     const subsetMapDescr &pmap_descr,
@@ -82,7 +132,7 @@ struct simultaneousFitBase: public simultaneousFitCommon{
 		     const std::vector<int> &freeze_params,
 		     const DistributionType<Params, basic_vector> &freeze_vals,
 		     const Params &guess,
-		     const bool correlated, const CovarianceMatrix covariance_matrix, bool write_output){
+		     const bool correlated, const CovarianceMatrix covariance_matrix, bool write_output) const{
     
     if(write_output) simultaneousFitCommon::printWriteFitData(fit_data.getFitDataAllQ(),pmap_descr);
 
@@ -107,7 +157,25 @@ struct simultaneousFitBase: public simultaneousFitCommon{
       std::cout << "Performing " << q+1 << " fit" << std::endl;
       fitter<FitPolicies> fit;
       fit.importFitFunc(fitfunc);
-      fit.freeze(freeze_params, freeze_vals);
+
+      std::vector<int> freeze_params_q = freeze_params;
+      DistributionType<Params, basic_vector> freeze_vals_q = freeze_vals;
+
+      for(int qq=0;qq<matelem_frz.operators.size();qq++){ 
+	if(matelem_frz.operators[qq].q == q){
+	  for(int src=0;src<matelem_frz.operators[qq].sources.size();src++){
+	    std::string Mnm = stringize("M%d",matelem_frz.operators[qq].sources[src].param_idx);
+	    int Midx = freeze_vals_q.sample(0).index(Mnm);
+
+	    for(int s=0;s<iterate<DistributionType<Params, basic_vector>>::size(freeze_vals_q);s++)
+	      iterate<DistributionType<Params, basic_vector>>::at(s, freeze_vals_q)(Midx) = iterate<DistributionType<double, basic_vector>>::at(s, matelem_frz_vals[qq][src]);
+
+	    freeze_params_q.push_back(Midx);
+	  }
+	}
+      }
+
+      fit.freeze(freeze_params_q, freeze_vals_q);
       
       importCostFunctionParameters<correlatedFitPolicy, FitPolicies> import;
       fit_data.generateCovarianceMatrix(import, fit, covariance_matrix, q);

@@ -169,7 +169,10 @@ class DataSet:
             self.dym.append(float(dy))
             self.dyp.append(float(dy))
 
-            
+        def printit(self):
+            if(self.x != None):
+                for i in range(len(self.x)):
+                    print "%f %f %f %f" % (self.x[i],self.y[i],self.dxp[i],self.dyp[i])
 
 
 class ErrorBand:

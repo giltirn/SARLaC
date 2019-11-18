@@ -55,6 +55,9 @@ int main(const int argc, const char* argv[]){
 
   fitter->load2ptFitParams(args.operators, args.input_params, args.nboot); 
 
+  if(cmdline.load_frozen_fit_params) //Freeze matrix elements (not amplitudes/energies!)
+    fitter->loadFrozenMatrixElements(cmdline.load_frozen_fit_params_file, args.nboot);
+  
   RawData raw;
   if(!cmdline.load_resampled_data_container_checkpoint){
     if(cmdline.load_raw_data_container_checkpoint){
@@ -146,6 +149,13 @@ int main(const int argc, const char* argv[]){
     HDF5writer wr(cmdline.save_resampled_data_container_checkpoint_file);
     write(wr, data_b, "data_b");
     write(wr, data_bj, "data_bj");
+  }
+
+  if(cmdline.prune_data){
+    pruneArgs pargs;
+    parse(pargs, cmdline.prune_data_file);
+    data_b.prune(pargs);
+    data_bj.prune(pargs);
   }
 
   if(args.basis == Basis::Basis7){
