@@ -198,7 +198,7 @@ public:
     
     os << leg_py;    
     os << "\tfig.canvas.draw()\n";
-    os << "\tfig.savefig(\"" << script_gen_filename << "\")";
+    os << "\tfig.savefig(\"" << script_gen_filename << "\",bbox_inches=\"tight\")";
   }
   void write(const std::string &filename, const std::string &script_gen_filename = "plot.pdf"){
     std::ofstream of(filename.c_str());

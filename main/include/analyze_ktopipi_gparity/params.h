@@ -51,10 +51,12 @@ struct OtherInputs{ //these are all expected to be xml-format superjackknife fil
 };
 GENERATE_PARSER(OtherInputs,OTHER_INPUTS_MEMBERS);
 
-#define RENORMALIZATION_MEMBERS (RIscheme, scheme)(double, mu)(std::string, file)
+//If stepscale = true,  mu must be set to the *high scale*, mu2. "File" should be the matrix on the original ensemble (ensA) at mu1,  and filenames for the matrix
+//at mu1 and mu2 should be provided for the data on the finer ensemble ensB
+#define RENORMALIZATION_MEMBERS (RIscheme, scheme)(double, mu)(std::string, file)(bool, stepscale)(std::string, file_ensB_mu1)(std::string, file_ensB_mu2)
 struct Renormalization{
   GENERATE_MEMBERS(RENORMALIZATION_MEMBERS);
-  Renormalization(): scheme(RIscheme::QslashQslash), mu(1.531), file("32c_216cfgs_results/qslash_1.53GeV_noG1.xml"){}
+Renormalization(): scheme(RIscheme::QslashQslash), mu(1.531), file("32c_216cfgs_results/qslash_1.53GeV_noG1.xml"),stepscale(false),file_ensB_mu1(""),file_ensB_mu2(""){}
 };
 GENERATE_PARSER(Renormalization, RENORMALIZATION_MEMBERS);
 

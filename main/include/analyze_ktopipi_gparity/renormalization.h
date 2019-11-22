@@ -66,6 +66,38 @@ NumericTensor<jackknifeDistributionD,2> loadNPR(const std::string &file){
   return npr;
 }
 
+NumericTensor<superMultiDistribution<double>,2> loadNPRmulti(const std::string &file){
+  NumericTensor<jackknifeDistributionD,2> mat = loadNPR(file);
+  superMultiLayout* layout = new superMultiLayout;
+  layout->addEnsemble("NPR", MultiType::Jackknife, mat({0,0}).size());
+  return NumericTensor<superMultiDistribution<double>,2>({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 0, mat(c)); });
+}
+ 
+//Compute step-scaling matrix between mu1 and mu2 on ensB and apply to matrix at mu1 on ensA under superjackknife
+NumericTensor<superMultiDistribution<double>,2> loadNPRstepScale(const std::string &file_mu1_ensA,
+								 const std::string &file_mu1_ensB,
+								 const std::string &file_mu2_ensB){
+  NumericTensor<jackknifeDistributionD,2> mat_mu1_ensA = loadNPR(file_mu1_ensA);
+  NumericTensor<jackknifeDistributionD,2> mat_mu1_ensB = loadNPR(file_mu1_ensB);
+  NumericTensor<jackknifeDistributionD,2> mat_mu2_ensB = loadNPR(file_mu2_ensB);
+
+  NumericTensor<jackknifeDistributionD,2> mat_mu1_ensB_inv(mat_mu1_ensB);
+  svd_inverse(mat_mu1_ensB_inv, mat_mu1_ensB);
+  
+  NumericTensor<jackknifeDistributionD,2> Lambda_mu2_mu1_ensB = mat_mu2_ensB * mat_mu1_ensB_inv;
+  
+  superMultiLayout* layout = new superMultiLayout;
+  layout->addEnsemble("NPR_ensA", MultiType::Jackknife, mat_mu1_ensA({0,0}).size());
+  layout->addEnsemble("NPR_ensB", MultiType::Jackknife, mat_mu1_ensB({0,0}).size());
+
+  NumericTensor<superMultiDistribution<double>,2> mat_mu1_ensA_sj({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 0, mat_mu1_ensA(c)); });
+  NumericTensor<superMultiDistribution<double>,2> Lambda_mu2_mu1_ensB_sj({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 1, Lambda_mu2_mu1_ensB(c)); });
+
+  return NumericTensor<superMultiDistribution<double>,2>( Lambda_mu2_mu1_ensB_sj * mat_mu1_ensA_sj );
+}
+ 
+
+
 enum OperatorBasis { Standard, Chiral };
 
 //Compute the Delta S=1 RI->MSbar conversion factors using Lehner, Sturm, Phys.Rev. D84 (2011) 014001 

@@ -441,9 +441,11 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
     PlotCorrFuncType curve_ground;
     std::vector<std::vector<PlotCorrFuncType> > curve_exc(nop, std::vector<PlotCorrFuncType>(nstate-1));
     std::vector<PlotCorrFuncType> curve_sum(nop);
+    std::vector<PlotCorrFuncType> curve_sum_outrange(nop);
 
+    //Curve for data in fit range
     int npoint = 60;
-    double delta = double(tsep_k_op_max-tmin_op_snk)/(npoint - 1);
+    double delta = double(tsep_k_op_max - tmin_op_snk)/(npoint - 1);
     for(int i=0;i<npoint;i++){
       double t_op_snk = tmin_op_snk + i*delta;
       DistributionTypeD gnd = M[0];
@@ -457,6 +459,23 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
 	  sum = sum + term;
 	}
 	curve_sum[o].push_back(t_op_snk, sum);
+      }
+    }
+
+    //Extend curve for data outside of fit range
+    npoint = 30;
+    delta = double(tmin_op_snk)/(npoint - 1);
+    for(int i=0;i<npoint;i++){
+      double t_op_snk = i*delta;
+      DistributionTypeD gnd = M[0];
+
+      for(int o=0;o<nop;o++){
+	DistributionTypeD sum = gnd;
+	for(int s=1;s<nstate;s++){
+	  DistributionTypeD term = A[o][s]*M[s]*exp(-(E[s]-E[0])*t_op_snk)/A[o][0];
+	  sum = sum + term;
+	}
+	curve_sum_outrange[o].push_back(t_op_snk, sum);
       }
     }
   
@@ -500,6 +519,9 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
 	//Total
 	auto handle = plotter.errorBand(accessor(curve_sum[o]),{{"color",colors[o]}, {"alpha",0.5}},stringize("fit_sum_%s", shortd[o].c_str()) );
 	plotter.setLegend(handle, stringize("%s Tot", latex[o].c_str()) );
+
+	handle = plotter.errorBand(accessor(curve_sum_outrange[o]),{{"color",colors[o]}, {"alpha",0.1}},stringize("fit_sum_outrange_%s", shortd[o].c_str()) );
+	plotter.setLegend(handle, stringize("%s Tot (oor)", latex[o].c_str()) );
       }
 
       plotter.setXlabel("$t$");

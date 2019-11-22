@@ -297,6 +297,44 @@ public:
   }
 };
 
+
+template<typename D>
+class formatSuperMultiBreakdown: public formatter<D>{
+public:
+  formatSuperMultiBreakdown(const CmdLine &cmdline){
+    error_exit(std::cout << "formatSuperMultiBreakdown only supports superMultiDistribution\n");
+  }
+  void operator()(const std::vector<int> &coord, const D &v){
+  }
+};
+template<typename T>
+class formatSuperMultiBreakdown< superMultiDistribution<T> >: public formatter< superMultiDistribution<T> >{
+  const CmdLine &cmdline;
+public:
+  formatSuperMultiBreakdown(const CmdLine &cmdline): cmdline(cmdline){
+  }
+  void operator()(const std::vector<int> &coord, const superMultiDistribution<T> &v){
+    std::cout << "Coord (";
+    for(int i=0;i<coord.size();i++) std::cout << coord[i] << " ";
+    std::cout << ") value " << v << std::endl;
+    
+    const superMultiLayout & layout = v.getLayout();
+    std::cout << "Layout contains " << layout.nEnsembles() << std::endl;
+    for(int e=0;e<layout.nEnsembles();e++){
+      MultiType type = layout.ensType(e);
+      generalContainer data_e = v.getEnsembleDistribution(e);
+      
+      std::cout << "Ensemble " << e << " with tag " << layout.ensTag(e) << " size " << layout.nSamplesEns(e) << " and value ";
+      if(type == MultiType::Jackknife) std::cout << data_e.value<jackknifeDistribution<T> >() << std::endl;
+      else if(type == MultiType::Bootstrap) std::cout << data_e.value<bootstrapDistribution<T> >() << std::endl;
+      else assert(0);
+    }
+    std::cout << std::endl;
+  }
+};
+
+
+
 template<typename D>
 struct setFormat{
   static inline formatter<D>* doit(const std::string &format, const CmdLine &cmdline){
@@ -354,7 +392,9 @@ struct setFormat{
     }else if(format == "basic"){
       return new formatPrint<D>(!cmdline.spec_noindex);
     }else if(format == "sample_plot"){
-      return new formatSamplePlot<D>(cmdline);      
+      return new formatSamplePlot<D>(cmdline);
+    }else if(format == "breakdown"){
+      return new formatSuperMultiBreakdown<D>(cmdline);
     }else{
       error_exit(std::cout << "setFormat: Unknown format " << format << std::endl);
     }

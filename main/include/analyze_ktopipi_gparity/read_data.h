@@ -61,8 +61,11 @@ struct superMultiData{
     readFromHDF5(Epipi_sj,args.fit_results.Epipi,"Epipi","Main");
         
     //Load the NPR matrix
-    NumericTensor<jackknifeDistributionD,2> NPR_j = loadNPR(args.renormalization.file); //NPR assumed jackknife
-    std::cout << "NPR matrix:\n" << NPR_j << std::endl;
+    if(args.renormalization.stepscale)
+      NPR_sj = loadNPRstepScale(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2);
+    else
+      NPR_sj = loadNPRmulti(args.renormalization.file); //NPR assumed jackknife
+    std::cout << "NPR matrix:\n" << NPR_sj << std::endl;
   
     //Read the various other inputs as superjackknife
     readFromXML(ainv_sj,args.other_inputs.ainv,"a^{-1}");
@@ -77,7 +80,7 @@ struct superMultiData{
     //Create a superjackknife layout for treating all these data consistently
     std::vector<superMultiD*> sjack_inputs = {&ainv_sj, &omega_expt_sj, &mod_eps_sj, &ImA2_lat_sj, &ReA2_lat_sj, &ReA2_expt_sj, &ReA0_expt_sj, &delta_2_sj};
     layout = mK_sj.getLayout(); //take a copy
-    layout.addEnsemble("NPR", MultiType::Jackknife, NPR_j({0,0}).size() );
+    layout = combine(layout, NPR_sj({0,0}).getLayout());
     for(int i=0;i<sjack_inputs.size();i++) layout = combine(layout, sjack_inputs[i]->getLayout());
     
     std::cout << "Created a superMulti layout with size " << layout.nSamplesTotal() << " comprising " << layout.nEnsembles() << " ensembles:\n";
@@ -88,11 +91,9 @@ struct superMultiData{
     Epi_sj.setLayout(layout);
     Epipi_sj.setLayout(layout);
     mK_sj.setLayout(layout);
-    
-    //Boost the NPR to supermulti
-    NPR_sj = NumericTensor<superMultiD,2>({7,7}, [&](const int *ij){ return superMultiD(layout, "NPR", NPR_j(ij)); } );
 
     //Update the layout for the superjackknife data
+    for(int i=0;i<7;i++) for(int j=0;j<7;j++) NPR_sj({i,j}).setLayout(layout);
     for(int i=0;i<sjack_inputs.size();i++) sjack_inputs[i]->setLayout(layout);
 
     //Compute the pion mass  
