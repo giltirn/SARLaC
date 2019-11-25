@@ -6,11 +6,11 @@
 GENERATE_ENUM_AND_PARSER(PhaseShiftDerivativeSource, (DerivSchenk)(DerivLinearEpipi)(DerivLinearQpipi)(DerivColangelo)(DerivColangeloPhysMpi) );
 GENERATE_ENUM_AND_PARSER(RIscheme, (QslashQslash)(GammaGamma) );
 
-#define FILE_IDX_PAIR_MEMBERS (std::string, file)(int, idx)
+#define FILE_IDX_PAIR_MEMBERS (std::string, file)(int, idx)(std::string, operation)
 struct FileIdxPair{
   GENERATE_MEMBERS(FILE_IDX_PAIR_MEMBERS);
-  FileIdxPair(){}
-  FileIdxPair(const std::string &f, const int i): file(f),idx(i){}
+  FileIdxPair(): operation(""){}
+  FileIdxPair(const std::string &f, const int i, const std::string &operation = ""): file(f),idx(i), operation(operation){}
 };
 GENERATE_PARSER(FileIdxPair, FILE_IDX_PAIR_MEMBERS);
 

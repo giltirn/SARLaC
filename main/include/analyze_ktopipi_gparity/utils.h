@@ -2,6 +2,25 @@
 #define _ANALYZE_KTOPIPI_UTILS_H_
 
 template<typename DistributionType>
+void kppApplyOperation(DistributionType &fval, const std::string &operation){
+  if(operation == "") return;
+  typedef iterate<DistributionType> iter;
+
+  const int nsample = iter::size(fval);
+  expressionAST AST = mathExpressionParse(operation);
+
+  if(AST.nSymbols() != 1) error_exit(std::cout << "kppApplyOperation expects math expression with 1 symbol ('x'), got \"" << operation << "\"\n");
+  else if(!AST.containsSymbol("x")) error_exit(std::cout << "kppApplyOperation expects math expression to be a function of 'x', got \"" << operation << "\"\n");
+
+  for(int s=0;s<nsample;s++){
+    AST.assignSymbol("x", iter::at(s, fval));
+    iter::at(s, fval) = AST.value();
+  }
+  std::cout << "Post-operation " << fval << std::endl;
+}
+
+
+template<typename DistributionType>
 void readFromXML(DistributionType &into, const int param, const std::string &file, const std::string &descr){
   UKvalenceDistributionContainer<DistributionType> tmp;
   XMLreader rd(file);
@@ -10,7 +29,10 @@ void readFromXML(DistributionType &into, const int param, const std::string &fil
   std::cout << "Read " << descr << " = " << into << std::endl;
 }
 template<typename DistributionType>
-inline void readFromXML(DistributionType &into, const FileIdxPair &p, const std::string &descr){ readFromXML(into, p.idx, p.file, descr); }
+inline void readFromXML(DistributionType &into, const FileIdxPair &p, const std::string &descr){ 
+  readFromXML(into, p.idx, p.file, descr); 
+  kppApplyOperation(into, p.operation);
+}
 
 template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
 void readFromHDF5(DistributionType &into, const int param, const std::string &file, const std::string &descr){  
@@ -20,7 +42,10 @@ void readFromHDF5(DistributionType &into, const int param, const std::string &fi
   std::cout << "Read " << descr << " = " << into << std::endl;
 }
 template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
-inline void readFromHDF5(DistributionType &into, const FileIdxPair &p, const std::string &descr){ readFromHDF5(into, p.idx, p.file, descr); }
+inline void readFromHDF5(DistributionType &into, const FileIdxPair &p, const std::string &descr){ 
+  readFromHDF5(into, p.idx, p.file, descr); 
+  kppApplyOperation(into, p.operation);
+}
 
 template<int D>
 inline void writeParamsStandard(const NumericTensor<superMultiDistribution<double>,D> &params, const std::string &filename){
@@ -70,7 +95,10 @@ void readFromHDF5(superMultiDistribution<double> &into, const int param, const s
   
 #undef CD
 }
-inline void readFromHDF5(superMultiDistribution<double> &into, const FileIdxPair &p, const std::string &descr, const std::string &ens_tag){ readFromHDF5(into, p.idx, p.file, descr, ens_tag); }
+inline void readFromHDF5(superMultiDistribution<double> &into, const FileIdxPair &p, const std::string &descr, const std::string &ens_tag){ 
+  readFromHDF5(into, p.idx, p.file, descr, ens_tag); 
+  kppApplyOperation(into, p.operation);  
+}
 
 
 void readFromHDF5(std::vector<superMultiDistribution<double> > &into, const std::string &file, const std::string &ens_tag){  
