@@ -61,8 +61,8 @@ public:
     return is_zero;
   }
 
-  std::ostream & print(std::ostream &os, bool incl_exponent = true, bool leading_space_if_positive = false) const{
-    if(isZero()){ os << 0; return os; }
+  std::ostream & print(std::ostream &os, bool incl_exponent = true, bool leading_space_if_positive = false, bool print_all_digits_if_zero = false) const{
+    if(isZero() && !print_all_digits_if_zero){ os << 0; return os; }
 
     if(leading_space_if_positive) os << ( sgn == -1 ? '-' : ' ' );
     else if(sgn==-1) os << '-';

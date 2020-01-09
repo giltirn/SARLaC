@@ -24,7 +24,10 @@ public:
   }
   std::ostream & printPublication(std::ostream &os) const{
     assert(err.exponent() == cen.exponent());
-    cen.print(os, false,true);
+
+    bool print_all_digits_if_zero = err.firstSigFigPow() < 0;
+    
+    cen.print(os, false,true, print_all_digits_if_zero);
     os << "(";
     err.printWithoutLeadingZeros(os);
     os << ")";
