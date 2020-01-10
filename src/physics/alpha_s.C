@@ -134,6 +134,19 @@ void PerturbativeInputs::setepZiyuanValues(){
   a_s.scale = mz;
   a_s.Nf = 5;
 }
+//Set to values from epsilon' 2019 paper
+void PerturbativeInputs::setep2019values(){
+  Nc = 3;
+  mcmc = 1.27;
+  mbmb = 4.18;
+  mWmW = 80.379;
+  mtmt = 160;
+  thetaW = 0.50162777299552883387;
+  a_e = 0.00781524754796608183;
+  a_s.value = 0.1181;
+  a_s.scale = 91.1876;
+  a_s.Nf = 5;
+}
 
 
 

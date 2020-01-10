@@ -47,6 +47,9 @@ struct PerturbativeInputs{
   //Set to values from Ziyuan Bai's thesis pg 67
   void setepZiyuanValues();
 
+  //Set to values from epsilon' 2019 paper
+  void setep2019values();
+
   inline double xt() const{ return pow(mtmt/mWmW,2); }
 
   PerturbativeInputs(){

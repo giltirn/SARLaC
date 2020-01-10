@@ -74,24 +74,38 @@ NumericTensor<superMultiDistribution<double>,2> loadNPRmulti(const std::string &
 }
  
 //Compute step-scaling matrix between mu1 and mu2 on ensB and apply to matrix at mu1 on ensA under superjackknife
+//If lambda_out != NULL  the step-scaling matrix will be copied to that location
 NumericTensor<superMultiDistribution<double>,2> loadNPRstepScale(const std::string &file_mu1_ensA,
 								 const std::string &file_mu1_ensB,
-								 const std::string &file_mu2_ensB){
+								 const std::string &file_mu2_ensB,
+								 NumericTensor<superMultiDistribution<double>,2> *lambda_out = NULL){
+  std::cout << "Computing NPR via step-scaling" << std::endl;
+  
   NumericTensor<jackknifeDistributionD,2> mat_mu1_ensA = loadNPR(file_mu1_ensA);
   NumericTensor<jackknifeDistributionD,2> mat_mu1_ensB = loadNPR(file_mu1_ensB);
   NumericTensor<jackknifeDistributionD,2> mat_mu2_ensB = loadNPR(file_mu2_ensB);
 
+  std::cout << "NPR matrix at mu1 on base ensemble:\n" << mat_mu1_ensA << std::endl;
+  std::cout << "NPR matrix at mu2 on fine ensemble:\n" << mat_mu2_ensB << std::endl;
+  std::cout << "NPR matrix at mu1 on fine ensemble:\n" << mat_mu1_ensB << std::endl;
+  
   NumericTensor<jackknifeDistributionD,2> mat_mu1_ensB_inv(mat_mu1_ensB);
   svd_inverse(mat_mu1_ensB_inv, mat_mu1_ensB);
   
+  std::cout << "Inverse of NPR matrix at mu1 on fine ensemble:\n" << mat_mu1_ensB_inv << std::endl;
+
   NumericTensor<jackknifeDistributionD,2> Lambda_mu2_mu1_ensB = mat_mu2_ensB * mat_mu1_ensB_inv;
   
+  std::cout << "Non-perturbative running between mu1 and mu2:\n" << Lambda_mu2_mu1_ensB << std::endl;
+
   superMultiLayout* layout = new superMultiLayout;
   layout->addEnsemble("NPR_ensA", MultiType::Jackknife, mat_mu1_ensA({0,0}).size());
   layout->addEnsemble("NPR_ensB", MultiType::Jackknife, mat_mu1_ensB({0,0}).size());
 
   NumericTensor<superMultiDistribution<double>,2> mat_mu1_ensA_sj({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 0, mat_mu1_ensA(c)); });
   NumericTensor<superMultiDistribution<double>,2> Lambda_mu2_mu1_ensB_sj({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 1, Lambda_mu2_mu1_ensB(c)); });
+
+  if(lambda_out != NULL) *lambda_out = Lambda_mu2_mu1_ensB_sj;
 
   return NumericTensor<superMultiDistribution<double>,2>( Lambda_mu2_mu1_ensB_sj * mat_mu1_ensA_sj );
 }
@@ -109,13 +123,30 @@ class MSbarConvert{
 
   MatrixType dr_norm_gamma_gamma; //7x7
   MatrixType dr_norm_qslash_qslash; //7x7
+  MatrixType dr_norm_qslash_gamma; //7x7
+  MatrixType dr_norm_gamma_qslash; //7x7
+
   MatrixType T; //10x7
   MatrixType unit_chiral; //7x7
  
 public:
 
   //O(alpha_s)
-  const MatrixType &getdrNorm(const RIscheme scheme) const{ return scheme == RIscheme::GammaGamma ? dr_norm_gamma_gamma : dr_norm_qslash_qslash; }
+  const MatrixType &getdrNorm(const RIscheme scheme) const{ 
+    switch(scheme){
+    case RIscheme::GammaGamma:
+      return dr_norm_gamma_gamma;
+    case RIscheme::QslashQslash:
+      return dr_norm_qslash_qslash;
+    case RIscheme::GammaQslash:
+      return dr_norm_gamma_qslash;
+    case RIscheme::QslashGamma:
+      return dr_norm_qslash_gamma;
+    default:
+      assert(0);
+    }
+  }
+
   const MatrixType &getT() const{ return T; }
 
 
@@ -130,7 +161,7 @@ public:
     return dT;
   }
 
-  MSbarConvert(): dr_norm_gamma_gamma({7,7}), dr_norm_qslash_qslash({7,7}){
+  MSbarConvert(): dr_norm_gamma_gamma({7,7}), dr_norm_qslash_qslash({7,7}), dr_norm_gamma_qslash({7,7}), dr_norm_qslash_gamma({7,7}){
     //Input matrices for compute. These are mu-independent and so can be stored
     unit_chiral = MatrixType({7,7}, [](const int *c){ return c[0]==c[1] ? 1. : 0.; });
   
@@ -195,6 +226,50 @@ public:
       r(7,8) = -0.12957;
       r(8,7) = -0.61371;
       r(8,8) = 1.49561;
+#undef r
+    }
+
+    { //Table X
+#define r(i,j) dr_norm_qslash_gamma({chiral_basis_map[i],chiral_basis_map[j]})
+      r(1,1) = 2.21184;
+      r(2,2) = 5.29408;
+      r(2,3) = 4.91777;
+      r(3,2) = -4.50446;
+      r(3,3) = -6.02444;
+      r(3,5) = 0.07407;
+      r(3,6) = -0.22222;
+      r(5,5) = 2.70986;
+      r(5,6) = -0.12957;
+      r(6,2) = -1.66667;
+      r(6,3) = -3.88889;
+      r(6,5) = -0.05815;
+      r(6,6) = 2.49561;
+      r(7,7) = 2.70986;
+      r(7,8) = -0.12957;
+      r(8,7) = -0.61371;
+      r(8,8) = 4.16227;
+#undef r
+    }
+
+    { //Table VIII
+#define r(i,j) dr_norm_gamma_qslash({chiral_basis_map[i],chiral_basis_map[j]})
+      r(1,1) = -2.45482;
+      r(2,2) = -2.77259;
+      r(2,3) = 0.31777;
+      r(3,2) = 0.09554;
+      r(3,3) = -3.29111;
+      r(3,5) = 0.07407;
+      r(3,6) = -0.22222;
+      r(5,5) = -2.62348;
+      r(5,6) = -0.12957;
+      r(6,2) = -1.66667;
+      r(6,3) = -3.88889;
+      r(6,5) = -1.05815;
+      r(6,6) = 0.16227;
+      r(7,7) = -2.62348;
+      r(7,8) = -0.12957;
+      r(8,7) = -1.61371;
+      r(8,8) = 1.82894;
 #undef r
     }
   }

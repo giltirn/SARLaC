@@ -4,7 +4,7 @@
 #include<parser.h>
 
 GENERATE_ENUM_AND_PARSER(PhaseShiftDerivativeSource, (DerivSchenk)(DerivLinearEpipi)(DerivLinearQpipi)(DerivColangelo)(DerivColangeloPhysMpi) );
-GENERATE_ENUM_AND_PARSER(RIscheme, (QslashQslash)(GammaGamma) );
+GENERATE_ENUM_AND_PARSER(RIscheme, (QslashQslash)(GammaGamma)(QslashGamma)(GammaQslash) );
 
 #define FILE_IDX_PAIR_MEMBERS (std::string, file)(int, idx)(std::string, operation)
 struct FileIdxPair{

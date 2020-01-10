@@ -51,17 +51,17 @@ GENERATE_PARSER(Args, ARGS_MEMBERS);
 //Note mpi_file and mpi_idx only need to be specified if mpi_src == File
 
 
-correlationFunction<double, jackknifeDistributionD> genColangeloCurve(const int I, const jackknifeDistributionD &mpi, const jackknifeDistributionD &ainv, const double Emax, const int npoint = 100){
-  jackknifeDistributionD mpi_phys = ainv*mpi;
-
-  double Emin = 2.1*mpi_phys.mean();
+correlationFunction<double, jackknifeDistributionD> genColangeloCurve(const int I, const double mpi_phys, const double Emax, const int nsample, const int npoint = 100){
+  double Emin = 2.1*mpi_phys;
   double delta = (Emax - Emin)/(npoint-1);
   
   correlationFunction<double, jackknifeDistributionD> out;
 
   for(int i=0;i<npoint;i++){
     double E = Emin + delta*i;
-    jackknifeDistributionD delta(mpi.size(), [&](const int s){ return 180./M_PI * PhenoCurveColangelo::compute(E*E, I, mpi_phys.sample(s)); });
+    double delta_v = 180./M_PI * PhenoCurveColangelo::compute(E*E, I, mpi_phys);
+    
+    jackknifeDistributionD delta(nsample, delta_v);
     out.push_back(E, delta);
   }
   return out;
@@ -136,6 +136,8 @@ int main(const int argc, const char* argv[]){
     return 1;
   }    
   
+  double mpi_phys = 0.135;
+
   parse(args, argv[1]);
 
   bool shift_Epi =false;
@@ -294,7 +296,6 @@ int main(const int argc, const char* argv[]){
     //Compute Colangelo value
     delta_Colangelo_vec[m] = jackknifeDistributionD(nsample,
 						    [&](const int s){
-						      double mpi_phys = mpi.sample(s) * ainv.sample(s);
 						      double E = Epipi_CM_phys.sample(s);
 						      return 180./M_PI * PhenoCurveColangelo::compute(E*E, args.meas[m].isospin, mpi_phys);
 						    });
@@ -361,7 +362,7 @@ int main(const int argc, const char* argv[]){
     handle handle_I0 = plot.errorCurves(acc, "data_I0");
 
 
-    correlationFunction<double, jackknifeDistributionD> col = genColangeloCurve(0, mpi, ainv, 0.6, 100);
+    correlationFunction<double, jackknifeDistributionD> col = genColangeloCurve(0, mpi_phys, 0.6, nsample, 100);
     CurveAccessor cacc(col);
     typename MatPlotLibScriptGenerate::kwargsType kwargs;
     kwargs["alpha"] = 0.6;
@@ -372,7 +373,7 @@ int main(const int argc, const char* argv[]){
     //handle handle_I2 = plot.plotData(acc, "data_I2");
     handle handle_I2 = plot.errorCurves(acc, "data_I2");
 
-    correlationFunction<double, jackknifeDistributionD> col = genColangeloCurve(2, mpi, ainv, 0.6, 100);
+    correlationFunction<double, jackknifeDistributionD> col = genColangeloCurve(2, mpi_phys, 0.6, nsample, 100);
     CurveAccessor cacc(col);
     typename MatPlotLibScriptGenerate::kwargsType kwargs;
     kwargs["alpha"] = 0.6;

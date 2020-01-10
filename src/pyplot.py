@@ -17,6 +17,7 @@ import numpy
 import scipy
 import scipy.integrate
 from scipy.interpolate import splrep, splev
+import copy
 
 class ColourPallete:
     @staticmethod
@@ -180,6 +181,22 @@ class ErrorBand:
                 self.x = None
                 self.upper = None
                 self.lower = None
+
+        def createEmpty(self): 
+            self.x = []
+            self.upper = []
+            self.lower = []
+
+        #Convert a DataSet into an ErrorBand. Assumes no x errors
+        def importDataSet(self, dset):
+            if(self.x == None):
+                self.createEmpty()
+
+            self.x = copy.deepcopy(dset.x)
+            for i in range(len(dset.y)):
+                self.upper.append(dset.y[i] + dset.dyp[i])
+                self.lower.append(dset.y[i] - dset.dym[i])
+                
 
 class HistogramData:
         def __init__(self):
