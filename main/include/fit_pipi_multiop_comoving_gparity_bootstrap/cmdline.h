@@ -1,5 +1,5 @@
-#ifndef _FIT_PIPI_COMOVING_GPARITY_CMDLINE_H
-#define _FIT_PIPI_COMOVING_GPARITY_CMDLINE_H
+#ifndef _FIT_PIPI_COMOVING_GPARITY_BOOTSTRAP_CMDLINE_H
+#define _FIT_PIPI_COMOVING_GPARITY_BOOTSTRAP_CMDLINE_H
 
 struct CMDline{
   bool load_guess;
@@ -33,6 +33,12 @@ struct CMDline{
 
   bool filemap_allow_ptot_parity;
 
+  bool load_boot_resample_table;
+  std::string load_boot_resample_table_file;
+
+  bool save_boot_resample_table;
+  std::string save_boot_resample_table_file;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -45,6 +51,8 @@ struct CMDline{
     load_priors = false;
     load_mlparams = false;
     filemap_allow_ptot_parity = false;
+    load_boot_resample_table = false;
+    save_boot_resample_table = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -136,6 +144,14 @@ struct CMDline{
       }else if(sargv[i] == "-filemap_allow_ptot_parity"){ //when p_tot not available in C,D,R files, look also for -p_tot
 	filemap_allow_ptot_parity = true;
 	i++;
+      }else if(sargv[i] == "-load_boot_resample_table"){ 
+	load_boot_resample_table = true;
+	load_boot_resample_table_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-save_boot_resample_table"){ 
+	save_boot_resample_table = true;
+	save_boot_resample_table_file = sargv[i+1];
+      	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

@@ -64,7 +64,7 @@ int main(const int argc, const char* argv[]){
 		    args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
 		    args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
 		    args.sigma2pt_file_format, args.sigma_bubble_file_format,
-		    ops);
+		    ops, args.isospin);
     }
     if(cmdline.save_raw_data){
       std::cout << "Saving raw data to " << cmdline.save_raw_data_file << std::endl;
@@ -100,6 +100,7 @@ int main(const int argc, const char* argv[]){
     std::vector<std::vector<int> > rtable = generateResampleTable(nsample, args.nboot, args.resample_table_type, args.block_size, RNG, ropt);
     if(rtable.size() != args.nboot) error_exit(std::cout << "Expected resample table of size " << args.nboot << ", got " << rtable.size() << std::endl);
 
+    if(args.isospin != 0 && args.do_vacuum_subtraction) error_exit(std::cout << "Vacuum subtraction is not appropriate to I!=0\n");
     bootstrapBlockResampler resampler(rtable);
     data_b.generatedResampledData(raw_data, resampler, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);
     data_bj.generatedResampledData(raw_data, resampler, args.Lt, args.tsep_pipi, args.do_vacuum_subtraction, args.timeslice_avg_vac_sub);

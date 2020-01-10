@@ -21,7 +21,9 @@ struct _bin_resample_t<blockDoubleJackknifeDistribution<T,V>,  RawDistributionTy
   inline static blockDoubleJackknifeDistribution<T,V> doit(const RawDistributionType &raw, const int bin_size){ return blockDoubleJackknifeDistribution<T,V>(raw, bin_size); }
 };
 
-template<typename ResampledDistributionType, typename RawDistributionType>
+template<typename ResampledDistributionType, typename RawDistributionType, 
+	 typename std::enable_if<hasSampleMethod<ResampledDistributionType>::value && hasSampleMethod<RawDistributionType>::value, int>::type = 0
+	>
 ResampledDistributionType binResample(const RawDistributionType &raw, const int bin_size){
   return _bin_resample_t<ResampledDistributionType, RawDistributionType>::doit(raw, bin_size);
 }
@@ -55,7 +57,8 @@ struct bootstrapBlockResampler{
 };
 
 
-template<typename ResampledDistributionType, typename RawDistributionType, typename binResampler>
+template<typename ResampledDistributionType, typename RawDistributionType, typename binResampler, 
+	 typename std::enable_if<hasSampleMethod<ResampledDistributionType>::value && hasSampleMethod<RawDistributionType>::value && !std::is_same<binResampler,int>::value,int>::type = 0>
 inline ResampledDistributionType binResample(const RawDistributionType &raw, const binResampler &resampler){
   ResampledDistributionType out; resampler.binResample(out, raw); return out;
 }

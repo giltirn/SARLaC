@@ -8,6 +8,8 @@
 
 CPSFIT_START_NAMESPACE
 
+//After recentering the q^2 value for the propagated mean sample .best() should be close to zero. Sometimes this causes the minimizer to fail if the initial guess is set equal to the parameters
+//obtained from fitting these data. Use shift_guess_best to fix
 void bootstrapPvalue(const double q2,
 		     const correlationFunction<SimFitCoordGen,  bootstrapDistributionD> &corr_comb_b,
 		     const correlationFunction<SimFitCoordGen,  bootJackknifeDistributionD> &corr_comb_bj,
@@ -15,7 +17,7 @@ void bootstrapPvalue(const double q2,
 		     FitFuncType ffunc, const std::unordered_map<std::string,size_t> &param_map,
 		     const int nstate, const int Lt, const int t_min, const int t_max,
 		     const bool correlated, const CovarianceMatrix covariance_matrix,
-		     const double Ascale, const double Cscale, const fitOptions &fopt){
+		     const double Ascale, const double Cscale, const fitOptions &fopt, bool shift_guess_best =false){
   
   std::unique_ptr<genericFitFuncBase> fitfunc = getFitFunc(ffunc, nstate, t_min, Lt, param_map.size(), Ascale, Cscale, base_params.best());
 
@@ -33,6 +35,8 @@ void bootstrapPvalue(const double q2,
   
   //Fit recentered data
   bootstrapDistribution<Params> rparams(base_params);
+  if(shift_guess_best) for(int i=0;i<rparams.best().size();i++) rparams.best()(i) = rparams.best()(i)*1.0001;
+
   bootstrapDistributionD chisq(rparams.getInitializer()), chisq_per_dof(rparams.getInitializer());
 
   fit(rparams, chisq, chisq_per_dof,

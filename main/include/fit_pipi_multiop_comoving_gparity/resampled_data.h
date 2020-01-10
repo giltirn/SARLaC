@@ -15,8 +15,9 @@ public:
   bool haveData(const Operator opa, const Operator opb) const{ 
     return contains.find({opa,opb}) != contains.end();
   }
-
-  void generatedResampledData(const std::vector<Operator> &ops, const RawData &raw_data, const int bin_size, const int isospin, const int Lt, const int tsep_pipi, const threeMomentum &p_tot, const bool do_vacuum_subtraction){
+  
+  template<typename Resampler>
+  void generatedResampledData(const std::vector<Operator> &ops, const RawData &raw_data, const Resampler &resampler, const int isospin, const int Lt, const int tsep_pipi, const threeMomentum &p_tot, const bool do_vacuum_subtraction){
     if(isospin == 2) assert(do_vacuum_subtraction == false);
 
     static const std::vector< std::pair<Operator,Operator> > rp = { {Operator::PiPiComoveGnd, Operator::PiPiComoveGnd},
@@ -40,15 +41,20 @@ public:
 	contains.insert({o1,o2});
 	auto &corr = correlator(o1,o2);
 
-	corr = binResample<resampledCorrelationFunctionType>(raw_data.correlator(o1,o2), bin_size);
+	corr = binResample<resampledCorrelationFunctionType>(raw_data.correlator(o1,o2), resampler);
 
 	if(do_vacuum_subtraction) //technically this should not be needed!
-	  corr = corr - computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(o1,o2), bin_size, tsep_pipi, p_tot,
+	  corr = corr - computePiPi2ptVacSub<resampledCorrelationFunctionType>(raw_data.PiPiBubble(o1,o2), resampler, tsep_pipi, p_tot,
 									       op_proj.find(o1)->second , op_proj.find(o2)->second );
 	corr = fold(corr, 2*tsep_pipi); 
       }
     }
   }
+  inline void generatedResampledData(const std::vector<Operator> &ops, const RawData &raw_data, const int bin_size, const int isospin, const int Lt, const int tsep_pipi, const threeMomentum &p_tot, const bool do_vacuum_subtraction){
+    basicBinResampler resampler(bin_size);
+    generatedResampledData(ops, raw_data, resampler, isospin, Lt, tsep_pipi, p_tot, do_vacuum_subtraction);
+  }
+
 
   void write(HDF5writer &wr, const std::string &nm) const{
     wr.enter(nm);
@@ -93,5 +99,26 @@ void loadCheckpoint(std::map<threeMomentum, ResampledData<jackknifeCorrelationFu
   read(rd, data_j, "j_data");
   read(rd, data_dj, "dj_data");
 }
+
+void saveCheckpoint(const std::map<threeMomentum, ResampledData<bootstrapCorrelationFunctionD> > &data_b,
+		    const std::map<threeMomentum, ResampledData<bootJackknifeCorrelationFunctionD> > &data_bj, 
+		    const std::string &file){
+  std::cout << "Saving data checkpoint to " << file << std::endl;
+  HDF5writer wr(file);
+  write(wr, data_b, "b_data");
+  write(wr, data_bj, "bj_data");
+}
+
+
+void loadCheckpoint(std::map<threeMomentum, ResampledData<bootstrapCorrelationFunctionD> > &data_b,
+		    std::map<threeMomentum, ResampledData<bootJackknifeCorrelationFunctionD> > &data_bj,
+		    const std::string &file){
+  std::cout << "Reading data checkpoint from " << file << std::endl;
+  HDF5reader rd(file);
+  read(rd, data_b, "b_data");
+  read(rd, data_bj, "bj_data");
+}
+
+
 
 #endif

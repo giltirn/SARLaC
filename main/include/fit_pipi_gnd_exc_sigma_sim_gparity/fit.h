@@ -16,7 +16,7 @@ void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistribu
   };
   PP::descr() = &pmap_descr;
   
-  AnalyzeChisq<FitFunc,PP> chisq_analyze(corr_comb_j, fitfunc, params);
+  AnalyzeChisq<FitFunc,jackknifeDistribution,PP> chisq_analyze(corr_comb_j, fitfunc, params);
   chisq_analyze.printChisqContribs(Correlation);
   chisq_analyze.examineProjectedDeviationContribsEvalNorm(Correlation);
   chisq_analyze.printChisqContribs(Covariance);

@@ -197,14 +197,14 @@ public:
 	    const std::string &pipi_fig_file_fmt, const std::string &pipi_bubble_file_fmt, const int tsep_pipi, const int tstep_pipi,
 	    const std::string &pipitosigma_file_fmt, const int tstep_pipi_to_sigma,
 	    const std::string &sigma2pt_file_fmt, const std::string &sigma_bubble_file_fmt,
-	    const std::vector<Operator> &incl_ops){
+	    const std::vector<Operator> &incl_ops, const int isospin){
 
     //PiPi 2pt and PiPi bubble
     if(doOp(Operator::PiPiGnd, incl_ops)){
       readPiPi2pt(correlator(Operator::PiPiGnd,Operator::PiPiGnd), PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd), data_dir, 
 		  pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		  traj_start, traj_inc, traj_lessthan, 
-		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet111);
+		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet111, isospin);
       PiPiBubble(Operator::PiPiGnd,Operator::PiPiGnd) = reIm(PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd),0);
       contains.insert({Operator::PiPiGnd,Operator::PiPiGnd});
     }    
@@ -212,7 +212,7 @@ public:
       readPiPi2pt(correlator(Operator::PiPiExc,Operator::PiPiExc), PiPiBubbleZ(Operator::PiPiExc,Operator::PiPiExc), data_dir, 
 		  pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		  traj_start, traj_inc, traj_lessthan, 
-		  PiPiProjector::A1momSet311, PiPiProjector::A1momSet311);
+		  PiPiProjector::A1momSet311, PiPiProjector::A1momSet311, isospin);
       
       PiPiBubble(Operator::PiPiExc,Operator::PiPiExc) = reIm(PiPiBubbleZ(Operator::PiPiExc,Operator::PiPiExc),0);
       contains.insert({Operator::PiPiExc,Operator::PiPiExc});
@@ -221,13 +221,15 @@ public:
       readPiPi2pt(correlator(Operator::PiPiGnd,Operator::PiPiExc), PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiExc), data_dir, 
 		  pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		  traj_start, traj_inc, traj_lessthan, 
-		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet311);
+		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet311, isospin);
     
       PiPiBubble(Operator::PiPiGnd,Operator::PiPiExc) = reIm(PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiExc),0);
       contains.insert({Operator::PiPiGnd,Operator::PiPiExc});
     }
     
     if(doOp(Operator::Sigma, incl_ops)){
+      if(isospin != 0) error_exit(std::cout << "Sigma operator is only applicable for I=0\n");
+
       //Sigma 2pt and sigma bubble
       figureData sigma2pt_data;
       readSigmaSigma(sigma2pt_data, sigma2pt_file_fmt, data_dir, Lt, traj_start, traj_inc, traj_lessthan);

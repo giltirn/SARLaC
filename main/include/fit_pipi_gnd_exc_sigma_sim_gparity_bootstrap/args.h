@@ -13,6 +13,7 @@
   ( std::string, sigma_bubble_file_format )   \
   ( std::string, sigma2pt_file_format )	      \
   ( std::vector<Operator>, operators )	      \
+  ( int, isospin)			      \
   ( int, Lt) \
   ( int, tsep_pipi) \
   ( int, tstep_pipi) \
@@ -43,7 +44,7 @@ struct Args{
     pipi_to_sigma_file_format("traj_<CONF>_pipitosigma_sigmawdagmom<MOM_QUARK_SIGMA>_pionmom<MOM_PI>_v2"),
     sigma_bubble_file_format("traj_<CONF>_sigmaself_mom<PQUARK>_v2"),
     sigma2pt_file_format("traj_<CONF>_sigmacorr_mompsrc<PSRC_QUARK>psnk<PSNK_QUARK>_v2"),
-    operators({Operator::PiPiGnd, Operator::PiPiExc, Operator::Sigma}),
+    operators({Operator::PiPiGnd, Operator::PiPiExc, Operator::Sigma}), isospin(0),
     Lt(64), tsep_pipi(4), tstep_pipi(8), tstep_pipi_to_sigma(8), t_min(0), t_max(32), traj_start(0), traj_inc(1), traj_lessthan(2), Ascale(1e13), Cscale(1e13), 
     fitfunc(FitFuncType::FSimGenTwoState), nstate(3), do_vacuum_subtraction(true), timeslice_avg_vac_sub(false), correlated(true), covariance_matrix(CovarianceMatrix::Regular), minimizer(MinimizerType::MarquardtLevenberg),
     block_size(1), nboot(1000), resample_table_type(BootResampleTableType::NonOverlappingBlock){}
