@@ -48,6 +48,8 @@ struct CmdLine{
 
   bool spec_pub_cen_only;
 
+  int format_sample_index;
+
   CmdLine(){
     spec_elem = false;
     spec_format = false;
@@ -74,14 +76,25 @@ struct CmdLine{
 	}
 	spec_elem = true;
 	i += 2;
-      }else if(si == "-format"){ //"publication","basic" (default), "sample_plot" (plot of samples)
+      }else if(si == "-format"){ 
+	/*Options:
+	  "publication"   print value with error in parentheses
+	  "basic" (default)  print value +- error
+	  "sample_plot" produce a plot of sample. Next argument must be filename. Optional plot formats specified below
+	  "breakdown" produce an error breakdown of a superMultiDistribution
+	  "sample" print just a single sample. Next argument should be sample index
+	*/
+
 	spec_format = true;
 	spec_format_val = argv[i+1];
 	i += 2;
 
 	if(spec_format_val == "sample_plot")
 	  sample_plot_file_stub = argv[i++];
-      }else if(si == "-noindex"){ //For publication or basic printing, suppress printing the index
+	else if(spec_format_val == "sample")
+	  format_sample_index = strToAny<int>(argv[i++]);
+	
+      }else if(si == "-noindex"){ //For publication, sample or basic printing, suppress printing the index
 	spec_noindex = true;
 	i++;
 
@@ -333,7 +346,17 @@ public:
   }
 };
 
+template<typename D>
+struct formatPrintSample: public formatter<D>{
+  bool print_index;
+  int sample;
+  formatPrintSample(const int sample, bool _print_index = true): sample(sample), print_index(_print_index){}
 
+  void operator()(const std::vector<int> &coord, const D &v){
+    if(print_index) for(int i=0;i<coord.size();i++) std::cout << coord[i] << " ";
+    std::cout << (sample == -1 ? v.best() : v.sample(sample)) << std::endl; 
+  }
+};
 
 template<typename D>
 struct setFormat{
@@ -395,6 +418,8 @@ struct setFormat{
       return new formatSamplePlot<D>(cmdline);
     }else if(format == "breakdown"){
       return new formatSuperMultiBreakdown<D>(cmdline);
+    }else if(format == "sample"){
+      return new formatPrintSample<D>(cmdline.format_sample_index, !cmdline.spec_noindex);
     }else{
       error_exit(std::cout << "setFormat: Unknown format " << format << std::endl);
     }
