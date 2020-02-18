@@ -48,6 +48,8 @@ void run(DistributionTypeEnum type, const std::string &infile, const std::string
     runD<doubleJackknifeDistribution<double> >(infile,outfile,vector_depth_in,outfile_exists,argc,argv);  break;
   case DistributionTypeEnum::SuperJackknife:
     runD<superJackknifeDistribution<double> >(infile,outfile,vector_depth_in,outfile_exists,argc,argv);  break;    
+  case DistributionTypeEnum::Bootstrap:
+    runD<bootstrapDistribution<double> >(infile,outfile,vector_depth_in,outfile_exists,argc,argv);  break;
   default:
     error_exit(std::cout << "run(...) unknown type " << type << std::endl);
   }
@@ -56,7 +58,7 @@ void run(DistributionTypeEnum type, const std::string &infile, const std::string
 
 
 int main(const int argc, const char** argv){
-  assert(argc > 4);
+  assert(argc >= 4);
   std::string infile = argv[1];
   std::string outfile = argv[2];
   
