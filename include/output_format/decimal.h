@@ -62,13 +62,14 @@ public:
   }
 
   std::ostream & print(std::ostream &os, bool incl_exponent = true, bool leading_space_if_positive = false, bool print_all_digits_if_zero = false) const{
-    if(isZero() && !print_all_digits_if_zero){ os << 0; return os; }
+    bool is_zero = isZero();
+    if(is_zero && !print_all_digits_if_zero){ os << 0; return os; }
 
     if(leading_space_if_positive) os << ( sgn == -1 ? '-' : ' ' );
     else if(sgn==-1) os << '-';
     
     for(int i=0;i<v.size();i++){
-      os << v[i];
+      if(i>=dp || (i<dp && !is_zero)) os << v[i];   //if the number is zero print only one zero before the decimal point
       if(i==dp && i!=v.size()-1) os << '.';    
     }
     if(incl_exponent && base_pow !=0 ) os << 'e' << base_pow;

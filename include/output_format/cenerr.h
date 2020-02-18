@@ -25,8 +25,8 @@ public:
   std::ostream & printPublication(std::ostream &os) const{
     assert(err.exponent() == cen.exponent());
 
+    //In situations where we have numbers like  0.000(15) we need to make sure all the zeroes are printed or it will look like   0(15)
     bool print_all_digits_if_zero = err.firstSigFigPow() < 0;
-    
     cen.print(os, false,true, print_all_digits_if_zero);
     os << "(";
     err.printWithoutLeadingZeros(os);
