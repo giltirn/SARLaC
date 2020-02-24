@@ -63,12 +63,16 @@ int main(const int argc, const char* argv[]){
 
   checkLatticeWilsonCoefficients(lat_Wilson_coeffs,data.M_lat_sj,data.ainv_sj,F_sj,args);
 
+
+  NumericTensor<superMultiD,1> M_unrenorm_chiral_sj = computePhysicalUnrenormalizedMatrixElementsChiral(data.M_lat_sj,data.ainv_sj,F_sj,args);
+
+
   {
     std::cout << "\n\n---------------------------------------------------------------\n";
     std::cout << "Starting computation using standard method\n";
     
     //Compute the MSbar, infinite-volume matrix elements
-    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElements(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,args);
+    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElements(M_unrenorm_chiral_sj,data.NPR_sj,MSbar,args);
 
     computeMatrixElementRelations(M_MSbar_std_sj, "");
     
@@ -94,7 +98,7 @@ int main(const int argc, const char* argv[]){
     std::ostringstream nm; nm << "elim" << chiralBasisIdx(i) << "_";
         
     //Compute the MSbar, infinite-volume matrix elements
-    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0expt(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,lat_Wilson_coeffs.first,data.ReA0_expt_sj,i,args,nm.str());
+    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0expt(M_unrenorm_chiral_sj,data.NPR_sj,MSbar,lat_Wilson_coeffs.first,data.ReA0_expt_sj,i,args,nm.str());
 
     computeMatrixElementRelations(M_MSbar_std_sj, nm.str());
     
@@ -118,7 +122,7 @@ int main(const int argc, const char* argv[]){
     std::string nm = "opt_wReA0expt_";
         
     //Compute the MSbar, infinite-volume matrix elements
-    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0exptOptimal(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,
+    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0exptOptimal(M_unrenorm_chiral_sj,data.NPR_sj,MSbar,
 													 lat_Wilson_coeffs.first,lat_Wilson_coeffs.second,
 													 data.ReA0_expt_sj,args,nm);
 
