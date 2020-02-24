@@ -31,51 +31,64 @@ protected:
 public:
   superMultiDistribution(): layout(NULL){}
   
-  superMultiDistribution(const superMultiLayout &_layout): layout(&_layout), distribution<_DataType, _VectorType>(_layout.nSamplesTotal()){  }
+  //Create with a given layout
+  superMultiDistribution(superMultiLayout const *_layout): layout(_layout), distribution<_DataType, _VectorType>(_layout->nSamplesTotal()){  }
+  superMultiDistribution(const superMultiLayout &_layout): superMultiDistribution(&_layout){  }
 
-  superMultiDistribution(const superMultiLayout &_layout, const DataType &_central): layout(&_layout), cen(_central), 
-										     distribution<_DataType, _VectorType>(_layout.nSamplesTotal(), _central){
-  }
+  //Create with a given layout and central value (copied to all samples so zero error)
+  superMultiDistribution(superMultiLayout const *_layout, const DataType &_central): layout(_layout), cen(_central), 
+										     distribution<_DataType, _VectorType>(_layout->nSamplesTotal(), _central){}
+  superMultiDistribution(const superMultiLayout &_layout, const DataType &_central): superMultiDistribution(&_layout,_central){}
+
 
   //Lambda-type initializer. Expect operator()(const int sample) that accepts sample=-1 for the central value
   template<typename Initializer>
-  superMultiDistribution(const superMultiLayout &_layout, const Initializer &init): layout(&_layout), 
-										    distribution<_DataType, _VectorType>(_layout.nSamplesTotal()){
+  superMultiDistribution(superMultiLayout const *_layout, const Initializer &init): layout(_layout), 
+										    distribution<_DataType, _VectorType>(_layout->nSamplesTotal()){
     cen = init(-1);
     for(int i=0;i<this->size();i++) this->sample(i) = init(i);
   }			     
+  template<typename Initializer>
+  superMultiDistribution(const superMultiLayout &_layout, const Initializer &init): superMultiDistribution(&_layout, init){}
 
-  //Create a multi-distribution from a jackknife placed on ensemble first_ens_idx or by tag
-  superMultiDistribution(const superMultiLayout &_layout, const int first_ens_idx, const jackknifeDistribution<DataType> &first): superMultiDistribution(_layout, first.mean()) {
+
+  //Create a multi-distribution from a jackknife placed on ensemble first_ens_idx
+  superMultiDistribution(superMultiLayout const *_layout, const int first_ens_idx, const jackknifeDistribution<DataType> &first): superMultiDistribution(_layout, first.mean()) {
     setEnsembleDistribution(first_ens_idx, first);
-
-    // assert(first.size() == layout->nSamplesEns(first_ens_idx));
-    // assert(layout->ensType(first_ens_idx) == MultiType::Jackknife);
-    // int off = layout->offset(first_ens_idx);
-    // for(int i=0;i<first.size();i++)
-    //   this->sample(i+off) = first.sample(i);
   }
-  superMultiDistribution(const superMultiLayout &_layout, const std::string &first_ens_tag, const jackknifeDistribution<DataType> &first): superMultiDistribution(_layout,checkEnsExistsPassthrough(first_ens_tag,_layout),first){}
+  superMultiDistribution(const superMultiLayout &_layout, const int first_ens_idx, const jackknifeDistribution<DataType> &first): superMultiDistribution(&_layout, first_ens_idx, first){}
 
-  //Create a multi-distribution from a bootstrap placed on ensemble first_ens_idx or by tag
-  superMultiDistribution(const superMultiLayout &_layout, const int first_ens_idx, const bootstrapDistribution<DataType> &first): superMultiDistribution(_layout, first.best()) {
+  //Create from a jackknife placed on ensemble with given tag
+  superMultiDistribution(superMultiLayout const *_layout, const std::string &first_ens_tag, const jackknifeDistribution<DataType> &first): superMultiDistribution(_layout,checkEnsExistsPassthrough(first_ens_tag,*_layout),first){}
+  superMultiDistribution(const superMultiLayout &_layout, const std::string &first_ens_tag, const jackknifeDistribution<DataType> &first): superMultiDistribution(&_layout, first_ens_tag, first){}
+
+
+
+  //Create a multi-distribution from a bootstrap placed on ensemble first_ens_idx
+  superMultiDistribution(superMultiLayout const *_layout, const int first_ens_idx, const bootstrapDistribution<DataType> &first): superMultiDistribution(_layout, first.best()) {
     setEnsembleDistribution(first_ens_idx, first);
-
-    // assert(first.size() == layout->nSamplesEns(first_ens_idx));
-    // assert(layout->ensType(first_ens_idx) == MultiType::Bootstrap);
-    // int off = layout->offset(first_ens_idx);
-    // for(int i=0;i<first.size();i++)
-    //   this->sample(i+off) = first.sample(i);
   }
-  superMultiDistribution(const superMultiLayout &_layout, const std::string &first_ens_tag, const bootstrapDistribution<DataType> &first): superMultiDistribution(_layout,checkEnsExistsPassthrough(first_ens_tag,_layout),first){}
+  superMultiDistribution(const superMultiLayout &_layout, const int first_ens_idx, const bootstrapDistribution<DataType> &first): superMultiDistribution(&_layout, first_ens_idx, first){}
 
-  superMultiDistribution(const superMultiLayout &_layout, const int first_ens_idx, const generalContainer &first): superMultiDistribution(_layout) {
+
+  //Create a multi-distribution from a bootstrap placed on ensemble with given tag
+  superMultiDistribution(superMultiLayout const *_layout, const std::string &first_ens_tag, const bootstrapDistribution<DataType> &first): superMultiDistribution(_layout,checkEnsExistsPassthrough(first_ens_tag,*_layout),first){}
+  superMultiDistribution(const superMultiLayout &_layout, const std::string &first_ens_tag, const bootstrapDistribution<DataType> &first): superMultiDistribution(&_layout, first_ens_tag, first){}
+
+
+
+  //Create a multi-distribution from a wrapped jackknife/bootstrap placed on ensemble first_ens_idx
+  superMultiDistribution(superMultiLayout const *_layout, const int first_ens_idx, const generalContainer &first): superMultiDistribution(_layout) {
     if(first.is<jackknifeDistribution<DataType> >()) cen = first.value<jackknifeDistribution<DataType> >().best();
     else if(first.is<bootstrapDistribution<DataType> >()) cen = first.value<bootstrapDistribution<DataType> >().best();
     else assert(0);
     setEnsembleDistribution(first_ens_idx, first);
   }
-  superMultiDistribution(const superMultiLayout &_layout, const std::string &first_ens_tag, const generalContainer &first): superMultiDistribution(_layout,checkEnsExistsPassthrough(first_ens_tag,_layout),first){}
+  superMultiDistribution(const superMultiLayout &_layout, const int first_ens_idx, const generalContainer &first): superMultiDistribution(&_layout, first_ens_idx, first){}
+
+  //Create a multi-distribution from a wrapped jackknife/bootstrap placed on ensemble with given tag
+  superMultiDistribution(superMultiLayout const *_layout, const std::string &first_ens_tag, const generalContainer &first): superMultiDistribution(_layout,checkEnsExistsPassthrough(first_ens_tag,*_layout),first){}
+  superMultiDistribution(const superMultiLayout &_layout, const std::string &first_ens_tag, const generalContainer &first):  superMultiDistribution(&_layout, first_ens_tag, first){}
 
 
   superMultiDistribution(const superMultiDistribution &r): layout(r.layout), cen(r.cen), distribution<_DataType, _VectorType>(r){}
@@ -251,7 +264,8 @@ public:
   }
 
   const superMultiLayout & getLayout() const{ return *layout; }
-
+  superMultiLayout const * getInitializer() const{ return layout; }
+  
   //Set the layout to that provided. New layout must contain all the original ensembles
   void setLayout(const superMultiLayout &to){
     if(layout == NULL){ //no layout set previously (i.e. default constructor)

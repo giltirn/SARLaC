@@ -5,6 +5,7 @@
 
 GENERATE_ENUM_AND_PARSER(PhaseShiftDerivativeSource, (DerivSchenk)(DerivLinearEpipi)(DerivLinearQpipi)(DerivColangelo)(DerivColangeloPhysMpi) );
 GENERATE_ENUM_AND_PARSER(RIscheme, (QslashQslash)(GammaGamma)(QslashGamma)(GammaQslash) );
+GENERATE_ENUM_AND_PARSER(ChiralConvertMethod, (Original)(Fit) );
 
 #define FILE_IDX_PAIR_MEMBERS (std::string, file)(int, idx)(std::string, operation)
 struct FileIdxPair{
@@ -80,15 +81,16 @@ GENERATE_PARSER(Constants, CONSTANT_MEMBERS);
   (std::vector<int>, twists)			\
   (int, L)					\
   (PhaseShiftDerivativeSource, deriv_source)	\
-  (bool, lattice_dispersion_reln)
+  (bool, lattice_dispersion_reln)		\
+  (ChiralConvertMethod, chiral_conv_method)
 
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
   Args(): wilson_coeffs_file("32c_216cfgs_results/WilsonCoeffs.dat"), //cf WilsonCoeffs.h for format
-	  twists({1,1,1}),
-	  L(32),
-	  deriv_source(PhaseShiftDerivativeSource::DerivLinearQpipi),
-	  lattice_dispersion_reln(false){}
+    twists({1,1,1}),
+    L(32),
+    deriv_source(PhaseShiftDerivativeSource::DerivLinearQpipi),
+    lattice_dispersion_reln(false), chiral_conv_method(ChiralConvertMethod::Original){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 

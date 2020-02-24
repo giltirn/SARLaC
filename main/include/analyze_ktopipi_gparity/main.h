@@ -23,37 +23,6 @@ void checkLatticeWilsonCoefficients(const std::pair<NumericTensor<superMultiDist
   std::cout << "Got ReA0 = " << reA0 << "  ImA0 = " << imA0 << std::endl;
 }
 
-
-NumericTensor<superMultiDistribution<double>,1> computePhysicalUnrenormalizedMatrixElementsChiral(const NumericTensor<superMultiDistribution<double>,1> &M_lat_sj, //lattice matrix elements
-												  const superMultiDistribution<double> &ainv_sj, //inverse lattice spacing
-												  const superMultiDistribution<double> &F_sj,  //Lellouch-Luscher factor
-												  const Args &args){
-  assert(M_lat_sj.size(0) == 10);
-  typedef superMultiDistribution<double> superMultiD;
-  
-  //Convert M to physical units and infinite volume
-  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj;
-  NumericTensor<superMultiD,1> M_unrenorm_phys_std({10}, [&](const int* c){ return coeff * M_lat_sj(c); });
-  std::cout << "Unrenormalized physical matrix elements (physical units, infinite volume) and standard basis:\n";
-  for(int q=0;q<10;q++)
-    std::cout << "Q" << q+1 << " = " << M_unrenorm_phys_std(&q) << " GeV^3\n";
-  
-  writeParamsStandard(M_unrenorm_phys_std, "matrix_elems_unrenorm_std.hdf5");
-
-  //Convert M to chiral basis
-  NumericTensor<superMultiD,1> M_unrenorm_phys_chiral_sj = convertChiralBasis(M_unrenorm_phys_std);
-
-  std::cout << "Unrenormalized physical matrix elements in chiral basis:\n";
-  for(int q=0;q<7;q++)
-    std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_unrenorm_phys_chiral_sj(&q)<< " GeV^3\n";
-
-  writeParamsStandard(M_unrenorm_phys_chiral_sj, "matrix_elems_unrenorm_chiral.hdf5");
-  
-  return M_unrenorm_phys_chiral_sj;
-}
-
-
-
 NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElements(const NumericTensor<superMultiDistribution<double>,1> &M_unrenorm_phys_chiral_sj, //unrenorm matrix elements chiral basis
 										   const NumericTensor<superMultiDistribution<double>,2> &NPR_sj, //RI-SMOM renormalization factors
 										   const MSbarConvert &MSbar, //MSbar matching coefficients

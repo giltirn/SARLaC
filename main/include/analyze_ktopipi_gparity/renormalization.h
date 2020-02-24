@@ -1,55 +1,6 @@
 #ifndef _ANALYZE_KTOPIPI_RENORMALIZATION_H_
 #define _ANALYZE_KTOPIPI_RENORMALIZATION_H_
 
-//Convert from Q -> Q'' basis (following Qi's convention, pg 66 of his thesis), or the inverse if 'reverse' is true
-template<typename DistributionType>
-NumericTensor<DistributionType,1> convertChiralBasis(const NumericTensor<DistributionType,1> &Min, const bool reverse = false){
-  //Convert Q123 -> Q'123
-  static const double Q123rot[3][3] = {  { 3    ,  2,    -1     },
-					 { 2./5 , -2./5,  1./5  },
-					 {-3./5,   3./5,  1./5  } };
-  //Convert Q'123 -> Q123
-  static const double Q123invrot[3][3] = {  {1./5,   1,   0},
-					    {1./5,   0,   1},
-					    {  0 ,   3,   2} };
-
-#define MO(i) Mout({i-1})
-#define MI(i) Min({i-1})
-#define Q(i,j) Q123rot[i-1][j-1]
-#define Qinv(i,j) Q123invrot[i-1][j-1]
-    
-  if(!reverse){
-    //We throw away Q4, Q9 and Q10 but in practise they might differ from their linear combinations due to the random numbers used
-    //Can we find some way to include an average to take advantage of these data?
-    NumericTensor<DistributionType,1> Mout({7});
-    for(int i=1;i<=3;i++)
-      MO(i) = Q(i,1)*MI(1) + Q(i,2)*MI(2) + Q(i,3)*MI(3);
-    for(int i=4;i<=7;i++)
-      MO(i) = MI(i+1); //5->4  6->5 etc
-    return Mout;
-  }else{
-    NumericTensor<DistributionType,1> Mout({10});
-      
-    for(int i=1;i<=3;i++)
-      MO(i) = Qinv(i,1)*MI(1) + Qinv(i,2)*MI(2) + Qinv(i,3)*MI(3);
-
-    MO(4) = MO(2) + MO(3) - MO(1); //Q4 = Q2 + Q3 - Q1    [Lehner, Sturm, arXiv:1104.4948 eq 9]
-    for(int i=5;i<=8;i++) MO(i) = MI(i-1); //4->5 5->6 etc
-	
-    MO(9) = 3./2*MO(1)  -1./2*MO(3); //Q9 = 3/2 Q1 - 1/2 Q3
-    MO(10) = 1./2*MO(1)  -1./2*MO(3) + MO(2); //Q10 = 1/2(Q1 - Q3) + Q2
-    return Mout;
-  }
-#undef MO
-#undef MI
-#undef Q
-#undef Qinv
-}
-
-//Covert index 0...6  to chiral basis index  1,2,3,5,6,7,8
-inline int chiralBasisIdx(const int q){ return q<=2 ? q+1 : q+2; }
-
-
 NumericTensor<jackknifeDistributionD,2> loadNPR(const std::string &file, const int size = 7){
   XMLreader rd(file);
   UKvalenceDistributionContainer<jackknifeDistributionD> con;

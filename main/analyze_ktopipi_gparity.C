@@ -2,6 +2,7 @@
 #include<common.h>
 #include<physics.h>
 #include<parser.h>
+#include<fit.h>
 
 using namespace CPSfit;
 
@@ -11,6 +12,7 @@ using namespace CPSfit;
 #include<analyze_ktopipi_gparity/WilsonCoeffs.h>
 #include<analyze_ktopipi_gparity/utils.h>
 #include<analyze_ktopipi_gparity/read_data.h>
+#include<analyze_ktopipi_gparity/convert_chiral.h>
 #include<analyze_ktopipi_gparity/main.h>
 
 
