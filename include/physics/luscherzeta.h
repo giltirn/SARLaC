@@ -265,7 +265,7 @@ double dispersionRelationGetEnergyFromEnergy(const DispersionRelation disp, GSLv
 
 //Energy E is in the *lab frame*
 //Phase shift is in degrees
-inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, const int L, const DispersionRelation dispn = DispersionRelation::Continuum, const double zero_tol =1e-10){
+inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, const double L, const DispersionRelation dispn = DispersionRelation::Continuum, const double zero_tol =1e-10){
   const GSLvector &d = zeta.getd();
 
   //Get CofM energy
@@ -288,7 +288,7 @@ inline double phaseShiftZ(const LuscherZeta &zeta, double E, const double m, con
 }
 
 //d= Pcm /(2pi/L) 
-inline double phaseShift(const double E, const double m, const int L, const std::array<int,3> &twists = {0,0,0}, const std::array<double,3> &d = {0.,0.,0.}, const DispersionRelation dispn = DispersionRelation::Continuum){
+inline double phaseShift(const double E, const double m, const double L, const std::array<int,3> &twists = {0,0,0}, const std::array<double,3> &d = {0.,0.,0.}, const DispersionRelation dispn = DispersionRelation::Continuum){
   LuscherZeta zeta(twists, d);
   return phaseShiftZ(zeta,E,m,L,dispn);
 }

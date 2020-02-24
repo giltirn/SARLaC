@@ -199,6 +199,11 @@ public:
   template<typename Initializer>
   bootstrapDistribution(const Initializer &initf, const initType &init = initType()): baseType(init.boots,initf), _confidence(init.confidence){ avg = this->mean(); }
 
+  template<typename Initializer>
+  bootstrapDistribution(const initType &init, const Initializer &init_func): baseType(init.boots,init_func), _confidence(init.confidence){ avg = this->mean(); }
+
+
+
   bootstrapDistribution(bootstrapDistribution&& o) noexcept : baseType(std::forward<baseType>(o)), _confidence(o._confidence), avg(o.avg){}
 
   template< template<typename> class U >

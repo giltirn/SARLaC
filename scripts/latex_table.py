@@ -178,6 +178,6 @@ def hdf5_calc(outfile, expr, symbols, filenames, index_strings, **kwargs):
     for i in range(nsymb):
         arg_str = arg_str + " \"%s\" %s \"%s\"" % (symbols[i], filenames[i], index_strings[i])
 
-    print "hdf5_calc %s %s" % (outfile,arg_str)
+    #print "hdf5_calc %s %s" % (outfile,arg_str)
 
     os.popen("hdf5_calc %s %s" % (outfile,arg_str)).read()

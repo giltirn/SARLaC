@@ -150,6 +150,36 @@ public:
     return sqrt(v);
   }
 
+  static DataType covariance(const superMultiDistribution<_DataType,_VectorType> &A, const superMultiDistribution<_DataType,_VectorType> &B){
+    assert(A.getLayout() == B.getLayout());
+    
+    DataType v = A.sample(0); zeroit(v);
+    size_t off = 0;
+
+    const superMultiLayout &layout = A.getLayout();    
+
+    for(int i=0;i<layout.nEnsembles();i++){
+      DataType vi;
+      size_t ens_sz = layout.nSamplesEns(i);
+      if(layout.ensType(i) == MultiType::Jackknife){
+	jackknifeDistribution<_DataType> jA(ens_sz, [&](const int s){ return A.sample(s+off); });
+	jackknifeDistribution<_DataType> jB(ens_sz, [&](const int s){ return B.sample(s+off); });
+	vi = jackknifeDistribution<DataType>::covariance(jA, jB);
+      }else if(layout.ensType(i) == MultiType::Bootstrap){
+	bootstrapInitType init(ens_sz);
+	bootstrapDistribution<_DataType> jA(init, [&](const int s){ return A.sample(s+off); });
+	bootstrapDistribution<_DataType> jB(init, [&](const int s){ return B.sample(s+off); });
+	jA.best() = A.best();
+	jB.best() = B.best();
+	vi = bootstrapDistribution<DataType>::covariance(jA, jB);
+      }else assert(0);
+      
+      v = v + vi;
+      off += ens_sz;
+    }
+    return v;
+  }
+
   void setEnsembleDistribution(const int ens_idx, const jackknifeDistribution<DataType> &j){
     if(layout->ensType(ens_idx) != MultiType::Jackknife) error_exit(std::cout << "superMultiDistribution::setEnsembleDistribution(int, jack) wrong distribution type" <<std::endl);
     if(j.size() != layout->nSamplesEns(ens_idx)) error_exit(std::cout << "superMultiDistribution::setEnsembleDistribution(int, jack) input jackknife has size " << j.size() << ", expected " << layout->nSamplesEns(ens_idx) <<std::endl);

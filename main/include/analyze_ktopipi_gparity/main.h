@@ -256,6 +256,118 @@ NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElemen
 }
 
 
+//Following Norman's procedure, the procedure can be rewritten as
+//ImA0 = v_i Q_i + L ( ReA0 - u_i Q_i )
+//and above we choose L to eliminate one of the Q_i by setting L = v_j/u_j  for a chosen j
+//Instead we can optimize to minimize the errors by setting   L = ( v_i Y_ij u_j ) / ( ReA0^2 + u_k Y_kl u_l )
+//u_i are the lattice Wilson coefficients for the real part and v_i those for the imaginary part.
+//Y is the covariance matrix
+
+//Because we want to consider the matrix elements at various points between the unrenormalized and fully renormalized values it is convenient to define new optimized operators
+//Q_i^opt = Q_i + L/(7 v_i) [ ReA0 - u_j Q_j ]   such that  v_i Q_i^opt = ImA0
+
+NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElementsUsingReA0exptOptimal(const NumericTensor<superMultiDistribution<double>,1> &M_lat_sj, //lattice matrix elements
+												      const superMultiDistribution<double> &ainv_sj, //inverse lattice spacing
+												      const superMultiDistribution<double> &F_sj,  //Lellouch-Luscher factor
+												      const NumericTensor<superMultiDistribution<double>,2> &NPR_sj, //RI-SMOM renormalization factors
+												      const MSbarConvert &MSbar, //MSbar matching coefficients
+												      const NumericTensor<superMultiDistribution<double>,1> &ReA0_lat_Wilson_coeffs,
+												      const NumericTensor<superMultiDistribution<double>,1> &ImA0_lat_Wilson_coeffs,
+												      const superMultiDistribution<double> &ReA0_expt_sj,
+												      const Args &args,
+												      const std::string &file_stub){
+
+  typedef superMultiDistribution<double> superMultiD;
+  std::cout << "Obtaining optimal statistical errors using experimental ReA0 \n";
+    
+  //Convert M to physical units and infinite volume
+  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj;
+  NumericTensor<superMultiD,1> M_unrenorm_phys_std({10}, [&](const int* c){ return coeff * M_lat_sj(c); });
+  std::cout << "Unrenormalized physical matrix elements (physical units, infinite volume) and standard basis:\n";
+  for(int q=0;q<10;q++)
+    std::cout << "Q" << q+1 << " = " << M_unrenorm_phys_std(&q) << " GeV^3\n";
+  
+  //Convert M to chiral basis
+  NumericTensor<superMultiD,1> M_unrenorm_phys_chiral_sj = convertChiralBasis(M_unrenorm_phys_std);
+
+  std::cout << "Unrenormalized physical matrix elements in chiral basis:\n";
+  for(int q=0;q<7;q++)
+    std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_unrenorm_phys_chiral_sj(&q)<< " GeV^3\n";
+
+  const superMultiLayout &layout = NPR_sj({0,0}).getLayout();
+
+  //Compute the covariance matrix (frozen)
+  NumericSquareMatrix<double> Y(7, [&](const int i, const int j){ return superMultiD::covariance(M_unrenorm_phys_chiral_sj(&i), M_unrenorm_phys_chiral_sj(&j)); });
+
+  std::cout << "Covariance matrix of unrenormalized matrix elements in chiral basis:" << std::endl << Y <<std::endl;
+
+  //L = ( v_i Y_ij u_j ) / ( ReA0^2  + u_k Y_kl u_l )
+  double prefactor = args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0); //lattice Wilson coefficients input here don't include this prefactor
+  const NumericTensor<superMultiDistribution<double>,1> &u = ReA0_lat_Wilson_coeffs;
+  const NumericTensor<superMultiDistribution<double>,1> &v = ImA0_lat_Wilson_coeffs;
+  
+  superMultiDistribution<double> Lnum(layout, 0.), Lden(layout, 0.);    //  Lden(ReA0_expt_sj * ReA0_expt_sj);
+  superMultiDistribution<double> ui_Qi(layout, 0.);
+
+  for(int i=0;i<7;i++){
+    int _0 = 0;
+    superMultiDistribution<double> Yij_uj = Y(i,0) * u(&_0);
+    for(int j=1;j<7;j++) Yij_uj = Yij_uj + Y(i,j) * u(&j);
+    
+    Lnum = Lnum + prefactor*prefactor* v(&i) * Yij_uj;
+    Lden = Lden + prefactor*prefactor* u(&i) * Yij_uj;
+
+    ui_Qi = ui_Qi + prefactor * u(&i)*M_unrenorm_phys_chiral_sj(&i);
+  }
+  superMultiDistribution<double> L = Lnum/Lden;
+  //int _2 = 2;
+  //superMultiDistribution<double> L = v(&_2)/u(&_2);
+  
+
+  std::cout << "Computed optimal coefficient of  ( ReA0 - u_i Q_i ) : " << L << std::endl;
+
+  //Q_i^opt = Q_i + L/(7 v_i) [ ReA0 - u_j Q_j ]   such that  v_i Q_i^opt = ImA0
+  NumericTensor<superMultiD,1> M_unrenorm_phys_chiral_sj_opt({7});
+  for(int i=0;i<7;i++)
+    M_unrenorm_phys_chiral_sj_opt(&i) = M_unrenorm_phys_chiral_sj(&i) + L/( 7.* prefactor * v(&i) ) * ( ReA0_expt_sj - ui_Qi );
+    
+  std::cout << "Unrenormalized physical matrix elements obtained by optimally include Re(A0) from expt:" << std::endl;
+  for(int q=0;q<7;q++)
+    std::cout << "Q'" << chiralBasisIdx(q) << " = " <<  M_unrenorm_phys_chiral_sj_opt(&q) << " GeV^3\n";
+
+
+  //Apply NPR
+  NumericTensor<superMultiD,1> M_RI_chiral_sj = NPR_sj * M_unrenorm_phys_chiral_sj_opt;
+
+  std::cout << "RI-scheme physical matrix elements in chiral basis:\n";
+  for(int q=0;q<7;q++)
+    std::cout << "Q'" << chiralBasisIdx(q) << " = " << M_RI_chiral_sj(&q) << " GeV^3\n";
+
+  writeParamsStandard(M_RI_chiral_sj, file_stub+"matrix_elems_SMOM.hdf5");
+
+  //Convert to MSbar in 7 basis
+  NumericTensor<superMultiD,1> M_MSbar_chiral_sj = MSbar.convert(M_RI_chiral_sj, Chiral);
+
+  std::cout << "MSbar-scheme physical matrix elements in chiral basis:\n";
+  for(int q=0;q<7;q++)
+    std::cout << "Q" << q+1 << " = " << M_MSbar_chiral_sj(&q) << " GeV^3\n";
+  
+  writeParamsStandard(M_MSbar_chiral_sj, file_stub+"matrix_elems_MSbar_chiral.hdf5");
+
+  //Convert to MSbar in 10 basis
+  NumericTensor<superMultiD,1> M_MSbar_std_sj = MSbar.convert(M_RI_chiral_sj, Standard);
+
+  std::cout << "MSbar-scheme physical matrix elements in standard basis:\n";
+  for(int q=0;q<10;q++)
+    std::cout << "Q" << q+1 << " = " << M_MSbar_std_sj(&q) << " GeV^3\n";
+  
+  writeParamsStandard(M_MSbar_std_sj, file_stub+"matrix_elems_MSbar.hdf5");
+
+  return M_MSbar_std_sj;
+}
+
+
+
 
 void computeEpsilon(const superMultiDistribution<double> &ReA0_lat_sj,
 		    const superMultiDistribution<double> &ImA0_lat_sj,

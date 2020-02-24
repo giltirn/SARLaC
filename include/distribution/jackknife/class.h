@@ -107,6 +107,18 @@ public:
   template<template<typename> class U = VectorType>
   doubleJackknifeDistribution<DataType,U> toDoubleJackknife() const;
 
+  //Convert back to raw data. **NOTE** This is only valid if only linear operations have been performed to the jackknife samples
+  template<template<typename> class U = VectorType>
+  rawDataDistribution<DataType, U> toRaw() const{
+    int N = this->size();
+    rawDataDistribution<DataType, U> out(N);
+    DataType mean = this->mean();
+    for(int j=0;j<N;j++)
+      out.sample(j) = N*mean - (N-1)*this->sample(j);
+    return out;
+  }
+
+
   //Covariance of the *means*
   static DataType covariance(const jackknifeDistribution<DataType,VectorType> &a, const jackknifeDistribution<DataType,VectorType> &b){
     assert(a.size() == b.size());

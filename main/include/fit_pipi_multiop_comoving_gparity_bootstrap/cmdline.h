@@ -39,6 +39,9 @@ struct CMDline{
   bool save_boot_resample_table;
   std::string save_boot_resample_table_file;
 
+  bool print_data_sample;
+  int print_data_sample_idx;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -53,6 +56,7 @@ struct CMDline{
     filemap_allow_ptot_parity = false;
     load_boot_resample_table = false;
     save_boot_resample_table = false;
+    print_data_sample = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -151,6 +155,10 @@ struct CMDline{
       }else if(sargv[i] == "-save_boot_resample_table"){ 
 	save_boot_resample_table = true;
 	save_boot_resample_table_file = sargv[i+1];
+      	i+=2;
+      }else if(sargv[i] == "-print_data_sample"){ //Prior to fitting, print out the full input data for a single sample (for cross-checking with other ppl)
+	print_data_sample = true;
+	print_data_sample_idx = strToAny<int>(sargv[i+1]);
       	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

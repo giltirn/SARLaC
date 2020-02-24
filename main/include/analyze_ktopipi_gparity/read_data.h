@@ -62,7 +62,10 @@ struct superMultiData{
         
     //Load the NPR matrix
     if(args.renormalization.stepscale)
-      NPR_sj = loadNPRstepScale(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2);
+      if(args.renormalization.incG1) 
+	NPR_sj = loadNPRstepScaleIncG1(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2);
+      else
+	NPR_sj = loadNPRstepScale(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2);
     else
       NPR_sj = loadNPRmulti(args.renormalization.file); //NPR assumed jackknife
     std::cout << "NPR matrix:\n" << NPR_sj << std::endl;

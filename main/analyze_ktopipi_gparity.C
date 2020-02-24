@@ -111,7 +111,31 @@ int main(const int argc, const char* argv[]){
 		   args, nm.str());
   }
 
+  {
+    std::cout << "\n\n---------------------------------------------------------------\n";
+    std::cout << "Starting computation using Re(A0) to optimize statistical error" << std::endl;
+
+    std::string nm = "opt_wReA0expt_";
+        
+    //Compute the MSbar, infinite-volume matrix elements
+    NumericTensor<superMultiD,1> M_MSbar_std_sj = computePhysicalMSbarMatrixElementsUsingReA0exptOptimal(data.M_lat_sj,data.ainv_sj,F_sj,data.NPR_sj,MSbar,
+													 lat_Wilson_coeffs.first,lat_Wilson_coeffs.second,
+													 data.ReA0_expt_sj,args,nm);
+
+    computeMatrixElementRelations(M_MSbar_std_sj, nm);
     
+    //Compute A0
+    superMultiD ReA0_sj, ImA0_sj;
+    computeA0(ReA0_sj, ImA0_sj, M_MSbar_std_sj, wilson_coeffs, args, nm);
+    
+    //Compute epsilon'
+    computeEpsilon(ReA0_sj, ImA0_sj,
+		   data.ReA2_lat_sj, data.ImA2_lat_sj,
+		   delta_0_sj, data.delta_2_sj,
+		   data.ReA0_expt_sj, data.ReA2_expt_sj,
+		   data.omega_expt_sj, data.mod_eps_sj,
+		   args, nm);
+  }
   
   std::cout << "Done\n";
   return 0;

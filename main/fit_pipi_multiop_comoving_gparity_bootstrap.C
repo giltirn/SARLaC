@@ -154,7 +154,14 @@ int main(const int argc, const char* argv[]){
   for(int i=0;i<corr_comb_b.size();i++){
     std::cout << vnm[i] << " " << corr_comb_b.coord(i).t << " " << corr_comb_b.value(i) << std::endl;
   }
-  
+  if(cmdline.print_data_sample){
+    std::cout << "Data sample " << cmdline.print_data_sample_idx << std::endl;
+    for(int i=0;i<corr_comb_b.size();i++){
+      double val = cmdline.print_data_sample_idx == -1 ? corr_comb_b.value(i).best()  : corr_comb_b.value(i).sample(cmdline.print_data_sample_idx);
+      printf("%s %d %.16e\n", vnm[i].c_str(), int(corr_comb_b.coord(i).t), val);
+    }
+  }
+
   std::cout << "Performing any data transformations required by the fit func" << std::endl;
   transformData(corr_comb_b, args.t_min, args.t_max, args.fitfunc);
   transformData(corr_comb_bj, args.t_min, args.t_max, args.fitfunc);

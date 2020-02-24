@@ -50,26 +50,26 @@ NumericTensor<DistributionType,1> convertChiralBasis(const NumericTensor<Distrib
 inline int chiralBasisIdx(const int q){ return q<=2 ? q+1 : q+2; }
 
 
-NumericTensor<jackknifeDistributionD,2> loadNPR(const std::string &file){
+NumericTensor<jackknifeDistributionD,2> loadNPR(const std::string &file, const int size = 7){
   XMLreader rd(file);
   UKvalenceDistributionContainer<jackknifeDistributionD> con;
   read(rd, con, "data_in_file");
   
-  NumericTensor<jackknifeDistributionD,2> npr({7,7});
-  assert(con.Nentries == 7*7);
+  NumericTensor<jackknifeDistributionD,2> npr({size,size});
+  assert(con.Nentries == size*size);
   
-  for(int ij=0;ij<7*7;ij++){
-    int j = ij %7;
-    int i = ij /7;
+  for(int ij=0;ij<size*size;ij++){
+    int j = ij %size;
+    int i = ij /size;
     npr({i,j}) = std::move(con.list[ij]);
   }
   return npr;
 }
 
-NumericTensor<superMultiDistribution<double>,2> loadNPRmulti(const std::string &file){
+NumericTensor<superMultiDistribution<double>,2> loadNPRmulti(const std::string &file, const std::string &ens_tag = "NPR"){
   NumericTensor<jackknifeDistributionD,2> mat = loadNPR(file);
   superMultiLayout* layout = new superMultiLayout;
-  layout->addEnsemble("NPR", MultiType::Jackknife, mat({0,0}).size());
+  layout->addEnsemble(ens_tag, MultiType::Jackknife, mat({0,0}).size());
   return NumericTensor<superMultiDistribution<double>,2>({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 0, mat(c)); });
 }
  
@@ -78,7 +78,8 @@ NumericTensor<superMultiDistribution<double>,2> loadNPRmulti(const std::string &
 NumericTensor<superMultiDistribution<double>,2> loadNPRstepScale(const std::string &file_mu1_ensA,
 								 const std::string &file_mu1_ensB,
 								 const std::string &file_mu2_ensB,
-								 NumericTensor<superMultiDistribution<double>,2> *lambda_out = NULL){
+								 NumericTensor<superMultiDistribution<double>,2> *lambda_out = NULL,
+								 const std::string &ens_tag_stub = "NPR"){
   std::cout << "Computing NPR via step-scaling" << std::endl;
   
   NumericTensor<jackknifeDistributionD,2> mat_mu1_ensA = loadNPR(file_mu1_ensA);
@@ -99,8 +100,8 @@ NumericTensor<superMultiDistribution<double>,2> loadNPRstepScale(const std::stri
   std::cout << "Non-perturbative running between mu1 and mu2:\n" << Lambda_mu2_mu1_ensB << std::endl;
 
   superMultiLayout* layout = new superMultiLayout;
-  layout->addEnsemble("NPR_ensA", MultiType::Jackknife, mat_mu1_ensA({0,0}).size());
-  layout->addEnsemble("NPR_ensB", MultiType::Jackknife, mat_mu1_ensB({0,0}).size());
+  layout->addEnsemble(ens_tag_stub + "_ensA", MultiType::Jackknife, mat_mu1_ensA({0,0}).size());
+  layout->addEnsemble(ens_tag_stub + "_ensB", MultiType::Jackknife, mat_mu1_ensB({0,0}).size());
 
   NumericTensor<superMultiDistribution<double>,2> mat_mu1_ensA_sj({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 0, mat_mu1_ensA(c)); });
   NumericTensor<superMultiDistribution<double>,2> Lambda_mu2_mu1_ensB_sj({7,7}, [&](const int* c){ return superMultiDistribution<double>(*layout, 1, Lambda_mu2_mu1_ensB(c)); });
@@ -109,6 +110,87 @@ NumericTensor<superMultiDistribution<double>,2> loadNPRstepScale(const std::stri
 
   return NumericTensor<superMultiDistribution<double>,2>( Lambda_mu2_mu1_ensB_sj * mat_mu1_ensA_sj );
 }
+
+
+
+//Compute step-scaling matrix between mu1 and mu2 on ensB and apply to matrix at mu1 on ensA under superjackknife
+//This version includes the G1 operator such that the internal matrices are 8x8 and a conversion is required
+//If lambda_out != NULL  the step-scaling matrix will be copied to that location
+NumericTensor<superMultiDistribution<double>,2> loadNPRstepScaleIncG1(const std::string &file_mu1_ensA,
+								 const std::string &file_mu1_ensB,
+								 const std::string &file_mu2_ensB,
+								 NumericTensor<superMultiDistribution<double>,2> *lambda_out = NULL,
+								 const std::string &ens_tag_stub = "NPR"){
+  std::cout << "Computing NPR via step-scaling" << std::endl;
+  
+  NumericTensor<jackknifeDistributionD,2> mat_mu1_ensA = loadNPR(file_mu1_ensA,8);
+  NumericTensor<jackknifeDistributionD,2> mat_mu1_ensB = loadNPR(file_mu1_ensB,8);
+  NumericTensor<jackknifeDistributionD,2> mat_mu2_ensB = loadNPR(file_mu2_ensB,8);
+
+  std::cout << "8x8 NPR matrix at mu1 on base ensemble:\n" << mat_mu1_ensA << std::endl;
+  std::cout << "8x8 NPR matrix at mu2 on fine ensemble:\n" << mat_mu2_ensB << std::endl;
+  std::cout << "8x8 NPR matrix at mu1 on fine ensemble:\n" << mat_mu1_ensB << std::endl;
+  
+  NumericTensor<jackknifeDistributionD,2> mat_mu1_ensB_inv(mat_mu1_ensB);
+  svd_inverse(mat_mu1_ensB_inv, mat_mu1_ensB);
+  
+  std::cout << "Inverse of NPR matrix at mu1 on fine ensemble:\n" << mat_mu1_ensB_inv << std::endl;
+
+  NumericTensor<jackknifeDistributionD,2> Lambda_mu2_mu1_ensB = mat_mu2_ensB * mat_mu1_ensB_inv;
+  
+  std::cout << "Non-perturbative running between mu1 and mu2:\n" << Lambda_mu2_mu1_ensB << std::endl;
+
+  superMultiLayout* layout = new superMultiLayout;
+  layout->addEnsemble(ens_tag_stub + "_ensA", MultiType::Jackknife, mat_mu1_ensA({0,0}).size());
+  layout->addEnsemble(ens_tag_stub + "_ensB", MultiType::Jackknife, mat_mu1_ensB({0,0}).size());
+
+  NumericTensor<superMultiDistribution<double>,2> mat_mu1_ensA_sj({8,8}, [&](const int* c){ return superMultiDistribution<double>(*layout, 0, mat_mu1_ensA(c)); });
+  NumericTensor<superMultiDistribution<double>,2> Lambda_mu2_mu1_ensB_sj({8,8}, [&](const int* c){ return superMultiDistribution<double>(*layout, 1, Lambda_mu2_mu1_ensB(c)); });
+
+  if(lambda_out != NULL) *lambda_out = Lambda_mu2_mu1_ensB_sj;
+
+  NumericTensor<superMultiDistribution<double>,2> mat_mu2_stepscale_8x8( Lambda_mu2_mu1_ensB_sj * mat_mu1_ensA_sj );
+  
+  std::cout << "8x8 NPR matrix including G1:\n" << mat_mu2_stepscale_8x8 << std::endl;
+
+  //To convert to 7x7 use Greg's thesis Eq. 7.22 and 7.24
+  //c_i are the first 7 elements of the last column
+  //d_i are the first 7 elements of the last row
+  //Z_G1 is the (8,8) element  (indexing from 1!)
+  const static std::vector<double> s = {0, 1, 7./3, -1./3, 1, 0, 0};
+  
+  std::vector<superMultiDistribution<double> > k(7, superMultiDistribution<double>(*layout));
+
+  for(int j=0;j<7;j++){
+    superMultiDistribution<double> siZij(*layout, 0.);
+    for(int i=0;i<7;i++)
+      siZij = siZij + s[i]*mat_mu2_stepscale_8x8({i,j});
+
+    superMultiDistribution<double> skck(*layout, 0.);
+    for(int k=0;k<7;k++){
+      const auto & ck = mat_mu2_stepscale_8x8({k,7});
+      skck = skck + s[k]*ck;
+    }
+    const auto & dj = mat_mu2_stepscale_8x8({7,j});
+    const auto & ZG1 = mat_mu2_stepscale_8x8({7,7});
+
+    k[j] = ( siZij - dj )/( ZG1 - skck );
+    std::cout << "Computed k_" << j << " = " << k[j] << std::endl;
+  }
+
+  NumericTensor<superMultiDistribution<double>,2> mat_mu2_stepscale_7x7({7,7});
+  for(int i=0;i<7;i++){
+    const auto & ci = mat_mu2_stepscale_8x8({i,7});
+    for(int j=0;j<7;j++)
+      mat_mu2_stepscale_7x7({i,j}) = mat_mu2_stepscale_8x8({i,j}) + ci*k[j];
+  }
+  std::cout << "7x7 NPR matrix including G1:\n" << mat_mu2_stepscale_7x7 << std::endl;
+
+  return mat_mu2_stepscale_7x7;
+}
+
+
+
  
 
 

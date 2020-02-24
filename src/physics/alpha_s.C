@@ -26,6 +26,7 @@ inline double as_f (double Lambda, void * p) {
 }
 
 //Compute Lambda_QCD by matching alpha_s in Nf-flavor theory to an input value
+//match_at is an energy scale, match_to is a value of alpha_s
 double ComputeAlphaS::computeLambda(const int Nf, const double match_at, const double match_to, const int Nc, bool vrb){
   if(vrb) printf("Starting computeLambda with Nf=%d, match_at=%f match_to=%f, Nc=%d\n",Nf,match_at,match_to,Nc);
   as_params p;

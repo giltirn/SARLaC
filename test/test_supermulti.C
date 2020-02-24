@@ -107,6 +107,80 @@ int main(void){
 
   }
 
+  //Test that error propagation is correct if an ensemble is broken into parts
+  {
+    rawDataDistribution<double> Araw(600), Braw(600);
+    gaussianRandom(Araw, 1., 2.);
+    gaussianRandom(Braw, 2., 3.);
+
+    //Introduce some correlation between A and B
+    Araw = 0.5* ( Araw + Braw/2. );
+
+    jackknifeDistribution<double> Ajack(Araw), Bjack(Braw);
+    
+    int N1 = 200;
+    int N2 = 400;
+
+    rawDataDistribution<double> Araw1(N1, [&](const int i){ return Araw.sample(i); });
+    rawDataDistribution<double> Araw2(N2, [&](const int i){ return Araw.sample(N1+i); });
+
+    //Treat as independent measurements
+    rawDataDistribution<double> Braw1(N1, [&](const int i){ return Braw.sample(i); });
+    rawDataDistribution<double> Braw2(N2, [&](const int i){ return Braw.sample(N1+i); });
+
+    jackknifeDistribution<double> Ajack1(Araw1), Ajack2(Araw2);
+    jackknifeDistribution<double> Bjack1(Braw1), Bjack2(Braw2);
+
+    superMultiLayout sml;
+    sml.addEnsemble("e1",MultiType::Jackknife,N1);
+    sml.addEnsemble("e2",MultiType::Jackknife,N2);
+
+    superMultiDistribution<double> Amulti1(sml, Ajack1.mean());
+    Amulti1.setEnsembleDistribution("e1", Ajack1);
+
+    superMultiDistribution<double> Amulti2(sml, Ajack2.mean());
+    Amulti2.setEnsembleDistribution("e2", Ajack2);
+
+    superMultiDistribution<double> Bmulti1(sml, Bjack1.mean());
+    Bmulti1.setEnsembleDistribution("e1", Bjack1);
+
+    superMultiDistribution<double> Bmulti2(sml, Bjack2.mean());
+    Bmulti2.setEnsembleDistribution("e2", Bjack2);
+    
+    //Appropriate combination for independent measurements is error-weighted avg
+    superMultiDistribution<double> Amulti = weightedAvg(std::vector<superMultiDistribution<double> const*>({&Amulti1, &Amulti2}));
+    superMultiDistribution<double> Bmulti = weightedAvg(std::vector<superMultiDistribution<double> const*>({&Bmulti1, &Bmulti2}));
+    
+
+    //Look at some different combination
+    {
+      jackknifeDistribution<double> AplusB_jack = Ajack + Bjack;
+      superMultiDistribution<double> AplusB_multi = Amulti + Bmulti;
+      std::cout << "A+B  jack: " << AplusB_jack << "  multi: " << AplusB_multi << std::endl;
+    }
+    {
+      jackknifeDistribution<double> AtimesB_jack = Ajack * Bjack;
+      superMultiDistribution<double> AtimesB_multi = Amulti * Bmulti;
+      std::cout << "A*B  jack: " << AtimesB_jack << "  multi: " << AtimesB_multi << std::endl;
+    }
+
+    //What about the covariance? Should just be sum of individual covariances as no cross-covariance and they should combine like errors
+    {
+      double covAB_jack = jackknifeDistribution<double>::covariance(Ajack, Bjack);
+
+      double covAB_multi = jackknifeDistribution<double>::covariance(Amulti.getEnsembleDistribution(0).value< jackknifeDistribution<double> >(),
+								     Bmulti.getEnsembleDistribution(0).value< jackknifeDistribution<double> >())
+	+
+	jackknifeDistribution<double>::covariance(Amulti.getEnsembleDistribution(1).value< jackknifeDistribution<double> >(),
+						  Bmulti.getEnsembleDistribution(1).value< jackknifeDistribution<double> >());
+      double covAB_multi_func = superMultiDistribution<double>::covariance(Amulti,Bmulti);
+
+      std::cout << "cov(A,B)  jack: " << covAB_jack << "  multi: " << covAB_multi << "  multi(func): " << covAB_multi_func << std::endl;
+    }
+
+
+  }
+
 
   std::cout << "Done" << std::endl;
   return 0;

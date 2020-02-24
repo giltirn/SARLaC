@@ -16,7 +16,7 @@ void cleanup(BasicSquareMatrix<double> &m, const double tol = 1e-12){
 }
 
 
-//2-loop anomalous dimension
+//one-loop anomalous dimension
 struct DeltaS1anomalousDimension{
   typedef BasicSquareMatrix<double> MatrixD;
   typedef BasicSquareMatrix<ValOrd> MatrixO;

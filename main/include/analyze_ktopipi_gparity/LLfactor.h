@@ -97,6 +97,7 @@ superMultiDistribution<double> getPhaseShiftDerivColangelo(const superMultiDistr
 }
 
 //While Colangelo's formula is given in terms of m_pi it is not clear whether it is correct for describing non-physical pion masses
+//Edit 1/30/20: It is *NOT* correct to use Colangelo's formular for non-physical pion masses. Use this one!
 superMultiDistribution<double> getPhaseShiftDerivColangeloPhysMpi(const superMultiDistribution<double> &ainv,
 							       const superMultiDistribution<double> &Epipi,
 							       const superMultiDistribution<double> &q_pipi,							       
