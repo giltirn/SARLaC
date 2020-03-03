@@ -96,32 +96,35 @@ superMultiDistribution<double> getPhaseShiftDerivColangelo(const superMultiDistr
 					      return ddelta_by_dq;});
 }
 
+//k^2 = Epipi^2 - 4mpi^2
+//q^2 = k^2 / (2pi/L)^2
+//Should we compute q using the physical mpi? 
+
+
 //While Colangelo's formula is given in terms of m_pi it is not clear whether it is correct for describing non-physical pion masses
-//Edit 1/30/20: It is *NOT* correct to use Colangelo's formular for non-physical pion masses. Use this one!
+//Edit 1/30/20: It is *NOT* correct to use Colangelo's formula for non-physical pion masses. Use this one!
 superMultiDistribution<double> getPhaseShiftDerivColangeloPhysMpi(const superMultiDistribution<double> &ainv,
 							       const superMultiDistribution<double> &Epipi,
 							       const superMultiDistribution<double> &q_pipi,							       
 							       const int L){
   std::cout << "Computing phase shift derivative using Colangelo formulae with physical pion mass as input\n";
-  return superMultiDistribution<double>(ainv.getLayout(),
-					    [&](const int b){
-					      double ainv_b = ainv.osample(b)* 1000; //in MeV
-					      double Epipi_b = Epipi.osample(b) * ainv_b;
-					      double qpipi_b = q_pipi.osample(b); //q is dimensionless
-					      double mpi_b = 135; //MeV!
-					      double Lphys = double(L)/ainv_b; // L_latt = L_phys/a, L_phys = a* L_latt = L_latt/a^{-1}
-					      double s = Epipi_b*Epipi_b;
-					      double ds_by_dq = 8 * pow(2*M_PI/Lphys,2) * qpipi_b;
-					      double ddelta_by_ds = PhenoCurveColangelo::compute_deriv(s,0,mpi_b,1e-02); //radians/(MeV^2)
-					      double ddelta_by_dq = ddelta_by_ds * ds_by_dq;
-					      if(b==-1){
-						std::cout << "a^{-1} = " << ainv_b << " MeV,  Epipi = " << Epipi_b << " MeV, q =" << qpipi_b << " (dimensionless), mpi = " << mpi_b << " MeV, s = " << s
-							  << " MeV,  L = " << Lphys << " MeV\n";
-						std::cout << "ds/dq = " << ds_by_dq << " MeV^2\n";
-						std::cout << "Computed d(delta)/ds = " << ddelta_by_ds << " MeV^{-2}\n";
-						std::cout << "Computed d(delta)/dq = " << ddelta_by_ds * ds_by_dq << std::endl;
-					      }
-					      return ddelta_by_dq;});
+  superMultiDistribution<double> out(ainv.getLayout());
+  
+  superMultiDistribution<double> ainv_MeV = ainv * 1000.;
+  superMultiDistribution<double> Epipi_MeV = Epipi * ainv_MeV;
+  superMultiDistribution<double> L_MeV = double(L)*pow(ainv_MeV,-1); // L_latt = L_phys/a, L_phys = a* L_latt = L_latt/a^{-1} */
+  superMultiDistribution<double> s = Epipi_MeV * Epipi_MeV;
+  superMultiDistribution<double> ds_by_dq = 8 * pow(2*M_PI*pow(L_MeV,-1),2) * q_pipi;
+  double mpi_MeV = 135;
+  superMultiDistribution<double> ddelta_by_ds(ainv.getLayout(), [&](const int b){ return PhenoCurveColangelo::compute_deriv(s.osample(b),0,mpi_MeV,1e-02); }); //radians/(MeV^2)
+  superMultiDistribution<double> ddelta_by_dq = ddelta_by_ds * ds_by_dq;
+  
+  std::cout << "a^{-1} = " << ainv_MeV << " MeV,  Epipi = " << Epipi_MeV << " MeV, q =" << q_pipi << " (dimensionless), mpi = " << mpi_MeV << " MeV, s = " << s
+	    << " MeV^2,  L = " << L_MeV << " MeV\n";
+  std::cout << "ds/dq = " << ds_by_dq << " MeV^2\n";
+  std::cout << "Computed d(delta)/ds = " << ddelta_by_ds << " MeV^{-2}\n";
+  std::cout << "Computed d(delta)/dq = " << ddelta_by_dq << std::endl;
+  return ddelta_by_dq;
 }
 
 

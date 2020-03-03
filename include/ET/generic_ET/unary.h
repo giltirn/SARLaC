@@ -51,6 +51,41 @@ ET_UNOP(ETexp, exp, exp);
 ET_UNOP(ETsqrt, sqrt, sqrt);
 ET_UNOP(ETlog, log, log);
 
+
+template<typename Leaf>
+struct ETpow{
+  typedef ETleafTag ET_leaf_mark;
+  Leaf a;
+  double exponent;
+  typedef ENABLE_IF_ET_LEAF(Leaf, typename Leaf::ET_tag) ET_tag;
+  
+  ETpow(Leaf &&aa, double exponent): a(std::move(aa)), exponent(exponent){}
+  
+  inline decltype(pow(a[0],exponent)) operator[](const int i) const{ return pow(a[i],exponent); }
+  inline decltype(a.common_properties()) common_properties() const{ return a.common_properties(); }
+};
+template<typename T>
+struct powHelper{
+  typedef typename rvalueStoreType<T>::type rT;
+  
+  static inline ETpow<ETeval<T> > doit(const T &a, double exponent){
+    return ETpow<ETeval<T> >(a, exponent);
+  }
+  static inline ETpow<rT> doit(T &&a, double exponent){
+    return ETpow<rT>(std::move(a), exponent);
+  }
+};
+template<typename T, typename std::enable_if<has_ET_tag<typename std::decay<T>::type>::value , int>::type = 0>
+inline auto pow(T &&a, double exponent)->decltype(powHelper<typename std::decay<T>::type>::doit(std::forward<T >(a),exponent)){
+  return powHelper<typename std::decay<T>::type>::doit(std::forward<T>(a),exponent);
+}
+template<typename T, typename std::enable_if<!has_ET_tag<typename std::decay<T>::type>::value , int>::type = 0>
+inline T pow(T &&a, double exponent){
+  return ::pow(a, exponent);
+}
+
+
+
 CPSFIT_END_NAMESPACE
 
 #endif

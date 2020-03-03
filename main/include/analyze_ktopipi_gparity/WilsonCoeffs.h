@@ -48,6 +48,8 @@ class WilsonCoeffs{
   }       
 
   complexD operator()(const int i) const{ return z[i] + tau * y[i]; }
+  double getZ(const int i) const{ return z[i]; }
+  double getY(const int i) const{ return y[i]; }
 };
 
 #endif

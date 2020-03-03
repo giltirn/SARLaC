@@ -336,11 +336,7 @@ public:
 
 
   //Compute the MSbar conversion matrix
-  void compute(const double mu_GeV, const RIscheme scheme, const PerturbativeVariables &pv, const bool vrb = true){
-    if(vrb) std::cout << "Computing 2-loop alpha_s at mu=" << mu_GeV << " GeV in MSbar scheme\n";
-    double alpha_s = ComputeAlphaS::alpha_s(mu_GeV, pv, 3);
-    if(vrb) printf("alpha_s at mu=%f: %.8f\n",mu_GeV,alpha_s);
-    
+  void compute(const double alpha_s, const RIscheme scheme, const bool vrb = true){
     double alpha_s_over_4pi = alpha_s / 4. / M_PI;
     const int Nc = 3;
       
@@ -359,6 +355,13 @@ public:
       std::cout << "\n\nR^RI->MSbar(7x7) =\n" << conv_chiral << std::endl;
       std::cout << "\n\nR^RI->MSbar(10x7) =\n" << conv_std << std::endl;
     }
+  }
+
+  void compute(const double mu_GeV, const RIscheme scheme, const PerturbativeVariables &pv, const bool vrb = true){
+    if(vrb) std::cout << "Computing 2-loop alpha_s at mu=" << mu_GeV << " GeV in MSbar scheme\n";
+    double alpha_s = ComputeAlphaS::alpha_s(mu_GeV, pv, 3);
+    if(vrb) printf("alpha_s at mu=%f: %.8f\n",mu_GeV,alpha_s);
+    compute(alpha_s, scheme, vrb);    
   }
 
   //Convert the matrix elements in the RI scheme and chiral basis to MSbar matrix elements in the 10-basis or 7-basis

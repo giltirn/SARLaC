@@ -102,6 +102,9 @@ struct ComputeAlphaS{
     //printf("log(mu^2/L^2)=%.8f, beta0=%.8f beta1=%.8f 0,1 loop part %.8f, 2-loop multiplier %.8f\n",log_mu2_over_L2,b0,b1,pref,brack);
     return pref*brack;
   }
+
+  //Compute Lambda_QCD by matching alpha_s in Nf-flavor theory to an input value
+  //match_at is an energy scale, match_to is a value of alpha_s
   static double computeLambda(const int Nf, const double match_at, const double match_to, const int Nc=3, const bool vrb = true);
 
   inline static double alpha_s(const double mu, const PerturbativeVariables &pv, const int Nf, const int Nc=3){

@@ -41,7 +41,7 @@ public:
   superMultiDistribution(const superMultiLayout &_layout, const DataType &_central): superMultiDistribution(&_layout,_central){}
 
 
-  //Lambda-type initializer. Expect operator()(const int sample) that accepts sample=-1 for the central value
+  //Lambda-type initializer. Expect operator()(const int sample) that accepts sample=-1 for the central value. Use osample accessor for superMultiDistribution samples internally to propagate this
   template<typename Initializer>
   superMultiDistribution(superMultiLayout const *_layout, const Initializer &init): layout(_layout), 
 										    distribution<_DataType, _VectorType>(_layout->nSamplesTotal()){
@@ -96,6 +96,7 @@ public:
 
   typedef superMultiDistribution<DataType> ET_tag;
   
+  //Initialize distribution with a lambda of signature DataType [](const int s) . The lambda must return the central value for index s=-1
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,superMultiDistribution<DataType> >::value, int>::type = 0>
   superMultiDistribution(U&& expr): layout(NULL){
     this->setLayout(*expr.common_properties());

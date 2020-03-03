@@ -176,6 +176,7 @@ std::ostream & operator<<(std::ostream &os, const ValOrd &v){
 }
     
 //Keep only terms linear in ae, as and O(0).   ae^2/a counts as ae^2.   Also remove ae as
+//Discard a^{n>=0} as^{m>=2}   ,  a^{n>=2} as^{m>=0},    a * as
 ValOrd truncateO1(const ValOrd &v){
   ValOrd out(v);
   std::map<std::pair<int,int>, double>::iterator it = out.v.begin();
@@ -196,6 +197,8 @@ ValOrd truncateO1(const ValOrd &v){
 //ae^1 term is truncated at as^0
 
 //Keep only terms linear in ae and O(0)
+
+//Discard a^{n>=2} as^{m>=0}  and   a as^{n>=1}
 ValOrd truncateO1e(const ValOrd &v){
   ValOrd out(v);
   std::map<std::pair<int,int>, double>::iterator it = out.v.begin();
