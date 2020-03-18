@@ -6,6 +6,30 @@
 
 using namespace CPSfit;
 
+
+jackknifeDistributionD randomJackknife(double cen, double err, double err_tol, int N, int iter_max = 1000, int iter = 0){
+  double dev = err / sqrt(double(N-1));
+  jackknifeDistributionD out(N);
+  for(int i=0;i<N;i++)
+    out.sample(i) = gaussianRandom<double>(cen, dev);
+
+  //Shift slightly to correct mean
+  double delta = cen - out.mean();
+  for(int i=0;i<N;i++)
+    out.sample(i) += delta;
+
+  //Make it recursive to get the error correct to within tol
+  if( abs(  (out.standardError() - err) / err  ) > err_tol ){
+    if(iter >= iter_max){
+      throw "Error: Could not generate distribution with desired tolerance";
+    }
+    return randomJackknife(cen, err, err_tol, N, iter_max, iter+1);
+  }
+  return out;
+}
+
+
+
 int main(const int argc, const char* argv[]){
   assert(argc >= 5);
   int i=1;
@@ -14,7 +38,6 @@ int main(const int argc, const char* argv[]){
   int nsample = strToAny<int>(argv[i++]);
   std::string outfile = argv[i++];
 
-  double cen_tol = 1e-4;
   double err_tol = 1e-3;
   int ntry = 10000;
   
@@ -23,7 +46,7 @@ int main(const int argc, const char* argv[]){
   while(i<argc){
     std::string arg(argv[i]);
     if(arg == "-cen_tol"){ 
-      cen_tol = strToAny<double>(argv[i+1]);
+      std::cout << "Warning: cen_tol is deprecated" << std::endl;
       i+=2;
     }else if(arg == "-err_tol"){ 
       err_tol = strToAny<double>(argv[i+1]);
@@ -41,23 +64,20 @@ int main(const int argc, const char* argv[]){
   
   RNG.initialize(seed);
 
-  jackknifeDistributionD out(nsample);
-  
-  for(int i=0;i<ntry;i++){
-    gaussianRandom(out, cen, std_err / sqrt((double)nsample-1.));
-
-    double c = out.mean();
-    double e = out.standardError();
-
-    double ce = fabs( (c - cen)/c );
-    double ee = fabs( (e - std_err)/e );
-
-    std::cout << out << " " << ce << " " << ee << std::endl;
-    if(ce <= cen_tol && ee <= err_tol){
-      writeParamsStandard(out, outfile);
-      return 0;
+  jackknifeDistributionD out(nsample, cen);
+  if(std_err != 0.){
+    try{
+      out = randomJackknife(cen, std_err, err_tol, nsample, ntry);
+    }catch(const char* e){
+      std::cerr << "Error: " << e << std::endl;
+      return 1;
     }
+    std::cout << out << std::endl;
+
+    writeParamsStandard(out, outfile);
+    return 0;
+  }else{
+    writeParamsStandard(out, outfile);
+    return 0;
   }
-  std::cout << "Error: Could not generate distribution with desired tolerance" << std::endl;
-  return 1;
 }
