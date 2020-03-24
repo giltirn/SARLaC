@@ -32,7 +32,12 @@ public:
   inline NumericVector(const int n, const Initializer &initializer): v(n){
     for(int i=0;i<n;i++) v[i] = initializer(i);
   }
-  
+  NumericVector(std::initializer_list<Numeric> l): v(l.size()){
+    auto it=l.begin();
+    for(int i=0;i<v.size();i++)
+      v[i] = *it++;
+  }  
+
   NumericVector & operator=(const NumericVector &r) = default;
   NumericVector & operator=(NumericVector &&r) = default;
 
