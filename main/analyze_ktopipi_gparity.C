@@ -3,6 +3,7 @@
 #include<physics.h>
 #include<parser.h>
 #include<fit.h>
+#include<random.h>
 
 using namespace CPSfit;
 
@@ -15,11 +16,69 @@ using namespace CPSfit;
 #include<analyze_ktopipi_gparity/convert_chiral.h>
 #include<analyze_ktopipi_gparity/main.h>
 
+typedef superMultiDistribution<double> superMultiD;  
+
+jackknifeDistributionD randomJackknife(double cen, double err, double err_tol, int N, int iter_max = 1000, int iter = 0){
+  jackknifeDistributionD out(N,cen);
+  if(err == 0.0) return out;
+  
+  double dev = err / sqrt(double(N-1));
+  for(int i=0;i<N;i++)
+    out.sample(i) = gaussianRandom<double>(cen, dev);
+
+  //Shift slightly to correct mean
+  double delta = cen - out.mean();
+  for(int i=0;i<N;i++)
+    out.sample(i) += delta;
+
+  //Make it recursive to get the error correct to within tol
+  if( abs(  (out.standardError() - err) / err  ) > err_tol ){
+    if(iter >= iter_max){
+      throw "Error: Could not generate distribution with desired tolerance";
+    }
+    return randomJackknife(cen, err, err_tol, N, iter_max, iter+1);
+  }
+  return out;
+}
+
+
+//Must have added REA0_SYS and IMA0_SYS entries to supermulti layout
+void addA0syserr(superMultiD &ReA0_sj, superMultiD &ImA0_sj,
+		 const double reA0_sysfrac, const double imA0_sysfrac){
+  const superMultiLayout &layout = ReA0_sj.getLayout();
+  int reA0_sys_ensidx = layout.ensIdx("REA0_SYS");
+  int imA0_sys_ensidx = layout.ensIdx("IMA0_SYS");
+  assert( reA0_sys_ensidx !=0 && imA0_sys_ensidx !=0);
+  
+  int reA0_sys_sz = layout.nSamplesEns(reA0_sys_ensidx);
+  int imA0_sys_sz = layout.nSamplesEns(imA0_sys_ensidx);
+  
+  double reA0_sys = fabs(reA0_sysfrac * ReA0_sj.best());
+  double imA0_sys = fabs(imA0_sysfrac * ImA0_sj.best());
+  
+  std::cout << "ReA0 prior to including systematic error of size " << reA0_sys << " : " << ReA0_sj << std::endl;
+  jackknifeDistributionD reA0_sys_j = randomJackknife(ReA0_sj.best(), reA0_sys, 1e-3, reA0_sys_sz, 1e6);
+  std::cout << "Generated " << reA0_sys_j << std::endl;
+  ReA0_sj.setEnsembleDistribution(reA0_sys_ensidx, reA0_sys_j);
+  std::cout << "ReA0 after including systematic error : " << ReA0_sj << std::endl;
+
+  std::cout << "ImA0 prior to including systematic error of size " << imA0_sys << " : " << ImA0_sj << std::endl;
+  jackknifeDistributionD imA0_sys_j = randomJackknife(ImA0_sj.best(), imA0_sys, 1e-3, imA0_sys_sz, 1e6);
+  std::cout << "Generated " << imA0_sys_j << std::endl;
+  ImA0_sj.setEnsembleDistribution(imA0_sys_ensidx, imA0_sys_j);
+  std::cout << "ImA0 after including systematic error : " << ImA0_sj << std::endl;
+}
+
+				  
+  
+
+
+  
 
 int main(const int argc, const char* argv[]){
-  typedef superMultiDistribution<double> superMultiD;  
+  RNG.initialize(1234);
 
-  if(argc != 2){
+  if(argc < 2){
     std::cout << "To use ./analyze_ktopipi_gparity <params_file>\n";
     std::cout << "Writing template to template.args\n";
     Args tp;
@@ -31,15 +90,38 @@ int main(const int argc, const char* argv[]){
   Args args;
   parse(args, argv[1]);
 
+  bool zero_all_but_NPR_errs = false;
+  bool add_A0_sys = false;
+  double reA0_sys_frac, imA0_sys_frac;
+
+  int arg = 2;
+  while(arg < argc){
+    std::string sargv(argv[arg]);
+    if(sargv == "-zero_all_but_NPR_errs"){
+      zero_all_but_NPR_errs = true;
+      arg++;
+    }else if(sargv == "-add_A0_sys"){ //include A0 systematic in epsilon' determination
+      add_A0_sys = true;
+      reA0_sys_frac = strToAny<double>(argv[arg+1]);
+      imA0_sys_frac = strToAny<double>(argv[arg+2]);
+      arg+=3;
+    }else{
+      error_exit(std::cout << "Unknown option " << sargv << std::endl);
+    }
+  }
+
   //Load the data and convert into common superMulti format
-  superMultiData data(args);  
+  superMultiData data(args, add_A0_sys ? 50 : 0, add_A0_sys ? 50 : 0);  
+
+  if(zero_all_but_NPR_errs) data.zeroAllButNPRerrs();
 
   //Setup the input parameters to the perturbation theory
   PerturbativeVariables pv(args.perturbative_inputs);
 
   //Compute the Wilson coefficients
   WilsonCoeffs wilson_coeffs(args.renormalization.mu, pv, args.constants.tau);
-  
+  wilson_coeffs.writeLatex("MSbar_Wilson_coeffs.dat");
+
   //Compute the MSbar matching factors
   MSbarConvert MSbar(args.renormalization.mu,args.renormalization.scheme,pv);
   
@@ -82,6 +164,9 @@ int main(const int argc, const char* argv[]){
     superMultiD ReA0_sj, ImA0_sj;
     computeA0(ReA0_sj, ImA0_sj, M_MSbar_std_sj, wilson_coeffs, args, "");
     
+    if(add_A0_sys)
+      addA0syserr(ReA0_sj, ImA0_sj, reA0_sys_frac, imA0_sys_frac);
+
     //Compute epsilon'
     computeEpsilon(ReA0_sj, ImA0_sj,
 		   data.ReA2_lat_sj, data.ImA2_lat_sj,
@@ -108,6 +193,9 @@ int main(const int argc, const char* argv[]){
     superMultiD ReA0_sj, ImA0_sj;
     computeA0(ReA0_sj, ImA0_sj, M_MSbar_std_sj, wilson_coeffs, args, nm.str());
     
+    if(add_A0_sys)
+      addA0syserr(ReA0_sj, ImA0_sj, reA0_sys_frac, imA0_sys_frac);
+
     //Compute epsilon'
     computeEpsilon(ReA0_sj, ImA0_sj,
 		   data.ReA2_lat_sj, data.ImA2_lat_sj,
@@ -134,6 +222,10 @@ int main(const int argc, const char* argv[]){
     superMultiD ReA0_sj, ImA0_sj;
     computeA0(ReA0_sj, ImA0_sj, M_MSbar_std_sj, wilson_coeffs, args, nm);
     
+    if(add_A0_sys)
+      addA0syserr(ReA0_sj, ImA0_sj, reA0_sys_frac, imA0_sys_frac);
+
+
     //Compute epsilon'
     computeEpsilon(ReA0_sj, ImA0_sj,
 		   data.ReA2_lat_sj, data.ImA2_lat_sj,

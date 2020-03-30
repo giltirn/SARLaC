@@ -23,7 +23,7 @@ struct superMultiData{
   superMultiD mpi_sj;
   superMultiD mK_sj;  
 
-  superMultiData(const Args &args){
+  superMultiData(const Args &args, int ReA0_sys_nsample = 0, int ImA0_sys_nsample = 0){
     //Main ensemble results can be either bootstrap or jackknife
     //Load the matrix elements
     {
@@ -61,13 +61,18 @@ struct superMultiData{
     readFromHDF5(Epipi_sj,args.fit_results.Epipi,"Epipi","Main");
         
     //Load the NPR matrix
-    if(args.renormalization.stepscale)
-      if(args.renormalization.incG1) 
-	NPR_sj = loadNPRstepScaleIncG1(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2);
+    if(args.renormalization.stepscale){
+      NumericTensor<superMultiDistribution<double>,2> lambda;
+      if(args.renormalization.incG1)
+	NPR_sj = loadNPRstepScaleIncG1(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2, &lambda);
       else
-	NPR_sj = loadNPRstepScale(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2);
-    else
+	NPR_sj = loadNPRstepScale(args.renormalization.file, args.renormalization.file_ensB_mu1, args.renormalization.file_ensB_mu2, &lambda);
+
+      writeMatrix(lambda, "NPR_lambda_lo_hi.hdf5");
+      writeMatrix(NPR_sj, "NPR_Z_hi.hdf5");
+    }else{
       NPR_sj = loadNPRmulti(args.renormalization.file); //NPR assumed jackknife
+    }
     std::cout << "NPR matrix:\n" << NPR_sj << std::endl;
   
     //Read the various other inputs as superjackknife
@@ -86,6 +91,12 @@ struct superMultiData{
     layout = combine(layout, NPR_sj({0,0}).getLayout());
     for(int i=0;i<sjack_inputs.size();i++) layout = combine(layout, sjack_inputs[i]->getLayout());
     
+    if(ReA0_sys_nsample > 0)
+      layout.addEnsemble("REA0_SYS", MultiType::Jackknife, ReA0_sys_nsample);
+    if(ImA0_sys_nsample > 0)
+      layout.addEnsemble("IMA0_SYS", MultiType::Jackknife, ImA0_sys_nsample);
+      
+
     std::cout << "Created a superMulti layout with size " << layout.nSamplesTotal() << " comprising " << layout.nEnsembles() << " ensembles:\n";
     for(int i=0;i<layout.nEnsembles();i++) std::cout << '\t' << layout.ensTag(i) << " of size " << layout.nSamplesEns(i) << " and type " << toString(layout.ensType(i)) << std::endl;
   
@@ -110,6 +121,29 @@ struct superMultiData{
     std::cout << "m_pi = " << mpi_sj << std::endl;
   }
   
+  static void zeroDistErrors(superMultiD &dist){
+    std::cout << "Zeroing errors " << dist;
+    double cen = dist.best();
+    for(int s=0;s<dist.size();s++) dist.sample(s) = cen;
+    std::cout << " -> " << dist << std::endl;
+  }
+  //For testing
+  void zeroAllButNPRerrs(){
+    zeroDistErrors(ainv_sj);
+    zeroDistErrors(omega_expt_sj);
+    zeroDistErrors(mod_eps_sj);
+    zeroDistErrors(ImA2_lat_sj);
+    zeroDistErrors(ReA2_lat_sj);
+    zeroDistErrors(ReA2_expt_sj);
+    zeroDistErrors(ReA0_expt_sj);
+    zeroDistErrors(delta_2_sj);
+    zeroDistErrors(Epi_sj);
+    zeroDistErrors(Epipi_sj);
+    zeroDistErrors(mpi_sj);
+    zeroDistErrors(mK_sj);  
+    for(int i=0;i<M_lat_sj.size(0);i++)
+      zeroDistErrors(M_lat_sj(&i));
+  }
 
 };
 

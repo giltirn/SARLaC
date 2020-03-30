@@ -144,9 +144,16 @@ void PerturbativeInputs::setep2019values(){
   mtmt = 160;
   thetaW = 0.50162777299552883387;
   a_e = 0.00781524754796608183;
-  a_s.value = 0.1181;
-  a_s.scale = 91.1876;
-  a_s.Nf = 5;
+  
+  //Original
+  // a_s.value = 0.1181;
+  // a_s.scale = 91.1876;
+  // a_s.Nf = 5;
+
+  //Final
+  a_s.value = 0.32733;
+  a_s.scale = 1.7;
+  a_s.Nf = 4;
 }
 
 

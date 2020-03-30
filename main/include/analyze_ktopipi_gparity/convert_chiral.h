@@ -129,6 +129,14 @@ NumericTensor<DistributionType,1> convertChiralFit(const NumericTensor<Distribut
   }
 
   NumericSquareMatrix<DistributionType> cov(10, [&](const int i, const int j){ return DistributionType(binit, DistributionType::covariance(Min(&i), Min(&j)) ); });
+  std::cout << "Covariance matrix of 10 operator matrix elements:" << std::endl;
+  for(int i=0;i<10;i++){
+    for(int j=0;j<10;j++)
+      std::cout << cov(i,j).best() << " ";
+    std::cout << std::endl;
+  }
+
+
   fitter.importCovarianceMatrix(cov);
   
   std::cout << "Correlation matrix of 10 operator matrix elements:" << std::endl;
@@ -152,6 +160,8 @@ NumericTensor<DistributionType,1> convertChiralFit(const NumericTensor<Distribut
     for(int j=0;j<7;j++) 
       Q10_repro[i] = Q10_repro[i] + fitfunc.T7to10({i,j}) * Q7_fit[j];
   
+  writeParamsStandard(Q10_repro, "matrix_elems_unrenorm_std_repro_from_7basis.hdf5");
+
   std::cout << "Q in 10 basis reproduced from 7-basis result" << std::endl;
   for(int i=0;i<10;i++){
     DistributionType diff = Q10_repro[i] - Q10.value(i);

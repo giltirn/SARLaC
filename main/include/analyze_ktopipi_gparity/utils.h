@@ -52,6 +52,15 @@ inline void writeParamsStandard(const NumericTensor<superMultiDistribution<doubl
   writeParamsStandard(params.internalVector(),filename);
 }
 
+inline void writeMatrix(const NumericTensor<superMultiDistribution<double>,2> &params, const std::string &filename){
+  std::vector<std::vector<superMultiDistribution<double> > > out(params.size(0), std::vector<superMultiDistribution<double> >(params.size(1)));
+  for(int i=0;i<params.size(0);i++)
+    for(int j=0;j<params.size(1);j++)
+      out[i][j] = params({i,j});
+  writeParamsStandard(out, filename);
+}
+
+
 static std::vector<std::unique_ptr<superMultiLayout> > layout_store;
 
 superMultiLayout* getLayout(bool &is_new, const std::string &ens_tag){

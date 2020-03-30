@@ -46,6 +46,20 @@ class WilsonCoeffs{
     }
     tau = _tau;
   }       
+  void write(const std::string &filename) const{
+    std::ofstream ff(filename.c_str());
+    ff << tau.real() << " " << tau.imag() << std::endl;
+    for(int i=0;i<10;i++)
+      ff << i+1 << " " << z[i] << " " << y[i] << std::endl;
+  }
+  void writeLatex(const std::string &filename) const{
+    std::ofstream ff(filename.c_str());
+    ff << "$\\tau = " << tau.real() << " + " << tau.imag() << " i$" << std::endl;
+    ff << "\\begin{table}[h]\n\\begin{tabular}{cc}\n\\hline\\hline\n $i$ & $y_i$ & $z_i$ \\\\ \\hline \\\\" << std::endl;
+    for(int i=0;i<10;i++)
+      ff << i+1 << " & " << y[i] << " & " << z[i] << "\\\\" << std::endl;
+    ff << "\\end{tabular}\n\\end{table}" << std::endl;
+  }
 
   complexD operator()(const int i) const{ return z[i] + tau * y[i]; }
   double getZ(const int i) const{ return z[i]; }
