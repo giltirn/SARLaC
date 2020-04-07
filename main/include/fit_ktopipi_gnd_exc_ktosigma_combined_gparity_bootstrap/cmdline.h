@@ -57,6 +57,8 @@ struct CMDline{
   bool load_frozen_fit_params;
   std::string load_frozen_fit_params_file;
 
+  bool disable_vacuum_subtraction;
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -89,6 +91,8 @@ struct CMDline{
     prune_data = false;
 
     load_frozen_fit_params = false;
+
+    disable_vacuum_subtraction = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -185,6 +189,10 @@ struct CMDline{
 	  std::ofstream of("prune_args_template.args"); of << pargs; of.close();
 	  exit(0);
 	}
+      }else if(sargv[i] == "-disable_vacuum_subtraction"){
+	disable_vacuum_subtraction = true;
+	std::cout << "Not performing vacuum subtraction" << std::endl;
+	i++;
       }else if(sargv[i] == "-load_frozen_fit_params"){
 	load_frozen_fit_params = true;
 	load_frozen_fit_params_file = sargv[i+1];

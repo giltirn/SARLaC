@@ -145,11 +145,9 @@ int main(const int argc, const char* argv[]){
   superMultiD F_sj, delta_0_sj;
   computePhaseShiftAndLLfactor(delta_0_sj, F_sj, data.Epipi_sj, data.mpi_sj, data.mK_sj, data.ainv_sj, args);
 
-  checkLatticeWilsonCoefficients(lat_Wilson_coeffs,data.M_lat_sj,data.ainv_sj,F_sj,args);
+  NumericTensor<superMultiD,1> M_unrenorm_chiral_sj = computePhysicalUnrenormalizedMatrixElementsChiral(data.M_lat_sj,data.ainv_sj,F_sj,args); //GeV^2, infinite volume
 
-
-  NumericTensor<superMultiD,1> M_unrenorm_chiral_sj = computePhysicalUnrenormalizedMatrixElementsChiral(data.M_lat_sj,data.ainv_sj,F_sj,args);
-
+  checkLatticeWilsonCoefficients(lat_Wilson_coeffs,M_unrenorm_chiral_sj,args);
 
   {
     std::cout << "\n\n---------------------------------------------------------------\n";

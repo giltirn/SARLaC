@@ -8,8 +8,9 @@ CPSFIT_START_NAMESPACE
 
 struct computeQamplitudeOpts{
   double alpha_scale; //multiply the coefficient alpha by some factor
+  bool do_vacuum_subtraction;
 
-  computeQamplitudeOpts(): alpha_scale(1.){}
+  computeQamplitudeOpts(): alpha_scale(1.), do_vacuum_subtraction(true){}
 };
 
 CPSFIT_END_NAMESPACE

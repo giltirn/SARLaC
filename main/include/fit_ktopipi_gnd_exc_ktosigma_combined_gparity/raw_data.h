@@ -118,6 +118,9 @@ struct RawData{
     computeQamplitudeOpts opt;
     opt.alpha_scale = alpha_coeff;
     
+    if(cmdline.disable_vacuum_subtraction)
+      opt.do_vacuum_subtraction = false;
+
     for(int x=0;x<args.tsep_k_pi.size();x++){
       int tsep_k_pi = args.tsep_k_pi[x];
       

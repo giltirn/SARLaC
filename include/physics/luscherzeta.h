@@ -12,7 +12,7 @@
 
 //C.Kelly 2014
 //Classes and methods to determine and manipulate Luscher's \zeta and \phi functions for use in the quantization condition and Lellouch-Luscher factor
-//This calculaton method is based on Qi Liu's Matlab code which in turn was based on Physical review D 70 074513
+//This calculaton method is based on Qi Liu's Matlab code which in turn was based on Physical review D 70 074513  (https://arxiv.org/pdf/hep-lat/0402025.pdf)
 
 //Must link against gsl and gslcblas libraries
 

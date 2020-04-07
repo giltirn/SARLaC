@@ -2,25 +2,36 @@
 #define _ANALYZE_KTOPIPI_GPARITY_MAIN_H_
 
 void checkLatticeWilsonCoefficients(const std::pair<NumericTensor<superMultiDistribution<double>,1>, NumericTensor<superMultiDistribution<double>,1> > &lat_Wilson_coeffs,
-				    const NumericTensor<superMultiDistribution<double>,1> &M_lat_sj, //lattice matrix elements
-				    const superMultiDistribution<double> &ainv_sj, //inverse lattice spacing
-				    const superMultiDistribution<double> &F_sj,  //Lellouch-Luscher factor
+				    const NumericTensor<superMultiDistribution<double>,1> &M_unrenorm_phys_chiral_sj, //lattice matrix elements in chiral basis, physical units
 				    const Args &args){
   std::cout << "Testing lattice Wilson coefficients are computed correctly" << std::endl;
   typedef superMultiDistribution<double> superMultiD;
-  superMultiD coeff = ainv_sj*ainv_sj*ainv_sj*F_sj * args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
-  NumericTensor<superMultiD,1> M_unrenorm_phys_std({10}, [&](const int* c){ return coeff * M_lat_sj(c); });
-  NumericTensor<superMultiD,1> M_unrenorm_phys_chiral_sj = convertChiralBasis(M_unrenorm_phys_std);
+  double coeff = args.constants.G_F * args.constants.Vud * args.constants.Vus /sqrt(2.0);
 
-  superMultiD zero(coeff); zeroit(zero);
+  int zro = 0;
+  superMultiD zero(M_unrenorm_phys_chiral_sj(&zro)); zeroit(zero);
+
+  std::vector<superMultiD> reA0_contribs(7), imA0_contribs(7);
 
   superMultiD reA0(zero), imA0(zero);
   for(int i=0;i<7;i++){
-    reA0 = reA0 + lat_Wilson_coeffs.first(&i) *  M_unrenorm_phys_chiral_sj(&i);
-    imA0 = imA0 + lat_Wilson_coeffs.second(&i) *  M_unrenorm_phys_chiral_sj(&i);
+    reA0_contribs[i] = coeff * lat_Wilson_coeffs.first(&i) *  M_unrenorm_phys_chiral_sj(&i);
+    imA0_contribs[i] = coeff * lat_Wilson_coeffs.second(&i) *  M_unrenorm_phys_chiral_sj(&i);
+
+    reA0 = reA0 + reA0_contribs[i];
+    imA0 = imA0 + imA0_contribs[i];
   }
 
   std::cout << "Got ReA0 = " << reA0 << "  ImA0 = " << imA0 << std::endl;
+
+  std::cout << "Contributions to Re/Im(A0) in chiral basis:\n";
+  int pmap[7] = {1,2,3,5,6,7,8};
+  for(int i=0;i<7;i++)
+    std::cout << pmap[i] << " " << reA0_contribs[i] << "   " << imA0_contribs[i] << std::endl;
+
+  writeParamsStandard(reA0_contribs, "ReA0_cpts_chiral.hdf5");
+  writeParamsStandard(imA0_contribs, "ImA0_cpts_chiral.hdf5");
+
 }
 
 NumericTensor<superMultiDistribution<double>,1> computePhysicalMSbarMatrixElements(const NumericTensor<superMultiDistribution<double>,1> &M_unrenorm_phys_chiral_sj, //unrenorm matrix elements chiral basis

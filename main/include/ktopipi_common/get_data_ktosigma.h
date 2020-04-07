@@ -49,12 +49,18 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
   A0_srcavg_r(3) = A0_srcavg_r(3).transform([&](int const* t, const DistributionType &from){
       return DistributionType(from + opts.alpha_scale*alpha_r(t)*mix_srcavg_r(3)(t)); }); 
   A0_srcavg_r(4) = A0_srcavg_r(4).transform([&](int const* t, const DistributionType &from){
-      return DistributionType(from - opts.alpha_scale*alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );
+      DistributionType mix4_t = mix_srcavg_r(4)(t);
+      if(opts.do_vacuum_subtraction) mix4_t = mix4_t - mix4_srcavg_vacsub_r(t);
+      return DistributionType(from - opts.alpha_scale*alpha_r(t)*mix4_t );
+
+      //return DistributionType(from - opts.alpha_scale*alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );
     }); 
 
   //Perform the type 4 vacuum subtraction
-  std::cout << "Performing type-4 vacuum subtraction" << std::endl;
-  A0_srcavg_r(4) = A0_srcavg_r(4) - A0_type4_srcavg_vacsub_r;
+  if(opts.do_vacuum_subtraction){
+    std::cout << "Performing type-4 vacuum subtraction" << std::endl;
+    A0_srcavg_r(4) = A0_srcavg_r(4) - A0_type4_srcavg_vacsub_r;
+  }
 
   //Get the full double-jackknife amplitude
   std::cout << "Computing full amplitudes" << std::endl;
