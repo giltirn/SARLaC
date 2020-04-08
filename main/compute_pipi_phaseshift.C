@@ -1,6 +1,7 @@
 #include<fit/fit_wrapper/fit_wrapper_freeze.h>
 #include<physics/luscherzeta.h>
 #include<physics/delta_0_pheno.h>
+#include<common.h>
 
 using namespace CPSfit;
 
@@ -28,25 +29,9 @@ std::array<T,N> parseArray(const std::string &from){
   }
   return out;
 }
-
-
-
-int main(const int argc, const char* argv[]){
-#ifdef HAVE_HDF5
- 
-  if(argc < 8){
-    std::cout << "Usage: <exe> <Epipi file> <Epipi idx> <Epi file> <Epi idx> <twists> <L> <output file>  [options]\n";
-    std::cout << "Where:\n";
-    std::cout << "\t<... idx> are array indices for the files in question. If the file contains a multi-dimensional array the separate indices should be space separated and enclosed in quotation marks, e.g. \"0 1\"\n";
-    std::cout << "\t<twists> should be a space separated set of 3 integers in quotation marks with value 0 for periodic directions and 1 for antiperiodic/G-parity, eg. \"1 1 1\"\n";
-    std::cout << "Options:\n";
-    std::cout << "\t-comoving <d>    Epipi has non-zero total momentum. <d> should be \\vec P_CM in units of 2pi/L\n";
-    std::cout << "\t-schenk <I> Print the Schenk values (3 curves A,B,C). <I> is the isospin\n";
-    std::cout << "\t-colangelo <I>  Print the Colangelo value. <I> is the isospin\n";
-    std::cout << "\t-write_schenk <filename> / -write_colangelo <filename>   Write the Schenk / Colangelo numbers to <filename>. Use in conjunction with the above\n";
-    exit(0);
-  }
-
+  
+template<typename DistributionType>
+int run(const int argc, const char* argv[]){
   std::string Epipi_file = argv[1];
   std::vector<int> Epipi_idx = parseIntVector(argv[2]);
   std::string Epi_file = argv[3];
@@ -94,18 +79,19 @@ int main(const int argc, const char* argv[]){
   }
 
 
-  jackknifeDistribution<double> Epipi;
+  DistributionType Epipi;
   readHDF5file(Epipi, Epipi_file,Epipi_idx);
 
-  jackknifeDistribution<double> Epi;
+  DistributionType Epi;
   readHDF5file(Epi, Epi_file,Epi_idx);
 
   assert(Epipi.size() == Epi.size());
-  int nsample = Epipi.size();
+  auto init = Epipi.getInitializer();
+  typedef iterate<DistributionType> iter;
 
   int ntwist = twists[0] + twists[1] + twists[2];
 
-  jackknifeDistribution<double> mpi = Epi;
+  DistributionType mpi = Epi;
 
   if(ntwist > 0){
     double p2 = ntwist * pow(M_PI/L,2);
@@ -117,10 +103,10 @@ int main(const int argc, const char* argv[]){
   std::cout << "mpi = " << mpi << std::endl;
 
   LuscherZeta zeta(twists,d);
-  jackknifeDistribution<double> delta(nsample);
+  DistributionType delta(init);
 #pragma omp parallel for
-  for(int s=0;s<nsample;s++)
-    delta.sample(s) = phaseShiftZ(zeta, Epipi.sample(s),mpi.sample(s),L);
+  for(int s=0;s<iter::size(delta);s++)
+    iter::at(s,delta) = phaseShiftZ(zeta, iter::at(s,Epipi), iter::at(s,mpi),L);
 
   std::cout << "delta = " << delta << std::endl;
 
@@ -132,32 +118,69 @@ int main(const int argc, const char* argv[]){
     double _2pidL = 2*M_PI/L;
     double Pcm2 = _2pidL*_2pidL* d.norm2();
     
-    jackknifeDistribution<double> gamma(nsample, [&](const int s){ return Epipi.sample(s)/sqrt(Epipi.sample(s)*Epipi.sample(s) - Pcm2);  });    
-    jackknifeDistribution<double> Epipi_CM = Epipi/gamma;
-    jackknifeDistribution<double> S = Epipi_CM*Epipi_CM;
+    DistributionType gamma = Epipi / sqrt( Epipi*Epipi - Pcm2 );  
+    DistributionType Epipi_CM = Epipi/gamma;
+    DistributionType S = Epipi_CM*Epipi_CM;
     
     if(print_schenk){
       char curves[3] = {'A','B','C'};
-      std::vector<jackknifeDistribution<double> > delta(3);
+      std::vector<DistributionType > delta(3, DistributionType(init));
       for(int c=0;c<3;c++){
-	delta[c] = jackknifeDistribution<double>(nsample, [&](const int s){ return PhenoCurveSchenk::compute(S.sample(s), isospin, mpi.sample(s), curves[c]);});
-	delta[c] = delta[c] * 180./M_PI;
+	for(int s=0;s<iter::size(delta[c]);s++)
+	  iter::at(s,delta[c]) = PhenoCurveSchenk::compute(iter::at(s,S), isospin, iter::at(s,mpi), curves[c]) * 180./M_PI;
       }
       std::cout << "Schenk value for I=" << isospin << " = " << delta[0] << " (A) " << delta[1] << " (B) " << delta[2] << " (C)" << std::endl;      
 
       if(write_schenk) writeParamsStandard(delta, write_schenk_file);
     }
     if(print_colangelo){
-      jackknifeDistribution<double> delta(nsample, [&](const int s){ return PhenoCurveColangelo::compute(S.sample(s), isospin, mpi.sample(s));});
-      delta = delta * 180./M_PI;
-
+      DistributionType delta(init);
+      for(int s=0;s<iter::size(delta);s++)
+	iter::at(s,delta) = PhenoCurveColangelo::compute(iter::at(s,S), isospin, iter::at(s,mpi) ) * 180./M_PI;
       std::cout << "Colangelo value for I=" << isospin << " = " << delta << std::endl;
 
       if(write_colangelo) writeParamsStandard(delta, write_colangelo_file);
     }
   }
+  return 0;
+}
+
+
+
+int main(const int argc, const char* argv[]){
+#ifdef HAVE_HDF5
+
+  if(argc < 8){
+    std::cout << "Usage: <exe> <Epipi file> <Epipi idx> <Epi file> <Epi idx> <twists> <L> <output file>  [options]\n";
+    std::cout << "Where:\n";
+    std::cout << "\t<... idx> are array indices for the files in question. If the file contains a multi-dimensional array the separate indices should be space separated and enclosed in quotation marks, e.g. \"0 1\"\n";
+    std::cout << "\t<twists> should be a space separated set of 3 integers in quotation marks with value 0 for periodic directions and 1 for antiperiodic/G-parity, eg. \"1 1 1\"\n";
+    std::cout << "Options:\n";
+    std::cout << "\t-comoving <d>    Epipi has non-zero total momentum. <d> should be \\vec P_CM in units of 2pi/L\n";
+    std::cout << "\t-schenk <I> Print the Schenk values (3 curves A,B,C). <I> is the isospin\n";
+    std::cout << "\t-colangelo <I>  Print the Colangelo value. <I> is the isospin\n";
+    std::cout << "\t-write_schenk <filename> / -write_colangelo <filename>   Write the Schenk / Colangelo numbers to <filename>. Use in conjunction with the above\n";
+    return 0;
+  }
+
+
+  std::string Epipi_file = argv[1];
+  DistributionTypeEnum type;
+  int vdepth;
+  getTypeInfo(type, vdepth, Epipi_file);
+  assert(vdepth == 1);
+
+  switch(type){
+  case DistributionTypeEnum::Jackknife:
+    return run<jackknifeDistributionD>(argc, argv); 
+  case DistributionTypeEnum::Bootstrap:
+    return run<bootstrapDistributionD>(argc, argv); 
+  default:
+    assert(0);
+  }
+
 #else
   error_exit(std::cout << "Require HDF5\n");
 #endif
-  return 0;
+
 }

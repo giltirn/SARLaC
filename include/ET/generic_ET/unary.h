@@ -14,6 +14,7 @@ CPSFIT_START_NAMESPACE
 using ::sqrt;
 using ::exp;
 using ::log;
+using ::pow;
 
 template<template<typename> class Op, typename T>
 struct unaryHelper{
@@ -78,10 +79,6 @@ struct powHelper{
 template<typename T, typename std::enable_if<has_ET_tag<typename std::decay<T>::type>::value , int>::type = 0>
 inline auto pow(T &&a, double exponent)->decltype(powHelper<typename std::decay<T>::type>::doit(std::forward<T >(a),exponent)){
   return powHelper<typename std::decay<T>::type>::doit(std::forward<T>(a),exponent);
-}
-template<typename T, typename std::enable_if<!has_ET_tag<typename std::decay<T>::type>::value , int>::type = 0>
-inline T pow(T &&a, double exponent){
-  return ::pow(a, exponent);
 }
 
 
