@@ -3,7 +3,7 @@
 
 #include<parser.h>
 
-GENERATE_ENUM_AND_PARSER(PhaseShiftDerivativeSource, (DerivSchenk)(DerivLinearEpipi)(DerivLinearQpipi)(DerivColangelo)(DerivColangeloPhysMpi) );
+GENERATE_ENUM_AND_PARSER(PhaseShiftDerivativeSource, (DerivSchenk)(DerivLinearEpipi)(DerivLinearQpipi)(DerivColangelo)(DerivColangeloPhysMpi)(DerivColangeloPhysMpiCharged) );
 GENERATE_ENUM_AND_PARSER(RIscheme, (QslashQslash)(GammaGamma)(QslashGamma)(GammaQslash) );
 GENERATE_ENUM_AND_PARSER(ChiralConvertMethod, (Original)(Fit) );
 

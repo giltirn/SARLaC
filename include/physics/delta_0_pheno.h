@@ -61,6 +61,7 @@ public:
   //I is the isospin : 0 or 2
   //The parameterization is from Colangelo, Nucl. Phys. B603 (2001) 125-179   eqs 17.1- 17.3
 
+  //Result is in *radians*
   static double compute(const double s, const int I, const double mpi){
     double _4mpi2 = 4*pow(mpi,2);
     double q2 = (s - _4mpi2)/_4mpi2; //q2 has to be dimensionless. The discussion around the equations is confusing

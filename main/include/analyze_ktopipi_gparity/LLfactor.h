@@ -107,7 +107,7 @@ superMultiDistribution<double> getPhaseShiftDerivColangeloPhysMpi(const superMul
 							       const superMultiDistribution<double> &Epipi,
 							       const superMultiDistribution<double> &q_pipi,							       
 							       const int L){
-  std::cout << "Computing phase shift derivative using Colangelo formulae with physical pion mass as input\n";
+  std::cout << "Computing phase shift derivative using Colangelo formulae with physical *neutral* pion mass as input\n";
   superMultiDistribution<double> out(ainv.getLayout());
   
   superMultiDistribution<double> ainv_MeV = ainv * 1000.;
@@ -116,6 +116,32 @@ superMultiDistribution<double> getPhaseShiftDerivColangeloPhysMpi(const superMul
   superMultiDistribution<double> s = Epipi_MeV * Epipi_MeV;
   superMultiDistribution<double> ds_by_dq = 8 * pow(2*M_PI*pow(L_MeV,-1),2) * q_pipi;
   double mpi_MeV = 135;
+  superMultiDistribution<double> ddelta_by_ds(ainv.getLayout(), [&](const int b){ return PhenoCurveColangelo::compute_deriv(s.osample(b),0,mpi_MeV,1e-02); }); //radians/(MeV^2)
+  superMultiDistribution<double> ddelta_by_dq = ddelta_by_ds * ds_by_dq;
+  
+  std::cout << "a^{-1} = " << ainv_MeV << " MeV,  Epipi = " << Epipi_MeV << " MeV, q =" << q_pipi << " (dimensionless), mpi = " << mpi_MeV << " MeV, s = " << s
+	    << " MeV^2,  L = " << L_MeV << " MeV\n";
+  std::cout << "ds/dq = " << ds_by_dq << " MeV^2\n";
+  std::cout << "Computed d(delta)/ds = " << ddelta_by_ds << " MeV^{-2}\n";
+  std::cout << "Computed d(delta)/dq = " << ddelta_by_dq << std::endl;
+  return ddelta_by_dq;
+}
+
+
+//4/16/20 Apparently Colangelo is using the charged pion mass!
+superMultiDistribution<double> getPhaseShiftDerivColangeloPhysMpiCharged(const superMultiDistribution<double> &ainv,
+							       const superMultiDistribution<double> &Epipi,
+							       const superMultiDistribution<double> &q_pipi,							       
+							       const int L){
+  std::cout << "Computing phase shift derivative using Colangelo formulae with physical *charged* pion mass as input\n";
+  superMultiDistribution<double> out(ainv.getLayout());
+  
+  superMultiDistribution<double> ainv_MeV = ainv * 1000.;
+  superMultiDistribution<double> Epipi_MeV = Epipi * ainv_MeV;
+  superMultiDistribution<double> L_MeV = double(L)*pow(ainv_MeV,-1); // L_latt = L_phys/a, L_phys = a* L_latt = L_latt/a^{-1} */
+  superMultiDistribution<double> s = Epipi_MeV * Epipi_MeV;
+  superMultiDistribution<double> ds_by_dq = 8 * pow(2*M_PI*pow(L_MeV,-1),2) * q_pipi;
+  double mpi_MeV = 139.57;
   superMultiDistribution<double> ddelta_by_ds(ainv.getLayout(), [&](const int b){ return PhenoCurveColangelo::compute_deriv(s.osample(b),0,mpi_MeV,1e-02); }); //radians/(MeV^2)
   superMultiDistribution<double> ddelta_by_dq = ddelta_by_ds * ds_by_dq;
   
@@ -210,20 +236,22 @@ void computePhaseShiftAndLLfactor(superMultiDistribution<double> &delta_0, //I=0
 
   writeParamsStandard(delta_0_deg, file_stub+"delta0_deg.hdf5");
 
-  superMultiD d_delta_by_dq[5] = { getPhaseShiftDerivSchenk(ainv,Epipi,q_pipi,mpi,args.L),
-				   getPhaseShiftDerivColangelo(ainv,Epipi,q_pipi,mpi,args.L),
-				   getPhaseShiftDerivLinearEpipi(Epipi,q_pipi,mpi,delta_0,args.L),
-				   getPhaseShiftDerivLinearQpipi(q_pipi,delta_0),
-				   getPhaseShiftDerivColangeloPhysMpi(ainv,Epipi,q_pipi,args.L) };
+  std::vector<superMultiD> d_delta_by_dq = { getPhaseShiftDerivSchenk(ainv,Epipi,q_pipi,mpi,args.L),
+					     getPhaseShiftDerivColangelo(ainv,Epipi,q_pipi,mpi,args.L),
+					     getPhaseShiftDerivLinearEpipi(Epipi,q_pipi,mpi,delta_0,args.L),
+					     getPhaseShiftDerivLinearQpipi(q_pipi,delta_0),
+					     getPhaseShiftDerivColangeloPhysMpi(ainv,Epipi,q_pipi,args.L),
+					     getPhaseShiftDerivColangeloPhysMpiCharged(ainv,Epipi,q_pipi,args.L)
+  };
   
-  PhaseShiftDerivativeSource d_delta_by_dq_src[5] = { PhaseShiftDerivativeSource::DerivSchenk, PhaseShiftDerivativeSource::DerivColangelo, 
-						      PhaseShiftDerivativeSource::DerivLinearEpipi, PhaseShiftDerivativeSource::DerivLinearQpipi,
-						      PhaseShiftDerivativeSource::DerivColangeloPhysMpi };
+  std::vector<PhaseShiftDerivativeSource> d_delta_by_dq_src = { PhaseShiftDerivativeSource::DerivSchenk, PhaseShiftDerivativeSource::DerivColangelo, 
+								PhaseShiftDerivativeSource::DerivLinearEpipi, PhaseShiftDerivativeSource::DerivLinearQpipi,
+								PhaseShiftDerivativeSource::DerivColangeloPhysMpi, PhaseShiftDerivativeSource::DerivColangeloPhysMpiCharged };
 
-  std::string d_delta_by_dq_descr[5] = { "Schenk", "Colangelo", "Lin. Epipi", "Lin. q", "Colangelo phys. mpi." };
+  std::vector<std::string> d_delta_by_dq_descr = { "Schenk", "Colangelo", "Lin. Epipi", "Lin. q", "Colangelo phys. mpi. (neutral)",  "Colangelo phys. mpi. (charged)"};
   
   int i_use = -1;
-  for(int i=0;i<5;i++){
+  for(int i=0;i<d_delta_by_dq.size();i++){
     superMultiD F_i = computeLLfactor(Epipi,q_pipi,p_pipi,mK,d_delta_by_dq[i],dphi_by_dq,args.L);
     std::cout << "ddelta_0/dq (" << d_delta_by_dq_descr[i] << ") = " << d_delta_by_dq[i] << std::endl;
     std::cout << "F (" << d_delta_by_dq_descr[i] << ") = " << F_i << std::endl;

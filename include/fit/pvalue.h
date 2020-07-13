@@ -239,7 +239,7 @@ public:
     return Fdistribution::CDF((n-p+1)*x/p/n, p, n-p+1);
   }
    
-  //p = \int_x^inf dx P(x; p,n)     p=dof, n=#samples + 1,  x="chi^2" 
+  //p = \int_x^inf dx P(x; p,n)     p=dof, n=#samples - 1,  x="chi^2" 
   static inline double pvalue(const double x, const double p, const double n){
     return 1.-CDF(x,p,n);
   }
