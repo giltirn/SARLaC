@@ -43,6 +43,10 @@ struct CMDline{
 
   bool fronthalf_backhalf;
 
+  bool remove_samples_in_range;
+  int remove_samples_in_range_start; //units are sample index, not trajectories!
+  int remove_samples_in_range_lessthan;
+
   bool write_alpha_and_pseudoscalar_matrix_elem;
 
   bool alpha_vary_plot;  
@@ -93,6 +97,8 @@ struct CMDline{
     load_frozen_fit_params = false;
 
     disable_vacuum_subtraction = false;
+
+    remove_samples_in_range = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -161,6 +167,11 @@ struct CMDline{
       }else if(sargv[i] == "-fronthalf_backhalf"){
 	fronthalf_backhalf = true;
 	i++;
+      }else if(sargv[i] == "-remove_samples_in_range"){ //drop data from raw data being read. Only works if reading raw data from original files or checkpoint
+	remove_samples_in_range = true;
+	remove_samples_in_range_start = strToAny<int>(sargv[i+1]);
+	remove_samples_in_range_lessthan = strToAny<int>(sargv[i+2]);
+	i+=3;
       }else if(sargv[i] == "-write_alpha_and_pseudoscalar_matrix_elem"){
 	write_alpha_and_pseudoscalar_matrix_elem = true;
 	i++;

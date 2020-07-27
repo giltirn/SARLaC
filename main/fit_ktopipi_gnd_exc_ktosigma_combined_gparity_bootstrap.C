@@ -84,6 +84,9 @@ int main(const int argc, const char* argv[]){
       exit(0);
     }
 
+    if(cmdline.remove_samples_in_range)
+      raw.removeSamplesInRange(cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);      
+
     if(cmdline.write_alpha_and_pseudoscalar_matrix_elem){
       bootstrapBlockResampler resampler = getResampler(raw, args, cmdline);
       std::vector<std::vector<std::vector<std::vector<bootstrapDistributionD> > > > alpha(args.operators.size()); //[op_idx][tsep_k_snk_idx][q][t]

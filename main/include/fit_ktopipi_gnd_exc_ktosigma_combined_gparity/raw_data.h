@@ -47,6 +47,30 @@ struct RawData{
     for(int i=0;i<raw_ktosigma.size();i++) if(raw_ktosigma[i]) raw_ktosigma[i]->applyFunction(func);
   }
 
+  template<typename DistributionType>
+  inline static DistributionType removeSamplesInRange(const DistributionType &raw, const int start, const int lessthan){
+    int remove_num_samples = lessthan - start;
+    assert(remove_num_samples < raw.size());
+    DistributionType out(raw.size() - remove_num_samples);
+    int s=0;
+    for(int p=0;p<start;p++)
+      out.sample(s++) = raw.sample(p);
+    for(int p=lessthan;p<raw.size();p++)
+      out.sample(s++) = raw.sample(p);
+    return out;
+  }
+
+  void removeSamplesInRange(const int start, const int lessthan){
+    std::cout << "RawData removing samples in range [" << start << ", " << lessthan << ")" << std::endl;
+    applyFunction(
+		  [&](auto &v){ 
+		    v = removeSamplesInRange(v,start,lessthan);				  
+		  }
+		  );
+    std::cout << "RawData samples removed" << std::endl;
+  }
+
+
   template<typename ArgsType, typename CMDlineType>
   void read(const ArgsType &args, const CMDlineType &cmdline){
     readKtoPiPiAllDataOptions read_opts;
