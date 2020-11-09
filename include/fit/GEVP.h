@@ -6,6 +6,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<utils/utils.h>
+#include<serialize/hdf5_serialize.h>
 
 #include<tensors/numeric_vector.h>
 #include<distribution/jackknife.h>
@@ -15,6 +16,9 @@ CPSFIT_START_NAMESPACE
 
 template<typename T>
 class GEVPsolverBase{
+public:
+  typedef T DistributionType;
+
 protected:
   typedef std::pair<int,int> t0_t_pair;
 
@@ -29,9 +33,18 @@ public:
     auto it = evals_t0_t.find({t0,t});
     return it == evals_t0_t.end() ? NULL : &it->second;
   }
+  std::vector<T> * evals(const int t0, const int t){ 
+    auto it = evals_t0_t.find({t0,t});
+    return it == evals_t0_t.end() ? NULL : &it->second;
+  }
+
   //Get the eigenvectors iff the element with t0,t is available, else return NULL
   //Eigenvector index is equivalent to the state index, and the coordinates are *operator* indices
   std::vector<NumericVector<T> > const* evecs(const int t0, const int t) const{ 
+    auto it = evecs_t0_t.find({t0,t});
+    return it == evecs_t0_t.end() ? NULL : &it->second;
+  }
+  std::vector<NumericVector<T> > * evecs(const int t0, const int t){ 
     auto it = evecs_t0_t.find({t0,t});
     return it == evecs_t0_t.end() ? NULL : &it->second;
   }
@@ -42,25 +55,27 @@ public:
     return it == resid_t0_t.end() ? NULL : &it->second;
   }
 
-  //Solve for a general time series of real symmetric positive-definite matrices for t0 in {0..tmax-1} and with t={t0+1..tmax}. Results that are solvable are added to the map
+  //Solve for a general time series of real symmetric positive-definite matrices for t0 in {t0_start..t0_end} and with t={t0+1..tmax}. Results that are solvable are added to the map
   //Accessor should be lambda-like returning matrix with time t, e.g.  const MatrixType & operator()(const MatrixSeriesType &s, const int t){ return s[t]; }
   template<typename MatrixSeriesType, typename Accessor>
-  void solve(const MatrixSeriesType &matrix_series, const Accessor &acc, const int _tmax){
+  void solve(const MatrixSeriesType &matrix_series, const Accessor &acc, const int _tmax, const int t0_start, const int t0_end){
     tmax = _tmax;
-    for(int t0=0; t0<=_tmax-1;t0++){
+    for(int t0=t0_start; t0<=t0_end;t0++){
       for(int t=t0+1; t<=_tmax; t++){
 	bool fail = false;
 	std::vector<NumericVector<T> > evecs_t;
-	std::vector<T> evals_t;
+	std::vector<T> evals_t;	
 	std::vector<T> resid_t;
+
 	try{
 	  auto A = acc(matrix_series,t);
 	  auto B = acc(matrix_series,t0);
 	  resid_t = symmetricMatrixGEVPsolve(evecs_t, evals_t,A,B);
 	}catch(const std::exception & ex){
-	  if(verbose) std::cout << t0 << " " << t << " GEVP solver fail with error \"" << ex.what() << "\" (\"input domain error\" usually means one or both matrices are not positive definite), skipping\n";
+	  if(verbose) std::cout << "t0=" << t0 << " t=" << t << " GEVP solver fail with error \"" << ex.what() << "\" (\"input domain error\" usually means one or both matrices are not positive definite), skipping\n";
 	  fail = true;
 	}
+
 	if(!fail){
 	  evals_t0_t[{t0,t}] = std::move(evals_t);
 	  evecs_t0_t[{t0,t}] = std::move(evecs_t);
@@ -70,14 +85,41 @@ public:
     }
   }
   template<typename _GeneralizedCoordinate, typename _MatrixType, template<typename,typename> class _PairType = std::pair>
-  inline void solve(const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &matrix_series, const int _tmax){
-    solve(matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); }, _tmax);
+  inline void solve(const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &matrix_series, const int _tmax, const int t0_start, const int t0_end){
+    solve(matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); }, _tmax, t0_start, t0_end);
   }
   
 
   GEVPsolverBase(bool verbose = false): tmax(0), verbose(verbose){}
   GEVPsolverBase(const GEVPsolverBase &c) = default;
   GEVPsolverBase(GEVPsolverBase &&c) = default;
+
+  void write(HDF5writer &wr, const std::string &tag) const{
+    wr.enter(tag);
+    CPSfit::write(wr, evals_t0_t, "evals_t0_t");
+    CPSfit::write(wr, evecs_t0_t, "evecs_t0_t");
+    CPSfit::write(wr, resid_t0_t, "resid_t0_t");
+    CPSfit::write(wr, tmax, "tmax");
+    wr.leave();
+  }
+  void write(const std::string &filename, const std::string &tag = "GEVP_solutions"){
+    HDF5writer wr(filename);
+    write(wr, tag);
+  }
+
+  void read(HDF5reader &rd, const std::string &tag){
+    rd.enter(tag);
+    CPSfit::read(rd, evals_t0_t, "evals_t0_t");
+    CPSfit::read(rd, evecs_t0_t, "evecs_t0_t");
+    CPSfit::read(rd, resid_t0_t, "resid_t0_t");
+    CPSfit::read(rd, tmax, "tmax");
+    rd.leave();
+  }
+  void read(const std::string &filename, const std::string &tag = "GEVP_solutions"){
+    HDF5reader rd(filename);
+    read(rd, tag);
+  }
+
 };
 
 
@@ -227,6 +269,7 @@ public:
 
 //For C(t) - C(tsub)  for fixed tsub. Requires tsub > t > t0 
 class GEVPsubFixedTslice: public GEVPsolverBase<jackknifeDistribution<double> >{
+  typedef jackknifeDistribution<double> jackknifeDistributionD;
   int tsub;
   
   class TsubEnergySolveFunc{
@@ -331,6 +374,118 @@ public:
   }
   
 };
+
+
+
+
+//This more relaxed algorithm will work for non-symmetric and/or non positive-definite matrices
+//The eigenvalues and eigenvectors will in general be complex
+template<typename T>
+class GEVPnonSymmSolverBase{
+protected:
+  typedef std::pair<int,int> t0_t_pair;
+  typedef Complexify<T> complex_T;
+
+  std::map< t0_t_pair, std::vector<complex_T> > evals_t0_t; //only populate elements with t > t0 and t0,t < tmax providing the solver is able to compute the GEVP
+  std::map< t0_t_pair, std::vector<NumericVector<complex_T> > > evecs_t0_t;
+  std::map< t0_t_pair, std::vector<T> > resid_t0_t;
+  int tmax;
+  bool verbose;
+public:
+  typedef T DataType;
+
+  //Get the eigenvalues iff the element with t0,t is available, else return NULL
+  std::vector<complex_T> const* evals(const int t0, const int t) const{ 
+    auto it = evals_t0_t.find({t0,t});
+    return it == evals_t0_t.end() ? NULL : &it->second;
+  }
+  std::vector<complex_T> * evals(const int t0, const int t){ 
+    auto it = evals_t0_t.find({t0,t});
+    return it == evals_t0_t.end() ? NULL : &it->second;
+  }
+
+  //Get the eigenvectors iff the element with t0,t is available, else return NULL
+  //Eigenvector index is equivalent to the state index, and the coordinates are *operator* indices
+  std::vector<NumericVector<complex_T> > const* evecs(const int t0, const int t) const{ 
+    auto it = evecs_t0_t.find({t0,t});
+    return it == evecs_t0_t.end() ? NULL : &it->second;
+  }
+  std::vector<NumericVector<complex_T> > * evecs(const int t0, const int t){ 
+    auto it = evecs_t0_t.find({t0,t});
+    return it == evecs_t0_t.end() ? NULL : &it->second;
+  }
+
+  //GEVP residuals
+  std::vector<T> const* residuals(const int t0, const int t) const{ 
+    auto it = resid_t0_t.find({t0,t});
+    return it == resid_t0_t.end() ? NULL : &it->second;
+  }
+
+  //Solve for a general time series of real symmetric positive-definite matrices for t0 in {t0_start..t0_end} and with t={t0+1..tmax}. Results that are solvable are added to the map
+  //Accessor should be lambda-like returning matrix with time t, e.g.  const MatrixType & operator()(const MatrixSeriesType &s, const int t){ return s[t]; }
+  template<typename MatrixSeriesType, typename Accessor>
+  void solve(const MatrixSeriesType &matrix_series, const Accessor &acc, const int _tmax, const int t0_start, int t0_end){
+    tmax = _tmax;
+    for(int t0=t0_start; t0<=t0_end;t0++){
+      for(int t=t0+1; t<=_tmax; t++){
+	bool fail = false;
+	std::vector<NumericVector<complex_T> > evecs_t;
+	std::vector<complex_T> evals_t;	
+	std::vector<T> resid_t;
+	try{
+	  auto A = acc(matrix_series,t);
+	  auto B = acc(matrix_series,t0);
+	  resid_t = nonSymmetricMatrixGEVPsolve(evecs_t, evals_t,A,B);
+	}catch(const std::exception & ex){
+	  if(verbose) std::cout << "t0=" << t0 << " t=" << t << " GEVP solver fail with error \"" << ex.what() << "\"\n";
+	  fail = true;
+	}
+	if(!fail){
+	  evals_t0_t[{t0,t}] = std::move(evals_t);
+	  evecs_t0_t[{t0,t}] = std::move(evecs_t);
+	  resid_t0_t[{t0,t}] = std::move(resid_t);
+	}
+      }
+    }
+  }
+  template<typename _GeneralizedCoordinate, typename _MatrixType, template<typename,typename> class _PairType = std::pair>
+  inline void solve(const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &matrix_series, const int _tmax, const int t0_start, int t0_end){
+    solve(matrix_series, [&](const dataSeries<_GeneralizedCoordinate,_MatrixType,_PairType> &s, const int t){ return matrix_series.value(t); }, _tmax, t0_start, t0_end);
+  }
+  
+
+  explicit GEVPnonSymmSolverBase(bool verbose = false): tmax(0), verbose(verbose){}
+  GEVPnonSymmSolverBase(const GEVPnonSymmSolverBase &c) = default;
+  GEVPnonSymmSolverBase(GEVPnonSymmSolverBase &&c) = default;
+
+  void write(HDF5writer &wr, const std::string &tag) const{
+    wr.enter(tag);
+    CPSfit::write(wr, evals_t0_t, "evals_t0_t");
+    CPSfit::write(wr, evecs_t0_t, "evecs_t0_t");
+    CPSfit::write(wr, resid_t0_t, "resid_t0_t");
+    CPSfit::write(wr, tmax, "tmax");
+    wr.leave();
+  }
+  void write(const std::string &filename, const std::string &tag = "GEVP_solutions"){
+    HDF5writer wr(filename);
+    write(wr, tag);
+  }
+
+  void read(HDF5reader &rd, const std::string &tag){
+    rd.enter(tag);
+    CPSfit::read(rd, evals_t0_t, "evals_t0_t");
+    CPSfit::read(rd, evecs_t0_t, "evecs_t0_t");
+    CPSfit::read(rd, resid_t0_t, "resid_t0_t");
+    CPSfit::read(rd, tmax, "tmax");
+    rd.leave();
+  }
+  void read(const std::string &filename, const std::string &tag = "GEVP_solutions"){
+    HDF5reader rd(filename);
+    read(rd, tag);
+  }
+
+};
+
 
 CPSFIT_END_NAMESPACE
 #endif

@@ -109,9 +109,21 @@ public:
     freeze_params.push_back(idx);
     freeze_values.push_back(val);
   }
+
+  //Remove all frozen parameters
+  inline void resetFrozenParameters(){
+    freeze_params.resize(0);
+    freeze_values.resize(0);
+  }
+
   //Add a Gaussian prior
   inline void addPrior(const double value, const double weight, const int param_idx){
     priors.push_back(Prior(value,weight,param_idx));
+  }
+
+  //Remove all priors
+  inline void resetPriors(){
+    priors.resize(0);
   }
   
   //Add bounds on parameters
@@ -119,6 +131,11 @@ public:
     bounded_trans.push_back( boundedParameterTransform(param, bound, min, max) );
   }
   inline void setBound(const boundedParameterTransform &t){ bounded_trans.push_back(t); }
+
+  //Remove all bounds
+  inline void resetBounds(){
+    bounded_trans.resize(0);
+  }
 
   //Import a pre-generated covariance matrix
   void importCovarianceMatrix(const NumericSquareMatrix<BaseDistributionType> &cov, 

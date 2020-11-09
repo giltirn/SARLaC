@@ -10,5 +10,7 @@
 #include<utils/template_wizardry/distribution.h>
 #include<utils/template_wizardry/text_io.h>
 #include<utils/template_wizardry/other.h>
+#include<utils/template_wizardry/type_classify.h>
+#include<utils/template_wizardry/complexify.h>
 
 #endif

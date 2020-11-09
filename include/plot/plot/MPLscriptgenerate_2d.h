@@ -130,7 +130,7 @@ public:
   }
 
 
-
+  //Plot a histogram of the scalar data provided
   //Data is an accessors with methods:
   //double y(const int)
   //int size()

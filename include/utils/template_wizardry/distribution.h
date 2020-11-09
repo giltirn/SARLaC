@@ -6,7 +6,8 @@
 
 #include<config.h>
 #include<utils/macros.h>
-#include<utils/template_wizardry.h>
+#include "types.h"
+#include "type_classify.h"
 
 CPSFIT_START_NAMESPACE
 
@@ -55,6 +56,35 @@ template<typename T, ENABLE_IF_HASSAMPLEMETHOD(T)>
 struct getSampleType{
   typedef typename std::decay< decltype( ( (const T*)NULL )->sample(0) ) >::type type;
 };
+
+
+//For compound distribution types, get the underlying POD base type
+struct _get_base_type{
+  struct _dist_mark;
+  struct _other_mark;
+
+  template<typename T>
+  using classify = typename TypeIfElse< hasSampleMethod<T>::value, _dist_mark, _other_mark >::type;
+
+  template<typename T,  typename mark>
+  struct _get{};
+
+  template<typename T>
+  struct _get<T,_other_mark>{
+    typedef T type;
+  };
+
+  template<typename T>
+  struct _get<T,_dist_mark>{
+    typedef typename _get<typename T::DataType, classify<typename T::DataType> >::type type;
+  };
+};
+  
+template<typename T>
+struct getBaseType{
+  typedef typename _get_base_type::_get<T, _get_base_type::classify<T> >::type type;
+};
+
 
 
 

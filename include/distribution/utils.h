@@ -213,11 +213,40 @@ std::vector<bootstrapDistribution<double> > integratedAutocorrelationMultiRawRes
   return out;
 }
 
+template<typename T, typename std::enable_if<hasSampleMethod<T>::value, int>::type = 0>
+Realify<T> real(const T &d){
+  typedef iterate<T> iter;
+  typedef Realify<T> T_real;
+  typedef iterate<T_real> iter_real;
+  T_real out(d.getInitializer());
+  for(size_t i=0;i<iter::size(d);i++)
+    iter_real::at(i,out) = real( iter::at(i,d) );
+  return out;
+}
 
+template<typename T, typename std::enable_if<hasSampleMethod<T>::value, int>::type = 0>
+Realify<T> imag(const T &d){
+  typedef iterate<T> iter;
+  typedef Realify<T> T_real;
+  typedef iterate<T_real> iter_real;
+  T_real out(d.getInitializer());
+  for(size_t i=0;i<iter::size(d);i++)
+    iter_real::at(i,out) = imag( iter::at(i,d) );
+  return out;
+}
 
+//Check whether a distribution contains complex data
+//The criteria is  im(v[i])/abs(v[i]) >= tol
+template<typename T, typename std::enable_if<hasSampleMethod<T>::value, int>::type = 0>
+bool isComplex(const T &v, double tol = 1e-5){
+  typedef iterate<T> iter;
 
-
-
+  for(size_t i=0;i<iter::size(v);i++){
+    const auto &vi = iter::at(i,v);
+    if(imag(vi)/abs(vi) >= tol) return true;
+  }
+  return false;
+}
 
 CPSFIT_END_NAMESPACE
 #endif

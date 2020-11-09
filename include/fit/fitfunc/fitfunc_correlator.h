@@ -10,6 +10,8 @@
 #include<parser/parser.h>
 #include<ET/generic_ET.h>
 #include<containers/enumerated_struct.h>
+#include<containers/parameter_vector.h>
+#include<tensors/dual_number.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -158,6 +160,47 @@ public:
   inline int Nparams() const{ return 4; }
 
   ParameterType guess() const{ return ParameterType(1,0.5,1,1); }
+};
+
+
+//Fit N exponentials
+//This also serves as an example of how to use dual numbers to automatically compute the derivative
+class FitNStateExp{
+public:
+  int N;
+  typedef double ValueType;
+  typedef parameterVector<double> ParameterType; //format (A0,E0,A1,E1,...)
+  typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef double GeneralizedCoordinate; //time coord
+  
+  FitNStateExp(const int N): N(N){}
+
+  template<typename T, typename Boost>
+  T eval(const GeneralizedCoordinate t, const ParameterType &p, const Boost &boost) const{
+    if(p.size() != 2*N) error_exit(std::cout << "FitNStateExp::eval got parameter vector size " << p.size() << " expected " << 2*N << std::endl);
+    T out(0);
+    for(int j=0; j<2*N; j+=2){
+      T A = boost(p[j],j);
+      T E = boost(p[j+1],j+1);
+      out = out + A*exp(-E*t);
+    }
+    return out;
+  }
+  inline ValueType value(const GeneralizedCoordinate t, const ParameterType &p) const{
+    return eval<double>(t,p,
+			[&](const double v, const int i){ return v; }
+			);
+  }
+  inline ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate t, const ParameterType &p) const{
+    ValueDerivativeType d(2*N);
+    for(int i=0;i<2*N;i++) d(i) = eval<dual>(t,p,
+					     [&](const double v, const int j){ return dual(v, j==i ? 1.:0.); } //xp elem 1 for term we want to diff wrt
+					     ).xp; //derivative component
+    return d;
+  }
+
+  inline int Nparams() const{ return 2*N; }
+
 };
 
 

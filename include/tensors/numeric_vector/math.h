@@ -4,6 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_vector/class.h>
+#include<utils/template_wizardry/complexify.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -16,9 +17,25 @@ T dot(const NumericVector<T> &a, const NumericVector<T> &b){
   return out;
 }
 
+//Complex dot product
+template<typename T>
+T complex_dot(const NumericVector<T> &a, const NumericVector<T> &b){
+  assert(a.size() == b.size());
+  T out(a(0)); zeroit(out);
+  for(int i=0;i<a.size();i++) out = out + conj(a(i)) * b(i);
+  return out;
+}
+
+//Vector modulus
 template<typename T>
 T mod2(const NumericVector<T> &m){
   return dot(m,m);
+}
+
+//Complex modulus
+template<typename T>
+Realify<T> complex_mod2(const NumericVector<T> &m){
+  return real(complex_dot(m,m));
 }
 
 //Generate an orthonormal basis from a set of vectors

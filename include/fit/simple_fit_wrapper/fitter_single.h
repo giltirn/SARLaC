@@ -172,8 +172,9 @@ public:
   //Note the parameter type P is translated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
   //The coordinate type is wrapped up in a generalContainer as this is only ever needed by the fit function (which knows what type it is and can retrieve it)
   //If chisq_dof_nopriors pointer is provided, the chisq computed without priors and the number of degrees of freedom without priors will be written there
+  //Returns true if converged
   template<typename P, typename T>
-  void fit(P &params,
+  bool fit(P &params,
 	   double &chisq,
 	   double &chisq_per_dof,
 	   int &dof,
@@ -185,7 +186,7 @@ public:
     if(ndata == 0){
       std::cout << "Warning: Fit data container contains no data! Not performing a fit...." << std::endl;
       dof = -1;
-      return;
+      return false;
     }
 
     //Prepare inverse correlation matrix (the condition number is useful information even if we don't need the inverse explicitly)
@@ -246,6 +247,8 @@ public:
       
     chisq_per_dof = chisq/dof;
     for(int i=0;i<nparam;i++) params(i) = params_i(i);
+
+    return converged;
   }  
 };
 

@@ -251,7 +251,7 @@ struct importCostFunctionParameters<frozenCorrelatedFitPolicy,FitPolicies>{
   NumericSquareMatrix<double> inv_corr;
   std::vector<double> sigma;
 
-  template<typename GeneralizedCoord, template<typename> class V>
+  template<typename GeneralizedCoord>
   importCostFunctionParameters(fitter<FitPolicies> &fitter,
 			       const correlationFunction<GeneralizedCoord, DistributionType> &data): sigma(data.size()){
 

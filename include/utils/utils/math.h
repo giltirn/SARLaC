@@ -8,6 +8,8 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<utils/template_wizardry/distribution.h>
+#include<utils/template_wizardry/other.h>
+#include<utils/template_wizardry/matrix_vector.h>
 
 CPSFIT_START_NAMESPACE
 

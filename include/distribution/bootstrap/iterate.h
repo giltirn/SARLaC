@@ -26,6 +26,8 @@ public:
 
 template<typename T, template<typename> class V>
 struct iterate<bootstrapDistribution<T,V> >{
+  typedef T type;
+
   static inline int size(const bootstrapDistribution<T,V> &from){ return from.size()+1; } 
   static inline const T& at(const int i, const bootstrapDistribution<T,V> &from){
     return i==0 ? from.best() : from.sample(i-1);

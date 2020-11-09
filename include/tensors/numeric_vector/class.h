@@ -40,6 +40,13 @@ public:
 
   NumericVector & operator=(const NumericVector &r) = default;
   NumericVector & operator=(NumericVector &&r) = default;
+  NumericVector & operator=(std::initializer_list<Numeric> l){ 
+    resize(l.size());
+    auto it=l.begin();
+    for(int i=0;i<v.size();i++)
+      v[i] = *it++;
+    return *this;
+  }    
 
   ENABLE_GENERIC_ET(NumericVector, NumericVector<Numeric>, NumericVector<Numeric>);
   

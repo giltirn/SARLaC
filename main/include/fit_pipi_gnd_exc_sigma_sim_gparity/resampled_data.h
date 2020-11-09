@@ -1,6 +1,9 @@
 #ifndef _FIT_PIPI_GND_EXC_SIGMA_GPARITY_RESAMPLED_DATA_H
 #define _FIT_PIPI_GND_EXC_SIGMA_GPARITY_RESAMPLED_DATA_H
 
+#include "filters.h"
+#include "fitfunc.h"
+
 //Multiplier of tsep_pipi around which the fold pivots
 int foldOffsetMultiplier(const Operator a, const Operator b){
   if(  (a==Operator::PiPiGnd || a==Operator::PiPiExc) &&  (b==Operator::PiPiGnd || b==Operator::PiPiExc) ) return 2;

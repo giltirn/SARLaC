@@ -22,9 +22,12 @@ public:
   
   template<typename Initializer> //Initializer is a lambda-type with operator()(const int)
   inline parameterVector(const int n, const Initializer &initializer): NumericVector<T>(n,initializer){ }
+
+  parameterVector(std::initializer_list<T> l): NumericVector<T>(l){}
   
   parameterVector & operator=(const parameterVector &r) = default;
   parameterVector & operator=(parameterVector &&r) = default;
+  parameterVector & operator=(std::initializer_list<T> l){ this->NumericVector<T>::operator=(l); return *this; }      
 
   ENABLE_GENERIC_ET(parameterVector, parameterVector<T>, parameterVector<T>);
   

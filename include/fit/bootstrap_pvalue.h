@@ -16,6 +16,7 @@
 
 CPSFIT_START_NAMESPACE
 
+//Compute the bootstrap p-value given the distribution Dist
 //Dist should be sorted in ascending order
 double computePvalue(const double q2, const std::vector<double> &dist){
   int b_closest = -1;
@@ -31,6 +32,7 @@ double computePvalue(const double q2, const std::vector<double> &dist){
   return (n-b_closest-1)/double(n);
 }
 
+//Compute the boostrap p-value given the bootstrap distribution of q^2 computed from a fit to recentered data
 double computePvalue(const double q2, const bootstrapDistribution<double> &dist){
   std::vector<double> q2_dist(dist.size()); for(int i=0;i<dist.size();i++) q2_dist[i] = dist.sample(i);
   std::sort(q2_dist.begin(), q2_dist.end(), [&](const double a, const double b){ return a<b; });
