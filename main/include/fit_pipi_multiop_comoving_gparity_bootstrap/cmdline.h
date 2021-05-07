@@ -134,10 +134,11 @@ struct CMDline{
 	load_mlparams = true;
 	mlparams_file = sargv[i+1];
 	if(mlparams_file == "TEMPLATE"){
-	  MarquardtLevenbergParameters<double> templ;
-	  std::ofstream of("mlparams_template.args");
-	  of << templ;
-	  of.close();
+	  {
+	    MarquardtLevenbergParameters<double> templ;
+	    std::ofstream of("mlparams_template.args");
+	    of << templ;
+	  }
 	  std::cout << "Wrote MLparams template to mlparams_template.args\n";
 	  exit(0);	 
 	}

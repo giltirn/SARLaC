@@ -6,16 +6,11 @@
 
 using namespace CPSfit;
 
-//BinResampleAutocorr :  compute  c[s] = ( v[s] - <v> ) ( v[s+delta] - <v> ),  bin c[s] and bootstrap resample
-//BlockResampleRaw:   resample raw data then compute autocorrelation.   Should be better if delta_max is large because of no edge ambiguities, although may require large block size
-_GENERATE_ENUM_AND_PARSER(Strategy, (BinResampleAutocorr)(BlockResampleRaw) );
-
-
-#define PARAMS (std::string, file)(int, bin_size)(int, delta_max)(Strategy, strategy)
+#define PARAMS (std::string, file)(int, bin_size)(int, delta_max)
 
 struct Params{
   _GENERATE_MEMBERS(PARAMS);
-  Params(): file("values.dat"), bin_size(1), delta_max(12), strategy(Strategy::BinResampleAutocorr) {}
+  Params(): file("values.dat"), bin_size(1), delta_max(12){}
 };
 _GENERATE_PARSER(Params, PARAMS);
 
@@ -51,25 +46,25 @@ int main(const int argc, const char** argv){
   }
   std::cout << "Read " << data.size() << " samples" << std::endl;
   std::cout << "Value " << data << std::endl;
+
+  if(data.size() <= args.delta_max){
+    std::cout << "Error: delta_max is larger than the number of samples " << data.size() << std::endl;
+    exit(-1);
+  }
   
   writeParamsStandard(data, "quantity.hdf5");
 
   std::vector<bootstrapDistribution<double> > tau_int;
 
-  if(args.strategy == Strategy::BinResampleAutocorr){
-    std::cout << "Computing error bars using bin/resample of products ( v[s] - <v> )( v[s + delta] - <v> )" << std::endl;
-    int nbin = (data.size() - args.delta_max)/args.bin_size;
-    std::vector<std::vector<int> > rtable = resampleTable(RNG, nbin);
-    tau_int = integratedAutocorrelationMulti(args.delta_max, args.bin_size, args.delta_max, data, rtable);
-  }else if(args.strategy == Strategy::BlockResampleRaw){
-    std::cout << "Computing error bars using block resampling of raw data" << std::endl;
-    std::vector<std::vector<int> > rtable = nonoverlappingBlockResampleTable(RNG, data.size(), args.bin_size);
-    tau_int = integratedAutocorrelationMultiRawResample(args.delta_max, data, rtable);
-  }
+  std::cout << "Computing error bars using bin/resample of products ( v[s] - <v> )( v[s + delta] - <v> ) with bin size " << args.bin_size << std::endl;
+  int nbin = (data.size() - args.delta_max)/args.bin_size;
+  std::vector<std::vector<int> > rtable = resampleTable(RNG, nbin);
+  tau_int = integratedAutocorrelationMulti(args.delta_max, args.bin_size, args.delta_max, data, rtable);
 
   for(int d=0;d<=args.delta_max;d++)
     std::cout << d << " " << tau_int[d] << std::endl;
 
+  std::cout << "Generating plot" << std::endl;
   MatPlotLibScriptGenerate plot;
   
   struct Acc{
@@ -89,7 +84,7 @@ int main(const int argc, const char** argv){
 
   plot.write("plot.py","plot.pdf");
 
-
+  std::cout << "Done" << std::endl;
   return 0;
 }
 

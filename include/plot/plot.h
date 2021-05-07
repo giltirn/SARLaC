@@ -9,5 +9,6 @@
 #include<plot/plot/accessors_2d.h>
 #include<plot/plot/datasets_3d.h>
 #include<plot/plot/MPLscriptgenerate_3d.h>
+#include<plot/plot/utils.h>
 
 #endif
