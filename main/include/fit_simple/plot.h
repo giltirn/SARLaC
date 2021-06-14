@@ -144,7 +144,8 @@ void plotRaw(const FitFunc &fitfunc, const correlationFunction<double, Distribut
   DistributionD zero(data_j.value(0)); zeroit(zero);
   int niter = iterate<DistributionD>::size(zero);
 
-  DistributionCorrelationFunctionD fit_data(Lt,[&](const int t){ 
+  DistributionCorrelationFunctionD fit_data(t_max-t_min+1,[&](const int tt){ 
+      int t = tt + t_min;
       DistributionD val(zero);    
       for(int s=0;s<niter;s++) iterate<DistributionD>::at(s, val) = fitfunc.value(t, iterate<DistributionParams>::at(s, params));
       return typename DistributionCorrelationFunctionD::ElementType(t,val);

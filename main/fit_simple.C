@@ -26,6 +26,14 @@ int main(const int argc, const char** argv){
   }    
   
   parse(args, argv[1]);
+  
+  //Handle guess template
+  if(cmdline.load_guess && cmdline.guess_file == "TEMPLATE"){
+    std::unique_ptr< FitFuncManagerBase > fitfunc_manager = getFitFuncManager(args.fitfunc, args.Lt, args.t_min, args.t_max);
+    std::cout << "Writing guess template to guess.templ" << std::endl;
+    fitfunc_manager->writeGuessTemplate("guess.templ");
+    return 0;
+  }
 
   //Get raw data
   const int nchannel = args.data.size();
@@ -55,7 +63,7 @@ int main(const int argc, const char** argv){
     transformOptions opt;
 #define CP(A) opt.A = cmdline.A
     CP(remove_samples_in_range); CP(remove_samples_in_range_start); CP(remove_samples_in_range_lessthan); CP(scramble_raw_data);
-#undef CP;
+#undef CP
 
     transformRaw(channels_raw, opt); 
   }
@@ -90,16 +98,17 @@ int main(const int argc, const char** argv){
     if(do_dj) write(writer, data_dj, "data_dj");
     if(do_bdj) write(writer, data_bdj, "data_bdj");
   }
-
+  
   //Perform the fit
   jackknifeDistribution<parameterVectorD> params;
   jackknifeDistributionD chisq;
   int dof;
 
+  std::cout << "Performing fit" << std::endl;
   fit(params, chisq, dof, data_j,data_dj, data_bdj, args, cmdline);
 
   //Compute the bootstrap p-value
-  {
+  if(args.bootstrap_pvalue){
     std::cout << "Computing bootstrap p-value" << std::endl;
     std::cout << "Performing fit to central value of data" << std::endl;
 

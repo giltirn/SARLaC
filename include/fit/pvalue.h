@@ -236,6 +236,7 @@ public:
 
   //Using built-in
   static inline double CDF(const double x, const double p, const double n){
+    if(n-p+1 < 0) error_exit(std::cout << "Error: T^2 CDF evaluation requires nsample - dof > 0, got " << n-p+1 << std::endl);
     return Fdistribution::CDF((n-p+1)*x/p/n, p, n-p+1);
   }
    

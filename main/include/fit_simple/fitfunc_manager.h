@@ -32,6 +32,8 @@ struct FitFuncManagerBase{
       parse(guess,opt.guess_file);
     return pconvert<parameterVectorD, typename FF::ParameterType>(guess);
   }
+
+  virtual void writeGuessTemplate(const std::string &filename) const = 0;
   
   virtual ~FitFuncManagerBase(){}
 };
@@ -48,6 +50,12 @@ struct FitFuncHyperbolicManager: public FitFuncManagerBase{
 
   parameterVectorD getGuess() const{ 
     return this->getGuessBase(fitfunc.fitfunc);
+  }
+  
+  void writeGuessTemplate(const std::string &filename) const{
+    auto gt = fitfunc.fitfunc.guess();
+    std::ofstream of(filename);
+    of << gt;
   }
 
   void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
@@ -68,6 +76,12 @@ struct FitExpManager: public FitFuncManagerBase{
 
   parameterVectorD getGuess() const{ 
     return this->getGuessBase(fitfunc.fitfunc);
+  }
+
+  void writeGuessTemplate(const std::string &filename) const{
+    auto gt = fitfunc.fitfunc.guess();
+    std::ofstream of(filename);
+    of << gt;
   }
 
   void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
@@ -91,6 +105,12 @@ struct FitConstantManager: public FitFuncManagerBase{
     return this->getGuessBase(fitfunc.fitfunc);
   }
 
+  void writeGuessTemplate(const std::string &filename) const{
+    auto gt = fitfunc.fitfunc.guess();
+    std::ofstream of(filename);
+    of << gt;
+  }
+
   void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{
     plotRaw(fitfunc.fitfunc,data_j,pconvert<typename FitFunc::ParameterType,parameterVectorD>(params), this->Lt, this->t_min, this->t_max);
   }
@@ -111,6 +131,12 @@ struct FitTwoStateCoshManager: public FitFuncManagerBase{
 
   parameterVectorD getGuess() const{ 
     return this->getGuessBase(fitfunc.fitfunc);
+  }
+
+  void writeGuessTemplate(const std::string &filename) const{
+    auto gt = fitfunc.fitfunc.guess();
+    std::ofstream of(filename);
+    of << gt;
   }
 
   void plot(const jackknifeCorrelationFunctionD &data_j, const jackknifeDistribution<parameterVectorD> &params) const{

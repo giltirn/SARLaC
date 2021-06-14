@@ -45,6 +45,8 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
   if(cmdline.load_mlparams){
     parse(minparams, cmdline.mlparams_file);
     std::cout << "Loaded minimizer params: " << minparams << std::endl;
+  }else{
+    minparams.verbose = true;
   }
   
   simpleFitWrapper<jackknifeDistributionD> fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
@@ -81,22 +83,29 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
   
   fitter.fit(params, chisq, chisq_per_dof, dof, data_j_inrange);
 
+  std::cout << "Completed fit, chisq: " << chisq << std::endl;
+
+  gsl_error_handler_t * err = gsl_set_error_handler_off();
   jackknifeDistributionD pvalue_chisq(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
-  jackknifeDistributionD pvalue_Tsq(nsample, [&](const int s){ return TsquareDistribution::pvalue(chisq.sample(s), dof, nsample-1); });
+  jackknifeDistributionD pvalue_Tsq(nsample, 0.);
+  bool do_Tsq = nsample - dof >= 0;
+  if(!do_Tsq) std::cout << "WARNING: Skipping T^2 p-value because N-dof=" << nsample-dof << "<0" << std::endl;
+
+  if(do_Tsq) pvalue_Tsq = jackknifeDistributionD(nsample, [&](const int s){ return TsquareDistribution::pvalue(chisq.sample(s), dof, nsample-1); });
 
   std::cout << "Params: " << params << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
   std::cout << "Dof: " << dof << std::endl;
   std::cout << "P-value(chi^2): " << pvalue_chisq << std::endl;
-  std::cout << "P-value(T^2): " << pvalue_Tsq << std::endl;
+  if(do_Tsq) std::cout << "P-value(T^2): " << pvalue_Tsq << std::endl;
   
 #ifdef HAVE_HDF5
   writeParamsStandard(chisq, "chisq.hdf5");
   writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
   writeParamsStandard(params, "params.hdf5"); 
   writeParamsStandard(pvalue_chisq, "pvalue_chisq.hdf5");
-  writeParamsStandard(pvalue_Tsq, "pvalue_Tsq.hdf5");
+  if(do_Tsq) writeParamsStandard(pvalue_Tsq, "pvalue_Tsq.hdf5");
 #endif
 
   fitfunc_manager->plot(data_j, params);
