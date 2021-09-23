@@ -32,7 +32,16 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
     std::cout << (int)data_j_inrange.coord(i) << " " << data_j_inrange.value(i) << std::endl;
   }
 
-
+  if(cmdline.print_fitdata_samples){
+    std::cout << "Jackknife samples of fit data:" << std::endl;
+    for(int i=0;i<data_j_inrange.size();i++){
+      std::cout << "t=" << (int)data_j_inrange.coord(i) << std::endl;
+      for(int s=0;s<data_j_inrange.value(i).size();s++){
+	std::cout << s << " " << data_j_inrange.value(i).sample(s) << std::endl;
+      }
+    }
+  }
+    
   //Get the fit function manager
   FitFuncManagerBase::Options opt;
   opt.load_guess = cmdline.load_guess;

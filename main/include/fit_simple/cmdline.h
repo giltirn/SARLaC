@@ -35,6 +35,8 @@ struct CMDline{
   bool save_bootstrap_fit_result;
   std::string save_bootstrap_fit_result_file;
 
+  bool print_fitdata_samples;
+
   CMDline(){
     load_guess = false;
     save_combined_data = false;
@@ -47,6 +49,7 @@ struct CMDline{
     load_boot_resample_table = false;
     save_boot_resample_table = false;
     save_bootstrap_fit_result = false;
+    print_fitdata_samples = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -119,6 +122,9 @@ struct CMDline{
 	save_bootstrap_fit_result = true;
 	save_bootstrap_fit_result_file = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-print_fitdata_samples"){ //print the jackknife samples for data in the fit window
+	print_fitdata_samples = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

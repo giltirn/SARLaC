@@ -242,5 +242,15 @@ struct printOnlyIfType<T,T>{
 };
 
 
+//For a format string containing a "%d", replace the first instance of %d with "cfg"
+inline std::string getFilenameFromFmtString(const std::string &fmt_string, int cfg){
+  std::size_t off = fmt_string.find("%d");
+  if(off == std::string::npos) error_exit(std::cout << "getFilenameFromFmtString expect fmt_string to contain a '%d', instead got " << fmt_string << std::endl);
+  std::string filename = fmt_string;
+  filename.replace(off,2,std::to_string(cfg));
+  return filename;
+}
+
+
 CPSFIT_END_NAMESPACE
 #endif
