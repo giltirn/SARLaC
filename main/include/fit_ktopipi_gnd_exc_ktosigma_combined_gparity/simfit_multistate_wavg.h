@@ -173,7 +173,7 @@ public:
       auto op = operators[opidx];
 
       for(int s=0; s<this->nstate; s++) 
-	this->freeze(freeze_params, freeze_vals, stringize(this->opAmplitudeParamFmt(op).c_str(),s), this->coeffs.find(op)->second[s], this->param_idx_map);
+	this->freeze(freeze_params, freeze_vals, stringize(opAmplitudeParamFmt(op).c_str(),s), this->coeffs.find(op)->second[s], this->param_idx_map);
     }
 
     //Run the actual fit

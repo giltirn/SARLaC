@@ -6,6 +6,7 @@
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/fronthalf_backhalf.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/weighted_avg_consistency.h>
+#include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/plot_C_fixedtsepKop.h>
 
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/alpha_vary_plot.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/args.h>
@@ -117,7 +118,7 @@ int main(const int argc, const char* argv[]){
 	  else tsep_k_snk =  args.tsep_k_sigma[pargs.tsep_k_snk_idx];
 
 	  std::string file_stub = stringize("alpha_vary_Q%d_%s_tsepksnk%d_tsepopsnk%d", q+1,
-					    simultaneousFitCommon::opDescrFile(args.operators[o]).c_str(),
+					    opDescrFile(args.operators[o]).c_str(),
 					    tsep_k_snk, pargs.tsep_op_snk);
 	  alphaVaryPlot<bootstrapDistributionD>(raw, args.operators[o], q, pargs.tsep_k_snk_idx, pargs.tsep_op_snk,		    
 						args, cmdline, resampler, file_stub, pargs.nstep_each_side, pargs.coeff_step);
@@ -177,6 +178,14 @@ int main(const int argc, const char* argv[]){
     data_bj.constrainSourceSinkSep(args.operators[o], *op_tsep_list[args.operators[o]]);
   }
 
+  //Plot correlation function for each operator and tsep_k_pi
+  for(int o=0;o<args.operators.size();o++){
+    for(int q=0; q < (args.basis == Basis::Basis7 ? 7 : 10); q++){
+      plotCfixedTsepKop(data_b, args.operators[o], q+1, *op_tsep_list[args.operators[o]]);
+    }
+  }
+
+  //Do fits
   std::cout << "Starting fits" << std::endl;
   typedef taggedValueContainer<double,std::string> Params;
 

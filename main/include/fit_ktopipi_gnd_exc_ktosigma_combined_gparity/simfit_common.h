@@ -38,44 +38,6 @@ struct simultaneousFitCommon{
 #define COPY_COMMON_TYPEDEFS						\
   CPC(InnerParamMap); CPC(Params); CPC(paramIdxMap); CPC(operatorSubsetMap); CPC(subsetMapDescr);
 
-  static inline std::string opAmplitudeParamFmt(PiPiOperator op){
-    switch(op){
-    case PiPiOperator::PiPiGnd:
-      return "Apipi%d";
-    case PiPiOperator::PiPiExc:
-      return "Apipi_exc_%d";
-    case PiPiOperator::Sigma:
-      return "Asigma%d";
-    }
-    assert(0);
-    return "";
-  }
-  static inline std::string opDescr(PiPiOperator op){
-    switch(op){
-    case PiPiOperator::PiPiGnd:
-      return "K->pipi(111)";
-    case PiPiOperator::PiPiExc:
-      return "K->pipi(311)";
-    case PiPiOperator::Sigma:
-      return "K->sigma";
-    }
-    assert(0);
-    return "";
-  }
-
-  static inline std::string opDescrFile(PiPiOperator op){
-    switch(op){
-    case PiPiOperator::PiPiGnd:
-      return "kpipi_111";
-    case PiPiOperator::PiPiExc:
-      return "kpipi_311";
-    case PiPiOperator::Sigma:
-      return "ksigma";
-    }
-    assert(0);
-    return "";
-  }
-
   //Output vectors should be resized to number of matrix elements 
   template<typename DistributionType>
   static void generateSimData(std::vector<correlationFunction<SimFitCoordGen, DistributionType> > &A0_sim_r,

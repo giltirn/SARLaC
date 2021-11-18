@@ -44,7 +44,7 @@ protected:
     std::string A_op_state[nop][nstate];
     for(int o=0;o<nop;o++)
       for(int s=0;s<nstate;s++)
-	A_op_state[o][s] = stringize(this->opAmplitudeParamFmt(operators[o]).c_str(),s);
+	A_op_state[o][s] = stringize(opAmplitudeParamFmt(operators[o]).c_str(),s);
 
     //Construct parameter names for state energies and matrix elements
     std::string E[nstate], M[nstate];
@@ -89,7 +89,7 @@ protected:
     //Finally, associate with each local->global parameter mapping a description
     for(int o=0;o<nop;o++){
       auto & pmap = op_param_maps[operators[o]];
-      pmap_descr[&pmap] = this->opDescr(operators[o]); 
+      pmap_descr[&pmap] = opDescr(operators[o]); 
     }
   }
 
@@ -218,7 +218,7 @@ public:
       auto op = operators[opidx];
 
       for(int s=0; s<nstate; s++) 
-	this->freeze(freeze_params, freeze_vals, stringize(this->opAmplitudeParamFmt(op).c_str(),s), coeffs.find(op)->second[s], param_idx_map);
+	this->freeze(freeze_params, freeze_vals, stringize(opAmplitudeParamFmt(op).c_str(),s), coeffs.find(op)->second[s], param_idx_map);
     }
 
     //Run the actual fit

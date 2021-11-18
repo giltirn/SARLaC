@@ -133,6 +133,7 @@ struct RawData{
     }
   }
 
+  //Generate resampled data for each four-quark operator
   template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
   void resample(std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > &A0_all, const PiPiOperator op, 
 		const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler, const double alpha_coeff = 1.) const{
