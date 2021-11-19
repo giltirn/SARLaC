@@ -1,3 +1,12 @@
+#if 1
+
+//Fixme
+
+int main(void){
+  return 0;
+}
+#else
+
 #include <fstream>
 #include <regex>
 #include <vector>
@@ -138,3 +147,5 @@ int main(const int argc, const char* argv[]){
   std::cout << "Finished" << std::endl;
   return 0;
 }
+
+#endif

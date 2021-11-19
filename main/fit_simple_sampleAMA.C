@@ -2,6 +2,7 @@
 #include<fit.h>
 #include<parser.h>
 #include<plot.h>
+#include<random.h>
 
 using namespace CPSfit;
 
@@ -89,6 +90,13 @@ int main(const int argc, const char** argv){
     }
   }  
 
-  fit(corrected_j, corrected_dj, args.toArgs(), cmdline);
+  blockDoubleJackknifeCorrelationFunctionD data_bj;
+  assert(args.covariance_strategy != CovarianceStrategy::CorrelatedBlockHybrid &&
+	 args.covariance_strategy != CovarianceStrategy::CorrelatedBlock);
+
+  jackknifeDistribution<parameterVectorD> params;
+  jackknifeDistributionD chisq;
+  int dof;
+  fit(params, chisq, dof, corrected_j, corrected_dj, data_bj, args.toArgs(), cmdline);
 }
 

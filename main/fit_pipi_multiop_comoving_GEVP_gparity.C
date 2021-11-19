@@ -1,3 +1,11 @@
+#if 1
+
+int main(void){
+  return 0;
+}
+
+#else
+
 #include <utils.h>
 #include <pipi_common/pipi_common.h>
 using namespace CPSfit;
@@ -118,11 +126,11 @@ int main(const int argc, const char* argv[]){
 
   if(cmdline.subtract_nbr_tslice){
     GEVPsubNeighborTslice<jackknifeDistributionD> gevp(cmdline.verbose_solver);
-    gevp.solve(C, args.t_max);
+    gevp.solve(C, args.t_max, args.fit_t0min, args.fit_t0max);
 
     if(args.double_jackknife_cov){
       GEVPsubNeighborTslice<doubleJackknifeDistributionD> gevp_dj(cmdline.verbose_solver);
-      gevp_dj.solve(Cdj, args.t_max);
+      gevp_dj.solve(Cdj, args.t_max, args.fit_t0min, args.fit_t0max);
       analyze_GEVP(gevp, gevp_dj, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
     }else{
       analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
@@ -130,15 +138,15 @@ int main(const int argc, const char* argv[]){
   }else if(cmdline.fix_t_sub){
     if(args.double_jackknife_cov) error_exit(std::cout << "Fixed tsub does not support double-jackknife\n");
     GEVPsubFixedTslice gevp(cmdline.fix_t_sub_time, cmdline.verbose_solver);
-    gevp.solve(C, args.t_max);
+    gevp.solve(C, args.t_max, args.fit_t0min, args.fit_t0max);
     analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
   }else{
     GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
-    gevp.solve(C, args.t_max);
+    gevp.solve(C, args.t_max, args.fit_t0min, args.fit_t0max);
 
     if(args.double_jackknife_cov){
       GEVPsolver<doubleJackknifeDistributionD> gevp_dj(cmdline.verbose_solver);
-      gevp_dj.solve(C, args.t_max);
+      gevp_dj.solve(C, args.t_max, args.fit_t0min, args.fit_t0max);
       analyze_GEVP(gevp, gevp_dj, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
     }else{
       analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
@@ -148,3 +156,5 @@ int main(const int argc, const char* argv[]){
   std::cout << "Done\n";
   return 0;
 }
+
+#endif

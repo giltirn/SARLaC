@@ -1,3 +1,13 @@
+#if 1
+
+//Fixme
+
+int main(void){
+  return 0;
+}
+#else
+
+
 #include <pipi_common/pipi_common.h>
 #include <pipi_common/analyze_chisq.h>
 
@@ -230,3 +240,5 @@ int main(const int argc, const char* argv[]){
   std::cout << "Done\n";
   return 0;
 }
+
+#endif

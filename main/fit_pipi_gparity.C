@@ -17,8 +17,8 @@ int main(const int argc, const char* argv[]){
   CMDline cmdline(argc,argv,2);
 
   //Resampled data
-  doubleJackCorrelationFunction pipi_dj;
-  jackknifeCorrelationFunction pipi_j;
+  doubleJackknifeCorrelationFunctionD pipi_dj;
+  jackknifeCorrelationFunctionD pipi_j;
 
   getData(pipi_j, pipi_dj, args,cmdline);
   
@@ -27,8 +27,8 @@ int main(const int argc, const char* argv[]){
   
   filterXrange<double> trange(args.t_min,args.t_max);
   
-  doubleJackCorrelationFunction pipi_dj_inrange;
-  jackknifeCorrelationFunction pipi_j_inrange;
+  doubleJackknifeCorrelationFunctionD pipi_dj_inrange;
+  jackknifeCorrelationFunctionD pipi_j_inrange;
 
   std::cout << "Data in fit range:\n";
   for(int d=0;d<pipi_dj.size();d++)

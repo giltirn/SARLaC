@@ -193,6 +193,13 @@ public:
     ens_jacks = std::move(result);
     layout = &to;
   }
+
+  //Allow generic initialization and resize
+  typedef superJackknifeLayout initType;
+  
+  inline superJackknifeLayout getInitializer() const{ return this->getLayout(); }
+
+  void resize(const superJackknifeLayout &layout){ this->setLayout(layout); }
   
   template<typename U=DataType, typename std::enable_if< is_std_complex<U>::value, int >::type = 0>
   superJackknifeDistribution<typename U::value_type> real() const{

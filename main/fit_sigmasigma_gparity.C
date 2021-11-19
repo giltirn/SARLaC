@@ -29,16 +29,16 @@ int main(const int argc, const char* argv[]){
   sigmaSelfContraction raw_self;
   readSigmaSelf(raw_self, args.data_dir, args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
 
-  rawCorrelationFunction correlator_raw = sourceAverage(raw_data);
+  rawDataCorrelationFunctionD correlator_raw = sourceAverage(raw_data);
 
-  auto correlator_j = binResample<jackknifeCorrelationFunction>(correlator_raw, args.bin_size);
-  auto correlator_dj = binResample<doubleJackCorrelationFunction>(correlator_raw, args.bin_size);
+  auto correlator_j = binResample<jackknifeCorrelationFunctionD>(correlator_raw, args.bin_size);
+  auto correlator_dj = binResample<doubleJackknifeCorrelationFunctionD>(correlator_raw, args.bin_size);
 
   const int nsample = correlator_dj.value(0).size();
 
   if(args.do_vacuum_subtraction){
-    correlator_j = correlator_j - computeSigmaVacSub<jackknifeCorrelationFunction>(raw_self, args.bin_size);
-    correlator_dj = correlator_dj - computeSigmaVacSub<doubleJackCorrelationFunction>(raw_self, args.bin_size);
+    correlator_j = correlator_j - computeSigmaVacSub<jackknifeCorrelationFunctionD>(raw_self, args.bin_size);
+    correlator_dj = correlator_dj - computeSigmaVacSub<doubleJackknifeCorrelationFunctionD>(raw_self, args.bin_size);
   }
   
   correlator_j = fold(correlator_j, 0);
@@ -47,8 +47,8 @@ int main(const int argc, const char* argv[]){
   //Filter out the data that is to be fitted
   filterXrange<double> trange(args.t_min,args.t_max);
   
-  doubleJackCorrelationFunction correlator_dj_inrange;
-  jackknifeCorrelationFunction correlator_j_inrange;
+  doubleJackknifeCorrelationFunctionD correlator_dj_inrange;
+  jackknifeCorrelationFunctionD correlator_j_inrange;
   for(int d=0;d<correlator_dj.size();d++)
     if(trange.accept(correlator_dj.coord(d),correlator_dj.value(d) )){
       correlator_dj_inrange.push_back(correlator_dj[d]);

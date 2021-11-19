@@ -5,6 +5,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
+#include <common/common_defs.h>
 #include <pipi_common/read_data_sigma.h>
 #include <pipi_common/read_data_pipitosigma.h>
 #include <pipi_common/symm_data_multiplicities.h>
@@ -13,9 +14,9 @@
 CPSFIT_START_NAMESPACE
 
 void writeCheckpoint(const std::string &file, 
-		     const rawCorrelationFunction &pipi_raw,
-		     const rawCorrelationFunction &pipi_to_sigma_raw,
-		     const rawCorrelationFunction &sigma2pt_raw,
+		     const rawDataCorrelationFunctionD &pipi_raw,
+		     const rawDataCorrelationFunctionD &pipi_to_sigma_raw,
+		     const rawDataCorrelationFunctionD &sigma2pt_raw,
 		     const bubbleDataAllMomenta &pipi_self_data,
 		     const sigmaSelfContraction &sigma_self_data){
   HDF5writer wr(file);
@@ -25,9 +26,9 @@ void writeCheckpoint(const std::string &file,
   write(wr, pipi_self_data,"pipi_self_data");
   write(wr, sigma_self_data, "sigma_self_data");
 }
-void readCheckpoint(rawCorrelationFunction &pipi_raw,
-		    rawCorrelationFunction &pipi_to_sigma_raw,
-		    rawCorrelationFunction &sigma2pt_raw,
+void readCheckpoint(rawDataCorrelationFunctionD &pipi_raw,
+		    rawDataCorrelationFunctionD &pipi_to_sigma_raw,
+		    rawDataCorrelationFunctionD &sigma2pt_raw,
 		    bubbleDataAllMomenta &pipi_self_data,
 		    sigmaSelfContraction &sigma_self_data,
 		    const std::string &file){
@@ -40,9 +41,9 @@ void readCheckpoint(rawCorrelationFunction &pipi_raw,
 }
 
 //compute_pipitosigma_disconn_ReRe = false was original strategy; setting to true gives a slight stat error improvement
-void readData(rawCorrelationFunction &pipi_raw,
-	      rawCorrelationFunction &pipi_to_sigma_raw,
-	      rawCorrelationFunction &sigma2pt_raw,
+void readData(rawDataCorrelationFunctionD &pipi_raw,
+	      rawDataCorrelationFunctionD &pipi_to_sigma_raw,
+	      rawDataCorrelationFunctionD &sigma2pt_raw,
 	      bubbleDataAllMomenta &pipi_self_data,
 	      sigmaSelfContraction &sigma_self_data,
 	      const std::string &data_dir, 
@@ -83,7 +84,7 @@ void readData(rawCorrelationFunction &pipi_raw,
 
 
 struct rawData{
-  rawCorrelationFunction pipi_raw, pipi_to_sigma_raw, sigma2pt_raw;
+  rawDataCorrelationFunctionD pipi_raw, pipi_to_sigma_raw, sigma2pt_raw;
   bubbleDataAllMomenta pipi_self_data;
   sigmaSelfContraction sigma_self_data;
 

@@ -37,6 +37,8 @@ struct CMDline{
 
   bool write_alpha_and_pseudoscalar_matrix_elem;
 
+  bool disable_vacuum_subtraction;
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -56,6 +58,8 @@ struct CMDline{
     save_resampled_data_container_checkpoint = false;
 
     write_alpha_and_pseudoscalar_matrix_elem = false;
+
+    disable_vacuum_subtraction = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -116,6 +120,10 @@ struct CMDline{
       }else if(sargv[i] == "-write_alpha_and_pseudoscalar_matrix_elem"){
 	write_alpha_and_pseudoscalar_matrix_elem = true;
 	i++;
+      }else if(sargv[i] == "-disable_vacuum_subtraction"){
+	disable_vacuum_subtraction = true;
+	std::cout << "Not performing vacuum subtraction" << std::endl;
+	i++;      
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

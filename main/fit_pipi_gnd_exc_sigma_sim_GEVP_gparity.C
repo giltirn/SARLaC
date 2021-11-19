@@ -61,7 +61,7 @@ int main(const int argc, const char* argv[]){
   int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc/args.bin_size;      
   
   //Load/generate resampled data
-  ResampledData<jackknifeCorrelationFunction> data_j;
+  ResampledData<jackknifeCorrelationFunctionD> data_j;
   if(cmdline.load_combined_data){
     loadCheckpoint(data_j, cmdline.load_combined_data_file);
     for(int i=0;i<ops.size();i++)
@@ -89,7 +89,7 @@ int main(const int argc, const char* argv[]){
     correlatorSubtract(C, cmdline.subtract_from_data_file);
 
   GEVPsolver<jackknifeDistributionD> gevp(cmdline.verbose_solver);
-  gevp.solve(C, args.t_max);
+  gevp.solve(C, args.t_max, args.fit_t0min, args.fit_t0max);
   analyze_GEVP(gevp, C, args.t_max, args.fit_tmin, args.fit_tmax, args.fit_t0min, args.fit_t0max, args.Ascale);
 
   std::cout << "Done\n";

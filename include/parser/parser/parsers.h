@@ -7,6 +7,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<utils/utils/type_info.h>
+#include<utils/template_wizardry/text_io.h>
 #include<parser/parser/parser_tools.h>
 
 CPSFIT_START_NAMESPACE

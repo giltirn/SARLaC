@@ -2,6 +2,7 @@
 #define _FIT_SIMPLE_FITFUNC_MANAGER_H_
 
 #include "plot.h"
+#include "main.h"
 
 typedef parameterVector<double> parameterVectorD;
 

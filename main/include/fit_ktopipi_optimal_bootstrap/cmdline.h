@@ -41,6 +41,8 @@ struct CMDline{
   bool save_boot_resample_table;
   std::string save_boot_resample_table_file;
 
+  bool disable_vacuum_subtraction;
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -61,6 +63,8 @@ struct CMDline{
 
     load_boot_resample_table = false;
     save_boot_resample_table = false;
+
+    disable_vacuum_subtraction = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -126,6 +130,10 @@ struct CMDline{
 	save_boot_resample_table = true;
 	save_boot_resample_table_file = sargv[i+1];
       	i+=2;
+      }else if(sargv[i] == "-disable_vacuum_subtraction"){
+	disable_vacuum_subtraction = true;
+	std::cout << "Not performing vacuum subtraction" << std::endl;
+	i++;      
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

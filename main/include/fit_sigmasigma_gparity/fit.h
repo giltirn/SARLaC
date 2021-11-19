@@ -23,8 +23,8 @@ struct SigmaFitArgs{
 };
 
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
-jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr_sigma(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-								      const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr_sigma(const jackknifeCorrelationFunctionD &pipi_j_vacsubbed_inrange,
+								      const doubleJackknifeCorrelationFunctionD &pipi_dj_vacsubbed_inrange,
 								      const SigmaFitArgs &args){
 
   typedef typename FitFunc::Params Params;
@@ -76,8 +76,8 @@ jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr_sigma(const jack
 
 
 template<typename FitFunc>
-inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff_sigma(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-								       const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff_sigma(const jackknifeCorrelationFunctionD &pipi_j_vacsubbed_inrange,
+								       const doubleJackknifeCorrelationFunctionD &pipi_dj_vacsubbed_inrange,
 								       const  SigmaFitArgs &args){
   jackknifeDistribution<typename FitFunc::Params> params = args.correlated ? 
     fit_corr_uncorr_sigma<FitFunc,correlatedFitPolicy>(pipi_j_vacsubbed_inrange,pipi_dj_vacsubbed_inrange, args) :
@@ -89,8 +89,8 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff_sigma(con
 }
 
 //returns a pair containing the pipi energy and the constant term
-inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_sigma(const jackknifeCorrelationFunction &pipi_j_vacsubbed_inrange,
-									  const doubleJackCorrelationFunction &pipi_dj_vacsubbed_inrange,
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_sigma(const jackknifeCorrelationFunctionD &pipi_j_vacsubbed_inrange,
+									  const doubleJackknifeCorrelationFunctionD &pipi_dj_vacsubbed_inrange,
 									  const SigmaFitArgs &args){
   switch(args.fitfunc){
   case SigmaFitFunction::FCoshPlusConstant:

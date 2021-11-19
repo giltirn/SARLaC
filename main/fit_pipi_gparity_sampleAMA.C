@@ -7,20 +7,20 @@ using namespace CPSfit;
 
 struct rawData{ //raw, unbinned data
   bubbleDataAllMomenta raw_bubble_data_sloppy_S;
-  rawCorrelationFunction pipi_raw_sloppy_S;
+  rawDataCorrelationFunctionD pipi_raw_sloppy_S;
 
   bubbleDataAllMomenta raw_bubble_data_sloppy_C;
-  rawCorrelationFunction pipi_raw_sloppy_C;
+  rawDataCorrelationFunctionD pipi_raw_sloppy_C;
 
   bubbleDataAllMomenta raw_bubble_data_exact_C;
-  rawCorrelationFunction pipi_raw_exact_C;
+  rawDataCorrelationFunctionD pipi_raw_exact_C;
 
   int nS; //unbinned
   int nC;
 
   rawData(const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk, const int isospin, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
     bubbleDataAllMomenta* raw_bubble_data[3] = { &raw_bubble_data_sloppy_S, &raw_bubble_data_sloppy_C, &raw_bubble_data_exact_C };
-    rawCorrelationFunction* pipi_raw[3] = { &pipi_raw_sloppy_S, &pipi_raw_sloppy_C, &pipi_raw_exact_C };
+    rawDataCorrelationFunctionD* pipi_raw[3] = { &pipi_raw_sloppy_S, &pipi_raw_sloppy_C, &pipi_raw_exact_C };
 
     const char ens[3] = { 'S', 'C', 'C' };
     const SloppyExact se[3] = { Sloppy, Sloppy, Exact };
@@ -115,7 +115,7 @@ void resampleCombineData(correlationFunction<double,DistributionType> &pipi,
   }
 }
 
-void generateData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, 
+void generateData(jackknifeCorrelationFunctionD &pipi_j, doubleJackknifeCorrelationFunctionD &pipi_dj, 
 		  const PiPiProjectorBase &proj_src,  const PiPiProjectorBase &proj_snk, const int isospin,
 		  const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
   rawData raw(proj_src, proj_snk, isospin, args,cmdline);
@@ -127,7 +127,7 @@ void generateData(jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFun
 }
 
 void getData(const PiPiProjectorBase &proj_src,  const PiPiProjectorBase &proj_snk, const int isospin, 
-	     jackknifeCorrelationFunction &pipi_j, doubleJackCorrelationFunction &pipi_dj, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
+	     jackknifeCorrelationFunctionD &pipi_j, doubleJackknifeCorrelationFunctionD &pipi_dj, const ArgsSampleAMA &args, const CMDlineSampleAMA &cmdline){
   if(cmdline.load_combined_data){
 #ifdef HAVE_HDF5
     HDF5reader reader(cmdline.load_combined_data_file);
@@ -172,8 +172,8 @@ int main(const int argc, const char* argv[]){
   std::unique_ptr<PiPiProjectorBase> proj_snk(getProjector(args.proj_snk,ptot));
 
   //Read resampled
-  jackknifeCorrelationFunction pipi_j;
-  doubleJackCorrelationFunction pipi_dj;
+  jackknifeCorrelationFunctionD pipi_j;
+  doubleJackknifeCorrelationFunctionD pipi_dj;
 
   getData(*proj_src, *proj_snk, args.isospin, pipi_j,pipi_dj,args,cmdline);
    
@@ -182,8 +182,8 @@ int main(const int argc, const char* argv[]){
   
   filterXrange<double> trange(args.t_min,args.t_max);
   
-  doubleJackCorrelationFunction pipi_dj_inrange;
-  jackknifeCorrelationFunction pipi_j_inrange;
+  doubleJackknifeCorrelationFunctionD pipi_dj_inrange;
+  jackknifeCorrelationFunctionD pipi_j_inrange;
   for(int d=0;d<pipi_dj.size();d++)
     if(trange.accept(pipi_dj.coord(d),pipi_dj.value(d) )){
       pipi_dj_inrange.push_back(pipi_dj[d]);

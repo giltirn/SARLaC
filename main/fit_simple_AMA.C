@@ -2,6 +2,7 @@
 #include<fit.h>
 #include<parser.h>
 #include<plot.h>
+#include<random.h>
 
 using namespace CPSfit;
 
@@ -128,7 +129,15 @@ int main(const int argc, const char** argv){
   applyCombination(data_j,channels_j,args.combination);
   applyTimeDep(data_j, args.outer_time_dep, args.Lt);
 
-  fit(data_j,data_dj, args, cmdline);
+  blockDoubleJackknifeCorrelationFunctionD data_bj;
+  assert(args.covariance_strategy != CovarianceStrategy::CorrelatedBlockHybrid &&
+	 args.covariance_strategy != CovarianceStrategy::CorrelatedBlock);
+
+  jackknifeDistribution<parameterVectorD> params;
+  jackknifeDistributionD chisq;
+  int dof;
+  fit(params, chisq, dof, data_j,data_dj,data_bj, args, cmdline);
   
+
   return 0;
 }

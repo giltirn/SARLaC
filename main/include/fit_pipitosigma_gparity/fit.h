@@ -26,8 +26,8 @@ struct PiPiToSigmaFitArgs{
 
 
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
-jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr_pipi_to_sigma(const jackknifeCorrelationFunction &data_j_vacsubbed_inrange,
-								      const doubleJackCorrelationFunction &data_dj_vacsubbed_inrange,
+jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr_pipi_to_sigma(const jackknifeCorrelationFunctionD &data_j_vacsubbed_inrange,
+								      const doubleJackknifeCorrelationFunctionD &data_dj_vacsubbed_inrange,
 								      const PiPiToSigmaFitArgs &args){
 
   typedef typename FitFunc::Params Params;
@@ -79,8 +79,8 @@ jackknifeDistribution<typename FitFunc::Params> fit_corr_uncorr_pipi_to_sigma(co
 
 
 template<typename FitFunc>
-inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff_pipi_to_sigma(const jackknifeCorrelationFunction &data_j_vacsubbed_inrange,
-								       const doubleJackCorrelationFunction &data_dj_vacsubbed_inrange,
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff_pipi_to_sigma(const jackknifeCorrelationFunctionD &data_j_vacsubbed_inrange,
+								       const doubleJackknifeCorrelationFunctionD &data_dj_vacsubbed_inrange,
 								       const PiPiToSigmaFitArgs &args){
   jackknifeDistribution<typename FitFunc::Params> params = args.correlated ? 
     fit_corr_uncorr_pipi_to_sigma<FitFunc,correlatedFitPolicy>(data_j_vacsubbed_inrange,data_dj_vacsubbed_inrange, args) :
@@ -92,8 +92,8 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_ff_pipi_to_s
 }
 
 //returns a pair containing the pipi energy and the constant term
-inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_pipi_to_sigma(const jackknifeCorrelationFunction &data_j_vacsubbed_inrange,
-										  const doubleJackCorrelationFunction &data_dj_vacsubbed_inrange,
+inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit_pipi_to_sigma(const jackknifeCorrelationFunctionD &data_j_vacsubbed_inrange,
+										  const doubleJackknifeCorrelationFunctionD &data_dj_vacsubbed_inrange,
 										  const PiPiToSigmaFitArgs &args){
   switch(args.fitfunc){
   case PiPiToSigmaFitFunction::FCoshPlusConstant:

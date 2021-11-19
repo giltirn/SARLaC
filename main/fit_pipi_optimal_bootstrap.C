@@ -158,7 +158,7 @@ int main(const int argc, const char* argv[]){
 		    args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
 		    args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
 		    args.sigma2pt_file_format, args.sigma_bubble_file_format,
-		    ops);
+		    ops, 0);
     }
     if(cmdline.save_raw_data){
       std::cout << "Saving raw data to " << cmdline.save_raw_data_file << std::endl;

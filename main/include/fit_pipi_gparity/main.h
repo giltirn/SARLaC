@@ -9,8 +9,8 @@ using namespace CPSfit;
 #include "cmdline.h"
 
 //User provides a set of total source pipi momenta. The data are read, rotational-state projected, resampled then averaged over the provided set of total momenta. The resulting correlation function is returned
-void generateData(jackknifeCorrelationFunction &pipi_j, 
-		  doubleJackCorrelationFunction &pipi_dj, 
+void generateData(jackknifeCorrelationFunctionD &pipi_j, 
+		  doubleJackknifeCorrelationFunctionD &pipi_dj, 
 		  const Args &args, const CMDline &cmdline){
   getResampledPiPi2ptDataOpts opts;
 #define CP(A) opts.A = cmdline.A
@@ -31,8 +31,8 @@ void generateData(jackknifeCorrelationFunction &pipi_j,
     bubbleFilenamePolicyGeneric bfn_src(args.bubble_file_format, args.total_mom[p], Source, args.filename_momunit);
     bubbleFilenamePolicyGeneric bfn_snk(args.bubble_file_format, args.total_mom[p], Sink, args.filename_momunit);
 
-    jackknifeCorrelationFunction tmp_pipi_j; 
-    doubleJackCorrelationFunction tmp_pipi_dj;
+    jackknifeCorrelationFunctionD tmp_pipi_j; 
+    doubleJackknifeCorrelationFunctionD tmp_pipi_dj;
 
     getResampledPiPi2ptData(tmp_pipi_j, tmp_pipi_dj, *proj_src,*proj_snk, args.isospin, args.Lt, args.tsep_pipi, args.tstep_pipi, args.do_vacuum_subtraction,
 			    args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan, args.bin_size,
@@ -48,8 +48,8 @@ void generateData(jackknifeCorrelationFunction &pipi_j,
 }
 
 //Load a checkpoint of precomputed resampled correlation function or create it from raw data
-void getData(jackknifeCorrelationFunction &pipi_j, 
-	     doubleJackCorrelationFunction &pipi_dj, 
+void getData(jackknifeCorrelationFunctionD &pipi_j, 
+	     doubleJackknifeCorrelationFunctionD &pipi_dj, 
 	     const Args &args, const CMDline &cmdline){
 
   if(cmdline.load_combined_data){

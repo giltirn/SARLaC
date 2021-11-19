@@ -41,19 +41,19 @@ int main(const int argc, const char* argv[]){
   opt.disconn_tstep_src = cmdline.disconn_tstep_src;
   opt.compute_disconn_ReRe = !cmdline.use_disconn_complex_prod;
 
-  rawCorrelationFunction correlator_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(args.data_dir, args.Lt, args.tstep_src, proj_pipi, args.traj_start, args.traj_inc, args.traj_lessthan,
+  rawDataCorrelationFunctionD correlator_raw = readReconstructPiPiToSigmaWithDisconnAllTsrc(args.data_dir, args.Lt, args.tstep_src, proj_pipi, args.traj_start, args.traj_inc, args.traj_lessthan,
 										       pipi_self_data_Z, sigma_self_data_Z,
 										       opt);
 
   //Resample data
-  auto correlator_j = binResample<jackknifeCorrelationFunction>(correlator_raw, args.bin_size);
-  auto correlator_dj = binResample<doubleJackCorrelationFunction>(correlator_raw, args.bin_size);
+  auto correlator_j = binResample<jackknifeCorrelationFunctionD>(correlator_raw, args.bin_size);
+  auto correlator_dj = binResample<doubleJackknifeCorrelationFunctionD>(correlator_raw, args.bin_size);
 
   const int nsample = correlator_dj.value(0).size();
 
   if(args.do_vacuum_subtraction){
-    correlator_j = correlator_j - computePiPiToSigmaVacSub<jackknifeCorrelationFunction>(sigma_self_data, pipi_self_data, args.bin_size);
-    correlator_dj = correlator_dj - computePiPiToSigmaVacSub<doubleJackCorrelationFunction>(sigma_self_data, pipi_self_data, args.bin_size);
+    correlator_j = correlator_j - computePiPiToSigmaVacSub<jackknifeCorrelationFunctionD>(sigma_self_data, pipi_self_data, args.bin_size);
+    correlator_dj = correlator_dj - computePiPiToSigmaVacSub<doubleJackknifeCorrelationFunctionD>(sigma_self_data, pipi_self_data, args.bin_size);
   }
 
   correlator_j = fold(correlator_j, args.tsep_pipi);
@@ -65,8 +65,8 @@ int main(const int argc, const char* argv[]){
   //Filter out the data that is to be fitted
   filterXrange<double> trange(args.t_min,args.t_max);
   
-  doubleJackCorrelationFunction correlator_dj_inrange;
-  jackknifeCorrelationFunction correlator_j_inrange;
+  doubleJackknifeCorrelationFunctionD correlator_dj_inrange;
+  jackknifeCorrelationFunctionD correlator_j_inrange;
   for(int d=0;d<correlator_dj.size();d++)
     if(trange.accept(correlator_dj.coord(d),correlator_dj.value(d) )){
       correlator_dj_inrange.push_back(correlator_dj[d]);

@@ -1,3 +1,14 @@
+#if 1
+
+//Code needs to be updated and fixed
+
+int main(void){
+  return 0;
+}
+
+
+#else
+
 #include <ktopipi_common/ktopipi_common.h>
 #include <ktopipi_sampleAMA_common/ktopipi_sampleAMA_common.h>
 
@@ -441,4 +452,6 @@ int main(const int argc, const char* argv[]){
   
   return 0;
 }
+
+#endif
 

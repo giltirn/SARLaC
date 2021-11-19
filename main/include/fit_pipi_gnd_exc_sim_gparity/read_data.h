@@ -7,7 +7,7 @@
 CPSFIT_START_NAMESPACE
 
 void readRawPiPiGndExcData(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataAllMomenta &raw_bubble_exc_exc, bubbleDataAllMomenta &raw_bubble_gnd_exc,
-		rawCorrelationFunction &raw_data_gnd_gnd, rawCorrelationFunction &raw_data_exc_exc, rawCorrelationFunction &raw_data_gnd_exc,
+		rawDataCorrelationFunctionD &raw_data_gnd_gnd, rawDataCorrelationFunctionD &raw_data_exc_exc, rawDataCorrelationFunctionD &raw_data_gnd_exc,
 		const std::string &data_dir, const std::string &figure_file_format, const std::string &bubble_file_format,
 		const int Lt, const int tsep_pipi, const int tstep_pipi,
 		const int traj_start, const int traj_inc, const int traj_lessthan){
@@ -24,7 +24,7 @@ void readRawPiPiGndExcData(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataA
 }
 
 void loadPiPiGndExcCheckPoint(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataAllMomenta &raw_bubble_exc_exc, bubbleDataAllMomenta &raw_bubble_gnd_exc,
-		    rawCorrelationFunction &raw_data_gnd_gnd, rawCorrelationFunction &raw_data_exc_exc, rawCorrelationFunction &raw_data_gnd_exc,
+		    rawDataCorrelationFunctionD &raw_data_gnd_gnd, rawDataCorrelationFunctionD &raw_data_exc_exc, rawDataCorrelationFunctionD &raw_data_gnd_exc,
 		    const std::string &file){
   HDF5reader rd(file);
   read(rd, raw_bubble_gnd_gnd, "raw_bubble_gnd_gnd");
@@ -36,7 +36,7 @@ void loadPiPiGndExcCheckPoint(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDa
 }
 
 void savePiPiGndExcCheckPoint(const bubbleDataAllMomenta &raw_bubble_gnd_gnd, const bubbleDataAllMomenta &raw_bubble_exc_exc, const bubbleDataAllMomenta &raw_bubble_gnd_exc,
-		    const rawCorrelationFunction &raw_data_gnd_gnd, const rawCorrelationFunction &raw_data_exc_exc, const rawCorrelationFunction &raw_data_gnd_exc,
+		    const rawDataCorrelationFunctionD &raw_data_gnd_gnd, const rawDataCorrelationFunctionD &raw_data_exc_exc, const rawDataCorrelationFunctionD &raw_data_gnd_exc,
 		    const std::string &file){
   HDF5writer wr(file);
   write(wr, raw_bubble_gnd_gnd, "raw_bubble_gnd_gnd");
@@ -57,7 +57,7 @@ struct readRawDataOptions{
 };
 
 void getRawPiPiGndExcData(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataAllMomenta &raw_bubble_exc_exc, bubbleDataAllMomenta &raw_bubble_gnd_exc,
-		rawCorrelationFunction &raw_data_gnd_gnd, rawCorrelationFunction &raw_data_exc_exc, rawCorrelationFunction &raw_data_gnd_exc,
+		rawDataCorrelationFunctionD &raw_data_gnd_gnd, rawDataCorrelationFunctionD &raw_data_exc_exc, rawDataCorrelationFunctionD &raw_data_gnd_exc,
 		const std::string &data_dir, const std::string &figure_file_format, const std::string &bubble_file_format,
 		const int Lt, const int tsep_pipi, const int tstep_pipi,
 		const int traj_start, const int traj_inc, const int traj_lessthan,

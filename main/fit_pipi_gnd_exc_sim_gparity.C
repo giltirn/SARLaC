@@ -39,7 +39,7 @@ int main(const int argc, const char* argv[]){
 
   //Get raw data
   bubbleDataAllMomenta raw_bubble_gnd_gnd, raw_bubble_exc_exc, raw_bubble_gnd_exc;
-  rawCorrelationFunction raw_data_gnd_gnd, raw_data_exc_exc, raw_data_gnd_exc;
+  rawDataCorrelationFunctionD raw_data_gnd_gnd, raw_data_exc_exc, raw_data_gnd_exc;
   
   readRawDataOptions ropt;
   ropt.load_hdf5_data_checkpoint = cmdline.load_hdf5_data_checkpoint;
@@ -55,8 +55,8 @@ int main(const int argc, const char* argv[]){
   
 
   //Get double-jack data
-  jackknifeCorrelationFunction j_data_gnd_gnd, j_data_exc_exc, j_data_gnd_exc;
-  doubleJackCorrelationFunction dj_data_gnd_gnd, dj_data_exc_exc, dj_data_gnd_exc;
+  jackknifeCorrelationFunctionD j_data_gnd_gnd, j_data_exc_exc, j_data_gnd_exc;
+  doubleJackknifeCorrelationFunctionD dj_data_gnd_gnd, dj_data_exc_exc, dj_data_gnd_exc;
 
   generateResampledDataOptions gopt; 
   gopt.load_combined_data = cmdline.load_combined_data;
@@ -80,8 +80,8 @@ int main(const int argc, const char* argv[]){
   correlationFunction<SimFitCoordGen,  doubleJackknifeDistributionD> corr_comb_dj;
 
   static const std::vector<std::string> op = { "gnd", "exc" };
-  jackknifeCorrelationFunction const* dptrs_j[] = { &j_data_gnd_gnd, &j_data_gnd_exc, &j_data_exc_exc };
-  doubleJackCorrelationFunction const* dptrs_dj[] = { &dj_data_gnd_gnd, &dj_data_gnd_exc, &dj_data_exc_exc };
+  jackknifeCorrelationFunctionD const* dptrs_j[] = { &j_data_gnd_gnd, &j_data_gnd_exc, &j_data_exc_exc };
+  doubleJackknifeCorrelationFunctionD const* dptrs_dj[] = { &dj_data_gnd_gnd, &dj_data_gnd_exc, &dj_data_exc_exc };
   
   std::vector<std::string> vnm; //for printing
 
@@ -116,10 +116,11 @@ int main(const int argc, const char* argv[]){
   opt.load_frozen_fit_params = cmdline.load_frozen_fit_params;
   opt.load_frozen_fit_params_file = cmdline.load_frozen_fit_params_file;
 
+  correlationFunction<SimFitCoordGen, blockDoubleJackknifeDistributionD> empty;
   const bool correlated = true;
   fit(params, chisq, chisq_per_dof,
-      corr_comb_j, corr_comb_dj, args.fitfunc, param_map,
-      args.Lt, args.t_min, args.t_max, correlated, args.Ascale, args.Cscale, opt);
+      corr_comb_j, corr_comb_dj, empty, args.fitfunc, param_map,
+      args.Lt, args.t_min, args.t_max, correlated, CovarianceMatrix::Regular, args.Ascale, args.Cscale, opt);
 
   std::cout << "Params:\n";
   {
