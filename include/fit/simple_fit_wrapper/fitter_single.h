@@ -188,6 +188,7 @@ public:
       dof = -1;
       return false;
     }
+    if(getCorrelationMatrix().size() != ndata) error_exit(std::cout << "simpleSingleFitWrapper::fit size of covariance matrix " << getCorrelationMatrix().size() << " does not match data size " << ndata << "\n");
 
     //Prepare inverse correlation matrix (the condition number is useful information even if we don't need the inverse explicitly)
     NumericSquareMatrix<double> inv_corr_mat = invertCorrelationMatrix();

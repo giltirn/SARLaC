@@ -142,14 +142,15 @@ void applyTimeDep(CorrelationFunctionType &to, const TimeDependence tdep, const 
 }
 
 
-
-void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan){
+//allow_missing:  make it not an error if a file is missing or unreadable; simply skip this data in the output
+void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan, bool allow_missing =false){
   std::size_t off = data_info.file_fmt.find("%d");
   if(off == std::string::npos) error_exit(std::cout << "readData expect file_fmt to contain a '%d', instead got " << data_info.file_fmt << std::endl);
   Parser* parser = parserFactory(data_info.parser);
 
   int nsample = (traj_lessthan - traj_start)/traj_inc;
   parser->setup(into, nsample, Lt);
+  std::vector<bool> good(nsample, true);
 #pragma omp parallel for
   for(int s=0;s<nsample;s++){
     std::ostringstream os; os << traj_start + s*traj_inc;
@@ -157,11 +158,34 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
     filename.replace(off,2,os.str());
     std::cout << "Parsing " << filename << std::endl;
     std::ifstream is(filename.c_str());
-    if(!is.good()) error_exit(std::cout << "readData failed to read file " << filename << std::endl);
-    parser->parse(into, is, s, Lt);
+    if(is.good()){
+      parser->parse(into, is, s, Lt);
+    }else{
+      if(allow_missing) good[s] = false;
+      else error_exit(std::cout << "readData failed to read file " << filename << std::endl);
+    }
   }  
   delete parser;
   
+  //Remove unfilled data points if necessary
+  if(allow_missing){
+    int ngood = 0;
+    for(bool v: good){
+      if(v) ++ngood;
+    }
+    if(ngood != nsample){
+      std::cout << "readData failed to read " << nsample - ngood << " files, resizing output" << std::endl;
+      rawDataCorrelationFunctionD tmp(into);
+      for(int i=0;i<tmp.size();i++){
+	into.value(i).resize(ngood);
+	int c=0;
+	for(int s=0;s<nsample;s++)
+	  if(good[s]) into.value(i).sample(c++) = tmp.value(i).sample(s);
+      }	
+    }
+  }
+
+  //Apply operations
   applyOperation(into, data_info.operation);
   applyTimeDep(into, data_info.time_dep,Lt);
 }

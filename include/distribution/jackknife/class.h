@@ -127,6 +127,8 @@ public:
 
   inline bool operator==(const jackknifeDistribution<DataType,VectorType> &r) const{ return this->baseType::operator==(r); }
   inline bool operator!=(const jackknifeDistribution<DataType,VectorType> &r) const{ return !( *this == r ); }
+
+  inline void push_back(const DataType &v){ this->sampleVector().push_back(v); }
 };
 
 template<typename T, template<typename> class V>
@@ -144,6 +146,30 @@ template<typename T, template<typename> class V>
 struct is_jackknife<jackknifeDistribution<T,V> >{
   enum {value=1};
 };
+
+//It is straightforward to show that a superjackknife can be treated in the same way as a regular jackknife up to 1/N effects
+//This function implements the "boost" of a regular jackknife on subensemble 'ens' to a superjackknife, filling in the gaps with the mean
+template<typename T, template<typename> class V>
+jackknifeDistribution<T,V> superjackknifeBoost(const jackknifeDistribution<T,V> &v, const int ens, const std::vector<int> &subens_sizes){
+  T mu = v.mean();
+  int N = 0;
+  int ens_off = 0;
+  for(int i=0;i<subens_sizes.size();i++){
+    if(i == ens) ens_off = N;
+    N += subens_sizes[i];
+  }
+  int Nin = subens_sizes[ens];
+  assert(Nin == v.size());
+  
+  jackknifeDistribution<T,V> out(N,mu);
+  for(int s=ens_off;s<ens_off + Nin;s++)
+    out.sample(s) = v.sample(s-ens_off);
+
+  return out;
+}
+
+
+
 
 CPSFIT_END_NAMESPACE
 

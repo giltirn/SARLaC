@@ -71,6 +71,7 @@ typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackknife
 typedef correlationFunction<double,blockDoubleJackknifeDistributionD> blockDoubleJackknifeCorrelationFunctionD;
 typedef correlationFunction<double,bootstrapDistributionD> bootstrapCorrelationFunctionD;
 typedef correlationFunction<double,bootJackknifeDistributionD> bootJackknifeCorrelationFunctionD;
+typedef correlationFunction<double,superMultiDistributionD> superMultiCorrelationFunctionD;
 
 
 //Tensor types

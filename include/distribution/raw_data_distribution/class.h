@@ -85,6 +85,8 @@ public:
   inline bool operator==(const rawDataDistribution<DataType,_VectorType> &r) const{ return this->baseType::operator==(r); }
   inline bool operator!=(const rawDataDistribution<DataType,_VectorType> &r) const{ return !( *this == r ); }
 
+  inline void push_back(const DataType &v){ this->sampleVector().push_back(v); }
+
   //Bin the data over bin_size consecutive samples. If number of samples is not an exact multiple of bin_size it will throw an error unless allow_crop = true,
   //in which case it will ignore (crop) extra samples at the end of the ensemble
   rawDataDistribution<DataType,_VectorType> bin(const int bin_size, bool allow_crop) const{

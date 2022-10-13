@@ -36,6 +36,15 @@ public:
 
   void initialize(const seedType seed){ if(rng==NULL) rng = new RNGtype(seed); }
   void initialize(){ if(rng == NULL) rng = new RNGtype(); }
+
+  void reinitialize(const seedType seed){ 
+    if(rng!=NULL) delete rng;  
+    rng = new RNGtype(seed); 
+  }
+  void reinitialize(){ 
+    if(rng!=NULL) delete rng;  
+    rng = new RNGtype(); 
+  }
   
   RNGstore(const seedType seed): rng(NULL){ initialize(seed); }
 
@@ -61,6 +70,9 @@ struct threadRNGstore{
   }
     
   RNGstore &operator()(const int thr = omp_get_thread_num()){ return rngs[thr]; }
+
+  size_t size() const{ return rngs.size(); }
+  
 };
 
 threadRNGstore threadRNG;

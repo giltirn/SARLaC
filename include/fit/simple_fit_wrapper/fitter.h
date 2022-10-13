@@ -490,7 +490,44 @@ public:
 
     if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(cout_rdbuf_orig);
 
-  }  
+  }
+
+  //A version of the above that takes the params as a vector of distributions
+  template<typename GeneralizedCoordinate>
+  void fit(std::vector<BaseDistributionType> &params,
+	   BaseDistributionType &chisq,
+	   BaseDistributionType &chisq_per_dof,
+	   int &dof,
+	   const correlationFunction<GeneralizedCoordinate, BaseDistributionType> &data,
+	   std::pair<BaseDistributionType, int>* chisq_dof_nopriors = NULL){
+    typedef parameterVector<BaseNumericType> tmpParamType;
+    typedef typename BaseDistributionType::template rebase<tmpParamType> tmpParamDistributionType;
+
+    int N = params[0].size();
+    for(int i=1;i<params.size();i++) assert(params[i].size() == N);
+
+    int Nparam = params.size();
+    tmpParamType basep(Nparam);
+    
+    tmpParamDistributionType tmp_params(params[0].getInitializer(), basep);
+
+    typedef iterate<BaseDistributionType> iter;
+    typedef iterate<tmpParamDistributionType> iter_p;
+
+    int Niter = iter::size(params[0]);
+    assert(iter_p::size(tmp_params) == Niter);
+
+    for(int p=0;p<Nparam;p++)
+      for(int s=0;s<Niter;s++)
+	iter_p::at(s,tmp_params)[p] = iter::at(s,params[p]);
+    
+    this->fit<tmpParamType,GeneralizedCoordinate>(tmp_params, chisq, chisq_per_dof, dof, data, chisq_dof_nopriors);
+    
+    for(int p=0;p<Nparam;p++)
+      for(int s=0;s<Niter;s++)
+	iter::at(s,params[p]) = iter_p::at(s,tmp_params)[p];
+  }
+  
 };
 
 CPSFIT_END_NAMESPACE

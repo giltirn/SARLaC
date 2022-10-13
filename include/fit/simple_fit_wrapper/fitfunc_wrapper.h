@@ -83,6 +83,7 @@ struct genericFitFuncWrapper: public genericFitFuncBase{
   FitFunc fitfunc;
   BaseParameterType psetup;
 
+  //The contents of psetup don't matter, it simply needs to be sizes correctly
   genericFitFuncWrapper(const FitFunc &fitfunc, const BaseParameterType &psetup): fitfunc(fitfunc), psetup(psetup){}
   
   ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{

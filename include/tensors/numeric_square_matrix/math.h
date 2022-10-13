@@ -126,7 +126,17 @@ T determinant(const NumericSquareMatrix<T> &m){
   return out;
 }
 
-
+//Generate a matrix of orthonormal vectors from a matrix
+template<typename T>
+NumericSquareMatrix<T> GrammSchmidtOrthonormalize(const NumericSquareMatrix<T> &v){
+  std::vector<NumericVector<T> > rows(v.size());
+  for(int i=0;i<v.size();i++) v.extractRow(rows[i], i);
+  
+  std::vector<NumericVector<T> > orows = GrammSchmidtOrthonormalize(rows);
+  NumericSquareMatrix<T> out(v.size());
+  for(int i=0;i<v.size();i++) out.insertRow(orows[i], i);
+  return out;
+}
 
 
 

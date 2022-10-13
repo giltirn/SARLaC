@@ -9,6 +9,7 @@
 #include<utils/macros.h>
 #include<serialize/hdf5_serialize.h>
 #include<ET/generic_ET.h>
+#include<tensors/numeric_vector.h>
 
 CPSFIT_START_NAMESPACE
 
@@ -119,6 +120,18 @@ public:
 
   NumericSquareMatrix submatrix(const int istart, const int jstart, const int size) const{
     return NumericSquareMatrix(size, [&](const int i, const int j){ return m[i+istart][j+jstart]; });
+  }
+
+  void extractRow(NumericVector<Numeric> &row, int row_idx) const{
+    row.resize(this->size());
+    for(int j=0;j<this->size();j++)
+      row(j) = (*this)(row_idx,j);
+  }
+
+  void insertRow(const NumericVector<double> &row, int row_idx){
+    assert(row.size() == this->size());
+    for(int j=0;j<this->size();j++)
+      (*this)(row_idx, j) = row(j);
   }
 
   GENERATE_HDF5_SERIALIZE_METHOD((m));

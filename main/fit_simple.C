@@ -36,8 +36,9 @@ int main(const int argc, const char** argv){
   }
 
   //Get raw data
-  const int nchannel = args.data.size();
+  int nchannel = args.data.size();
   std::vector<rawDataCorrelationFunctionD> channels_raw(nchannel);
+  std::cout << "Got " << nchannel << " channels" << std::endl;
 
   if(!cmdline.load_combined_data){
     //Load from checkpoint if desired
@@ -49,7 +50,7 @@ int main(const int argc, const char** argv){
     //Load from original files
     else{ 
       for(int i=0;i<nchannel;i++)
-	readData(channels_raw[i], args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan);
+	readData(channels_raw[i], args.data[i], args.Lt, args.traj_start, args.traj_inc, args.traj_lessthan, cmdline.allow_missing_files);
     }
 
     //Save checkpoint if desired
@@ -99,6 +100,13 @@ int main(const int argc, const char** argv){
     if(do_bdj) write(writer, data_bdj, "data_bdj");
   }
   
+  if(cmdline.plot_correlator){
+    MatPlotLibScriptGenerate plot;
+    typedef DataSeriesAccessor<jackknifeCorrelationFunctionD,ScalarCoordinateAccessor<double>,DistributionPlotAccessor<jackknifeDistributionD> > acc;
+    plot.plotData(acc(data_j));
+    plot.write("correlator.py","correlator.pdf");
+  }
+
   //Perform the fit
   jackknifeDistribution<parameterVectorD> params;
   jackknifeDistributionD chisq;

@@ -4,6 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 #include<utils/template_wizardry.h>
+#include<random/random_number.h>
 
 #include<distribution/block_double_jackknife.h>
 #include<distribution/bootstrap.h>
@@ -180,6 +181,15 @@ bool isComplex(const T &v, double tol = 1e-5){
     if(imag(vi)/abs(vi) >= tol) return true;
   }
   return false;
+}
+
+jackknifeDistribution<double> fakeJackknife(const double mean, const double std_err, const int Nsample, RNGstore &rng){
+  jackknifeDistribution<double> out(Nsample);
+  gaussianRandom(out,mean,std_err/sqrt(double(Nsample-1)));
+  double omean = out.mean();
+  for(int s=0;s<Nsample;s++)
+    out.sample(s) = out.sample(s) - omean + mean;
+  return out;
 }
 
 CPSFIT_END_NAMESPACE

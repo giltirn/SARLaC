@@ -19,7 +19,7 @@ class superMultiLayout{
   std::vector<std::string > ens_tags;
   std::vector<MultiType> ens_types;
   std::vector<int> ens_sizes;
-  std::vector< std::pair<int,int> > ens_sample_map;
+  std::vector< std::pair<int,int> > ens_sample_map; //map a global sample index to a pair { ens_idx, sub_idx }   where sub_idx is the index within the subensemble
   int total_size;
 
   inline void clear(){
@@ -41,6 +41,20 @@ public:
   inline const std::string &ensTag(const int i) const{ return ens_tags[i]; }
 
   void setEnsTag(const int i, const std::string &to){ ens_tags[i] = to; } //use only if you know what you are doing!
+
+  void setEnsSize(const int i, const int new_sz){  //use only if you know what you are doing!
+    ens_sizes[i] = new_sz; 
+
+    //Regenerate the total size and ensemble map
+    total_size = 0;
+    ens_sample_map.clear();
+    for(int e=0;e<ens_sizes.size();e++){
+      total_size += ens_sizes[e];
+      for(int i=0;i<ens_sizes[e];i++){
+	ens_sample_map.push_back(std::pair<int,int>(e,i) );
+      }
+    }
+  }
 
   void addEnsemble(const std::string &tag, const MultiType type, const int size){
     int ens_idx = ens_tags.size();
@@ -78,6 +92,27 @@ public:
   }
   inline bool operator!=(const superMultiLayout &r) const{ return !(*this == r); }
   
+  
+  //r is considered 'equivalent' to *this if all the subensembles inside r are contained inside *this
+  //Note this allows *this to contain other ensembles
+  bool equiv(const superMultiLayout &r) const{
+    if(&r == this) return true;
+
+    std::map<std::string, std::pair<MultiType, int> > this_subens;
+    for(int e=0;e< nEnsembles() ;e++){
+      this_subens[ ens_tags[e] ] = { ens_types[e], ens_sizes[e] };
+    }
+
+    for(int e=0; e< r.nEnsembles(); e++){
+      auto it = this_subens.find( r.ens_tags[e] );
+      if(it == this_subens.end()) return false;
+      if(it->second.first != r.ens_types[e]) return false;
+      if(it->second.second != r.ens_sizes[e]) return false;
+    }
+    return true;
+  }
+
+
 #ifdef HAVE_HDF5
   void write(HDF5writer &writer, const std::string &tag) const{
     writer.enter(tag);
@@ -127,6 +162,84 @@ superMultiLayout combine(const superMultiLayout &l, const superMultiLayout &r){
   }
   return out;
 }
+
+//A class that acts as a global container for layouts with ownership semantics
+class superMultiLayoutManagerDef{
+  std::set<superMultiLayout*> layouts;
+  std::map<std::string, std::set<superMultiLayout*>::iterator > tag_map;
+public:
+
+  std::set<superMultiLayout*>::const_iterator begin() const{ return layouts.begin(); }
+  std::set<superMultiLayout*>::const_iterator end() const{ return layouts.end(); }
+  
+  void addLayout(superMultiLayout *l, const std::string &tag){
+    auto r = layouts.insert(l);
+    if(!r.second){ //already exists; check tags / pointers match in tag_map
+      auto it = tag_map.find(tag);
+      if(it == tag_map.end() || *(it->second) != l) error_exit(std::cout << "Attempt to insert a layout twice with different tags!" << std::endl); 
+    }else{
+      auto it = tag_map.find(tag);
+      if(it != tag_map.end()) error_exit(std::cout << "Attempt to insert two different layouts with the same tag" << std::endl);
+      tag_map[tag] = r.first;
+    }
+  }
+
+  //If an existing layout exists which is 'equivalent' to l(see above), return the pointer to it
+  //Otherwise return nullptr
+  superMultiLayout* findEquivalent(superMultiLayout const* l) const{
+    for(auto it = layouts.begin(); it != layouts.end(); it++){
+      if( (*it)->equiv(*l) ){
+	return *it;
+      }
+    }
+    return nullptr;
+  }   
+
+  superMultiLayout* getLayout(const std::string &tag) const{
+    auto it = tag_map.find(tag);
+    if(it == tag_map.end())  error_exit(std::cout << "getLayout cannot find tag: " << tag << std::endl);
+    return *(it->second);
+  }
+  const std::string & getTag(superMultiLayout const* ptr){
+    for(auto e = tag_map.begin(); e != tag_map.end(); e++){
+      if(*(e->second) == ptr){
+	return e->first;
+      }
+    }
+    error_exit(std::cout << "getTag cannot find ptr: " << ptr << std::endl);
+  }
+  
+  //Release from ownership
+  superMultiLayout* releaseLayout(const std::string &tag){
+    auto it = tag_map.find(tag);
+    if(it == tag_map.end())  error_exit(std::cout << "releaseLayout cannot find tag: " << tag << std::endl);
+    superMultiLayout* ptr = *(it->second);
+    layouts.erase(it->second);
+    tag_map.erase(it);
+    return ptr;
+  }
+  void releaseLayout(superMultiLayout const* ptr){
+    for(auto e = tag_map.begin(); e != tag_map.end(); e++){
+      if(*(e->second) == ptr){
+	auto it = layouts.find(const_cast<superMultiLayout*>(ptr));
+	if(it == layouts.end()) error_exit(std::cout << "releaseLayout corrupted state" << std::endl);
+	tag_map.erase(e);
+	layouts.erase(it);
+	return;
+      }
+    }
+    error_exit(std::cout << "releaseLayout cannot find ptr: " << ptr << std::endl);
+  }
+
+  ~superMultiLayoutManagerDef(){
+    for(auto e = layouts.begin(); e!= layouts.end(); e++){
+      delete *e;
+    }
+  }
+
+};
+
+superMultiLayoutManagerDef &  superMultiLayoutManager(){ static superMultiLayoutManagerDef d; return d; }
 
 CPSFIT_END_NAMESPACE
 #endif

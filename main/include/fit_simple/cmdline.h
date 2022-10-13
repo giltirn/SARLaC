@@ -37,6 +37,10 @@ struct CMDline{
 
   bool print_fitdata_samples;
 
+  bool plot_correlator;
+
+  bool allow_missing_files;
+
   CMDline(){
     load_guess = false;
     save_combined_data = false;
@@ -50,6 +54,8 @@ struct CMDline{
     save_boot_resample_table = false;
     save_bootstrap_fit_result = false;
     print_fitdata_samples = false;
+    plot_correlator = false;
+    allow_missing_files = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -124,6 +130,15 @@ struct CMDline{
 	i+=2;
       }else if(sargv[i] == "-print_fitdata_samples"){ //print the jackknife samples for data in the fit window
 	print_fitdata_samples = true;
+	i++;
+      }else if(sargv[i] == "-plot_correlator"){ //print the jackknife samples for data in the fit window
+	plot_correlator = true;
+	i++;
+      }else if(sargv[i] == "-allow_missing_files"){ //it's ok to have missing files, just don't include in the analysis
+	allow_missing_files = true;
+	i++;
+      }else if(sargv[i] == "-allow_bin_cropping"){ //if data size is not multiple of bin size, crop data
+	rawDataDistributionOptions::binAllowCropByDefault() = true;
 	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
