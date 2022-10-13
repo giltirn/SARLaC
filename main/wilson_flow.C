@@ -3,13 +3,16 @@
 #include<parser.h>
 #include<plot.h>
 #include<random.h>
+#include<limits>
 
 using namespace CPSfit;
 
 //includes_t2 -   true:  data is t^2 E(t) [Grid default]  false:  data is E(t)
+//adaptive_smearing : The adaptive Wilson flow smearing was used
 #define ARGS_MEMBERS \
   ( std::string, file_fmt )	       \
   ( bool, includes_t2 )		       \
+  ( bool, adaptive_smearing )	       \
   ( int, bin_size)    \
   ( int, traj_start ) \
   ( int, traj_inc ) \
@@ -18,7 +21,7 @@ using namespace CPSfit;
 struct Args{
   GENERATE_MEMBERS(ARGS_MEMBERS);
 
-  Args(): file_fmt("wflow.%d"), traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1), includes_t2(true){}
+  Args(): file_fmt("wflow.%d"), traj_start(0), traj_inc(1), traj_lessthan(2), bin_size(1), includes_t2(true), adaptive_smearing(false){}
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 
@@ -67,6 +70,166 @@ rawDataCorrelationFunctionD readData(const std::string &file_fmt, int traj_start
   }
   return data;
 }
+
+inline double linearlyInterpolate(double t_to, double t1, double v1, double t2, double v2){
+  //v1 = a*t1+b
+  //v2 = a*t2+b
+  double a = (v2-v1)/(t2-t1);
+  double b = v1 - a*t1;
+  return a*t_to + b;
+}
+
+double linearlyInterpolate(double t_to, const std::map<double,double> &data){
+  assert(data.size() > 2);
+  auto u = data.lower_bound(t_to); //returns first element with t>=t_to
+  if(u == data.end()){
+    //std::cout << "Found no element with t>=" << t_to << std::endl;
+    //All t are < t_to;  linearly interpolate between last two points
+    auto i1 = data.rbegin();
+    auto i2 = std::next(i1);
+    return linearlyInterpolate(t_to, i1->first,i1->second,i2->first,i2->second);
+  }else if(u->first == t_to){
+    //std::cout << "Found element with exact match to t=" << t_to << std::endl;
+    //t==t_to
+    return u->second; 
+  }else{
+    //t>t_to
+    if(u == data.begin()){ //t is first data point, linearly interpolate between first two points
+      //std::cout << "Found element with t=" << u->first << ">" << t_to << " and it is the first element" << std::endl;
+      auto i1 = data.begin();
+      auto i2 = std::next(i1);
+      return linearlyInterpolate(t_to, i1->first,i1->second,i2->first,i2->second);
+    }else{ //t is not first data point, linearly interpolate between t and the previous value
+      //std::cout << "Found element with t=" << u->first << ">" << t_to << std::endl;
+      auto p = std::prev(u);
+      return linearlyInterpolate(t_to, p->first,p->second,u->first,u->second);
+    }
+  }
+}
+
+void testLinearlyInterpolate(){
+  double a1=2, b1=5;
+  double a2=-3, b2=-4;
+  
+  double t1=1;
+  double v1=a1*t1+b1;
+
+  double t2=2;
+  double v2=a1*t2+b1;
+
+  double t3=3;
+  double v3=a2*t3+b2;
+
+  double t4=4;
+  double v4=a2*t4+b2;
+
+  std::map<double,double> data = { {t1,v1},{t2,v2},{t3,v3},{t4,v4} };
+
+  {
+    //Check exact match
+    assert( linearlyInterpolate(t1,data) == v1 );
+    assert( linearlyInterpolate(t2,data) == v2 );
+  }
+  {
+    //Check t below range
+    double t = -1;
+    double expect = a1*t + b1;
+    assert( fabs( linearlyInterpolate(t,data) - expect ) < 1e-7 );
+  }
+  {
+    //Check t above range
+    double t = 5;
+    double expect = a2*t + b2;
+    assert( fabs( linearlyInterpolate(t,data) - expect ) < 1e-7 );
+  }
+  {
+    //Check t within first range
+    double t = 1.5;
+    double expect = a1*t + b1;
+    assert( fabs( linearlyInterpolate(t,data) - expect ) < 1e-7 );
+  }
+  {
+    //Check t within second range
+    double t = 3.5;
+    double expect = a2*t + b2;
+    assert( fabs( linearlyInterpolate(t,data) - expect ) < 1e-7 );
+  }
+
+  std::cout << "Test passed" << std::endl;
+}
+
+
+
+//Read data generated using the adaptive smearing, for which the t values are not the same between samples
+//includes_t2 -   true:  data is t^2 E(t) [Grid default]  false:  data is E(t)
+rawDataCorrelationFunctionD readDataAdaptive(const std::string &file_fmt, int traj_start, int traj_inc, int traj_lessthan, bool includes_t2){
+  int ntraj = (traj_lessthan - traj_start)/traj_inc;
+  
+  //We determine the minimum dt value and the largest range, then linearly interpolate all samples to integer multiples of that minimum dt
+  //across the full range
+  std::vector<std::map<double,double> > sdata(ntraj);
+
+  double tmin = std::numeric_limits<double>::max();
+  double tmax = std::numeric_limits<double>::lowest();
+  double dt_min = std::numeric_limits<double>::max();
+
+  int sample=0;
+  for(int traj=traj_start; traj < traj_lessthan; traj += traj_inc){
+    std::string filename = getFilenameFromFmtString(file_fmt, traj);
+    std::cout << "Reading traj " << traj << " with filename "  << filename << std::endl;
+    assert(fileExists(filename));
+
+    std::ifstream in(filename);
+    assert(!in.fail());
+
+    double t_prev=-1;
+    double t;
+    double v;
+    while(in >> t >> v){
+      std::cout << t << " " << v << std::endl;
+      if(!includes_t2) v = t*t*v;
+
+      if(!sdata[sample].count(t)){ //ignore duplicates
+	tmin = std::min(t,tmin);
+	tmax = std::max(t,tmax);
+
+	if(t_prev!=-1){
+	  assert(t_prev < t);
+	  double dt = t-t_prev;
+	  dt_min = std::min(dt,dt_min);
+	}
+
+	sdata[sample][t] = v;
+	t_prev = t;
+      }
+
+    }
+    ++sample;
+  }
+  
+  std::cout << "Determined range " << tmin << " -> " << tmax << " and min step size " << dt_min << std::endl;
+  int npoints = int( ceil((tmax - tmin)/dt_min) ) + 1;
+  double dt = (tmax - tmin)/(npoints - 1);
+
+  rawDataCorrelationFunctionD data(npoints);
+  for(int i=0;i<npoints;i++){
+    double t = tmin + i*dt;
+    data.coord(i) = t;
+    rawDataDistributionD &dist = data.value(i);
+    dist.resize(ntraj);
+    std::cout << "Interpolating to t=" << t << std::endl;
+    for(int s=0;s<ntraj;s++){
+      dist.sample(s) = linearlyInterpolate(t, sdata[s]);
+    }
+    std::cout << "Interpolated to t=" << t << ", got " << dist << std::endl;
+  }
+  return data;
+}
+
+
+
+
+
 
 struct dval{
   jackknifeDistributionD const* v;
@@ -153,16 +316,9 @@ void compute_a_corrected(const jackknifeDistributionD &val_lat, const jackknifeD
   std::cout << "a^-1 (-) = " << ainv_sol2 << std::endl;
 }
 
-
-void fakeRandom(jackknifeDistributionD &out, double cen, double err, double N){
-  gaussianRandom(out, cen, err * sqrt( double(N)/double(N - 1) ) );
-  double corr = cen - out.best();
-  for(int i=0;i<N;i++) out.sample(i) += corr;
-}
-
-
-//Basic fitting
 int main(const int argc, const char** argv){
+  //testLinearlyInterpolate();
+
   Args args;
   if(argc < 2){
     std::ofstream of("template.args");
@@ -206,7 +362,10 @@ int main(const int argc, const char** argv){
 
   rawDataDistributionOptions::binAllowCropByDefault() = true;
   
-  rawDataCorrelationFunctionD data_raw = readData(args.file_fmt, args.traj_start, args.traj_inc, args.traj_lessthan, args.includes_t2);
+  rawDataCorrelationFunctionD data_raw;
+  if(args.adaptive_smearing) data_raw = readDataAdaptive(args.file_fmt, args.traj_start, args.traj_inc, args.traj_lessthan, args.includes_t2);
+  else data_raw = readData(args.file_fmt, args.traj_start, args.traj_inc, args.traj_lessthan, args.includes_t2);
+
   jackknifeCorrelationFunctionD data_j(data_raw.size(), 
 				       [&](const int i){ 
 					 return jackknifeCorrelationFunctionD::ElementType(data_raw.coord(i), 
@@ -218,14 +377,12 @@ int main(const int argc, const char** argv){
   int nbinned = data_j.value(0).size();
   jackknifeDistributionD sqrtt0_cont(nbinned);
   if(compute_a_sqrtt0){
-    fakeRandom(sqrtt0_cont, sqrtt0_cont_cen, sqrtt0_cont_err, nbinned);
-    //gaussianRandom(sqrtt0_cont, sqrtt0_cont_cen, sqrtt0_cont_err * sqrt( double(nbinned)/double(nbinned - 1) ) );
+    sqrtt0_cont = fakeJackknife(sqrtt0_cont_cen, sqrtt0_cont_err, nbinned, RNG, 5e-2);
     std::cout << "Physical value of t0^1/2 =" << sqrtt0_cont << std::endl;
   }
   jackknifeDistributionD w0_cont(nbinned);
   if(compute_a_w0){
-    //gaussianRandom(w0_cont, w0_cont_cen, w0_cont_err * sqrt( double(nbinned)/double(nbinned - 1) ) );
-    fakeRandom(w0_cont, w0_cont_cen, w0_cont_err, nbinned);
+    w0_cont = fakeJackknife(w0_cont_cen, w0_cont_err, nbinned, RNG, 5e-2);
     std::cout << "Physical value of w0 =" << w0_cont << std::endl;
   }
   
@@ -233,6 +390,7 @@ int main(const int argc, const char** argv){
   //w0 is defined from t d/dt( t^2 < E(t) > ) |t=w0^2 = 0.3
   jackknifeDistributionD sqrt_t0 = pow( compute(data_j, 0.3), 0.5);  
   std::cout << "t0^1/2 = " << sqrt_t0 << std::endl;
+  writeParamsStandard(sqrt_t0, "sqrt_t0.hdf5");
 
   //Use forwards derivative,   df/dt (t) = [ f(t+dt) - f(t) ]/dt
   jackknifeCorrelationFunctionD data_j_der(data_j.size()-1, [&](const int i){
@@ -243,7 +401,7 @@ int main(const int argc, const char** argv){
 
   jackknifeDistributionD w0 = pow( compute(data_j_der, 0.3), 0.5);  
   std::cout << "w0 = " << w0 << std::endl;
-
+  writeParamsStandard(w0, "w0.hdf5");
 
   //Use forwards derivative,   df/dt (t) = [ f(t+dt) - f(t-dt) ]/[2dt]
   jackknifeCorrelationFunctionD data_j_der_2(data_j.size()-2, [&](const int i){
@@ -258,34 +416,30 @@ int main(const int argc, const char** argv){
 
   jackknifeDistributionD w0_2 = pow( compute(data_j_der_2, 0.3), 0.5);  
   std::cout << "[2nd order approx] w0 = " << w0_2 << std::endl;
+  writeParamsStandard(w0_2, "w0_2nd_order.hdf5");
+    
 
   //Compute lattice spacing if desired
   if(compute_a_sqrtt0){
     jackknifeDistributionD ainv = sqrt_t0 / sqrtt0_cont;
-    std::cout << "a^{-1} = " << ainv << " by t0^1/2" << std::endl;
+    std::cout << "a^{-1} = " << ainv << " by t0^1/2 with continuum value " << sqrtt0_cont << std::endl;
 
     double c0ca_cen = 0.7307 * 0.042;
     double c0ca_err = 0.7307 * 0.014; //just use err on ca
-    jackknifeDistributionD c0ca(nbinned);
-    //gaussianRandom(c0ca, c0ca_cen, c0ca_err * sqrt( double(nbinned)/double(nbinned - 1) ) );
-    fakeRandom(c0ca, c0ca_cen, c0ca_err, nbinned);
-
+    jackknifeDistributionD c0ca = fakeJackknife(c0ca_cen, c0ca_err, nbinned, RNG, 5e-2);
     compute_a_corrected(sqrt_t0, sqrtt0_cont, c0ca);
   }
 
   if(compute_a_w0){
     jackknifeDistributionD ainv = w0 / w0_cont;
-    std::cout << "a^{-1} = " << ainv << " by w0 (1st order)" << std::endl;
+    std::cout << "a^{-1} = " << ainv << " by w0 (1st order) with continuum value " << w0_cont << std::endl;
 
     ainv = w0_2 / w0_cont;
-    std::cout << "a^{-1} = " << ainv << " by w0 (2nd order)" << std::endl;
+    std::cout << "a^{-1} = " << ainv << " by w0 (2nd order) with continuum value " << w0_cont << std::endl;
 
     double c0ca_cen = 0.8787 * 0.023;
     double c0ca_err = 0.8787 * 0.013; //just use err on ca
-    jackknifeDistributionD c0ca(nbinned);
-    //gaussianRandom(c0ca, c0ca_cen, c0ca_err * sqrt( double(nbinned)/double(nbinned - 1) ) );
-    fakeRandom(c0ca, c0ca_cen, c0ca_err, nbinned);
-		   
+    jackknifeDistributionD c0ca = fakeJackknife(c0ca_cen, c0ca_err, nbinned, RNG, 5e-2);
     compute_a_corrected(w0, w0_cont, c0ca);
   }
 
@@ -316,3 +470,4 @@ int main(const int argc, const char** argv){
   std::cout << "Done" << std::endl;
   return 0;
 };
+

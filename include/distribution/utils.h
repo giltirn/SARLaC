@@ -183,14 +183,22 @@ bool isComplex(const T &v, double tol = 1e-5){
   return false;
 }
 
-jackknifeDistribution<double> fakeJackknife(const double mean, const double std_err, const int Nsample, RNGstore &rng){
+//Generate a jackknife distribution with the provided error and mean from a gaussian distribution.
+//If err_tol==-1 the first attempt will be returned even if the finite sample width is not in good agreement with the desired error
+//otherwise it will keep trying until the relative difference in errors is smaller than err_tol
+jackknifeDistribution<double> fakeJackknife(const double mean, const double std_err, const int Nsample, RNGstore &rng, double err_tol = -1){
   jackknifeDistribution<double> out(Nsample);
   gaussianRandom(out,mean,std_err/sqrt(double(Nsample-1)));
+  while(err_tol != -1 && fabs(out.standardError()/std_err - 1) > err_tol)   gaussianRandom(out,mean,std_err/sqrt(double(Nsample-1)));
   double omean = out.mean();
   for(int s=0;s<Nsample;s++)
     out.sample(s) = out.sample(s) - omean + mean;
   return out;
 }
+
+
+
+
 
 CPSFIT_END_NAMESPACE
 #endif
