@@ -102,7 +102,10 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
 
   if(do_Tsq) pvalue_Tsq = jackknifeDistributionD(nsample, [&](const int s){ return TsquareDistribution::pvalue(chisq.sample(s), dof, nsample-1); });
 
-  std::cout << "Params: " << params << std::endl;
+  std::cout << "Params:" << std::endl;
+  for(int p=0;p<params.sample(0).size();p++)
+    std::cout << p << " " << distributionStructPeek(params,p) << std::endl;
+  
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
   std::cout << "Dof: " << dof << std::endl;
