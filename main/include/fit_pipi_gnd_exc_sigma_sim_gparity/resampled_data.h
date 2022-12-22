@@ -40,10 +40,10 @@ public:
     return out;
   }
   template<typename binResampler>
-  resampledCorrelationFunctionType computeVacSub(const RawData &raw_data, 
-						 const Operator op1, const Operator op2,
-						 const binResampler &resampler, const int tsep_pipi,
-						 const bool timeslice_avg_vac_sub = false){
+  static resampledCorrelationFunctionType computeVacSub(const RawData &raw_data, 
+							const Operator op1, const Operator op2,
+							const binResampler &resampler, const int tsep_pipi,
+							const bool timeslice_avg_vac_sub = false){
     resampledCorrelationFunctionType v;
     if( (op1 == Operator::PiPiGnd || op1 == Operator::PiPiExc) &&
 	(op2 == Operator::PiPiGnd || op2 == Operator::PiPiExc) ){

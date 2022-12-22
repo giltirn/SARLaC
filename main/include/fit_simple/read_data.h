@@ -203,6 +203,10 @@ void applyCombination(CorrelationFunctionType &to, const std::vector<Correlation
   }else if(comb == Combination::CombinationAdivB){
     if(from.size()!=2) error_exit(std::cout << "applyCombination error: CombinationAdivB requires two channels\n");
     to = from[0]/from[1];
+  }else if(comb == Combination::CombinationSum){
+    assert(from.size() > 0);
+    to = from[0];
+    for(int i=1;i<from.size();i++) to = to + from[i];
   }else{
     error_exit(std::cout << "applyCombination unknown combination " << comb << std::endl);
   }

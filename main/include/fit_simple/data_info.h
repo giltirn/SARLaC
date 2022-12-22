@@ -3,7 +3,7 @@
 
 GENERATE_ENUM_AND_PARSER(ParserType, (ParserStandard)(ParserMultiSourceAverage)(ParserMultiSourceAverageImag)(ParserStandardInlineReal) );
 GENERATE_ENUM_AND_PARSER(TimeDependence, (TimeDepNormal)(TimeDepReflect)(TimeDepFold)(TimeDepAntiFold) );
-GENERATE_ENUM_AND_PARSER(Combination, (CombinationAverage)(CombinationAminusB)(CombinationAdivB) );
+GENERATE_ENUM_AND_PARSER(Combination, (CombinationAverage)(CombinationAminusB)(CombinationAdivB)(CombinationSum) );
 GENERATE_ENUM_AND_PARSER(FitFuncType, (FCosh)(FSinh)(FExp)(FConstant)(FTwoStateCosh) );
 
 #define DATA_INFO_MEMBERS \

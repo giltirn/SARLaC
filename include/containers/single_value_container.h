@@ -19,6 +19,8 @@ public:
   explicit singleValueContainer(const T _t): t(_t){}
   inline T & operator()(const int i){ assert(i==0); return t; }
   inline const T &operator()(const int i) const{ assert(i==0); return t; }
+  inline T & operator[](const int i){ assert(i==0); return t; }
+  inline const T &operator[](const int i) const{ assert(i==0); return t; }
   inline int size() const{ return 1; }
   inline std::string print() const{ return anyToStr<T>(t); }
   inline void resize(const int i){ if(i!=1) error_exit(std::cout << printType<singleValueContainer<T> >() << " resize called with value " << i << " != 1\n"); }
