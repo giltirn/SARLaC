@@ -43,12 +43,12 @@ struct _SquareMatrixEigensolve<T,1>{
   static std::vector<T> solveSymm(std::vector<NumericVector<T> > &evecs, std::vector<T> &evals, const NumericSquareMatrix<T> &A, bool sort = true){
     assert(A.size() > 0);
     const int size = A.size();
-    const int nsample = A(0,0).size();
+    const typename T::initType init = A(0,0).getInitializer();
 
     for(int i=0;i<size;i++){
-      evals[i].resize(nsample);
+      evals[i].resize(init);
       for(int j=0;j<size;j++)
-	evecs[i][j].resize(nsample);
+	evecs[i][j].resize(init);
     }
     
     typedef typename iterate<T>::type type;
@@ -56,9 +56,10 @@ struct _SquareMatrixEigensolve<T,1>{
     std::vector<NumericVector<type> > evecs_s(size, NumericVector<type>(size));
     std::vector<type> evals_s(size);
 
-    std::vector<T> residuals(size, T(nsample));
+    std::vector<T> residuals(size, T(init));
     
     const int nit = iterate<T>::size(A(0,0));
+#pragma omp parallel for
     for(int s=0;s<nit;s++){
       for(int i=0;i<size;i++)
 	for(int j=0;j<size;j++)
@@ -266,6 +267,9 @@ std::vector<T> symmetricMatrixEigensolve(std::vector<NumericVector<T> > &evecs, 
   const int size = A.size();
   evecs.resize(size, NumericVector<T>(size));
   evals.resize(size);
+  for(int i=0;i<size;i++)
+    if(evecs[i].size() != size) evecs[i].resize(size); //above resize only sets values of added elements, not existing!
+
   return _SquareMatrixEigensolve<T, hasSampleMethod<T>::value>::solveSymm(evecs,evals,A,sort);
 }
 template<typename T>
@@ -275,6 +279,9 @@ std::vector<T> nonSymmetricMatrixEigensolve(std::vector<NumericVector<Complexify
   const int size = A.size();
   evecs.resize(size, NumericVector<Complexify<T> >(size));
   evals.resize(size);
+  for(int i=0;i<size;i++)
+    if(evecs[i].size() != size) evecs[i].resize(size); //above resize only sets values of added elements, not existing!
+
   return _SquareMatrixEigensolve<T, hasSampleMethod<T>::value>::solveNonSymm(evecs,evals,A,sort);
 }
 template<typename T>
@@ -282,6 +289,9 @@ std::vector<T> symmetricMatrixGEVPsolve(std::vector<NumericVector<T> > &evecs, s
   const int size = A.size(); assert(B.size() == A.size());
   evecs.resize(size, NumericVector<T>(size));
   evals.resize(size);
+  for(int i=0;i<size;i++)
+    if(evecs[i].size() != size) evecs[i].resize(size); //above resize only sets values of added elements, not existing!
+
   return _SquareMatrixEigensolve<T, hasSampleMethod<T>::value>::solveSymmGEVP(evecs,evals,A,B,sort);
 }
 
@@ -292,6 +302,9 @@ std::vector<T> nonSymmetricMatrixGEVPsolve(std::vector<NumericVector<Complexify<
   const int size = A.size(); assert(B.size() == A.size());
   evecs.resize(size, NumericVector<Complexify<T> >(size));
   evals.resize(size);
+  for(int i=0;i<size;i++)
+    if(evecs[i].size() != size) evecs[i].resize(size); //above resize only sets values of added elements, not existing!
+
   return _SquareMatrixEigensolve<T, hasSampleMethod<T>::value>::solveNonSymmGEVP(evecs,evals,A,B,sort);
 }
 

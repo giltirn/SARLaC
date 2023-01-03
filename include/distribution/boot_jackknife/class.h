@@ -99,6 +99,14 @@ public:
     base_jack.resample(in); //propagate jackknife of original data 
   }
   
+  //This version generates the mapping on-the-fly. The same seed should be used for all data. Supports only unblocked resampling. Number of boots should be set prior to execution
+  template<typename DistributionType> 
+  void resample(const DistributionType &in, const int seed = bootstrapDistributionOptions::defaultSeed()){
+    int boots = this->size();   
+    std::vector<std::vector<int> > rtable = resampleTable(in.size(),boots,seed);
+    this->resample(in,rtable);
+  }
+
   bootJackknifeDistribution(const bootJackknifeDistribution &r): _confidence(r._confidence), base_jack(r.base_jack), baseType(r){}
   
   template<template<typename> class U>
