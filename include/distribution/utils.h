@@ -102,12 +102,29 @@ std::vector<double> integratedAutocorrelationMulti(const int delta_cut_max, cons
   return out;
 }
 
+
+struct AutoCorrelationOptions{
+  //Option to use a mean value passed from outside rather than recomputing
+  //Can be useful if a more precise number is known, e.g. from combining multiple evolution streams
+  bool use_precomputed_mean;
+  double precomputed_mean;
+
+  AutoCorrelationOptions(){
+    use_precomputed_mean = false;
+  }
+};
+
 //Binned variant described in https://arxiv.org/pdf/1411.7017.pdf  page 16, bottom. Provides error bars
 //For a consistent resampling we need to have the number of binned samples equal for all delta. 
 //We therefore must provide a delta_max, from which we can generate nsample - delta_max  values of  (Y_i - Ybar)( Y_{i+delta} - Ybar )
 //Resample table 'rtable' should be of size  nboots * ( (nsample-delta_max)/ bin_size )
-bootstrapDistribution<double> autocorrelation(const int delta, const int bin_size, const int delta_max, const rawDataDistribution<double> &data, const std::vector<std::vector<int> > &rtable){
-  double mean = data.mean();
+bootstrapDistribution<double> autocorrelation(const int delta, const int bin_size, const int delta_max, const rawDataDistribution<double> &data, const std::vector<std::vector<int> > &rtable,
+					      const AutoCorrelationOptions &opt = AutoCorrelationOptions()){
+  double mean;
+  if(opt.use_precomputed_mean)
+    mean = opt.precomputed_mean;
+  else 
+    mean = data.mean();
   
   int nvals = data.size() - delta_max;
 
@@ -126,23 +143,23 @@ bootstrapDistribution<double> autocorrelation(const int delta, const int bin_siz
 //tau_int as a function of the cut on the separation.
 //delta_max>=delta_cut
 //Resample table 'rtable' should be of size  nboots * ( (nsample-delta_max)/ bin_size )
-bootstrapDistribution<double> integratedAutocorrelation(const int delta_cut, const int bin_size, const int delta_max, const rawDataDistribution<double> &data, const std::vector<std::vector<int> > &rtable){
+bootstrapDistribution<double> integratedAutocorrelation(const int delta_cut, const int bin_size, const int delta_max, const rawDataDistribution<double> &data, const std::vector<std::vector<int> > &rtable, const AutoCorrelationOptions &opt = AutoCorrelationOptions()){
   int nboot = rtable.size();
   bootstrapDistribution<double> tau_int(0.5, bootstrapInitType(nboot));
   for(int delta = 1; delta <= delta_cut; delta++)
-    tau_int = tau_int + autocorrelation(delta, bin_size, delta_max, data, rtable);
+    tau_int = tau_int + autocorrelation(delta, bin_size, delta_max, data, rtable, opt);
   return tau_int;
 }
 
 //delta_max>=delta_cut_max
-std::vector<bootstrapDistribution<double> > integratedAutocorrelationMulti(const int delta_cut_max, const int bin_size, const int delta_max, const rawDataDistribution<double> &data, const std::vector<std::vector<int> > &rtable){
+std::vector<bootstrapDistribution<double> > integratedAutocorrelationMulti(const int delta_cut_max, const int bin_size, const int delta_max, const rawDataDistribution<double> &data, const std::vector<std::vector<int> > &rtable, const AutoCorrelationOptions &opt = AutoCorrelationOptions()){
   int nboot = rtable.size();
 
   bootstrapDistribution<double> tau_int(0.5, bootstrapInitType(nboot));
   std::vector<bootstrapDistribution<double> > out(1, tau_int);
 
   for(int delta = 1; delta <= delta_cut_max; delta++){
-    tau_int = tau_int + autocorrelation(delta, bin_size, delta_max, data, rtable);
+    tau_int = tau_int + autocorrelation(delta, bin_size, delta_max, data, rtable, opt);
     out.push_back(tau_int);
   }
   return out;
