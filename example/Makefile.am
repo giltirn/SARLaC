@@ -1,10 +1,11 @@
 exampledir = $(prefix)/example
 testdir = $(prefix)/test
-example_PROGRAMS = enumerated_struct_example fit_example generic_freeze_example simfit_example superjack_example
+example_PROGRAMS = enumerated_struct_example fit_example generic_freeze_example simfit_example superjack_example fit_simple_bootstrap_example
 enumerated_struct_example_SOURCES = enumerated_struct_example.C
 fit_example_SOURCES = fit_example.C
 generic_freeze_example_SOURCES = generic_freeze_example.C
 simfit_example_SOURCES = simfit_example.C
 superjack_example_SOURCES = superjack_example.C
+fit_simple_bootstrap_example_SOURCES = fit_simple_bootstrap_example.C
 AM_CPPFLAGS = -I$(srcdir)/../include -I$(srcdir)/include
 LDADD =../src/libcpsfit.a

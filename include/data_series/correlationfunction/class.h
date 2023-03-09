@@ -8,6 +8,7 @@
 
 CPSFIT_START_NAMESPACE
 
+//A correlationFunction is the same as a dataSeries but it has an expression-template engine defining element-wise functionality on the data values
 template<typename _GeneralizedCoordinate, typename DistributionType, template<typename,typename> class PairType = CorrFuncTaggedPair>
 class correlationFunction: public dataSeries<_GeneralizedCoordinate, DistributionType, PairType>{
   typedef dataSeries<_GeneralizedCoordinate, DistributionType, PairType> Parent;
