@@ -302,7 +302,7 @@ public:
 };
 
 //c0ca in physical units
-void compute_a_corrected(const jackknifeDistributionD &val_lat, const jackknifeDistributionD &val_cont, const jackknifeDistributionD &c0ca){
+void compute_a_corrected(const jackknifeDistributionD &val_lat, const jackknifeDistributionD &val_cont, const jackknifeDistributionD &c0ca, const std::string &comment=""){
   // w0(a) = w0^c + c0ca a^2
   // w0(a)/a = w0^c/a + c0ca a  = w0^lat
   // c0ca a^2 + w0^c - a w0^lat = 0
@@ -312,8 +312,9 @@ void compute_a_corrected(const jackknifeDistributionD &val_lat, const jackknifeD
   jackknifeDistributionD ainv_sol1 = pow(a_sol1,-1);
   jackknifeDistributionD ainv_sol2 = pow(a_sol2,-1);
   
-  std::cout << "a^-1 (+) = " << ainv_sol1 << std::endl;
-  std::cout << "a^-1 (-) = " << ainv_sol2 << std::endl;
+  //std::cout << "a^-1 (+) = " << ainv_sol1 << std::endl;
+  //std::cout << "a^-1 (-) = " << ainv_sol2 << std::endl;  
+  std::cout << "a^-1 = " << ainv_sol2 << " using continuum-limit correction " << comment << std::endl;
 }
 
 int main(const int argc, const char** argv){
@@ -375,12 +376,12 @@ int main(const int argc, const char** argv){
 
   //Prepare physical values of sqrtt0, w0 for lattice spacing computation (if requested)
   int nbinned = data_j.value(0).size();
-  jackknifeDistributionD sqrtt0_cont(nbinned);
+  jackknifeDistributionD sqrtt0_cont(nbinned), sqrtt0_cont_cen_j(nbinned, sqrtt0_cont_cen);
   if(compute_a_sqrtt0){
     sqrtt0_cont = fakeJackknife(sqrtt0_cont_cen, sqrtt0_cont_err, nbinned, RNG, 5e-2);
     std::cout << "Physical value of t0^1/2 =" << sqrtt0_cont << std::endl;
   }
-  jackknifeDistributionD w0_cont(nbinned);
+  jackknifeDistributionD w0_cont(nbinned), w0_cont_cen_j(nbinned, w0_cont_cen);
   if(compute_a_w0){
     w0_cont = fakeJackknife(w0_cont_cen, w0_cont_err, nbinned, RNG, 5e-2);
     std::cout << "Physical value of w0 =" << w0_cont << std::endl;
@@ -421,26 +422,38 @@ int main(const int argc, const char** argv){
 
   //Compute lattice spacing if desired
   if(compute_a_sqrtt0){
+    std::cout << "Computing lattice spacing using t0^1/2 with continuum value " << sqrtt0_cont << std::endl;
+
     jackknifeDistributionD ainv = sqrt_t0 / sqrtt0_cont;
-    std::cout << "a^{-1} = " << ainv << " by t0^1/2 with continuum value " << sqrtt0_cont << std::endl;
+    std::cout << "a^{-1} = " << ainv << std::endl;
+
+    ainv = sqrt_t0 / sqrtt0_cont_cen_j;
+    std::cout << "a^{-1} = " << ainv << " (without error)" << std::endl;
 
     double c0ca_cen = 0.7307 * 0.042;
     double c0ca_err = 0.7307 * 0.014; //just use err on ca
     jackknifeDistributionD c0ca = fakeJackknife(c0ca_cen, c0ca_err, nbinned, RNG, 5e-2);
     compute_a_corrected(sqrt_t0, sqrtt0_cont, c0ca);
+    compute_a_corrected(sqrt_t0, sqrtt0_cont_cen_j, c0ca,"(without error)");
   }
 
   if(compute_a_w0){
-    jackknifeDistributionD ainv = w0 / w0_cont;
-    std::cout << "a^{-1} = " << ainv << " by w0 (1st order) with continuum value " << w0_cont << std::endl;
+    std::cout << "Computing lattice spacing using w0 with continuum value " << w0_cont << std::endl;
 
-    ainv = w0_2 / w0_cont;
-    std::cout << "a^{-1} = " << ainv << " by w0 (2nd order) with continuum value " << w0_cont << std::endl;
+    jackknifeDistributionD ainv = w0 / w0_cont;
+    std::cout << "a^{-1} = " << ainv << std::endl;
+
+    //ainv = w0_2 / w0_cont;
+    //std::cout << "a^{-1} = " << ainv << " by w0 (2nd order) with continuum value " << w0_cont << std::endl;
+
+    ainv = w0 / w0_cont_cen_j;
+    std::cout << "a^{-1} = " << ainv << " (without error)" << std::endl;
 
     double c0ca_cen = 0.8787 * 0.023;
     double c0ca_err = 0.8787 * 0.013; //just use err on ca
     jackknifeDistributionD c0ca = fakeJackknife(c0ca_cen, c0ca_err, nbinned, RNG, 5e-2);
     compute_a_corrected(w0, w0_cont, c0ca);
+    compute_a_corrected(w0, w0_cont_cen_j, c0ca, "(without error)");
   }
 
   
