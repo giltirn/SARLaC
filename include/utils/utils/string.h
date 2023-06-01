@@ -101,32 +101,38 @@ struct subStringSpecify{
 
 class subStringReplace{
   std::vector<std::string> chunked;
-  std::vector<int> substr_chunk_map; //optional substrings index -1
-  std::vector<int> chunk_substr_map;
+  std::vector<std::vector<int> > substr_chunk_map; //map substring index -> a chunk in the 'chunked' array
+  std::vector<int> chunk_substr_map; //map chunk index with substring index. -1 indicates chunk is not associated with a substring
 public:
   void debugPrint() const{
     std::cout << "Chunks:\n";
     for(int i=0;i<chunked.size();i++) std::cout << chunked[i] << std::endl;
     std::cout << "Substring chunk indices:";
-    for(int i=0;i<substr_chunk_map.size();i++) std::cout << " " << substr_chunk_map[i];
+    for(int i=0;i<substr_chunk_map.size();i++)
+      for(int idx : substr_chunk_map[i])
+	std::cout << " " << i << ":" << idx;
     std::cout << std::endl;
   }
 
-  bool foundSubstring(const int i) const{ return substr_chunk_map[i] != -1; }
+  bool foundSubstring(const int i) const{ return substr_chunk_map[i].size() != 0; }
 
   //Break up 'the_string' around and including the input "tagged_substrings"
   void chunkString(const std::string &the_string, const std::vector<subStringSpecify> &tagged_substrings){
+    substr_chunk_map.clear();
     substr_chunk_map.resize(tagged_substrings.size());
-    for(int i=0;i<substr_chunk_map.size();i++) substr_chunk_map[i] = -1;
-
     std::vector<std::pair<int, size_t> > offsets;
     
     for(int i=0;i<tagged_substrings.size();i++){
+      std::vector<size_t> offsets_s;
       size_t off = the_string.find(tagged_substrings[i].substr);
-      if(off == std::string::npos && !tagged_substrings[i].optional) 
+      while(off != std::string::npos){
+	offsets_s.push_back(off);
+	off = the_string.find(tagged_substrings[i].substr, off+tagged_substrings[i].substr.size());
+      }
+      if(offsets_s.size() == 0 && !tagged_substrings[i].optional) 
 	error_exit(std::cout << "Could not find substring \"" << tagged_substrings[i].substr << "\" in " << the_string << std::endl);
       
-      if(off != std::string::npos) offsets.push_back(std::pair<int,size_t>(i,off));
+      for(size_t o : offsets_s) offsets.push_back({i,o});
     }
 
     std::sort(offsets.begin(), offsets.end(), [&](const std::pair<int,size_t> &a, const std::pair<int,size_t> &b){ return a.second < b.second; });
@@ -136,27 +142,30 @@ public:
     int s = 0;
     size_t pos = 0;
 
+    chunk_substr_map.clear();
+
     for(int s=0;s<offsets.size();s++){
-      int ssidx = offsets[s].first;
-      size_t ssoff = offsets[s].second;
+      int ssidx = offsets[s].first; //substring index
+      size_t ssoff = offsets[s].second; //substring offset
 
       if(pos != ssoff){
 	chunked.push_back(the_string.substr(pos, ssoff-pos));
+	chunk_substr_map.push_back(-1);
 	pos = ssoff;
       }
-    
-      chunked.push_back(the_string.substr(pos, tagged_substrings[ssidx].substr.size()));
-      pos += tagged_substrings[s].substr.size();
-      substr_chunk_map[ssidx] = chunked.size()-1;
+
+      int substr_len = tagged_substrings[ssidx].substr.size();
+      chunked.push_back(the_string.substr(pos, substr_len));
+      chunk_substr_map.push_back(ssidx);
+      pos += substr_len;
+
+      substr_chunk_map[ssidx].push_back(chunked.size()-1);
     }
 
-    if(pos < the_string.size())
+    if(pos < the_string.size()){
       chunked.push_back(the_string.substr(pos, std::string::npos));
-
-    chunk_substr_map.resize(chunked.size());
-    for(int c=0;c<chunked.size();c++) chunk_substr_map[c] = -1;
-    
-    for(int s=0;s<substr_chunk_map.size();s++) if(substr_chunk_map[s] != -1) chunk_substr_map[substr_chunk_map[s]] = s;
+      chunk_substr_map.push_back(-1);
+    }
   }
 
   //'with' should be a vector of strings, one for each substring (including optional)
@@ -167,6 +176,10 @@ public:
       if(s == -1) os << chunked[c];
       else os << with[s];
     }
+  }
+  std::string replace(const std::vector<std::string> &with) const{
+    std::stringstream ss; replace(ss,with);
+    return ss.str();
   }
 
   bool match(std::map<std::string,std::string> &results, const std::string &str) const{

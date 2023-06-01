@@ -153,9 +153,12 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
   std::vector<bool> good(nsample, true);
 #pragma omp parallel for
   for(int s=0;s<nsample;s++){
-    std::ostringstream os; os << traj_start + s*traj_inc;
-    std::string filename = data_info.file_fmt;
-    filename.replace(off,2,os.str());
+    //std::ostringstream os; os << traj_start + s*traj_inc;
+    //std::string filename = data_info.file_fmt;
+    //filename.replace(off,2,os.str());
+    subStringReplace repl(data_info.file_fmt,{subStringSpecify("%d")});
+    std::string filename = repl.replace({ std::to_string(traj_start + s*traj_inc) });
+
     std::cout << "Parsing " << filename << std::endl;
     std::ifstream is(filename.c_str());
     if(is.good()){
