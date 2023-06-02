@@ -7,7 +7,8 @@
 #include<algorithm>
 #include<parser.h>
 
-#include<pipi_common/read_data_pipi.h>
+#include<pipi_common/correlator_utils/threemomentum.h>
+#include<pipi_common/base_data_containers/sigma_bubble_data_container.h>
 
 #include "data_containers.h"
 

@@ -1,7 +1,6 @@
 #include <utils.h>
 #include <random.h>
 #include <pipi_common/pipi_common.h>
-#include <pipi_common/analyze_chisq.h>
 using namespace CPSfit;
 
 #include<fit_pipi_gnd_exc_sim_gparity/enums.h>
@@ -72,6 +71,8 @@ int main(const int argc, const char* argv[]){
       raw_data.removeSamplesInRange(cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
     if(cmdline.scramble_raw_data)
       raw_data.scrambleSamples();
+    if(cmdline.zero_bubbles)
+      raw_data.zeroBubbles();
   }
 
   bool do_dj = args.covariance_matrix != CovarianceMatrix::Block;

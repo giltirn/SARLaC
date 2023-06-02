@@ -1,7 +1,6 @@
 #include <utils.h>
 #include <random.h>
 #include <pipi_common/pipi_common.h>
-#include <pipi_common/analyze_chisq.h>
 using namespace CPSfit;
 
 #include<fit_pipi_gnd_exc_sim_gparity/enums.h>

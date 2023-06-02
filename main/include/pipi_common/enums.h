@@ -8,7 +8,6 @@
 
 CPSFIT_START_NAMESPACE
 
-GENERATE_ENUM_AND_PARSER(PiPiProjector, (A1momSet111)(A1momSet311)(MovingSwaveGround)(MovingSwaveExc1)(MovingSwaveExc2) );
 GENERATE_ENUM_AND_PARSER(PiPiFitFunction, (FCoshPlusConstant)(FCoshPlusConstantDoubleExp) );
 GENERATE_ENUM_AND_PARSER(PiPiEffectiveEnergy, (TwoPoint)(TwoPointSubConstant)(ThreePoint) );
 GENERATE_ENUM_AND_PARSER(MomentumUnit, (PiOverL)(PiOverTwoL) );

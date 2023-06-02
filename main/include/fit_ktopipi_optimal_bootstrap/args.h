@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include <pipi_common/threemomentum.h>
+#include <pipi_common/correlator_utils/threemomentum.h>
 
 #include <fit_pipi_optimal_bootstrap/compute_r.h>
 

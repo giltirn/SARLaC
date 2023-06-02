@@ -46,4 +46,5 @@ void getTypeInfo(DistributionTypeEnum &type, int & vector_depth, const std::stri
 #endif
 
 CPSFIT_END_NAMESPACE
+
 #endif

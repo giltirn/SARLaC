@@ -22,9 +22,9 @@ public:
   const T & operator()(const int i) const{ return v[i-Begin]; }
 };
 template<typename T, int Size, int Begin>
-inline void write(CPSfit::HDF5writer &writer, const IndexedContainer<T,Size,Begin> &d, const std::string &tag){ d.write(writer,tag); }
+inline void write(HDF5writer &writer, const IndexedContainer<T,Size,Begin> &d, const std::string &tag){ d.write(writer,tag); }
 template<typename T, int Size, int Begin>
-inline void read(CPSfit::HDF5reader &reader, IndexedContainer<T,Size,Begin> &d, const std::string &tag){ d.read(reader,tag); }
+inline void read(HDF5reader &reader, IndexedContainer<T,Size,Begin> &d, const std::string &tag){ d.read(reader,tag); }
 
 
 //Write results at various stages for debugging against other codes

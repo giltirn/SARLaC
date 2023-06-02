@@ -6,8 +6,8 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include "mom_data_containers.h"
-#include "mom_project.h"
+#include "../mom_data_containers.h"
+#include "../correlator_utils/mom_project.h"
 
 CPSFIT_START_NAMESPACE
 
@@ -170,7 +170,7 @@ void getResampledPiPi2ptData(jackknifeCorrelationFunctionD &pipi_j, doubleJackkn
 			 Lt, tstep_pipi, tsep_pipi, proj_src, proj_snk);
     }
     if(opts.save_hdf5_data_checkpoint) saveRawDataCheckpoint(raw_data, raw_bubble_data, opts.save_hdf5_data_checkpoint_stub, extra_descr);
-    getRawPiPiCorrFunc(pipi_raw, raw_data, proj_src, proj_snk, isospin, bin_size, extra_descr);
+    combineRawPiPiContractions(pipi_raw, raw_data, proj_src, proj_snk, isospin, bin_size, extra_descr);
   }
 
   const int nsample = (traj_lessthan - traj_start)/traj_inc/bin_size;

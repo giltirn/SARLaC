@@ -1,67 +1,42 @@
-#ifndef _PIPI_RAW_CORRELATOR_H_
-#define _PIPI_RAW_CORRELATOR_H_
+#pragma once
 
 #include<config.h>
 #include<utils/macros.h>
 
-#include "mom_data_containers.h"
-#include "mom_project.h"
-#include "raw_data.h"
-#include "symm_data_multiplicities.h"
-#include "read_data_pipi.h"
+#include "pipi_all_mom_data.h"
 
 CPSFIT_START_NAMESPACE
 
-//Generate a correlation function by source-averaging the raw data
-template<typename FigureDataType>
-auto sourceAverage(const FigureDataType & data)->correlationFunction<double,typename FigureDataType::DistributionType>{
-  const int Lt = data.getLt();
+//Perform the rotational state projection
+template<typename DataAllMomentumType>
+typename DataAllMomentumType::ContainerType project(const char fig, const DataAllMomentumType &raw_data, 
+						    const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk){
+  std::cout << "Computing projection of figure " << fig << " with DataAllMomentumType = " << printType<DataAllMomentumType>() << "\n"; 
+  boost::timer::auto_cpu_timer t(std::string("Report: Computed projection of figure ") + fig + " with DataAllMomentumType = " + printType<DataAllMomentumType>() + " in %w s\n");
 
-  std::vector<int> tsrc_include;
-  for(int tsrc=0;tsrc<Lt;tsrc++){
-    bool is_nonzero = !data.isZero(tsrc);
-    if(is_nonzero)
-      tsrc_include.push_back(tsrc);
+  typename DataAllMomentumType::ContainerType out, tmp;
+
+  for(int psnki=0; psnki<proj_snk.nMomenta();psnki++){
+    threeMomentum psnk = proj_snk.momentum(psnki);
+
+    for(int psrci=0; psrci<proj_src.nMomenta();psrci++){
+      threeMomentum psrc = proj_src.momentum(psrci);
+
+      tmp = std::real(proj_snk.coefficient(psnki)*proj_src.coefficient(psrci)) * raw_data(fig, momComb(psnk,psrc));
+      if(psnki == 0 && psrci == 0) out = std::move(tmp);
+      else out = out + tmp;
+    }
   }
-  const double N(tsrc_include.size());
 
-  std::cout << "sourceAverage detected " << N << " non-zero timeslices\n";
-
-  correlationFunction<double, typename FigureDataType::DistributionType> into(Lt);
-
-  for(int tsep=0;tsep<Lt;tsep++){
-    into.coord(tsep) = tsep;
-    auto & v = into.value(tsep);
-    v = data(tsrc_include[0],tsep);
-    for(int i=1;i<tsrc_include.size();i++)
-      v = v + data(tsrc_include[i],tsep);
-    v = v/N;
-  }
-  return into;
-}
-
-void outputRawCorrelator(const std::string &filename, const correlationFunction<double,rawDataDistributionD> &data, const double coeff){
-  std::ofstream of(filename.c_str());
-  of << std::setprecision(11) << std::scientific;
-  int Lt = data.size();
-  int nsample = data.value(0).size();
-
-  for(int t=0;t<data.size();t++)
-    for(int s=0;s<nsample;s++)
-      of << t << " " << s << " " << coeff * data.value(t).sample(s) << " " << 0. << std::endl;
-  of.close();
-}
-
-inline void bin(rawDataCorrelationFunctionD &raw, const int bin_size){
-  for(int i=0;i<raw.size();i++) raw.value(i) = raw.value(i).bin(bin_size);
+  return out;
 }
 
 //Given the parsed, raw data, compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data. This includes projecting the pipi states onto
 //a user-selected linear combination (for example projecting onto the A1 cubic representation)
-void getRawPiPiCorrFunc(rawDataCorrelationFunctionD &pipi_raw, const figureDataAllMomenta &raw_data,
+void combineRawPiPiContractions(rawDataCorrelationFunctionD &pipi_raw, const figureDataAllMomenta &raw_data,
 			const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk, const int isospin, 
 			const int bin_size, const std::string &extra_descr = "", bool output_raw_data = true){
-  if(isospin != 0 && isospin != 2) error_exit(std::cout << "getRawPiPiCorrFunc only supports isospin 0,2\n");
+  if(isospin != 0 && isospin != 2) error_exit(std::cout << "combineRawPiPiContractions only supports isospin 0,2\n");
   const char figs[4] = {'C','D','R','V'};
   const std::vector<double> coeffs = isospin == 0 ? std::vector<double>({1., 2., -6., 3.}) : std::vector<double>({-2., 2., 0., 0.});
   std::string ee = extra_descr != "" ? "_" + extra_descr : "";  
@@ -106,9 +81,9 @@ void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomentaZ &r
   readRawPiPi2ptData(raw_data, raw_bubble_data, ffn, bfn_src, bfn_snk, data_dir, traj_start, traj_inc, traj_lessthan, Lt, tstep_pipi, tsep_pipi, *proj_src, *proj_snk);
 
   //Combine diagrams to construct raw correlator
-  getRawPiPiCorrFunc(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, 1, "", false);
+  combineRawPiPiContractions(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, 1, "", false);
 }
-
+//Same as above but outputting just the real part of the bubble data
 inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
 			const std::string &data_dir, 
 			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
@@ -147,7 +122,4 @@ inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMome
   raw_bubble_data = reIm(raw_bubble_data_Z, 0);
 }
 
-
 CPSFIT_END_NAMESPACE
-
-#endif

@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include <pipi_common/threemomentum.h>
+#include <pipi_common/correlator_utils/threemomentum.h>
 
 #include <fit_ktopipi_gnd_exc_ktosigma_combined_gparity/enums.h>
 #include <fit_ktopipi_gnd_exc_ktosigma_combined_gparity/input_param_args.h>

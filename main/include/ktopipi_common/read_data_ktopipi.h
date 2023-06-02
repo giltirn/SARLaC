@@ -7,7 +7,8 @@
 #include<algorithm>
 #include<parser.h>
 
-#include<pipi_common/read_data_pipi.h>
+#include<pipi_common/correlator_utils/threemomentum.h>
+#include<pipi_common/mom_data_containers.h>
 
 #include "data_containers.h"
 

@@ -9,8 +9,8 @@
 #include<config.h>
 #include<utils/macros.h>
 
+#include<parser.h>
 #include "threemomentum.h"
-#include "enums.h"
 
 CPSFIT_START_NAMESPACE
 
@@ -116,7 +116,7 @@ struct PiPiProjectorMovingSwaveExc2: public PiPiProjectorBase{
   std::complex<double> coefficient(const int i) const{ return 1./mom.size(); }
 };
 
-
+GENERATE_ENUM_AND_PARSER(PiPiProjector, (A1momSet111)(A1momSet311)(MovingSwaveGround)(MovingSwaveExc1)(MovingSwaveExc2) );
 
 PiPiProjectorBase* getProjector(const PiPiProjector proj, const threeMomentum &ptot){
   switch(proj){

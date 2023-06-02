@@ -12,7 +12,6 @@
 
 CPSFIT_START_NAMESPACE
 
-
 //double t; //K->op separation
 //int tsep_k_pi;
 #define ADC_MEM (double,t)(int, tsep_k_pi)

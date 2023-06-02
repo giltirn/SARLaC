@@ -1,7 +1,7 @@
 #ifndef _FIT_PIPI_GND_EXC_SIGMA_GPARITY_FIT_H
 #define _FIT_PIPI_GND_EXC_SIGMA_GPARITY_FIT_H
 
-#include <pipi_common/analyze_chisq.h>
+#include <pipi_common/fit/analyze_chisq.h>
 
 template<typename FitFunc>
 void analyzeChisqFF(const correlationFunction<SimFitCoordGen,  jackknifeDistributionD> &corr_comb_j,

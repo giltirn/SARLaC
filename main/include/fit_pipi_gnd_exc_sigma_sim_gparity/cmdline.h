@@ -50,6 +50,8 @@ struct CMDline{
 
   bool scramble_raw_data;
 
+  bool zero_bubbles;
+
   CMDline(){
     load_guess = false;
     load_raw_data = false;
@@ -67,6 +69,7 @@ struct CMDline{
     load_filters = false;
     corr_mat_from_unbinned_data = false;
     scramble_raw_data = false;
+    zero_bubbles = false;
   }
   CMDline(const int argc, const char** argv, MinimizerType minimizer, const int begin = 0): CMDline(){
     setup(argc,argv,minimizer,begin);
@@ -200,7 +203,7 @@ struct CMDline{
 	i+=3;
       }else if(sargv[i] == "-scramble_raw_data"){
 	scramble_raw_data = true;
-	i+=2;
+	i++;
       }else if(sargv[i] == "-write_fit_data"){
 	write_fit_data=true;
 	i++;
@@ -208,6 +211,9 @@ struct CMDline{
 	corr_mat_from_unbinned_data = true;
 	unbinned_data_checkpoint = sargv[i+1];
 	i+=2;
+      }else if(sargv[i] == "-zero_bubbles"){ //zero the bubble data and thus remove the vacuum diagrams
+	zero_bubbles = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

@@ -71,7 +71,7 @@ void readPiPi2pt(rawCorrelationFunction &pipi_raw,
   //Combine diagrams to construct raw correlator
   const int bin_size = 1;
   const int isospin = 0;
-  getRawPiPiCorrFunc(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, bin_size); //binned, source-averaged pipi 2pt data
+  combineRawPiPiContractions(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, bin_size); //binned, source-averaged pipi 2pt data
 }
 
 template<typename resampledCorrFuncType>

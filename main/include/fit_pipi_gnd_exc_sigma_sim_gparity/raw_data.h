@@ -37,15 +37,18 @@ public:
     return contains.find({opa,opb}) != contains.end();
   }
 
+  //subset: -1 (all), 0 (correlators), 1 (bubbles)
   template<typename T>
-  void iterateOverRawDistributions(const T &action){
+  void iterateOverRawDistributions(const T &action, int subset = -1){
     for(auto it=contains.begin(); it != contains.end(); it++){
-      {//correlator      
+      if(subset == -1 || subset == 0){//correlator      
 	rawDataCorrelationFunctionD &raw = correlator(it->first, it->second);
 	for(int i=0;i<raw.size();i++) action(raw.value(i));
       }
-      if( (it->first == Operator::PiPiGnd || it->first == Operator::PiPiExc) &&
-	  (it->second == Operator::PiPiGnd || it->second == Operator::PiPiExc) ){
+      if( (subset == -1 || subset == 1) &&
+	 (it->first == Operator::PiPiGnd || it->first == Operator::PiPiExc) &&
+	 (it->second == Operator::PiPiGnd || it->second == Operator::PiPiExc) 
+	 ){
 	{//bubble
 	  bubbleDataAllMomenta &bub = PiPiBubble(it->first, it->second);
 	  for(auto p=bub.begin();p!=bub.end();p++)
@@ -60,10 +63,11 @@ public:
 	}
       }
     }
-    if(haveData(Operator::PiPiGnd,Operator::Sigma) || 
-       haveData(Operator::PiPiExc,Operator::Sigma) ||
-       haveData(Operator::Sigma,Operator::Sigma)
-       ){
+    if( (subset == -1 || subset == 1) &&
+       ( haveData(Operator::PiPiGnd,Operator::Sigma) || 
+         haveData(Operator::PiPiExc,Operator::Sigma) ||
+	 haveData(Operator::Sigma,Operator::Sigma) )
+	){
       {//sigma
 	sigmaSelfContraction &bub = SigmaBubble();
 	for(int t=0;t<bub.getLt();t++)
@@ -134,6 +138,11 @@ public:
 				}
 				);
     std::cout << "RawData samples removed" << std::endl;
+  }
+
+  //Optionally zero the bubbles to remove the vacuum diagram contributions, eg for testing
+  void zeroBubbles(){
+    iterateOverRawDistributions([](auto &v){ v.zero(); }, 1);
   }
   
   void write(HDF5writer &wr, const std::string &nm) const{

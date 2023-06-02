@@ -3,6 +3,7 @@
 
 #include "filters.h"
 #include "fitfunc.h"
+#include <pipi_common/resampled_data.h>
 
 //Multiplier of tsep_pipi around which the fold pivots
 int foldOffsetMultiplier(const Operator a, const Operator b){

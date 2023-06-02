@@ -3,7 +3,7 @@
 
 #include<config.h>
 #include<utils/macros.h>
-#include<pipi_common/analyze_chisq.h>
+#include<pipi_common/fit/analyze_chisq.h>
 #include "simfit_common.h"
 
 CPSFIT_START_NAMESPACE

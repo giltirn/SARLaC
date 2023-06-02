@@ -6,10 +6,7 @@
 #include<utils/macros.h>
 
 #include <common/common_defs.h>
-#include <pipi_common/read_data_sigma.h>
-#include <pipi_common/read_data_pipitosigma.h>
-#include <pipi_common/symm_data_multiplicities.h>
-#include <pipi_common/raw_data.h>
+#include <pipi_common/pipi_common.h>
 
 CPSFIT_START_NAMESPACE
 

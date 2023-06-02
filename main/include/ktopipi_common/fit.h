@@ -26,7 +26,7 @@ struct FitKtoPiPiOptions{
 
 //Fit to each Q independently
 template<typename FitFunc, template<typename> class corrUncorrFitPolicy>
-struct fit_corr_uncorr{
+struct fit_ktopipi_corr_uncorr{
   static std::vector<jackknifeDistribution<typename FitFunc::Params> > fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 									   const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 									   const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
@@ -78,7 +78,7 @@ struct fit_corr_uncorr{
 
 //Simultaneous fit in 10-basis
 template<template<typename> class corrUncorrFitPolicy>
-struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
+struct fit_ktopipi_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
   static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 							      const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
@@ -141,7 +141,7 @@ struct fit_corr_uncorr<FitKtoPiPiSim<10>, corrUncorrFitPolicy>{
 
 //Simultaneous fit in chiral
 template<template<typename> class corrUncorrFitPolicy>
-struct fit_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
+struct fit_ktopipi_corr_uncorr<FitKtoPiPiSim<7>, corrUncorrFitPolicy>{
   static jackknifeDistribution<FitKtoPiPiSim<10>::Params> fit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,
 							      const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &A0_fit_dj,
 							      const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
@@ -267,8 +267,8 @@ inline typename fitReturnType<FitFunc,jackknifeDistributionD>::type fit(const st
 						 const bool correlated,
 						 const FitKtoPiPiOptions &opt = FitKtoPiPiOptions()){
   return correlated ?
-    fit_corr_uncorr<FitFunc,correlatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,opt) :
-    fit_corr_uncorr<FitFunc,uncorrelatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,opt);
+    fit_ktopipi_corr_uncorr<FitFunc,correlatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,opt) :
+    fit_ktopipi_corr_uncorr<FitFunc,uncorrelatedFitPolicy>::fit(A0_fit_j,A0_fit_dj,opt);
 }
 
 void getFitData(std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &A0_fit_j,

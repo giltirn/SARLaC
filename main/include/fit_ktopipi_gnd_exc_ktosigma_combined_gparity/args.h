@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-#include <pipi_common/threemomentum.h>
+#include <pipi_common/correlator_utils/threemomentum.h>
 
 #include "enums.h"
 #include "input_param_args.h"

@@ -135,7 +135,7 @@ private:
       std::ostringstream file; file << opt.load_data_checkpoint_stub << "_tsepkpi" << tsep_k_pi << ".hdf5";
       std::cout << "Loading checkpoint data for tsep_k_pi = " << tsep_k_pi << " from " << file.str() << std::endl;
       HDF5reader rd(file.str());
-      for(int i=1;i<=4;i++) CPSfit::read(rd,type_data(i),stringize("type%d",i));
+      for(int i=1;i<=4;i++) ::CPSfit::read(rd,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -149,7 +149,7 @@ private:
       std::ostringstream file; file << opt.save_data_checkpoint_stub << "_tsepkpi" << tsep_k_pi << ".hdf5";
       std::cout << "Saving checkpoint data for tsep_k_pi = " << tsep_k_pi << " to " << file.str() << std::endl;
       HDF5writer wr(file.str());
-      for(int i=1;i<=4;i++) CPSfit::write(wr,type_data(i),stringize("type%d",i));
+      for(int i=1;i<=4;i++) ::CPSfit::write(wr,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif

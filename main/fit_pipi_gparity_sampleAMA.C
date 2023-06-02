@@ -53,7 +53,7 @@ struct rawData{ //raw, unbinned data
 
       if(save_checkpoint) saveRawDataCheckpoint(raw_data, *raw_bubble_data[i], checkpoint_filename, descr[i]);
 
-      getRawPiPiCorrFunc(*pipi_raw[i], raw_data, proj_src, proj_snk, isospin, args.bin_size, "", false);
+      combineRawPiPiContractions(*pipi_raw[i], raw_data, proj_src, proj_snk, isospin, args.bin_size, "", false);
     }
 
     nS = pipi_raw_sloppy_S.value(0).size();

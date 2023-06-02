@@ -1,17 +1,9 @@
-#ifndef PIPI_COMMON_H
-#define PIPI_COMMON_H
+#pragma once
 
+#include <pipi_common/enums.h>
 #include <pipi_common/fit.h>
 #include <pipi_common/plot.h>
-#include <pipi_common/read_data_pipi.h>
-#include <pipi_common/read_data_sigma.h>
-#include <pipi_common/read_data_pipitosigma.h>
-#include <pipi_common/raw_data.h>
-#include <pipi_common/raw_correlator.h>
-#include <pipi_common/resampled_data_pipi.h>
-#include <pipi_common/resampled_data_sigma.h>
-#include <pipi_common/resampled_data_pipitosigma.h>
-#include <pipi_common/symm_data_multiplicities.h>
-#include <pipi_common/simfit_generic.h>
-
-#endif
+#include <pipi_common/base_data_containers.h>
+#include <pipi_common/mom_data_containers.h>
+#include <pipi_common/correlator_utils.h>
+#include <pipi_common/resampled_data.h>
