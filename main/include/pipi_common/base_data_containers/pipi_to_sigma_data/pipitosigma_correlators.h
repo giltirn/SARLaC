@@ -16,7 +16,9 @@ struct readReconstructPiPiToSigmaWithDisconnAllTsrcOptions{
   //The former is how it was computed in the parallel code, but the latter (default) has very slightly better stat error
   bool compute_disconn_ReRe;
 
-  readReconstructPiPiToSigmaWithDisconnAllTsrcOptions(): force_disconn_tstep_src(false), compute_disconn_ReRe(true){}
+  bool include_V_diagram;
+
+  readReconstructPiPiToSigmaWithDisconnAllTsrcOptions(): force_disconn_tstep_src(false), compute_disconn_ReRe(true), include_V_diagram(true){}
 };
 
 //Combine above, reading the pipi->sigma data and reconstructing the disconnected component for all tsrc
@@ -60,7 +62,8 @@ rawDataCorrelationFunctionD readReconstructPiPiToSigmaWithDisconnAllTsrc(const R
   rawDataCorrelationFunctionD correlator_raw_disconn = sourceAverage(pipitosigma_disconn_data);
 
   rawDataCorrelationFunctionD correlator_raw = correlator_raw_conn;
-  for(int t=0;t<Lt;t++) correlator_raw.value(t) = correlator_raw.value(t) + correlator_raw_disconn.value(t);
+  if(opt.include_V_diagram)
+    for(int t=0;t<Lt;t++) correlator_raw.value(t) = correlator_raw.value(t) + correlator_raw_disconn.value(t);
 
   std::cout << "Pipi->sigma raw data connected/disconnected parts:\n";
   for(int t=0;t<Lt;t++) std::cout << t << " " << correlator_raw_conn.value(t) << " " << correlator_raw_disconn.value(t) << std::endl;

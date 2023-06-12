@@ -170,7 +170,11 @@ void getResampledPiPi2ptData(jackknifeCorrelationFunctionD &pipi_j, doubleJackkn
 			 Lt, tstep_pipi, tsep_pipi, proj_src, proj_snk);
     }
     if(opts.save_hdf5_data_checkpoint) saveRawDataCheckpoint(raw_data, raw_bubble_data, opts.save_hdf5_data_checkpoint_stub, extra_descr);
-    combineRawPiPiContractions(pipi_raw, raw_data, proj_src, proj_snk, isospin, bin_size, extra_descr);
+    combineRawPiPiContractionsOpts opts; 
+    opts.extra_descr = extra_descr;
+    opts.output_raw_data = true;
+    opts.output_raw_data_bin_size = bin_size;
+    combineRawPiPiContractions(pipi_raw, raw_data, proj_src, proj_snk, isospin, opts);
   }
 
   const int nsample = (traj_lessthan - traj_start)/traj_inc/bin_size;

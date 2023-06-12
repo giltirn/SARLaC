@@ -2,6 +2,7 @@
 
 #include "../figure_data_container.h"
 #include "../../correlator_utils/threemomentum.h"
+#include "sigma_reconstruct_disconn.h"
 
 CPSFIT_START_NAMESPACE
 
@@ -40,8 +41,15 @@ struct Sigma2ptBasicReadPolicy: public Sigma2ptGenericReadPolicy{
 //Note, both the connected and disconnected components are combined on the measurement code
 //////////////////////
 
+struct readSigmaSigmaOptions{
+  bool include_V_diagram;
+  sigmaSelfContractionZ const *sigma_self_data_Z; //required for include_V_diagram
+
+  readSigmaSigmaOptions(): include_V_diagram(true), sigma_self_data_Z(nullptr){}
+};
+
 template<typename ReadPolicy>
-void readSigmaSigma(figureData &raw_data, const int Lt, const ReadPolicy &rp){
+void readSigmaSigma(figureData &raw_data, const int Lt, const ReadPolicy &rp, const readSigmaSigmaOptions &opts = readSigmaSigmaOptions()){
   std::cout << "Reading sigma 2pt data\n"; boost::timer::auto_cpu_timer t("Read sigma 2pt in %w s\n");
   int nsample = rp.nsample();
 
@@ -71,18 +79,26 @@ void readSigmaSigma(figureData &raw_data, const int Lt, const ReadPolicy &rp){
   }
   
   raw_data = raw_data/double(nmom*nmom);
+
+  if(!opts.include_V_diagram){
+    assert(opts.sigma_self_data_Z != nullptr);
+    figureData disconn;
+    reconstructSigma2ptDisconnected(disconn, *opts.sigma_self_data_Z);
+    figureData tmp(raw_data);
+    reconstructSigma2ptConnected(raw_data,tmp,disconn);
+  }
 }
 //Call the above with the default filename format
 inline void readSigmaSigma(figureData &raw_data, const std::string &data_dir, const int Lt,
-		    const int traj_start, const int traj_inc, const int traj_lessthan){
+		    const int traj_start, const int traj_inc, const int traj_lessthan, const readSigmaSigmaOptions &opts = readSigmaSigmaOptions()){
   Sigma2ptBasicReadPolicy rp(data_dir, traj_start, traj_inc, traj_lessthan);
-  readSigmaSigma(raw_data, Lt, rp);
+  readSigmaSigma(raw_data, Lt, rp, opts);
 } 
 //Call with a user-specified file format
 inline void readSigmaSigma(figureData &raw_data, const std::string &file_fmt, const std::string &data_dir, const int Lt,
-		    const int traj_start, const int traj_inc, const int traj_lessthan){
+		    const int traj_start, const int traj_inc, const int traj_lessthan, const readSigmaSigmaOptions &opts = readSigmaSigmaOptions()){
   Sigma2ptGenericReadPolicy rp(file_fmt, data_dir, traj_start, traj_inc, traj_lessthan);
-  readSigmaSigma(raw_data, Lt, rp);
+  readSigmaSigma(raw_data, Lt, rp, opts);
 } 
 
 

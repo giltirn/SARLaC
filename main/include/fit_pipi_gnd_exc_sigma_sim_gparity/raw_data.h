@@ -202,18 +202,33 @@ public:
     rd.leave();
   }
 
+  struct readOptions{
+    bool include_V_diagram; //include the vaccuum diagrams on the data
+    readOptions(): include_V_diagram(true){}
+  };
+
   void read(const int Lt, const std::string &data_dir, const int traj_start, const int traj_inc, const int traj_lessthan,
 	    const std::string &pipi_fig_file_fmt, const std::string &pipi_bubble_file_fmt, const int tsep_pipi, const int tstep_pipi,
 	    const std::string &pipitosigma_file_fmt, const int tstep_pipi_to_sigma,
 	    const std::string &sigma2pt_file_fmt, const std::string &sigma_bubble_file_fmt,
-	    const std::vector<Operator> &incl_ops, const int isospin){
+	    const std::vector<Operator> &incl_ops, const int isospin, const readOptions &opts = readOptions()){
+
+    combineRawPiPiContractionsOpts opt_pp;
+    opt_pp.include_V_diagram = opts.include_V_diagram;
+
+    readSigma2ptOpts opt_ss;
+    opt_ss.include_V_diagram = opts.include_V_diagram;
+
+    readReconstructPiPiToSigmaWithDisconnAllTsrcOptions opt_ps;
+    opt_ps.compute_disconn_ReRe = true; 
+    opt_ps.include_V_diagram = opts.include_V_diagram;
 
     //PiPi 2pt and PiPi bubble
     if(doOp(Operator::PiPiGnd, incl_ops)){
       readPiPi2pt(correlator(Operator::PiPiGnd,Operator::PiPiGnd), PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd), data_dir, 
 		  pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		  traj_start, traj_inc, traj_lessthan, 
-		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet111, isospin);
+		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet111, isospin, opt_pp);
       PiPiBubble(Operator::PiPiGnd,Operator::PiPiGnd) = reIm(PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd),0);
       contains.insert({Operator::PiPiGnd,Operator::PiPiGnd});
     }    
@@ -221,7 +236,7 @@ public:
       readPiPi2pt(correlator(Operator::PiPiExc,Operator::PiPiExc), PiPiBubbleZ(Operator::PiPiExc,Operator::PiPiExc), data_dir, 
 		  pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		  traj_start, traj_inc, traj_lessthan, 
-		  PiPiProjector::A1momSet311, PiPiProjector::A1momSet311, isospin);
+		  PiPiProjector::A1momSet311, PiPiProjector::A1momSet311, isospin, opt_pp);
       
       PiPiBubble(Operator::PiPiExc,Operator::PiPiExc) = reIm(PiPiBubbleZ(Operator::PiPiExc,Operator::PiPiExc),0);
       contains.insert({Operator::PiPiExc,Operator::PiPiExc});
@@ -230,7 +245,7 @@ public:
       readPiPi2pt(correlator(Operator::PiPiGnd,Operator::PiPiExc), PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiExc), data_dir, 
 		  pipi_fig_file_fmt, pipi_bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
 		  traj_start, traj_inc, traj_lessthan, 
-		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet311, isospin);
+		  PiPiProjector::A1momSet111, PiPiProjector::A1momSet311, isospin, opt_pp);
     
       PiPiBubble(Operator::PiPiGnd,Operator::PiPiExc) = reIm(PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiExc),0);
       contains.insert({Operator::PiPiGnd,Operator::PiPiExc});
@@ -238,31 +253,25 @@ public:
     
     if(doOp(Operator::Sigma, incl_ops)){
       if(isospin != 0) error_exit(std::cout << "Sigma operator is only applicable for I=0\n");
-
-      //Sigma 2pt and sigma bubble
-      figureData sigma2pt_data;
-      readSigmaSigma(sigma2pt_data, sigma2pt_file_fmt, data_dir, Lt, traj_start, traj_inc, traj_lessthan);
-      correlator(Operator::Sigma,Operator::Sigma) = sourceAverage(sigma2pt_data);
-      readSigmaSelf(SigmaBubbleZ(), sigma_bubble_file_fmt, data_dir, Lt, traj_start, traj_inc, traj_lessthan);
+      readSigma2pt(correlator(Operator::Sigma,Operator::Sigma), SigmaBubbleZ(),
+		   data_dir, sigma2pt_file_fmt, sigma_bubble_file_fmt, Lt, traj_start, traj_inc, traj_lessthan, opt_ss);
       SigmaBubble() = reIm(SigmaBubbleZ(), 0);
       contains.insert({Operator::Sigma,Operator::Sigma});
     }
 
     PiPiProjectorA1Basis111 proj_pipi_gnd;
     PiPiProjectorA1Basis311 proj_pipi_exc;
-    readReconstructPiPiToSigmaWithDisconnAllTsrcOptions opt;
-    opt.compute_disconn_ReRe = true; 
 
     if(doOp(Operator::PiPiGnd, incl_ops) && doOp(Operator::Sigma, incl_ops)){
       correlator(Operator::PiPiGnd, Operator::Sigma) = readReconstructPiPiToSigmaWithDisconnAllTsrc(pipitosigma_file_fmt, data_dir, Lt, tstep_pipi_to_sigma, proj_pipi_gnd, 
 										traj_start, traj_inc, traj_lessthan,
-										PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd), SigmaBubbleZ(), opt);
+										PiPiBubbleZ(Operator::PiPiGnd,Operator::PiPiGnd), SigmaBubbleZ(), opt_ps);
       contains.insert({Operator::PiPiGnd,Operator::Sigma});
     }
     if(doOp(Operator::PiPiExc, incl_ops) && doOp(Operator::Sigma, incl_ops)){
       correlator(Operator::PiPiExc, Operator::Sigma) = readReconstructPiPiToSigmaWithDisconnAllTsrc(pipitosigma_file_fmt, data_dir, Lt, tstep_pipi_to_sigma, proj_pipi_exc, 
 										traj_start, traj_inc, traj_lessthan,
-										PiPiBubbleZ(Operator::PiPiExc,Operator::PiPiExc), SigmaBubbleZ(), opt);
+										PiPiBubbleZ(Operator::PiPiExc,Operator::PiPiExc), SigmaBubbleZ(), opt_ps);
       contains.insert({Operator::PiPiExc,Operator::Sigma});
     }
 

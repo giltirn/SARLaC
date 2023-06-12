@@ -1,6 +1,7 @@
 #include <utils.h>
 #include <random.h>
 #include <pipi_common/pipi_common.h>
+
 using namespace CPSfit;
 
 #include<fit_pipi_gnd_exc_sim_gparity/enums.h>
@@ -56,11 +57,14 @@ int main(const int argc, const char* argv[]){
 	for(int j=i;j<ops.size();j++)
 	  assert(raw_data.haveData(ops[i],ops[j]));
     }else{
+      RawData::readOptions ropt;
+      ropt.include_V_diagram = !cmdline.exclude_V_diagrams;
+
       raw_data.read(args.Lt, args.data_dir, args.traj_start, args.traj_inc, args.traj_lessthan,
 		    args.pipi_figure_file_format, args.pipi_bubble_file_format, args.tsep_pipi, args.tstep_pipi,
 		    args.pipi_to_sigma_file_format, args.tstep_pipi_to_sigma,
 		    args.sigma2pt_file_format, args.sigma_bubble_file_format,
-		    ops, 0);
+		    ops, 0, ropt);
     }
     if(cmdline.save_raw_data){
       std::cout << "Saving raw data to " << cmdline.save_raw_data_file << std::endl;
@@ -71,8 +75,6 @@ int main(const int argc, const char* argv[]){
       raw_data.removeSamplesInRange(cmdline.remove_samples_in_range_start, cmdline.remove_samples_in_range_lessthan);
     if(cmdline.scramble_raw_data)
       raw_data.scrambleSamples();
-    if(cmdline.zero_bubbles)
-      raw_data.zeroBubbles();
   }
 
   bool do_dj = args.covariance_matrix != CovarianceMatrix::Block;

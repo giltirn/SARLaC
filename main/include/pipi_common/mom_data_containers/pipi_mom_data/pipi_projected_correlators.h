@@ -31,15 +31,24 @@ typename DataAllMomentumType::ContainerType project(const char fig, const DataAl
   return out;
 }
 
+struct combineRawPiPiContractionsOpts{
+  bool output_raw_data;
+  int output_raw_data_bin_size;
+  bool include_V_diagram;
+  std::string extra_descr;
+  combineRawPiPiContractionsOpts(): output_raw_data(false), output_raw_data_bin_size(1), include_V_diagram(true), extra_descr(""){}
+};
+
 //Given the parsed, raw data, compute the raw , unbinned, unresampled pipi correlation function from the underlying contraction data. This includes projecting the pipi states onto
 //a user-selected linear combination (for example projecting onto the A1 cubic representation)
 void combineRawPiPiContractions(rawDataCorrelationFunctionD &pipi_raw, const figureDataAllMomenta &raw_data,
 			const PiPiProjectorBase &proj_src, const PiPiProjectorBase &proj_snk, const int isospin, 
-			const int bin_size, const std::string &extra_descr = "", bool output_raw_data = true){
+			const combineRawPiPiContractionsOpts &opts){
   if(isospin != 0 && isospin != 2) error_exit(std::cout << "combineRawPiPiContractions only supports isospin 0,2\n");
   const char figs[4] = {'C','D','R','V'};
-  const std::vector<double> coeffs = isospin == 0 ? std::vector<double>({1., 2., -6., 3.}) : std::vector<double>({-2., 2., 0., 0.});
-  std::string ee = extra_descr != "" ? "_" + extra_descr : "";  
+  std::vector<double> coeffs = isospin == 0 ? std::vector<double>({1., 2., -6., 3.}) : std::vector<double>({-2., 2., 0., 0.});
+  std::string ee = opts.extra_descr != "" ? "_" + opts.extra_descr : "";  
+  if(!opts.include_V_diagram) coeffs[3] = 0;
 
   rawDataCorrelationFunctionD fig_corr[4];  
 
@@ -47,16 +56,16 @@ void combineRawPiPiContractions(rawDataCorrelationFunctionD &pipi_raw, const fig
     figureData proj_data = project(figs[f], raw_data, proj_src, proj_snk);
     fig_corr[f] = sourceAverage(proj_data);
 
-    if(output_raw_data){
+    if(opts.output_raw_data){
       //These data are saved after binning
       rawDataCorrelationFunctionD realavg_b(fig_corr[f]);
-      bin(realavg_b, bin_size);
+      bin(realavg_b, opts.output_raw_data_bin_size);
       outputRawCorrelator(stringize("raw_data_%cpart%s.dat",figs[f],ee.c_str()), realavg_b, coeffs[f]);
     }
   }    
   
   pipi_raw = coeffs[0]*fig_corr[0] + coeffs[1]*fig_corr[1] + coeffs[2]*fig_corr[2] + coeffs[3]*fig_corr[3];
-  std::cout << "Raw data " << extra_descr << ":\n" << pipi_raw << std::endl;
+  std::cout << "Raw data " << opts.extra_descr << ":\n" << pipi_raw << std::endl;
 }
 
 //Read pipi 2pt data into correlation function
@@ -67,7 +76,7 @@ void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomentaZ &r
 		 const int traj_start, const int traj_inc, const int traj_lessthan, 
 		 const threeMomentum &ptot,
 		 const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111, const int isospin = 0,
-		 bool filemap_allow_ptot_parity = false){
+		 bool filemap_allow_ptot_parity = false, const combineRawPiPiContractionsOpts &comb_opts = combineRawPiPiContractionsOpts()){
   std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, ptot) );
   std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, -ptot) );
   
@@ -81,7 +90,7 @@ void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomentaZ &r
   readRawPiPi2ptData(raw_data, raw_bubble_data, ffn, bfn_src, bfn_snk, data_dir, traj_start, traj_inc, traj_lessthan, Lt, tstep_pipi, tsep_pipi, *proj_src, *proj_snk);
 
   //Combine diagrams to construct raw correlator
-  combineRawPiPiContractions(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, 1, "", false);
+  combineRawPiPiContractions(pipi_raw, raw_data, *proj_src, *proj_snk, isospin, comb_opts);
 }
 //Same as above but outputting just the real part of the bubble data
 inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
@@ -91,10 +100,10 @@ inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMome
 			const int traj_start, const int traj_inc, const int traj_lessthan,
 			const threeMomentum &ptot,
 			const PiPiProjector proj_src = PiPiProjector::A1momSet111, const PiPiProjector proj_snk = PiPiProjector::A1momSet111, const int isospin = 0,
-			bool filemap_allow_ptot_parity = false){
+			bool filemap_allow_ptot_parity = false, const combineRawPiPiContractionsOpts &comb_opts = combineRawPiPiContractionsOpts()){
   bubbleDataAllMomentaZ raw_bubble_data_Z;
   readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
-	      traj_start, traj_inc, traj_lessthan, ptot, proj_src, proj_snk, isospin, filemap_allow_ptot_parity);
+	      traj_start, traj_inc, traj_lessthan, ptot, proj_src, proj_snk, isospin, filemap_allow_ptot_parity, comb_opts);
   raw_bubble_data = reIm(raw_bubble_data_Z, 0);
 }
 
@@ -105,20 +114,20 @@ inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMome
 		 const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 		 const int tsep_pipi, const int tstep_pipi, const int Lt,
 		 const int traj_start, const int traj_inc, const int traj_lessthan, 
-		 const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111, const int isospin = 0){
+		 const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111, const int isospin = 0, const combineRawPiPiContractionsOpts &comb_opts = combineRawPiPiContractionsOpts()){
   readPiPi2pt(pipi_raw, raw_bubble_data, data_dir, figure_file_fmt, bubble_file_fmt, tsep_pipi, tstep_pipi, Lt, 
-	      traj_start, traj_inc, traj_lessthan, {0,0,0}, proj_src_t, proj_snk_t, isospin);
+	      traj_start, traj_inc, traj_lessthan, {0,0,0}, proj_src_t, proj_snk_t, isospin, false, comb_opts);
 }
-
+//Output real part of bubble rather than complex
 inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMomenta &raw_bubble_data,
 			const std::string &data_dir, 
 			const std::string &figure_file_fmt, const std::string &bubble_file_fmt, 
 			const int tsep_pipi, const int tstep_pipi, const int Lt,
 			const int traj_start, const int traj_inc, const int traj_lessthan,
-			const PiPiProjector proj_src = PiPiProjector::A1momSet111, const PiPiProjector proj_snk = PiPiProjector::A1momSet111, const int isospin = 0){
+			const PiPiProjector proj_src = PiPiProjector::A1momSet111, const PiPiProjector proj_snk = PiPiProjector::A1momSet111, const int isospin = 0, const combineRawPiPiContractionsOpts &comb_opts = combineRawPiPiContractionsOpts()){
   bubbleDataAllMomentaZ raw_bubble_data_Z;
   readPiPi2pt(pipi_raw, raw_bubble_data_Z, data_dir, figure_file_fmt,  bubble_file_fmt, tsep_pipi, tstep_pipi, Lt,
-	      traj_start, traj_inc, traj_lessthan, proj_src, proj_snk, isospin);
+	      traj_start, traj_inc, traj_lessthan, proj_src, proj_snk, isospin, comb_opts);
   raw_bubble_data = reIm(raw_bubble_data_Z, 0);
 }
 
