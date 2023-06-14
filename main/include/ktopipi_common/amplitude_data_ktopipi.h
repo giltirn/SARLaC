@@ -17,7 +17,9 @@ struct readKtoPiPiDataOptions{
   bool save_data_checkpoint;
   std::string save_data_checkpoint_stub;
 
-  readKtoPiPiDataOptions(): load_data_checkpoint(false), save_data_checkpoint(false){}
+  bool include_V_diagram;
+
+  readKtoPiPiDataOptions(): load_data_checkpoint(false), save_data_checkpoint(false), include_V_diagram(true){}
 
   template<typename T>
   void import(const T &from){
@@ -211,8 +213,12 @@ private:
       for(int t=0;t<nt;t++){
 	int tB = (tK + tsep_k_pi) % Lt;
 	mix_alltK(4)({tK_idx,t}) = mix4_alltK_nobub({tK_idx,t})*bubble_data.bubble(&tB);
-	for(int q=0;q<10;q++)
+	if(!opt.include_V_diagram) mix_alltK(4)({tK_idx,t}).zero();
+
+	for(int q=0;q<10;q++){
 	  A0_alltK(4)({q,tK_idx,t}) = A0_type4_alltK_nobub({q,tK_idx,t})*bubble_data.bubble(&tB);
+	  if(!opt.include_V_diagram) A0_alltK(4)({q,tK_idx,t}).zero();
+	}
       }
     }
     

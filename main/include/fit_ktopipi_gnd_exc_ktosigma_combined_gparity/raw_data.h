@@ -74,6 +74,7 @@ struct RawData{
   template<typename ArgsType, typename CMDlineType>
   void read(const ArgsType &args, const CMDlineType &cmdline){
     readKtoPiPiAllDataOptions read_opts;
+    read_opts.read_opts.include_V_diagram = !cmdline.exclude_V_diagram;
 
     if(doOp(PiPiOperator::PiPiGnd, args.operators)){
       COPYOPTS(read_opts, ktopipi);

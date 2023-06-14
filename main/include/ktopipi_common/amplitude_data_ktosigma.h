@@ -170,8 +170,11 @@ private:
     for(int tK=0;tK<Lt;tK++) for(int t=0;t<nt;t++){
 	int tB = (tK + tsep_k_sigma) % Lt;
 	mix_alltK(4)({tK,t}) = mix4_alltK_nobub({tK,t})*bubble_data.bubble(&tB);
-	for(int q=0;q<10;q++)
+	if(!opt.include_V_diagram) mix_alltK(4)({tK,t}).zero();
+	for(int q=0;q<10;q++){
 	  A0_alltK(4)({q,tK,t}) = A0_type4_alltK_nobub({q,tK,t})*bubble_data.bubble(&tB);
+	  if(!opt.include_V_diagram) A0_alltK(4)({q,tK,t}).zero();
+	}
       }
     
     std::cout << "Finished reading raw K->sigma data with tsep_k_sigma=" << tsep_k_sigma << std::endl;

@@ -205,15 +205,27 @@ public:
 
       if(write_output) analyzeChisqFF(fit_data.getFitData(q), params[q], fitfunc, import.corr, import.sigma, pmap_descr);
     }  
+    std::stringstream key;
+
     for(int q=0;q<nQ;q++){
+      int nparam = params[q].sample(0).size();
       std::cout << "Q" << q+1 << std::endl;
-      std::cout << "Params:\n" << params[q] << std::endl;
+      std::cout << "Params:" << std::endl;
+      DistributionTypeD tmp;
+      for(int i=0;i<nparam;i++){
+	standardIOhelper<DistributionTypeD, DistributionType<Params, basic_vector> >::extractStructEntry(tmp, params[q], i);
+	std::string label = params[q].sample(0).tag(i);
+	std::cout << i << " " << label << " " << tmp << std::endl;
+	key << q << " " << i << " " << label << std::endl;
+      }
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
       std::cout << "p-value: " << pvalue[q] << std::endl;
     }
 
     if(write_output){
+      std::ofstream kk("params.key");
+      kk << key.str();
       writeParamsStandard(params, "params.hdf5");
       writeParamsStandard(chisq, "chisq.hdf5");
       writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
