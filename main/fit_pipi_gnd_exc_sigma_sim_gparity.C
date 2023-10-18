@@ -204,6 +204,27 @@ int main(const int argc, const char* argv[]){
 
   if(cmdline.corr_mat_from_unbinned_data) delete opt.corr_comb_j_unbinned;
 
+  {
+    std::vector<DataDescr> keep_all = getFitDataElemIdx(data_j, ops, args.tsep_pipi, 0, std::min(args.t_max + 4, args.Lt), filters, cmdline.load_filters);
+    correlationFunction<SimFitCoordGen,  jackknifeDistributionD> corr_comb_all_j;
+    filterData(corr_comb_all_j, data_j, keep_all, subfit_pmaps, args.tsep_pipi);
+    std::unique_ptr<genericFitFuncBase> fitfunc = getFitFunc(args.fitfunc, args.nstate, args.t_min, args.Lt, param_map.size(), args.Ascale, args.Cscale, params.sample(0));
+    std::cout << "(infit?+/-)| <descr> <fit val> <data val> <diff> <diff/err(diff)>" << std::endl;
+
+    for(int i=0;i<corr_comb_all_j.size();i++){
+      const jackknifeDistributionD &dval = corr_comb_all_j.value(i);
+      jackknifeDistributionD fval(dval.getInitializer());      
+      for(int s=0;s<iterate<jackknifeDistributionD>::size(fval);s++) 
+	iterate<jackknifeDistributionD>::at(s, fval) = fitfunc->value(corr_comb_all_j.coord(i), fitfunc->getWrappedParams(iterate<decltype(params)>::at(s, params)));
+      
+      bool infit = false;
+      for(int j=0;j<corr_comb_j.size();j++) if(corr_comb_j.coord(j) == corr_comb_all_j.coord(i)){ infit=true; break; }
+
+      jackknifeDistributionD diff = fval-dval;
+      std::cout << (infit ? "+|" : "-|") <<  coordDescr(corr_comb_all_j.coord(i), pmap_descr) << " " << fval << " " << dval << " " << diff << " " << diff.best()/diff.standardError() << std::endl;
+    }
+  }
+
   std::cout << "Done\n";
   return 0;
 }

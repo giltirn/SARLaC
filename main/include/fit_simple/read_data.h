@@ -143,14 +143,18 @@ void applyTimeDep(CorrelationFunctionType &to, const TimeDependence tdep, const 
 
 
 //allow_missing:  make it not an error if a file is missing or unreadable; simply skip this data in the output
-void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan, bool allow_missing =false){
+void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan, bool allow_missing =false, std::vector<bool> *traj_present = nullptr){
   std::size_t off = data_info.file_fmt.find("%d");
   if(off == std::string::npos) error_exit(std::cout << "readData expect file_fmt to contain a '%d', instead got " << data_info.file_fmt << std::endl);
   Parser* parser = parserFactory(data_info.parser);
 
   int nsample = (traj_lessthan - traj_start)/traj_inc;
   parser->setup(into, nsample, Lt);
-  std::vector<bool> good(nsample, true);
+  std::vector<bool> *good_p;
+  if(!traj_present) good_p = new std::vector<bool>(nsample);
+  else{ good_p = traj_present;  good_p->resize(nsample); }
+
+  std::vector<bool> &good = *good_p;
 #pragma omp parallel for
   for(int s=0;s<nsample;s++){
     //std::ostringstream os; os << traj_start + s*traj_inc;
@@ -162,10 +166,11 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
     std::cout << "Parsing " << filename << std::endl;
     std::ifstream is(filename.c_str());
     if(is.good()){
+      good[s] = true;
       parser->parse(into, is, s, Lt);
     }else{
-      if(allow_missing) good[s] = false;
-      else error_exit(std::cout << "readData failed to read file " << filename << std::endl);
+      good[s] = false;
+      if(!allow_missing) error_exit(std::cout << "readData failed to read file " << filename << std::endl);
     }
   }  
   delete parser;
@@ -183,10 +188,12 @@ void readData(rawDataCorrelationFunctionD &into, const DataInfo &data_info, cons
 	into.value(i).resize(ngood);
 	int c=0;
 	for(int s=0;s<nsample;s++)
-	  if(good[s]) into.value(i).sample(c++) = tmp.value(i).sample(s);
-      }	
+	  if(good[s])
+	    into.value(i).sample(c++) = tmp.value(i).sample(s);
+      }
     }
   }
+  if(!traj_present) delete good_p;
 
   //Apply operations
   applyOperation(into, data_info.operation);

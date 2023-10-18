@@ -107,7 +107,7 @@ struct RawData{
       raw_ktopipi_exc.resize(args.tsep_k_pi.size(),NULL);
       for(int i=0;i<args.tsep_k_pi.size();i++)
 	raw_ktopipi_exc[i] = new RawKtoPiPiData(args.tsep_k_pi[i], *bubble_data_exc, args.data_dir, 
-						args.ktopipi_type_file_fmt, args.ktopipi_exc_type1_pimom_proj, 
+						args.ktopipi_exc_type_file_fmt, args.ktopipi_exc_type1_pimom_proj, 
 						args.traj_start, args.traj_inc, args.traj_lessthan, args.Lt, args.tsep_pipi, read_opts.read_opts);
     }
     if(doOp(PiPiOperator::Sigma, args.operators)){

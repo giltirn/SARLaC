@@ -64,7 +64,7 @@ public:
   }
   template<typename binResampler>
   void generatedResampledData(const RawData &raw_data, const binResampler &resampler, const int Lt, const int tsep_pipi, 
-			      const bool do_vacuum_subtraction = true, const bool timeslice_avg_vac_sub = false){
+			      const bool do_vacuum_subtraction = true, const bool timeslice_avg_vac_sub = false, bool do_fold=true){
 
     const static std::vector<std::pair<Operator,Operator> > rp = {  
       {Operator::PiPiGnd, Operator::PiPiGnd}, {Operator::PiPiGnd,Operator::PiPiExc}, {Operator::PiPiExc,Operator::PiPiExc}, 
@@ -85,10 +85,10 @@ public:
   				    computeVacSub(raw_data, it->first, it->second, resampler, tsep_pipi, timeslice_avg_vac_sub);
 
   	//Fold
-  	corr = fold( 
-  		    corr, 
-  		    foldOffsetMultiplier(it->first,it->second) * tsep_pipi
-  		     );
+  	if(do_fold) corr = fold( 
+				corr, 
+				foldOffsetMultiplier(it->first,it->second) * tsep_pipi
+				 );
 
       } 
   }

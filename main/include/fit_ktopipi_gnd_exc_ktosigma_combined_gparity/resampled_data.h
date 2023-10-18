@@ -24,8 +24,9 @@ _GENERATE_PARSER(pruneArgs, PRUNE_ARGS_MEM);
 
 template<typename DistributionType>
 class ResampledData{
+public:
   typedef std::vector<correlationFunction<amplitudeDataCoord, DistributionType> >  CorrFuncAllQ;
-
+private:
   std::map<PiPiOperator, CorrFuncAllQ> data;
 public:
   GENERATE_HDF5_SERIALIZE_METHOD( (data) );

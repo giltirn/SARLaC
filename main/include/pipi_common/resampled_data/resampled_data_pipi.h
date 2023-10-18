@@ -104,8 +104,9 @@ resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &ra
 template<typename resampledCorrelationFunction, typename binResampler>
 inline resampledCorrelationFunction computePiPi2ptVacSub(const bubbleDataAllMomenta &raw, const binResampler &resampler, const int tsep_pipi, 
 						   const PiPiProjector proj_src_t = PiPiProjector::A1momSet111, const PiPiProjector proj_snk_t = PiPiProjector::A1momSet111){
-  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, {0,0,0}) );
-  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, {0,0,0}) );
+  threeMomentum ptot({0,0,0});
+  std::unique_ptr<PiPiProjectorBase> proj_src( getProjector(proj_src_t, ptot) );
+  std::unique_ptr<PiPiProjectorBase> proj_snk( getProjector(proj_snk_t, ptot) );
   return computePiPi2ptVacSub<resampledCorrelationFunction>(raw, resampler, tsep_pipi, *proj_src, *proj_snk);
 }
 
