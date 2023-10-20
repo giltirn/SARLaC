@@ -229,5 +229,25 @@ public:
 };
 
 
+//Virtual base class accessors for reducing the number of function definitionst
+template<typename T>
+class CurveDataAccessorBase{
+public:
+
+  virtual double x(const int i) const = 0;
+  virtual double y(const int i) const = 0;
+  double dxm(const int i) const{ return 0; }
+  double dxp(const int i) const{ return 0; }
+  double dym(const int i) const{ return 0; }
+  double dyp(const int i) const{ return 0; }
+
+  double upper(const int i) const{ return this->y(i); }
+  double lower(const int i) const{ return this->y(i); }
+  
+  virtual int size() const = 0;
+};
+
+
+
 CPSFIT_END_NAMESPACE
 #endif
