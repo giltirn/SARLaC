@@ -17,7 +17,9 @@ class randomDataGaussian: public randomDataBase{
   std::vector<double> mu;
   std::vector<double> sigma;
 public:
-  randomDataGaussian(const std::vector<double> &mu, const std::vector<double> &sigma): mu(mu), sigma(sigma){}
+  randomDataGaussian(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma): mu(mu), sigma(sigma){
+    if(mu.size() != Lt || sigma.size() != Lt) error_exit(std::cout << "mu, sigma size must equal Lt" << std::endl);
+  }
   randomDataGaussian(int Lt, double mu_all, double sigma_all): mu(Lt, mu_all), sigma(Lt, sigma_all){}
   
   rawDataDistributionD generate(const int t, const int nsample) const override{
@@ -30,7 +32,9 @@ class randomDataLogNormal: public randomDataBase{
   std::vector<double> mu;
   std::vector<double> sigma;
 public:
-  randomDataLogNormal(const std::vector<double> &mu, const std::vector<double> &sigma): mu(mu), sigma(sigma){}
+  randomDataLogNormal(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma): mu(mu), sigma(sigma){
+    if(mu.size() != Lt || sigma.size() != Lt) error_exit(std::cout << "mu, sigma size must equal Lt" << std::endl);
+  }
   randomDataLogNormal(int Lt, double mu_all, double sigma_all): mu(Lt, mu_all), sigma(Lt, sigma_all){}
   
   rawDataDistributionD generate(const int t, const int nsample) const override{
@@ -50,13 +54,23 @@ struct RdataUniformNrmLikeArgs{
 };
 GENERATE_PARSER( RdataUniformNrmLikeArgs, RDATA_UNIFORM_NRMLIKE);
 
-GENERATE_ENUM_AND_PARSER(DataGenStrategy, (NormalUniform)(LogNormalUniform) );
+#define RDATA_TIMEDEP_NRMLIKE (std::vector<double>, mu)(std::vector<double>, sigma)
+struct RdataTimeDepNrmLikeArgs{
+  GENERATE_MEMBERS(RDATA_TIMEDEP_NRMLIKE); 
+  RdataTimeDepNrmLikeArgs(): mu(10,0.), sigma(10,1.){  }
+};
+GENERATE_PARSER( RdataTimeDepNrmLikeArgs, RDATA_TIMEDEP_NRMLIKE);
+
+
+
+
+GENERATE_ENUM_AND_PARSER(DataGenStrategy, (NormalUniform)(NormalTimeDep)(LogNormalUniform) );
 
 template<typename T>
-void parseOrTemplate(T &args, const std::string &params_file){
+void parseOrTemplate(T &args, const std::string &params_file, const std::string &template_file){
   if(params_file == "TEMPLATE"){
-    std::ofstream of("datagen_template.args");
-    (std::cout << "Outputting data generation template to 'datage_template.args' and exiting\n").flush();
+    std::ofstream of(template_file);
+    (std::cout << "Outputting data generation template to '" << template_file << "' and exiting\n").flush();
     of << args;
     of.close();
     exit(0);
@@ -66,10 +80,13 @@ void parseOrTemplate(T &args, const std::string &params_file){
 
 std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, const std::string &params_file, const int Lt){
   if(strat == DataGenStrategy::NormalUniform){
-    RdataUniformNrmLikeArgs args; parseOrTemplate(args, params_file);
+    RdataUniformNrmLikeArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
+    return std::unique_ptr<randomDataBase>(new randomDataGaussian(Lt, args.mu, args.sigma));
+  }else if(strat == DataGenStrategy::NormalTimeDep){
+    RdataTimeDepNrmLikeArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataGaussian(Lt, args.mu, args.sigma));
   }else if(strat == DataGenStrategy::LogNormalUniform){
-    RdataUniformNrmLikeArgs args; parseOrTemplate(args, params_file);
+    RdataUniformNrmLikeArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataLogNormal(Lt, args.mu, args.sigma));
   }else{
     error_exit(std::cout << "Invalid data generation strategy" << std::endl);
@@ -79,38 +96,97 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
 
 class covMatStrategyBase{
 public:
-  virtual NumericSquareMatrix<double> compute(const correlationFunction<double, rawDataDistributionD> &data) const = 0;
+  virtual void compute(simpleSingleFitWrapper &fitter, const correlationFunction<double, rawDataDistributionD> &data) const = 0;
   virtual ~covMatStrategyBase(){};
 };
 class covMatStrategyCorrelated: public covMatStrategyBase{
 public:
-  NumericSquareMatrix<double> compute(const correlationFunction<double, rawDataDistributionD> &data) const override{
+  void compute(simpleSingleFitWrapper &fitter, const correlationFunction<double, rawDataDistributionD> &data) const override{
     int Lt = data.size();
     NumericSquareMatrix<double> cov(Lt);
     for(int t1=0;t1<Lt;t1++)
       for(int t2=0;t2<Lt;t2++)
 	cov(t1,t2) = rawDataDistributionD::covariance( data.value(t1), data.value(t2) );
-    return cov;
+    fitter.importCovarianceMatrix(cov);
   }  
 };
 class covMatStrategyUncorrelated: public covMatStrategyBase{
 public:
-  NumericSquareMatrix<double> compute(const correlationFunction<double, rawDataDistributionD> &data) const override{
+  void compute(simpleSingleFitWrapper &fitter, const correlationFunction<double, rawDataDistributionD> &data) const override{
     int Lt = data.size();
     NumericSquareMatrix<double> cov(Lt, 0.);
     for(int t=0;t<Lt;t++)
       cov(t,t) = rawDataDistributionD::covariance( data.value(t), data.value(t) );
-    return cov;
+    fitter.importCovarianceMatrix(cov);
   }  
 };
 
-GENERATE_ENUM_AND_PARSER(CovMatStrategy, (Correlated)(Uncorrelated) );
+#define CMAT_PARAMS_CUTOFF (double, cutoff)
+struct covMatStrategyCutoffArgs{
+  GENERATE_MEMBERS(CMAT_PARAMS_CUTOFF); 
+  covMatStrategyCutoffArgs(): cutoff(0.005){  }
+};
+GENERATE_PARSER( covMatStrategyCutoffArgs, CMAT_PARAMS_CUTOFF);
 
-std::unique_ptr<covMatStrategyBase> covMatStrategyFactory(CovMatStrategy strat){
+//cf https://arxiv.org/pdf/1101.2248.pdf
+//Remove contribution of eigenvectors
+class covMatStrategyCutoff: public covMatStrategyBase{
+public:
+  double cutoff; 
+
+  covMatStrategyCutoff(const std::string &args_file){
+    covMatStrategyCutoffArgs args;
+    parseOrTemplate(args, args_file, "cov_cutoff_template.args");
+    cutoff = args.cutoff;
+  }
+
+  void compute(simpleSingleFitWrapper &fitter, const correlationFunction<double, rawDataDistributionD> &data) const override{
+    int Lt = data.size();
+    NumericSquareMatrix<double> cov(Lt);
+    for(int t1=0;t1<Lt;t1++)
+      for(int t2=0;t2<Lt;t2++)
+	cov(t1,t2) = rawDataDistributionD::covariance( data.value(t1), data.value(t2) );
+
+    //Remove the contribution of eigenvalues L < cutoff from covariance matrix
+    std::vector< NumericVector<double> > evecs(Lt, NumericVector<double>(Lt) );
+    std::vector<double> evals(Lt);
+    
+    GSLsymmEigenSolver< NumericVector<double>, NumericSquareMatrix<double> >::symmetricMatrixSolve(evecs, evals, cov);
+    
+    std::cout << "Cutoff at " << cutoff << std::endl;
+
+    NumericSquareMatrix<double> inv_cov(Lt, 0.);
+    std::cout << "Evals : ";
+    for(int l=0;l<Lt;l++){
+      std::cout << evals[l];
+      if(evals[l]>cutoff){
+	std::cout << "*";
+
+	for(int t=0;t<Lt;t++)
+	  for(int u=0;u<Lt;u++)
+	    inv_cov(t,u) += evecs[l](t)*evecs[l](u)*(1./evals[l]);
+      }
+      std::cout << " ";
+    }
+    std::cout << std::endl;
+
+    std::vector<double> sigma_dummy(Lt,1.0);
+    fitter.importInverseCorrelationMatrix(inv_cov, sigma_dummy);
+  }  
+};
+
+
+
+GENERATE_ENUM_AND_PARSER(CovMatStrategy, (Correlated)(Uncorrelated)(Cutoff) );
+
+//args_file need only be provided for those strategies with tunable arguments
+std::unique_ptr<covMatStrategyBase> covMatStrategyFactory(CovMatStrategy strat, const std::string &args_file){
   if(strat == CovMatStrategy::Correlated){
     return std::unique_ptr<covMatStrategyBase>(new covMatStrategyCorrelated);
   }else if(strat == CovMatStrategy::Uncorrelated){
     return std::unique_ptr<covMatStrategyBase>(new covMatStrategyUncorrelated);
+  }else if(strat == CovMatStrategy::Cutoff){
+    return std::unique_ptr<covMatStrategyBase>(new covMatStrategyCutoff(args_file));
   }else{
     error_exit(std::cout << "Invalid covariance matrix strategy" << std::endl);
   }
@@ -128,11 +204,38 @@ std::unique_ptr<genericFitFuncBase> fitFuncFactory(FitFuncType type){
   }
 }
 
+//Perform some kind of pre-analysis
+struct Args;
+
+struct preAnalysisBase{
+  virtual void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen) const = 0;
+  virtual ~preAnalysisBase(){}
+};
+struct preAnalysisNone: public preAnalysisBase{
+  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen) const override{};
+};
+struct preAnalysisCovMatEvals: public preAnalysisBase{
+  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen) const override{}
+};
+
+GENERATE_ENUM_AND_PARSER(preAnalysisType, (None)(CovMatEvals));
+
+std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
+  if(type == preAnalysisType::None){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisNone);
+  }else if(type == preAnalysisType::CovMatEvals){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisCovMatEvals);
+  }else{
+    error_exit(std::cout << "Invalid pre-analysis type" << std::endl);
+  }
+}
+
+//Note: cov_strat_params_file only required for those strategies that have tunable parameters
 struct Args{
-#define ARGS_MEM (int, nsample)(int, Lt)(int, ntest)(DataGenStrategy, data_strat)(FitFuncType, fitfunc)(CovMatStrategy, cov_strat)(MarquardtLevenbergParameters<double>, MLparams)
+#define ARGS_MEM (int, nsample)(int, Lt)(int, ntest)(DataGenStrategy, data_strat)(FitFuncType, fitfunc)(CovMatStrategy, cov_strat)(std::string, cov_strat_params_file)(preAnalysisType, preanalysis)(MarquardtLevenbergParameters<double>, MLparams)
   GENERATE_MEMBERS(ARGS_MEM);
   
-  Args(): nsample(200), Lt(30), ntest(5000), fitfunc(FitFuncType::FConstant), cov_strat(CovMatStrategy::Correlated), data_strat(DataGenStrategy::NormalUniform){
+  Args(): nsample(200), Lt(30), ntest(5000), fitfunc(FitFuncType::FConstant), cov_strat(CovMatStrategy::Correlated), data_strat(DataGenStrategy::NormalUniform), cov_strat_params_file(""), preanalysis(preAnalysisType::None){
     MLparams.verbose = true;
     MLparams.lambda_factor = 1.2;
     MLparams.dampening_matrix = MLdampeningMatrix::Unit;
@@ -140,6 +243,8 @@ struct Args{
   }
 };
 GENERATE_PARSER( Args, ARGS_MEM );
+
+
 
 struct CMDline{
   bool write_data;
@@ -196,9 +301,16 @@ int main(const int argc, const char** argv){
   int Lt = args.Lt;
   int ntest = args.ntest;
   std::unique_ptr<genericFitFuncBase> ffunc = fitFuncFactory(args.fitfunc);
-  std::unique_ptr<covMatStrategyBase> covgen = covMatStrategyFactory(args.cov_strat);
+  std::unique_ptr<covMatStrategyBase> covgen = covMatStrategyFactory(args.cov_strat, args.cov_strat_params_file);
   std::unique_ptr<randomDataBase> dgen = dataGenStrategyFactory(args.data_strat, argv[2], Lt);
 
+  //Run any pre-analysis
+  std::unique_ptr<preAnalysisBase> preanalysis = preAnalysisFactory(args.preanalysis);
+  preanalysis->run(args, *covgen, *dgen);
+
+  //----------------------------------------------
+  //Generate distribution for true data
+  //----------------------------------------------
   int dof = Lt - ffunc->Nparams();
 
   std::vector<double> q2_dist_true(ntest);
@@ -221,9 +333,7 @@ int main(const int argc, const char** argv){
     }
 
     simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
-
-    NumericSquareMatrix<double> cov = covgen->compute(data);
-    fitter.importCovarianceMatrix(cov);
+    covgen->compute(fitter, data);
 
     parameterVector<double> params(1,0.);
     double q2, q2_per_dof; int dof;
@@ -233,7 +343,9 @@ int main(const int argc, const char** argv){
     if(cmdline.write_data) wr_data[test] = data;
   }      
 
+  //----------------------------------------------
   //Repeat with bootstrap
+  //----------------------------------------------
   std::vector<double> q2_dist_boot(ntest);
 
   {
@@ -253,9 +365,7 @@ int main(const int argc, const char** argv){
     double fit_value;
     {
       simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
-      
-      NumericSquareMatrix<double> cov = covgen->compute(orig_data);
-      fitter.importCovarianceMatrix(cov);
+      covgen->compute(fitter, orig_data);
 
       parameterVector<double> params(1,0.);
       double q2, q2_per_dof; int dof;
@@ -282,8 +392,7 @@ int main(const int argc, const char** argv){
 	data_means.value(t) = dd.mean();
       }
       simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
-      NumericSquareMatrix<double> cov = covgen->compute(data);      
-      fitter.importCovarianceMatrix(cov);
+      covgen->compute(fitter, data);
 
       parameterVector<double> params(1,0.);
       double q2, q2_per_dof; int dof;
@@ -313,6 +422,10 @@ int main(const int argc, const char** argv){
       }
     }
   }
+
+  //----------------------------------------------
+  //Plot results
+  //----------------------------------------------
 
   //Generate histograms
   {

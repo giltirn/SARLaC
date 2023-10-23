@@ -200,6 +200,7 @@ struct GSLsymmEigenSolver{
   //GEVP for real, symmetric matrices A, B   solve  A v = lambda B v
   //If there is an error it will throw (i.e. catch if you want to be able to deal with failures)
 
+  //If sort==true, the evals will be sorted in descending order
   //The algorithm is gsl's gsl_eigen_gensymmv, described in https://www.gnu.org/software/gsl/doc/html/eigen.html
   //Note that B *must be positive-definite*
   static std::vector<double> symmetricGEVPsolve(std::vector<VectorOutputType> &evecs, std::vector<double> &evals, const MatrixInputType &A, const MatrixInputType &B, bool sort = true){

@@ -20,6 +20,7 @@ class simpleSingleFitWrapper{
   NumericSquareMatrix<double> corr_mat;
   std::vector<double> sigma;
   bool have_corr_mat;
+  bool corr_mat_preinverted; //is the correlation matrix provided already inverted?
 
   std::vector<double> freeze_values;
   std::vector<int> freeze_params;
@@ -47,7 +48,7 @@ class simpleSingleFitWrapper{
 public:  
   simpleSingleFitWrapper(const FitFunc &fitfunc, 
 			 const MinimizerType min_type, 
-			 const generalContainer &min_params = generalContainer()): fitfunc(fitfunc), min_type(min_type), min_params(min_params), have_corr_mat(false){
+			 const generalContainer &min_params = generalContainer()): fitfunc(fitfunc), min_type(min_type), min_params(min_params), have_corr_mat(false), corr_mat_preinverted(false){
   }
   
   //Can be changed at any time
@@ -100,7 +101,14 @@ public:
     sigma = sigma_in;
     have_corr_mat = true;
   } 
-  
+  //Import a pre-generated *inverse* correlation matrix and weights sigma   (sigma_i = sqrt(cov_ii))
+  void importInverseCorrelationMatrix(const NumericSquareMatrix<double> &inv_corr, const std::vector<double> &sigma_in){
+    corr_mat = inv_corr;
+    sigma = sigma_in;
+    have_corr_mat = true;
+    corr_mat_preinverted = true;
+  }
+
   //Generate the covariance matrix internally from jackknife data. Option to use uncorrelated (diagonal) or correlated matrix
   template<typename T>
   void generateCovarianceMatrix(const correlationFunction<T, jackknifeDistribution<double> > &data_j, 
@@ -151,6 +159,7 @@ public:
 
   //Write the covariance matrix to a file in HDF5 format for external manipulation
   void writeCovarianceMatrixHDF5(const std::string &file) const{
+    if(corr_mat_preinverted) error_exit(std::cout << "simpleFitWrapper::writeCovarianceMatrixHDF5 function inapplicable if covariance matrix inverse is precomputed\n");
 #ifdef HAVE_HDF5
     if(!have_corr_mat) error_exit(std::cout << "simpleFitWrapper::writeCovarianceMatrixHDF5  No covariance/correlation matrix available. Make sure you import one before calling this method!\n");
     NumericSquareMatrix<double> cov = corr_mat;
@@ -191,7 +200,7 @@ public:
     if(getCorrelationMatrix().size() != ndata) error_exit(std::cout << "simpleSingleFitWrapper::fit size of covariance matrix " << getCorrelationMatrix().size() << " does not match data size " << ndata << "\n");
 
     //Prepare inverse correlation matrix (the condition number is useful information even if we don't need the inverse explicitly)
-    NumericSquareMatrix<double> inv_corr_mat = invertCorrelationMatrix();
+    NumericSquareMatrix<double> inv_corr_mat = corr_mat_preinverted ? corr_mat : invertCorrelationMatrix();
 
     //Repack the data
     correlationFunction<generalContainer, double> data_i(ndata);
@@ -228,6 +237,7 @@ public:
     case MinimizerType::MarquardtLevenberg:
       chisq = simpleFitCommon::fitSampleML(converged, params_i, dof, data_i, inv_corr_mat, sigma, fitfunc_i, min_params, priors, chisq_dof_nopriors); break;
     case MinimizerType::GSLtrs:
+      if(corr_mat_preinverted) error_exit(std::cout << "Cannot use GSLtrs with precomputed inverse covariance matrix" << std::endl);
       chisq = simpleFitCommon::fitSampleGSLtrs(converged, params_i, dof, data_i, corr_mat, sigma, fitfunc_i, min_params, priors, chisq_dof_nopriors); break;
     case MinimizerType::GSLmultimin:
       chisq = simpleFitCommon::fitSampleGSLmultimin(converged, params_i, dof, data_i, inv_corr_mat, sigma, fitfunc_i, min_params, priors, chisq_dof_nopriors); break;
