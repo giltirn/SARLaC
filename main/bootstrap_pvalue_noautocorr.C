@@ -209,7 +209,7 @@ int main(const int argc, const char** argv){
       ChisqData(int npt, double delta, int p): npt(npt), delta(delta), p(p){}
 
       double x(const int i) const override{ return 1e-3 + i*delta; }
-      double y(const int i) const override{ return chiSquareDistribution::PDF(x(i),p); }
+      double y(const int i) const override{ return chiSquareDistribution::PDF(p,x(i)); }
       int size() const override{ return npt; }
     };
     kwargs.clear();
