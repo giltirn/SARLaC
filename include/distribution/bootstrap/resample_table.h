@@ -162,6 +162,20 @@ inline static std::vector<std::vector<int> > resampleTable(const int nsample,
   return resampleTable(brng, nsample, nboots);
 }
 
+//Threaded version
+static std::vector<std::vector<int> > resampleTable(threadRNGstore &tbrng, const int nsample, 
+						    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  std::uniform_int_distribution<> dis(0,nsample-1);
+  std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample));
+#pragma omp parallel for
+  for(int b=0;b<nboots;b++)
+    for(int i=0;i<nsample;i++)
+      out[b][i] = dis(tbrng()());
+  return out;
+}
+  
+
+
 
 GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(OverlappingBlock)(CircularOverlappingBlock)(BalancedNonOverlappingBlock) );
 GENERATE_HDF5_ENUM_SERIALIZE(BootResampleTableType);

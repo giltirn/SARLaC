@@ -50,16 +50,13 @@ int main(const int argc, const char** argv){
   std::vector<double> q2_dist_true(ntest);
   std::vector<double> mean_dist_true(Lt*ntest);
 
-  std::vector<correlationFunction<double, rawDataDistributionD> > wr_data(cmdline.write_data ? ntest+1 : 0);
+  std::vector<correlationFunction<double, rawDataDistributionD> > wr_data(cmdline.write_data ? ntest+args.norig_ens : 0);
   
 #pragma omp parallel for
   for(int test=0;test<ntest;test++){
-    correlationFunction<double, rawDataDistributionD> data(Lt);
+    correlationFunction<double, rawDataDistributionD> data = dgen->generate(Lt,nsample);
     correlationFunction<double, double> data_means(Lt);
     for(int t=0;t<Lt;t++){
-      data.coord(t) = t;
-      data.value(t) = dgen->generate(t,nsample);
-
       data_means.coord(t) = t;
       data_means.value(t) = data.value(t).mean();
 
@@ -77,23 +74,20 @@ int main(const int argc, const char** argv){
     if(cmdline.write_data) wr_data[test] = data;
   }      
 
-  //----------------------------------------------
-  //Repeat with bootstrap
-  //----------------------------------------------
-  std::vector<double> q2_dist_boot(ntest);
+  //---------------------------------------------------------------
+  //Repeat with bootstrap for norig_ens separate original ensembles
+  //---------------------------------------------------------------
+  std::vector< std::vector<double> > q2_dist_boot(args.norig_ens, std::vector<double>(ntest));
 
-  {
-    correlationFunction<double, rawDataDistributionD> orig_data(Lt);
+  for(int o=0;o<args.norig_ens;o++){
+    correlationFunction<double, rawDataDistributionD> orig_data = dgen->generate(Lt,nsample);
     correlationFunction<double, double> orig_data_means(Lt);
 
     for(int t=0;t<Lt;t++){
-      orig_data.coord(t) = t;
-      orig_data.value(t) = dgen->generate(t,nsample);
-
       orig_data_means.coord(t) = t;
       orig_data_means.value(t) = orig_data.value(t).mean();      
     }
-    if(cmdline.write_data) wr_data[ntest] = orig_data;
+    if(cmdline.write_data) wr_data[ntest+o] = orig_data;
 
     //Get the fit value for the parameter from the original ensemble (for recentering)
     double fit_value;
@@ -107,7 +101,7 @@ int main(const int argc, const char** argv){
       fit_value = params[0];
     }
       
-    std::vector<std::vector<int> > rtable = resampleTable(RNG, nsample, ntest);
+    std::vector<std::vector<int> > rtable = resampleTable(threadRNG, nsample, ntest);
    
 #pragma omp parallel for
     for(int test=0;test<ntest;test++){
@@ -131,11 +125,11 @@ int main(const int argc, const char** argv){
       parameterVector<double> params(1,0.);
       double q2, q2_per_dof; int dof;
       assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
-      q2_dist_boot[test] = q2;
+      q2_dist_boot[o][test] = q2;
     }      
 
     if(cmdline.write_data){ //write resample table
-      std::ofstream f("rtable.dat");
+      std::ofstream f("rtable."+std::to_string(o)+".dat");
       for(int e=0;e<ntest;e++){
 	for(int s=0;s<nsample;s++)
 	  f << rtable[e][s] << " ";
@@ -147,7 +141,7 @@ int main(const int argc, const char** argv){
   if(cmdline.write_data){ //write data
     std::ofstream f("data.dat");
     f << std::setprecision(16);
-    for(int e=0;e<ntest+1;e++){ //original ensemble for bootstrap analysis is the last (e==ntest) ensemble
+    for(int e=0;e<ntest+args.norig_ens;e++){ //original ensemble for bootstrap analysis is the last norig_ens ensemble (e==ntest+o  for o=0..norig_ens-1) 
       for(int t=0;t<Lt;t++){
 	f << e << " " << t;
 	for(int s=0;s<nsample;s++)
@@ -161,7 +155,7 @@ int main(const int argc, const char** argv){
   //Plot results
   //----------------------------------------------
 
-  //Generate histograms
+  //Generate histograms (only for first bootstrap original ensemble)
   {
     MatPlotLibScriptGenerate plot;
     struct acc{
@@ -178,7 +172,7 @@ int main(const int argc, const char** argv){
     plot.setLegend(htrue, R"(${\\rm true}$)");
 
     kwargs["color"] = 'c';
-    auto hboot = plot.histogram(acc(q2_dist_boot),kwargs,"boot");
+    auto hboot = plot.histogram(acc(q2_dist_boot[0]),kwargs,"boot");
     plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
     double q2_max = *std::max_element(q2_dist_true.begin(),q2_dist_true.end());
@@ -231,7 +225,7 @@ int main(const int argc, const char** argv){
 
     std::vector<double> q2vals(npt);
     std::vector<double> ptrue(npt);
-    std::vector<double> pboot(npt);
+    std::vector<rawDataDistributionD> pboot(npt, rawDataDistributionD(args.norig_ens) );
     std::vector<double> pT2(npt);
     std::vector<double> pchi2(npt);
     
@@ -241,9 +235,10 @@ int main(const int argc, const char** argv){
       double q2 = dq2*i;
       q2vals[i] = q2;
       ptrue[i] = estimatePvalue(q2, q2_dist_true);
-      pboot[i] = estimatePvalue(q2, q2_dist_boot);
       pchi2[i] = chiSquareDistribution::pvalue(dof, q2);
       pT2[i] = TsquareDistribution::pvalue(q2, dof, nsample-1);
+      for(int o=0;o<args.norig_ens;o++)
+	pboot[i].sample(o) = estimatePvalue(q2, q2_dist_boot[o]);
     }
 
     struct acc : public CurveDataAccessorBase<double>{
@@ -256,6 +251,26 @@ int main(const int argc, const char** argv){
       int size() const override{ return xx.size(); }
     };
 
+    class acc_werr{
+      const std::vector<double> &xx;
+      const std::vector<rawDataDistributionD> &yy;
+
+    public:
+      acc_werr(const std::vector<double> &x, const std::vector<rawDataDistributionD> &y): xx(x), yy(y){}
+
+      double x(const int i) const{ return xx[i]; }
+      double y(const int i) const{ return yy[i].mean(); }
+      double dxm(const int i) const{ return 0; }
+      double dxp(const int i) const{ return 0; }
+      double dym(const int i) const{ return yy[i].standardDeviation(); }
+      double dyp(const int i) const{ return yy[i].standardDeviation(); }
+
+      double upper(const int i) const{ return yy[i].mean() + yy[i].standardDeviation(); }
+      double lower(const int i) const{ return yy[i].mean() - yy[i].standardDeviation(); }
+      
+      int size() const{ return xx.size(); }
+    };
+
     {
       MatPlotLibScriptGenerate plot;
       typename MatPlotLibScriptGenerate::kwargsType kwargs;
@@ -264,7 +279,8 @@ int main(const int argc, const char** argv){
       auto htrue = plot.errorBand(acc(q2vals,ptrue), kwargs, "true");
       plot.setLegend(htrue, R"(${\\rm true}$)");
       kwargs["color"] = "r";
-      auto hboot = plot.errorBand(acc(q2vals,pboot), kwargs, "boot");
+      auto kwb = kwargs; kwb["alpha"]=0.3;
+      auto hboot = plot.errorBand(acc_werr(q2vals,pboot), kwb, "boot");
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
       kwargs["color"] = "g";
       auto hT2 = plot.errorBand(acc(q2vals,pT2), kwargs, "T2");
@@ -285,7 +301,8 @@ int main(const int argc, const char** argv){
       auto htrue = plot.errorBand(acc(ptrue,ptrue), kwargs, "true");
       plot.setLegend(htrue, R"(${\\rm true}$)");
       kwargs["color"] = "r";
-      auto hboot = plot.errorBand(acc(ptrue,pboot), kwargs, "boot");
+      auto kwb = kwargs; kwb["alpha"]=0.3;
+      auto hboot = plot.errorBand(acc_werr(ptrue,pboot), kwb, "boot");
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
       kwargs["color"] = "g";
       auto hT2 = plot.errorBand(acc(ptrue,pT2), kwargs, "T2");
