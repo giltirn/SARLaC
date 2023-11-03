@@ -101,7 +101,9 @@ int main(const int argc, const char** argv){
       fit_value = params[0];
     }
       
-    std::vector<std::vector<int> > rtable = resampleTable(threadRNG, nsample, ntest);
+    int nblock = nsample / args.block_size;
+    int nsample_reduced = nblock * args.block_size;
+    std::vector<std::vector<int> > rtable = resampleTable(threadRNG, nblock, ntest);
    
 #pragma omp parallel for
     for(int test=0;test<ntest;test++){
@@ -109,10 +111,11 @@ int main(const int argc, const char** argv){
       correlationFunction<double, double> data_means(Lt);
       for(int t=0;t<Lt;t++){
 	rawDataDistributionD &dd = data.value(t);
-	dd.resize(nsample);
-	for(int s=0;s<nsample;s++){
-	  dd.sample(s) = orig_data.value(t).sample(rtable[test][s]) //resample
-	    + fit_value - orig_data_means.value(t); //recenter
+	dd.resize(nsample_reduced);
+	for(int b=0;b<nblock;b++){
+	  for(int bs=0;bs<args.block_size;bs++)
+	    dd.sample(bs + args.block_size * b) = orig_data.value(t).sample(bs + args.block_size * rtable[test][b]) //block resample
+	      + fit_value - orig_data_means.value(t); //recenter
 	} 
 
 	data.coord(t) = t;
@@ -131,7 +134,7 @@ int main(const int argc, const char** argv){
     if(cmdline.write_data){ //write resample table
       std::ofstream f("rtable."+std::to_string(o)+".dat");
       for(int e=0;e<ntest;e++){
-	for(int s=0;s<nsample;s++)
+	for(int s=0;s<nblock;s++)
 	  f << rtable[e][s] << " ";
 	f << std::endl;
       }
@@ -312,7 +315,10 @@ int main(const int argc, const char** argv){
       plot.setLegend(hchi2, R"($\\chi^2}$)");
       plot.setXlabel(R"(${\rm p-value\ (true)}$)");
       plot.setYlabel(R"(${\rm p-value\ (est.)}$)");
-      plot.createLegend();
+
+      kwargs.clear();
+      kwargs["loc"] = "upper left";
+      plot.createLegend(kwargs);
       plot.write("pest_v_ptrue.py","pest_v_ptrue.pdf");
     }
 
