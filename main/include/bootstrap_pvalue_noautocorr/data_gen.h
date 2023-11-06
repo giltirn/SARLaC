@@ -6,6 +6,9 @@ public:
   virtual correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const = 0;
   virtual ~randomDataBase(){}
 };
+
+std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, const std::string &params_file, const int Lt);
+
 class randomDataGaussian: public randomDataBase{
   std::vector<double> mu;
   std::vector<double> sigma;
@@ -72,28 +75,59 @@ public:
   }
 };
 
+
+
+class randomDataBinned: public randomDataBase{
+  int bin_size;
+  std::unique_ptr<randomDataBase> base_gen;
+public:
+  //nsample in input args should be size *after* binning
+  randomDataBinned(int Lt, int bin_size, DataGenStrategy strat, const std::string &base_params_file): bin_size(bin_size), 
+												      base_gen(dataGenStrategyFactory(strat,base_params_file,Lt)){}
+
+  correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const override{
+    correlationFunction<double, rawDataDistributionD> b = base_gen->generate(Lt,nsample*bin_size);
+    correlationFunction<double, rawDataDistributionD> out(Lt);
+    for(int t=0;t<Lt;t++){
+      out.coord(t) = t;
+      out.value(t) = b.value(t).bin(bin_size);
+    }
+    return out;
+  }
+};
+
 //Parameters for random data generators with just mu, sigma shared for all timeslices
-#define RDATA_UNIFORM_NRMLIKE (double, mu)(double, sigma)
+#define MEMBERS (double, mu)(double, sigma)
 struct RdataUniformNrmLikeArgs{
-  GENERATE_MEMBERS(RDATA_UNIFORM_NRMLIKE); 
+  GENERATE_MEMBERS(MEMBERS); 
   RdataUniformNrmLikeArgs(): mu(0.), sigma(1.){  }
 };
-GENERATE_PARSER( RdataUniformNrmLikeArgs, RDATA_UNIFORM_NRMLIKE);
+GENERATE_PARSER( RdataUniformNrmLikeArgs, MEMBERS);
+#undef MEMBERS
 
-#define RDATA_TIMEDEP_NRMLIKE (std::vector<double>, mu)(std::vector<double>, sigma)
+#define MEMBERS (std::vector<double>, mu)(std::vector<double>, sigma)
 struct RdataTimeDepNrmLikeArgs{
-  GENERATE_MEMBERS(RDATA_TIMEDEP_NRMLIKE); 
+  GENERATE_MEMBERS(MEMBERS); 
   RdataTimeDepNrmLikeArgs(): mu(10,0.), sigma(10,1.){  }
 };
-GENERATE_PARSER( RdataTimeDepNrmLikeArgs, RDATA_TIMEDEP_NRMLIKE);
+GENERATE_PARSER( RdataTimeDepNrmLikeArgs, MEMBERS);
+#undef MEMBERS
 
-#define RDATA_UNIFORM_NRMLIKE_PLUS_SHIFT (double, mu)(double, sigma)(double, shift_mu)(double, shift_sigma)(double, shift_alpha)
+#define MEMBERS (double, mu)(double, sigma)(double, shift_mu)(double, shift_sigma)(double, shift_alpha)
 struct RdataUniformNrmLikePlusShiftArgs{
-  GENERATE_MEMBERS(RDATA_UNIFORM_NRMLIKE_PLUS_SHIFT); 
+  GENERATE_MEMBERS(MEMBERS); 
   RdataUniformNrmLikePlusShiftArgs(): mu(0.), sigma(1.), shift_mu(0.), shift_sigma(1.), shift_alpha(0.1){  }
 };
-GENERATE_PARSER( RdataUniformNrmLikePlusShiftArgs, RDATA_UNIFORM_NRMLIKE_PLUS_SHIFT);
+GENERATE_PARSER( RdataUniformNrmLikePlusShiftArgs, MEMBERS);
+#undef MEMBERS
 
+#define MEMBERS (int, bin_size)(DataGenStrategy, base_strat)(std::string, base_params_file)
+struct BinnedDataArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  BinnedDataArgs(): bin_size(1), base_strat(DataGenStrategy::NormalUniform), base_params_file("datagen_base.args"){  }
+};
+GENERATE_PARSER( BinnedDataArgs, MEMBERS);
+#undef MEMBERS
 
 std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, const std::string &params_file, const int Lt){
   if(strat == DataGenStrategy::NormalUniform){
@@ -108,6 +142,9 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
   }else if(strat == DataGenStrategy::NormalUniformPlusShift){
     RdataUniformNrmLikePlusShiftArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataGaussianPlusShift(Lt, args.mu, args.sigma, args.shift_mu, args.shift_sigma, args.shift_alpha));
+  }else if(strat == DataGenStrategy::Binned){
+    BinnedDataArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
+    return std::unique_ptr<randomDataBase>(new randomDataBinned(Lt, args.bin_size, args.base_strat, args.base_params_file));
   }else{
     error_exit(std::cout << "Invalid data generation strategy" << std::endl);
   }
