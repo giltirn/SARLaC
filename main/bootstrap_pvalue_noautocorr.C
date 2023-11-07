@@ -39,8 +39,10 @@ int main(const int argc, const char** argv){
   std::unique_ptr<randomDataBase> dgen = dataGenStrategyFactory(args.data_strat, argv[2], Lt);
 
   //Run any pre-analysis
-  std::unique_ptr<preAnalysisBase> preanalysis = preAnalysisFactory(args.preanalysis);
-  preanalysis->run(args, *covgen, *dgen, *ffunc);
+  for(auto p : args.preanalysis){
+    std::unique_ptr<preAnalysisBase> preanalysis = preAnalysisFactory(p);
+    preanalysis->run(args, *covgen, *dgen, *ffunc);
+  }
 
   //----------------------------------------------
   //Generate distribution for true data
