@@ -74,7 +74,29 @@ public:
     return out;
   }
 };
+class randomDataGaussianMixLeft: public randomDataBase{
+  std::vector<double> mu;
+  std::vector<double> sigma;
+  std::vector<double> alpha; //fraction of data point at t-1 to include
 
+public:
+  randomDataGaussianMixLeft(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma, const std::vector<double> &alpha): mu(mu), sigma(sigma), alpha(alpha){
+    if(mu.size() != Lt || sigma.size() != Lt || alpha.size() != Lt) error_exit(std::cout << "mu, sigma, alpha size must equal Lt" << std::endl);
+  }
+  randomDataGaussianMixLeft(int Lt, double mu_all, double sigma_all, const std::vector<double> &alpha): mu(Lt, mu_all), sigma(Lt, sigma_all), alpha(alpha){}
+  
+  correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const override{
+    correlationFunction<double, rawDataDistributionD> out(Lt, nsample);
+    for(int t=0;t<Lt;t++){
+      out.coord(t) = t;
+      rawDataDistributionD &ov = out.value(t);
+      gaussianRandom(ov, mu[t], sigma[t], threadRNG());
+
+      if(t>0) ov = alpha[t]*out.value(t-1) + (1-alpha[t])*ov;
+    }
+    return out;
+  }
+};
 
 
 class randomDataBinned: public randomDataBase{
@@ -121,6 +143,14 @@ struct RdataUniformNrmLikePlusShiftArgs{
 GENERATE_PARSER( RdataUniformNrmLikePlusShiftArgs, MEMBERS);
 #undef MEMBERS
 
+#define MEMBERS (double, mu)(double, sigma)(std::vector<double>, alpha)
+struct RdataUniformNrmLikeMixLeftArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  RdataUniformNrmLikeMixLeftArgs(): mu(0.), sigma(1.), alpha(10,0.1){  }
+};
+GENERATE_PARSER( RdataUniformNrmLikeMixLeftArgs, MEMBERS);
+#undef MEMBERS
+
 #define MEMBERS (int, bin_size)(DataGenStrategy, base_strat)(std::string, base_params_file)
 struct BinnedDataArgs{
   GENERATE_MEMBERS(MEMBERS); 
@@ -142,6 +172,9 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
   }else if(strat == DataGenStrategy::NormalUniformPlusShift){
     RdataUniformNrmLikePlusShiftArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataGaussianPlusShift(Lt, args.mu, args.sigma, args.shift_mu, args.shift_sigma, args.shift_alpha));
+  }else if(strat == DataGenStrategy::NormalUniformMixLeft){
+    RdataUniformNrmLikeMixLeftArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
+    return std::unique_ptr<randomDataBase>(new randomDataGaussianMixLeft(Lt, args.mu, args.sigma, args.alpha));
   }else if(strat == DataGenStrategy::Binned){
     BinnedDataArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataBinned(Lt, args.bin_size, args.base_strat, args.base_params_file));

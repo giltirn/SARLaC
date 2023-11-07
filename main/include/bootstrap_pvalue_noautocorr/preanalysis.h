@@ -1,14 +1,14 @@
 #pragma once
 
 struct preAnalysisBase{
-  virtual void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen) const = 0;
+  virtual void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const = 0;
   virtual ~preAnalysisBase(){}
 };
 struct preAnalysisNone: public preAnalysisBase{
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen) const override{};
+  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{};
 };
 struct preAnalysisCovMatEvals: public preAnalysisBase{
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen) const override{
+  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{
     int nsample = args.nsample;
     int Lt = args.Lt;
     int ntest = args.ntest;
@@ -172,13 +172,39 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       plot.write("eval_lo_nrm_hist.py","eval_lo_nrm_hist.pdf");
     }
 
+    {
+      struct accCondNum{
+	double N;
+	const std::vector<double> &hi;
+	const std::vector<double> &lo;
+	accCondNum(double N, const std::vector<double> &hi, const std::vector<double> &lo): N(N), hi(hi), lo(lo){}
+	double y(const int i) const{ return hi[i]/lo[i]; }
+	int size() const{ return hi.size(); }
+      };
 
+      MatPlotLibScriptGenerate plot;
+      typename MatPlotLibScriptGenerate::kwargsType kwargs;
+      kwargs["alpha"] = 0.4;
+      kwargs["bins"] = 60;
+      auto htrue = plot.histogram(accCondNum(nsample,evals_hi_true,evals_lo_true),kwargs,"true");
+      plot.setLegend(htrue, R"(${\\rm true}$)");
+
+      kwargs["color"] = 'c';
+      auto hboot = plot.histogram(accCondNum(nsample,evals_hi_boot,evals_lo_boot),kwargs,"boot");
+      plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
+
+      plot.setXlabel(R"($\lambda_{\rm hi}/\lambda_{\rm lo}$)");
+      plot.setYlabel(R"($f(\lambda_{\rm hi}/\lambda_{\rm lo})$)");
+      plot.createLegend();
+
+      plot.write("cond_num_hist.py","cond_num_hist.pdf");
+    }
 
   }
 };
 
 struct preAnalysisCorrMatEvals: public preAnalysisBase{
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen) const override{
+  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{
     int nsample = args.nsample;
     int Lt = args.Lt;
     int ntest = args.ntest;
@@ -266,6 +292,139 @@ struct preAnalysisCorrMatEvals: public preAnalysisBase{
   }
 };
 
+struct preAnalysisStandardError: public preAnalysisBase{
+  static void distProp(double &mean, double &std_dev, const std::vector<double> &vals){
+    double s=0,s2=0;
+    for(double v : vals){
+      s += v;
+      s2 += v*v;
+    }
+    mean = s/vals.size();
+    std_dev = sqrt( s2/vals.size() - mean*mean );
+  }
+
+  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+    //----------------------------------------------
+    //Generate distribution for true data
+    //----------------------------------------------
+    int nsample = args.nsample;
+    int Lt = args.Lt;
+    int ntest = args.ntest;
+    int dof = Lt - fitfunc.Nparams();
+
+    std::vector<double> fitval_dist_true(ntest);
+  
+#pragma omp parallel for
+    for(int test=0;test<ntest;test++){
+      correlationFunction<double, rawDataDistributionD> data = datagen.generate(Lt,nsample);
+      correlationFunction<double, double> data_means(Lt);
+      for(int t=0;t<Lt;t++){
+	data_means.coord(t) = t;
+	data_means.value(t) = data.value(t).mean();
+      }
+
+      simpleSingleFitWrapper fitter(fitfunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+      covgen.compute(fitter, data);
+
+      parameterVector<double> params(1,0.);
+      double q2, q2_per_dof; int dof;
+      assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
+      fitval_dist_true[test] = params[0];
+    }      
+
+    //---------------------------------------------------------------
+    //Repeat with bootstrap for norig_ens separate original ensembles
+    //---------------------------------------------------------------
+    std::vector< std::vector<double> > fitval_dist_boot(args.norig_ens, std::vector<double>(ntest));
+
+    for(int o=0;o<args.norig_ens;o++){
+      correlationFunction<double, rawDataDistributionD> orig_data = datagen.generate(Lt,nsample);     
+      int nblock = nsample / args.block_size;
+      int nsample_reduced = nblock * args.block_size;
+      std::vector<std::vector<int> > rtable = resampleTable(threadRNG, nblock, ntest);
+   
+#pragma omp parallel for
+      for(int test=0;test<ntest;test++){
+	correlationFunction<double, rawDataDistributionD> data(Lt);
+	correlationFunction<double, double> data_means(Lt);
+	for(int t=0;t<Lt;t++){
+	  rawDataDistributionD &dd = data.value(t);
+	  dd.resize(nsample_reduced);
+	  for(int b=0;b<nblock;b++){
+	    for(int bs=0;bs<args.block_size;bs++)
+	      dd.sample(bs + args.block_size * b) = orig_data.value(t).sample(bs + args.block_size * rtable[test][b]); //block resample
+	  } 
+
+	  data.coord(t) = t;
+	  data_means.coord(t) = t;
+	  data_means.value(t) = dd.mean();
+	}
+	simpleSingleFitWrapper fitter(fitfunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+	covgen.compute(fitter, data);
+
+	parameterVector<double> params(1,0.);
+	double q2, q2_per_dof; int dof;
+	assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
+	fitval_dist_boot[o][test] = params[0];
+      }      
+    }//bootstrap analysis
+
+    double mu_true, std_dev_true;
+    distProp(mu_true,std_dev_true,fitval_dist_true);
+    std::vector<double> mu_boot(args.norig_ens), std_dev_boot(args.norig_ens);
+    for(int i=0;i<args.norig_ens;i++)  distProp(mu_boot[i],std_dev_boot[i],fitval_dist_boot[i]);
+
+    std::cout << "True fit results: mu=" << mu_true << " sigma=" << std_dev_true << std::endl;
+    double s_mu=0, s2_mu=0, s_se=0, s2_se=0;
+    for(int i=0;i<args.norig_ens;i++){ 
+      std::cout << "Bootstrap orig ens " << i << " fit results: mu=" << mu_boot[i] << " sigma=" << std_dev_boot[i] << std::endl;
+
+      s_mu += mu_boot[i];
+      s2_mu += mu_boot[i]*mu_boot[i];
+
+      s_se += std_dev_boot[i];
+      s2_se += std_dev_boot[i]*std_dev_boot[i];
+    }
+    double mu_boot_origens_avg = s_mu/args.norig_ens;
+    double mu_boot_origens_stddev = sqrt( s2_mu/args.norig_ens - mu_boot_origens_avg*mu_boot_origens_avg );
+
+    double se_boot_origens_avg = s_se/args.norig_ens;
+    double se_boot_origens_stddev = sqrt( s2_se/args.norig_ens - se_boot_origens_avg*se_boot_origens_avg );
+    
+    std::cout << "Bootstrap variation over orig ens:  mu=" << mu_boot_origens_avg << " +- " << mu_boot_origens_stddev
+	      << " sigma=" << se_boot_origens_avg << " +- " << se_boot_origens_stddev << std::endl;
+
+    //Generate histograms (only for first bootstrap original ensemble)
+    {
+      MatPlotLibScriptGenerate plot;
+      struct acc{
+	const std::vector<double> &d;
+	acc(const std::vector<double> &d): d(d){}
+	double y(const int i) const{ return d[i]; }
+	int size() const{ return d.size(); }
+      };
+      typename MatPlotLibScriptGenerate::kwargsType kwargs;
+      kwargs["density"] = true;
+      kwargs["alpha"] = 0.4;
+      kwargs["bins"] = 60;
+      auto htrue = plot.histogram(acc(fitval_dist_true),kwargs,"true");
+      plot.setLegend(htrue, R"(${\\rm true}$)");
+      
+      kwargs["color"] = 'c';
+      auto hboot = plot.histogram(acc(fitval_dist_boot[0]),kwargs,"boot");
+      plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
+
+      plot.setXlabel(R"($a$)");
+      plot.setYlabel(R"(${\cal F}(a)$)");
+      plot.createLegend();
+
+      plot.write("fitval_dist.py","fitval_dist.pdf");
+    }
+
+
+
+  }
+};
 
 
 std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
@@ -275,6 +434,8 @@ std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisCovMatEvals);
   }else if(type == preAnalysisType::CorrMatEvals){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisCorrMatEvals);
+  }else if(type == preAnalysisType::StandardError){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisStandardError);
   }else{
     error_exit(std::cout << "Invalid pre-analysis type" << std::endl);
   }

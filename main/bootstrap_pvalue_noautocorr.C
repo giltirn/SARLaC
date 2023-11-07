@@ -40,7 +40,7 @@ int main(const int argc, const char** argv){
 
   //Run any pre-analysis
   std::unique_ptr<preAnalysisBase> preanalysis = preAnalysisFactory(args.preanalysis);
-  preanalysis->run(args, *covgen, *dgen);
+  preanalysis->run(args, *covgen, *dgen, *ffunc);
 
   //----------------------------------------------
   //Generate distribution for true data
