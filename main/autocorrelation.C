@@ -101,9 +101,9 @@ std::vector<bootstrapDistributionD> autoCorrelation(const jackknifeDistributionD
 
 
 
-std::vector<bootstrapDistributionD> integratedAutoCorrelation(const std::vector<bootstrapDistributionD> &C){
-  int N = C.size();
-  std::vector<bootstrapDistributionD> out(N);
+std::vector<bootstrapDistributionD> integratedAutoCorrelation(const std::vector<bootstrapDistributionD> &C, int stop = -1){
+  int N = stop != -1 ? stop+1 : C.size();
+  std::vector<bootstrapDistributionD> out(N-1);
   for(int cut=1; cut < N; cut++){
     bootstrapDistributionD v = C[0];
     for(int i=0;i<v.size();i++) v.sample(i) = 0.5;
@@ -138,7 +138,7 @@ int main(const int argc, const char** argv){
   readHDF5file(A,file,idx);
 
   std::vector<bootstrapDistributionD> C = autoCorrelation(A, bin_size);
-  std::vector<bootstrapDistributionD> tau_int = integratedAutoCorrelation(C);
+  std::vector<bootstrapDistributionD> tau_int = integratedAutoCorrelation(C, stop_sep);
   
   std::cout << "Integrated autocorrelation length:\n";
   for(int i=0;i<tau_int.size();i++)

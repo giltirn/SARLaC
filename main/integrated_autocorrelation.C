@@ -100,21 +100,21 @@ int main(const int argc, const char** argv){
 
     std::cout << "Generating plot" << std::endl;
     MatPlotLibScriptGenerate plot;
-  
-    struct Acc{
-      const std::vector<bootstrapDistribution<double> >  &tau;  
-      double x(const int i) const{ return i; }
-      double y(const int i) const{ return tau[i].best(); }
-      double dxm(const int i) const{ return 0; }
-      double dxp(const int i) const{ return 0; }
-      double dym(const int i) const{ return tau[i].standardError(); }
-      double dyp(const int i) const{ return tau[i].standardError(); }
-      int size() const{ return tau.size(); }
-      Acc(const std::vector<bootstrapDistribution<double> >  &tau): tau(tau){}
+    
+    struct Accessor{
+      const std::vector<bootstrapDistributionD> &vec;
+      Accessor(const std::vector<bootstrapDistributionD> &vec): vec(vec){}
+      
+      inline double x(const int i) const{ return i+1; }
+      inline double upper(const int i) const{ return vec[i].confidenceRegion().second; }
+      inline double lower(const int i) const{ return vec[i].confidenceRegion().first; }
+      inline int size() const{ return vec.size(); }
     };
-    Acc acc(tau_int);
-  
-    plot.plotData(acc);
+    
+    Accessor acc(tau_int);
+    plot.errorBand(acc);
+    plot.setXlabel(R"($\Delta_{\rm cut}$)");
+    plot.setYlabel(R"($\tau_{\rm int}(\Delta_{\rm cut}$))");
 
     plot.write("plot_tau_int.py","plot_tau_int.pdf");
   }
