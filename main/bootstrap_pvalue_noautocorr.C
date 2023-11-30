@@ -68,7 +68,7 @@ int main(const int argc, const char** argv){
     simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
     covgen->compute(fitter, data);
 
-    parameterVector<double> params(1,0.);
+    parameterVector<double> params(ffunc->Nparams(),0.);
     double q2, q2_per_dof; int dof;
     assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
     q2_dist_true[test] = q2;
@@ -97,7 +97,7 @@ int main(const int argc, const char** argv){
       simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
       covgen->compute(fitter, orig_data);
 
-      parameterVector<double> params(1,0.);
+      parameterVector<double> params(ffunc->Nparams(),0.);
       double q2, q2_per_dof; int dof;
       assert(fitter.fit(params,q2,q2_per_dof,dof, orig_data_means));
       fit_value = params[0];
@@ -127,7 +127,7 @@ int main(const int argc, const char** argv){
       simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
       covgen->compute(fitter, data);
 
-      parameterVector<double> params(1,0.);
+      parameterVector<double> params(ffunc->Nparams(),0.);
       double q2, q2_per_dof; int dof;
       assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
       q2_dist_boot[o][test] = q2;

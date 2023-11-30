@@ -1,5 +1,4 @@
 //Compute the integrated autocorrelation time with errors from the bootstrap technique
-
 #include<distribution/utils.h>
 #include<common.h>
 #include<plot.h>
@@ -38,6 +37,7 @@ int main(const int argc, const char** argv){
   int arg = 2;
   
   int discard_first = 0;
+  int traj_inc = 1; //scale result by measurement frequency if >1
   while(arg < argc){
     std::string sarg = argv[arg];
     if(sarg == "-precomputed_mean"){
@@ -51,6 +51,10 @@ int main(const int argc, const char** argv){
       std::stringstream ss; ss << argv[arg+1]; ss >> discard_first;
       std::cout << "Discarding first " << discard_first << " samples" << std::endl;
       assert(discard_first >= 0);
+      arg += 2;
+    }else if(sarg == "-traj_inc"){
+      assert(arg < argc-1);
+      traj_inc = strToAny<int>(argv[arg+1]);
       arg += 2;
     }else{
       std::cout << "Error: Unknown argument '" << sarg << "'" << std::endl;
@@ -94,24 +98,26 @@ int main(const int argc, const char** argv){
     int nbin = (data.size() - args.delta_max)/args.bin_size;
     std::vector<std::vector<int> > rtable = resampleTable(RNG, nbin);
     tau_int = integratedAutocorrelationMulti(args.delta_max, args.bin_size, args.delta_max, data, rtable, opt);
+    for(int i=1;i<tau_int.size();i++) tau_int[i] = tau_int[i] * traj_inc;
 
     for(int d=0;d<=args.delta_max;d++)
-      std::cout << d << " " << tau_int[d] << std::endl;
+      std::cout << d*traj_inc << " " << tau_int[d] << std::endl;
 
     std::cout << "Generating plot" << std::endl;
     MatPlotLibScriptGenerate plot;
     
     struct Accessor{
+      int traj_inc;
       const std::vector<bootstrapDistributionD> &vec;
-      Accessor(const std::vector<bootstrapDistributionD> &vec): vec(vec){}
+      Accessor(const std::vector<bootstrapDistributionD> &vec, int traj_inc): vec(vec), traj_inc(traj_inc){}
       
-      inline double x(const int i) const{ return i+1; }
+      inline double x(const int i) const{ return i*traj_inc; }
       inline double upper(const int i) const{ return vec[i].confidenceRegion().second; }
       inline double lower(const int i) const{ return vec[i].confidenceRegion().first; }
       inline int size() const{ return vec.size(); }
     };
     
-    Accessor acc(tau_int);
+    Accessor acc(tau_int,traj_inc);
     plot.errorBand(acc);
     plot.setXlabel(R"($\Delta_{\rm cut}$)");
     plot.setYlabel(R"($\tau_{\rm int}(\Delta_{\rm cut}$))");
@@ -124,7 +130,7 @@ int main(const int argc, const char** argv){
     std::vector<double> sep;
     std::vector<double> autocorr;
     for(int i=0;i<data.size()-1;i++){
-      sep.push_back(i);
+      sep.push_back(i*traj_inc);
       autocorr.push_back(autocorrelation(i,data));
     }
     MatPlotLibScriptGenerate plot;

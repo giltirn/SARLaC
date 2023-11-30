@@ -63,6 +63,8 @@ struct CMDline{
 
   bool disable_vacuum_subtraction;
 
+  bool exclude_V_diagram; //exclude disconnected diagrams
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -99,6 +101,8 @@ struct CMDline{
     disable_vacuum_subtraction = false;
 
     remove_samples_in_range = false;
+
+    exclude_V_diagram = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -214,6 +218,10 @@ struct CMDline{
 	  std::ofstream of("freeze_template.args"); of << pargs; of.close();
 	  exit(0);
 	}
+      }else if(sargv[i] == "-exclude_V_diagram"){
+	exclude_V_diagram = true;
+	std::cout << "Excluding disconnected diagrams" << std::endl;
+	i++;      
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

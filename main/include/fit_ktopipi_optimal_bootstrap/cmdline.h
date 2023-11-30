@@ -43,6 +43,8 @@ struct CMDline{
 
   bool disable_vacuum_subtraction;
 
+  bool exclude_V_diagram; //exclude disconnected diagrams
+
   CMDline(){
 #define INIT_ARGS(NM)				\
     load_##NM##_data_checkpoint = false;	\
@@ -65,6 +67,7 @@ struct CMDline{
     save_boot_resample_table = false;
 
     disable_vacuum_subtraction = false;
+    exclude_V_diagram = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -133,6 +136,10 @@ struct CMDline{
       }else if(sargv[i] == "-disable_vacuum_subtraction"){
 	disable_vacuum_subtraction = true;
 	std::cout << "Not performing vacuum subtraction" << std::endl;
+	i++;      
+      }else if(sargv[i] == "-exclude_V_diagram"){
+	exclude_V_diagram = true;
+	std::cout << "Excluding disconnected diagrams" << std::endl;
 	i++;      
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

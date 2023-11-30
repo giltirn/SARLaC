@@ -100,17 +100,19 @@ std::vector<bootstrapDistributionD> autoCorrelation(const jackknifeDistributionD
 }
 
 
-
+//tau(cut) = 1/2 + \sum_1^cut corr(t)
 std::vector<bootstrapDistributionD> integratedAutoCorrelation(const std::vector<bootstrapDistributionD> &C, int stop = -1){
   int N = stop != -1 ? stop+1 : C.size();
-  std::vector<bootstrapDistributionD> out(N-1);
-  for(int cut=1; cut < N; cut++){
-    bootstrapDistributionD v = C[0];
-    for(int i=0;i<v.size();i++) v.sample(i) = 0.5;
+  bootstrapDistributionD sum = C[0];
+  for(int i=0;i<sum.size();i++) sum.sample(i) = 0.5;
+  sum.best() = 0.5;
 
-    for(int i=1;i<=cut;i++)
-      v = v + C[i];
-    out[cut-1] = v;
+  std::vector<bootstrapDistributionD> out(N);
+  out[0] = sum;
+
+  for(int t=1;t<N;t++){
+    sum = sum + C[t];
+    out[t] = sum;
   }
   return out;
 }
@@ -124,15 +126,23 @@ int main(const int argc, const char** argv){
   std::string plot_stub = argv[4];
 
   int stop_sep = -1;
+  int traj_inc = 1; //scale trajectory separations by meas frequency
 
-  for(int i=5;i<argc;i++){
-    std::string arg = argv[i];
-    if(arg == "-stop"){
-      stop_sep = strToAny<int>(argv[i+1]);
-      i+=2;
-    }else assert(0);
+  {
+    int i=5;
+    while(i<argc){      
+      std::string arg = argv[i];
+      if(arg == "-stop"){
+	stop_sep = strToAny<int>(argv[i+1]);
+	i+=2;
+      }else if(arg == "-traj_inc"){
+	traj_inc = strToAny<int>(argv[i+1]);
+	i+=2;
+      }else{
+	error_exit(std::cout << "Unknown argument: \"" << arg << "\"");
+      }
+    }
   }
-
 
   jackknifeDistributionD A;
   readHDF5file(A,file,idx);
@@ -140,9 +150,12 @@ int main(const int argc, const char** argv){
   std::vector<bootstrapDistributionD> C = autoCorrelation(A, bin_size);
   std::vector<bootstrapDistributionD> tau_int = integratedAutoCorrelation(C, stop_sep);
   
+  //Scale by traj_inc
+  for(int i=1;i<tau_int.size();i++) tau_int[i] = tau_int[i] * traj_inc;
+
   std::cout << "Integrated autocorrelation length:\n";
   for(int i=0;i<tau_int.size();i++)
-    std::cout << i+1 << " " << tau_int[i] << std::endl;
+    std::cout << i*traj_inc << " " << tau_int[i] << std::endl;
 
 
   {
@@ -150,15 +163,16 @@ int main(const int argc, const char** argv){
     
     struct Accessor{
       const std::vector<bootstrapDistributionD> &vec;
-      Accessor(const std::vector<bootstrapDistributionD> &vec): vec(vec){}
+      int traj_inc;
+      Accessor(const std::vector<bootstrapDistributionD> &vec, int traj_inc): vec(vec), traj_inc(traj_inc){}
       
-      inline double x(const int i) const{ return i+1; }
+      inline double x(const int i) const{ return i*traj_inc; }
       inline double upper(const int i) const{ return vec[i].confidenceRegion().second; }
       inline double lower(const int i) const{ return vec[i].confidenceRegion().first; }
       inline int size() const{ return vec.size(); }
     };
     
-    Accessor acc(tau_int);
+    Accessor acc(tau_int, traj_inc);
     plot.errorBand(acc);
     plot.setXlabel(R"($\Delta_{\rm cut}$)");
     plot.setYlabel(R"($\tau_{\rm int}(\Delta_{\rm cut}$))");

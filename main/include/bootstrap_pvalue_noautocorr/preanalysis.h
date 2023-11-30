@@ -293,11 +293,11 @@ struct preAnalysisCorrMatEvals: public preAnalysisBase{
 };
 
 struct preAnalysisStandardError: public preAnalysisBase{
-  static void distProp(double &mean, double &std_dev, const std::vector<double> &vals){
+  static void distProp(double &mean, double &std_dev, const std::vector<parameterVector<double> > &vals, int param){
     double s=0,s2=0;
-    for(double v : vals){
-      s += v;
-      s2 += v*v;
+    for(auto const &v : vals){
+      s += v[param];
+      s2 += v[param]*v[param];
     }
     mean = s/vals.size();
     std_dev = sqrt( s2/vals.size() - mean*mean );
@@ -312,7 +312,7 @@ struct preAnalysisStandardError: public preAnalysisBase{
     int ntest = args.ntest;
     int dof = Lt - fitfunc.Nparams();
 
-    std::vector<double> fitval_dist_true(ntest);
+    std::vector<parameterVector<double> > fitval_dist_true(ntest);
   
 #pragma omp parallel for
     for(int test=0;test<ntest;test++){
@@ -326,16 +326,16 @@ struct preAnalysisStandardError: public preAnalysisBase{
       simpleSingleFitWrapper fitter(fitfunc, MinimizerType::MarquardtLevenberg, args.MLparams);
       covgen.compute(fitter, data);
 
-      parameterVector<double> params(1,0.);
+      parameterVector<double> params(fitfunc.Nparams(),0.);
       double q2, q2_per_dof; int dof;
       assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
-      fitval_dist_true[test] = params[0];
+      fitval_dist_true[test] = params;
     }      
 
     //---------------------------------------------------------------
     //Repeat with bootstrap for norig_ens separate original ensembles
     //---------------------------------------------------------------
-    std::vector< std::vector<double> > fitval_dist_boot(args.norig_ens, std::vector<double>(ntest));
+    std::vector< std::vector<parameterVector<double> > > fitval_dist_boot(args.norig_ens, std::vector<parameterVector<double> >(ntest));
 
     for(int o=0;o<args.norig_ens;o++){
       correlationFunction<double, rawDataDistributionD> orig_data = datagen.generate(Lt,nsample);     
@@ -362,68 +362,70 @@ struct preAnalysisStandardError: public preAnalysisBase{
 	simpleSingleFitWrapper fitter(fitfunc, MinimizerType::MarquardtLevenberg, args.MLparams);
 	covgen.compute(fitter, data);
 
-	parameterVector<double> params(1,0.);
+	parameterVector<double> params(fitfunc.Nparams(),0.);
 	double q2, q2_per_dof; int dof;
 	assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
-	fitval_dist_boot[o][test] = params[0];
+	fitval_dist_boot[o][test] = params;
       }      
     }//bootstrap analysis
 
-    double mu_true, std_dev_true;
-    distProp(mu_true,std_dev_true,fitval_dist_true);
-    std::vector<double> mu_boot(args.norig_ens), std_dev_boot(args.norig_ens);
-    for(int i=0;i<args.norig_ens;i++)  distProp(mu_boot[i],std_dev_boot[i],fitval_dist_boot[i]);
+    for(int p=0;p<fitfunc.Nparams();p++){
+      double mu_true, std_dev_true;
+      distProp(mu_true,std_dev_true,fitval_dist_true,p);
+      std::vector<double> mu_boot(args.norig_ens), std_dev_boot(args.norig_ens);
+      for(int i=0;i<args.norig_ens;i++)  distProp(mu_boot[i],std_dev_boot[i],fitval_dist_boot[i],p);
 
-    std::cout << "True fit results: mu=" << mu_true << " sigma=" << std_dev_true << std::endl;
-    double s_mu=0, s2_mu=0, s_se=0, s2_se=0;
-    for(int i=0;i<args.norig_ens;i++){ 
-      std::cout << "Bootstrap orig ens " << i << " fit results: mu=" << mu_boot[i] << " sigma=" << std_dev_boot[i] << std::endl;
-
-      s_mu += mu_boot[i];
-      s2_mu += mu_boot[i]*mu_boot[i];
-
-      s_se += std_dev_boot[i];
-      s2_se += std_dev_boot[i]*std_dev_boot[i];
-    }
-    double mu_boot_origens_avg = s_mu/args.norig_ens;
-    double mu_boot_origens_stddev = sqrt( s2_mu/args.norig_ens - mu_boot_origens_avg*mu_boot_origens_avg );
-
-    double se_boot_origens_avg = s_se/args.norig_ens;
-    double se_boot_origens_stddev = sqrt( s2_se/args.norig_ens - se_boot_origens_avg*se_boot_origens_avg );
+      std::cout << "Param " << p << " true fit results: " << mu_true << " +- " << std_dev_true << std::endl;
+      double s_mu=0, s2_mu=0, s_se=0, s2_se=0;
+      for(int i=0;i<args.norig_ens;i++){ 
+	std::cout << "Param " << p << " bootstrap orig ens " << i << " fit results: " << mu_boot[i] << " +- " << std_dev_boot[i] << std::endl;
+	
+	s_mu += mu_boot[i];
+	s2_mu += mu_boot[i]*mu_boot[i];
+	
+	s_se += std_dev_boot[i];
+	s2_se += std_dev_boot[i]*std_dev_boot[i];
+      }
+      double mu_boot_origens_avg = s_mu/args.norig_ens;
+      double mu_boot_origens_stddev = sqrt( s2_mu/args.norig_ens - mu_boot_origens_avg*mu_boot_origens_avg );
     
-    std::cout << "Bootstrap variation over orig ens:  mu=" << mu_boot_origens_avg << " +- " << mu_boot_origens_stddev
-	      << " sigma=" << se_boot_origens_avg << " +- " << se_boot_origens_stddev << std::endl;
+      double se_boot_origens_avg = s_se/args.norig_ens;
+      double se_boot_origens_stddev = sqrt( s2_se/args.norig_ens - se_boot_origens_avg*se_boot_origens_avg );
+    
+      std::cout << "Param " << p << " bootstrap variation over orig ens:  cen=" << mu_boot_origens_avg << " +- " << mu_boot_origens_stddev
+		<< " err=" << se_boot_origens_avg << " +- " << se_boot_origens_stddev << std::endl;
 
-    //Generate histograms (only for first bootstrap original ensemble)
-    {
-      MatPlotLibScriptGenerate plot;
-      struct acc{
-	const std::vector<double> &d;
-	acc(const std::vector<double> &d): d(d){}
-	double y(const int i) const{ return d[i]; }
-	int size() const{ return d.size(); }
-      };
-      typename MatPlotLibScriptGenerate::kwargsType kwargs;
-      kwargs["density"] = true;
-      kwargs["alpha"] = 0.4;
-      kwargs["bins"] = 60;
-      auto htrue = plot.histogram(acc(fitval_dist_true),kwargs,"true");
-      plot.setLegend(htrue, R"(${\\rm true}$)");
+      //Generate histograms (only for first bootstrap original ensemble)
+      {
+	MatPlotLibScriptGenerate plot;
+	struct acc{
+	  int p;
+	  const std::vector<parameterVector<double> > &d;
+	  acc(const std::vector<parameterVector<double> > &d, int p): d(d), p(p){}
+	  double y(const int i) const{ return d[i][p]; }
+	  int size() const{ return d.size(); }
+	};
+	typename MatPlotLibScriptGenerate::kwargsType kwargs;
+	kwargs["density"] = true;
+	kwargs["alpha"] = 0.4;
+	kwargs["bins"] = 60;
+	auto htrue = plot.histogram(acc(fitval_dist_true,p),kwargs,"true");
+	plot.setLegend(htrue, R"(${\\rm true}$)");
       
-      kwargs["color"] = 'c';
-      auto hboot = plot.histogram(acc(fitval_dist_boot[0]),kwargs,"boot");
-      plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
+	kwargs["color"] = 'c';
+	auto hboot = plot.histogram(acc(fitval_dist_boot[0],p),kwargs,"boot");
+	plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
-      plot.setXlabel(R"($a$)");
-      plot.setYlabel(R"(${\cal F}(a)$)");
-      plot.createLegend();
+	plot.setXlabel(R"($a$)");
+	plot.setYlabel(R"(${\cal F}(a)$)");
+	plot.createLegend();
 
-      plot.write("fitval_dist.py","fitval_dist.pdf");
-    }
+	std::string stub = "fitval_p" + std::to_string(p) + "_dist";
+	plot.write(stub+".py",stub+".pdf");
+      }
 
-
-
-  }
+    }//p
+  }//run
 };
 
 
