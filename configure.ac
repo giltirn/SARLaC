@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
-AC_PREREQ([2.67])
-AC_INIT([SARLaC], [1.0], [ckelly.physics@gmail.com])
+AC_PREREQ([2.69])
+AC_INIT([SARLaC],[1.0],[ckelly.physics@gmail.com])
 AC_CONFIG_SRCDIR([include/utils.h])
 AC_CONFIG_HEADERS([config.h])
 
@@ -162,6 +162,7 @@ AM_CONDITIONAL([HAVE_DOXYGEN],
 
 
 # Output files
-AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile main/analyze/Makefile main/analyze/gparity/Makefile main/tools/Makefile main/fit/Makefile main/fit/gparity/Makefile main/misc/Makefile example/Makefile test/Makefile docs/Makefile)
+AC_CONFIG_FILES([Makefile include/Makefile src/Makefile main/Makefile main/analyze/Makefile main/analyze/gparity/Makefile main/tools/Makefile main/fit/Makefile main/fit/gparity/Makefile main/misc/Makefile example/Makefile test/Makefile docs/Makefile])
+AC_OUTPUT
 AM_INIT_AUTOMAKE([subdir-objects])
 

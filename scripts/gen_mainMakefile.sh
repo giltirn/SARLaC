@@ -22,5 +22,5 @@ for i in $(ls *.C); do
 done
 
 echo "AM_CPPFLAGS = -I\$(top_srcdir)/include -I\$(srcdir)/include"
-echo "LDADD =\$(top_builddir)/src/libcpsfit.a"
+echo "LDADD =\$(top_builddir)/src/libsarlac.a"
 if [ -e subdirs.inc ]; then cat subdirs.inc ; fi

@@ -1,6 +1,6 @@
 SUBDIRS =
-lib_LIBRARIES = libcpsfit.a
-libcpsfit_a_SOURCES = physics/alpha_s.C
+lib_LIBRARIES = libsarlac.a
+libsarlac_a_SOURCES = physics/alpha_s.C
 
 AM_CPPFLAGS = -I$(srcdir)/../include
 

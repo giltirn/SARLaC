@@ -32,4 +32,4 @@ fit_pipi_sigma_sim_gparity_sampleAMA_SOURCES = fit_pipi_sigma_sim_gparity_sample
 fit_pipitosigma_gparity_SOURCES = fit_pipitosigma_gparity.C
 fit_sigmasigma_gparity_SOURCES = fit_sigmasigma_gparity.C
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
-LDADD =$(top_builddir)/src/libcpsfit.a
+LDADD =$(top_builddir)/src/libsarlac.a

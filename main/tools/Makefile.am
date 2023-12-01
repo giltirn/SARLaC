@@ -7,4 +7,4 @@ hdf5_combine_SOURCES = hdf5_combine.C
 hdf5_print_SOURCES = hdf5_print.C
 hdf5_superjackknife_boost_SOURCES = hdf5_superjackknife_boost.C
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
-LDADD =$(top_builddir)/src/libcpsfit.a
+LDADD =$(top_builddir)/src/libsarlac.a

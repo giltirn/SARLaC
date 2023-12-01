@@ -9,5 +9,5 @@ integrated_autocorrelation_SOURCES = integrated_autocorrelation.C
 pvalue_SOURCES = pvalue.C
 wilson_flow_SOURCES = wilson_flow.C
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
-LDADD =$(top_builddir)/src/libcpsfit.a
+LDADD =$(top_builddir)/src/libsarlac.a
 SUBDIRS = gparity

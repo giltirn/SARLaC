@@ -8,5 +8,5 @@ fit_simple_SOURCES = fit_simple.C
 fit_simple_sampleAMA_SOURCES = fit_simple_sampleAMA.C
 fit_simultaneous_SOURCES = fit_simultaneous.C
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
-LDADD =$(top_builddir)/src/libcpsfit.a
+LDADD =$(top_builddir)/src/libsarlac.a
 SUBDIRS = gparity

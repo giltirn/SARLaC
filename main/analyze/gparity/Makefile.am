@@ -9,4 +9,4 @@ compute_pipi_phaseshift_SOURCES = compute_pipi_phaseshift.C
 plot_pipi_phaseshift_SOURCES = plot_pipi_phaseshift.C
 plot_pipi_phaseshift_sdep_SOURCES = plot_pipi_phaseshift_sdep.C
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
-LDADD =$(top_builddir)/src/libcpsfit.a
+LDADD =$(top_builddir)/src/libsarlac.a
