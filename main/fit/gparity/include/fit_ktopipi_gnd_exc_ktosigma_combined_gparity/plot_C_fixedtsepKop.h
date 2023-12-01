@@ -7,7 +7,7 @@
 #include "resampled_data.h"
 #include "simfit_common.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Plot C_q for operator idx 1<=q<=10 separately for all tsep(K->op) for a fixed pipi operator
 //Plotting as a function of t'=tsep-t
@@ -60,6 +60,6 @@ void plotCfixedTsepKop(const ResampledData<DistributionType> &data,
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

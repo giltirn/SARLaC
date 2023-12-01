@@ -3,7 +3,7 @@
 #include<fit_ktosigma_gparity/args.h>
 #include<fit_ktosigma_gparity/cmdline.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 int main(const int argc, const char* argv[]){
   printMem("Beginning of execution");

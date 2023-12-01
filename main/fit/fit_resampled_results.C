@@ -6,7 +6,7 @@
 #include<plot.h>
 #include<containers.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //Operation is a mathematical expression in the read value 'x' denoting an operation performed on said data post-read. E.g. "x" just reads the data and does nothing (also can use "" for this), "x*x" squares it and so on
 #define DATA_INFO_MEMBERS				\

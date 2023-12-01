@@ -1,7 +1,7 @@
 #include<distribution.h>
 #include<utils.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 
 //Append conventionally-stored distributions from fit parameter files to an output file, either new or existing. Can be used to create new parameter files from multiple fit outputs for, say, freezing parameters

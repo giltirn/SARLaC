@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_RANDOMNUMBER_H
-#define _CPSFIT_RANDOMNUMBER_H
+#ifndef _SARLAC_RANDOMNUMBER_H
+#define _SARLAC_RANDOMNUMBER_H
 
 //Generate random real and complex numbers from different distributions
 
@@ -9,7 +9,7 @@
 #include<utils/template_wizardry.h>
 #include<random/rng.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Uniform random numbers
 template<typename T>
@@ -87,6 +87,6 @@ inline T gaussianRandom(const typename _rangetype<T>::type mean, const typename 
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

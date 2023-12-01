@@ -5,7 +5,7 @@
 
 #include "pipi_figure_mom_data_container.h"
 #include "pipi_bubble_mom_data_container.h"
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 inline std::string checkpointFilename(const std::string &stub, const std::string &extra_descr){
   std::ostringstream filename;
@@ -23,4 +23,4 @@ void loadRawDataCheckpoint(figureDataAllMomenta &raw_data, bubbleDataAllMomenta 
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

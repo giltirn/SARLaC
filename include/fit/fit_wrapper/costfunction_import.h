@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FIT_WRAPPER_COSTFUNC_IMPORT_H_
-#define _CPSFIT_FIT_WRAPPER_COSTFUNC_IMPORT_H_
+#ifndef _SARLAC_FIT_WRAPPER_COSTFUNC_IMPORT_H_
+#define _SARLAC_FIT_WRAPPER_COSTFUNC_IMPORT_H_
 
 //The generation of the inverse correlation matrix (if applicable) and sigma for the cost function using the double-jackknife is something that often crops up. Here we implement a convenience wrapper to perform this boilerplate
 
@@ -10,7 +10,7 @@
 #include<fit/fit_wrapper/costfunction_policy.h>
 #include<fit/fit_wrapper/fitter.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<template<typename> class corrUncorrFitPolicy, typename FitPolicies>
 struct importCostFunctionParameters{};
@@ -319,5 +319,5 @@ struct importCostFunctionParameters<frozenCorrelatedFitPolicy,FitPolicies>{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

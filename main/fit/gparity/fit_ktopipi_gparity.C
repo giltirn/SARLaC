@@ -1,6 +1,6 @@
 #include<ktopipi_common/ktopipi_common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_ktopipi_gparity/cmdline.h>
 #include <fit_ktopipi_gparity/args.h>

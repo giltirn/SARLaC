@@ -5,7 +5,7 @@
 #include<distribution/double_jackknife/class.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, template<typename> class V, int is_const>
 class _distributionIterator<doubleJackknifeDistribution<T,V>, is_const>{
@@ -46,5 +46,5 @@ struct iterate<doubleJackknifeDistribution<T,V> >{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

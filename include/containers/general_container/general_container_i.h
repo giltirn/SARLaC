@@ -6,7 +6,7 @@
 
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class generalContainerEntry_i;
@@ -42,6 +42,6 @@ public:
   generalContainer_i* clone() const{ return new generalContainerEntry_i(*this); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

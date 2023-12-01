@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_CORRELATION_FUNCTION_ET_H_
-#define _CPSFIT_CORRELATION_FUNCTION_ET_H_
+#ifndef _SARLAC_CORRELATION_FUNCTION_ET_H_
+#define _SARLAC_CORRELATION_FUNCTION_ET_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<ET/generic_ET.h>
 #include<data_series/correlationfunction/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename GeneralizedCoordinate, typename DistributionType,template<typename,typename> class PairType>
 struct getElem<correlationFunction<GeneralizedCoordinate,DistributionType,PairType> >{
@@ -52,5 +52,5 @@ inline CFDpair<Coord,Dist> operator/(const CFDpair<Coord,Dist> &d, const double 
   return CFDpair<Coord,Dist>(d.first, d.second/e);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

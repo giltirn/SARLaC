@@ -10,7 +10,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry/distribution.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Wrap the awkward HDF5 types in template specializations to define a compile-time mapping
 template<typename T>
@@ -59,7 +59,7 @@ struct isDistributionOfHDF5nativetype{ enum {value = _isDistributionOfHDF5native
 #define IF_DISTRIBUTION_NATIVE(T) typename std::enable_if<isDistributionOfHDF5nativetype<T>::value, int>::type = 0
 #define IF_NOT_DISTRIBUTION_NATIVE(T) typename std::enable_if<!isDistributionOfHDF5nativetype<T>::value, int>::type = 0
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

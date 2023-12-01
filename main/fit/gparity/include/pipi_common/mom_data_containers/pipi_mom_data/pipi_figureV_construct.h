@@ -2,7 +2,7 @@
 
 #include "pipi_bubble_mom_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //The V diagrams is computed offline frome the bubble data. We only compute for pion momenta that are going to be used in the rotational-state projection
 template<typename DataAllMomentumType, typename BubbleDataType>
@@ -43,4 +43,4 @@ inline void computePiPi2ptFigureV(figureDataAllMomenta &raw_data, const bubbleDa
   computePiPi2ptFigureV(raw_data, re, tsep_pipi, proj_src, proj_snk);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

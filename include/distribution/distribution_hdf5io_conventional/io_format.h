@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_IO_FORMAT_H_
-#define _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_IO_FORMAT_H_
+#ifndef _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_IO_FORMAT_H_
+#define _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_IO_FORMAT_H_
 
 //Classes that control the implementation of the standard format for different distribution types
 
@@ -8,7 +8,7 @@
 #include<distribution/distribution_hdf5io_basic.h>
 #include<distribution/distribution_hdf5io_conventional/utils.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //When the int is 1, typedef the underlying data type
 template<typename T, int>
@@ -26,11 +26,11 @@ struct getDataType<T,1>{ typedef typename T::DataType type; };
 //Define how to write vectors and vector-vectors of distributions of *POD types*. By default we use the basic format without flattening (uncompressed)
 template<typename T>
 struct standardIOformat{
-  inline static void write(HDF5writer &writer, const std::vector<T> &value, const std::string &tag){ CPSfit::write(writer,value,tag,false); } //no flattening
-  inline static void read(HDF5reader &reader, std::vector<T> &value, const std::string &tag){ CPSfit::read(reader,value,tag,false); }
-  inline static void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const std::string &tag){ CPSfit::write(writer,value,tag,false); } //no flattening
-  inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::string &tag){ CPSfit::read(reader,value,tag,false); }  
+  inline static void write(HDF5writer &writer, const std::vector<T> &value, const std::string &tag){ SARLaC::write(writer,value,tag,false); } //no flattening
+  inline static void read(HDF5reader &reader, std::vector<T> &value, const std::string &tag){ SARLaC::read(reader,value,tag,false); }
+  inline static void write(HDF5writer &writer, const std::vector<std::vector<T> > &value, const std::string &tag){ SARLaC::write(writer,value,tag,false); } //no flattening
+  inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::string &tag){ SARLaC::read(reader,value,tag,false); }  
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

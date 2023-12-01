@@ -6,7 +6,7 @@
 #include <tensors.h>
 #include <containers/parameter_vector.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 int main(void){
   RNG.initialize(1234);

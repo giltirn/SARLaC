@@ -2,7 +2,7 @@
 #include <random.h>
 #include <pipi_common/pipi_common.h>
 #include <fit/bootstrap_pvalue.h>
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include<fit_pipi_gnd_exc_sim_gparity/enums.h>
 #include<fit_pipi_gnd_exc_sim_gparity/fit_central.h>

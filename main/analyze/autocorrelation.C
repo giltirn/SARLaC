@@ -4,7 +4,7 @@
 #include<common.h>
 #include<plot.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 std::vector<int> parseIndices(const std::string &ind){
   std::vector<int> indices;

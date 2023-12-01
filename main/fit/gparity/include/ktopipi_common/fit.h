@@ -12,7 +12,7 @@
 #include "plot.h"
 #include "freeze.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct FitKtoPiPiOptions{
   bool load_freeze_data;
@@ -340,6 +340,6 @@ inline void fitAndPlot(const std::vector<correlationFunction<amplitudeDataCoord,
   }
 }
   
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

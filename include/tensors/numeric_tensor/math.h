@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_NUMERIC_TENSOR_MATH_H_
-#define _CPSFIT_NUMERIC_TENSOR_MATH_H_
+#ifndef _SARLAC_NUMERIC_TENSOR_MATH_H_
+#define _SARLAC_NUMERIC_TENSOR_MATH_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_tensor/class.h>
 #include<tensors/numeric_square_matrix/invert.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Contract two tensors over a single index. Preserves ordering of remaining indices
 //eg A_ijkl B_mnio -> C_jklmno
@@ -137,5 +137,5 @@ void MoorePenrosePseudoInverse(NumericTensor<T,2> &Ainv,
 //DO FOR DISTRIBUTION TOO
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

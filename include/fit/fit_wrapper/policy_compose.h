@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FIT_WRAPPER_POLICY_COMPOSE_H_
-#define _CPSFIT_FIT_WRAPPER_POLICY_COMPOSE_H_
+#ifndef _SARLAC_FIT_WRAPPER_POLICY_COMPOSE_H_
+#define _SARLAC_FIT_WRAPPER_POLICY_COMPOSE_H_
 
 //Ultimately the policy for the wrapper comprises 4 layers: the base typedefs, the fitfunc policy the cost func policy and the minimizer policy. To aid putting these together the user can obtain the type with the following compositor
 
@@ -10,7 +10,7 @@
 #include<fit/fit_wrapper/costfunction_policy.h>
 #include<fit/fit_wrapper/minimizer_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename FitFunc, 
 	 template<typename,typename> class FitFuncPolicy, 
@@ -27,5 +27,5 @@ struct composeFitPolicy{
           > type;
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

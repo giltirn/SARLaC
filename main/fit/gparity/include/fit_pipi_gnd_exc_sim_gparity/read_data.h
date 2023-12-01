@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 void readRawPiPiGndExcData(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataAllMomenta &raw_bubble_exc_exc, bubbleDataAllMomenta &raw_bubble_gnd_exc,
 		rawDataCorrelationFunctionD &raw_data_gnd_gnd, rawDataCorrelationFunctionD &raw_data_exc_exc, rawDataCorrelationFunctionD &raw_data_gnd_exc,
@@ -79,6 +79,6 @@ void getRawPiPiGndExcData(bubbleDataAllMomenta &raw_bubble_gnd_gnd, bubbleDataAl
   }
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -4,7 +4,7 @@
 #include<config.h>
 #include<distribution/distribution.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct rawDataDistributionOptions{
   static bool & binAllowCropByDefault(){ static bool allow_crop = false; return allow_crop; }
@@ -118,5 +118,5 @@ std::ostream & operator<<(std::ostream &os, const rawDataDistribution<T,_VectorT
   return os;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

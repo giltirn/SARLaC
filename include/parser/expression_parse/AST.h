@@ -9,7 +9,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //An abstract syntax tree (AST) representing a mathematical expression
 class expressionAST{
@@ -189,5 +189,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

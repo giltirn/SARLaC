@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct computeQamplitudeOpts{
   double alpha_scale; //multiply the coefficient alpha by some factor
@@ -13,6 +13,6 @@ struct computeQamplitudeOpts{
   computeQamplitudeOpts(): alpha_scale(1.), do_vacuum_subtraction(true){}
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

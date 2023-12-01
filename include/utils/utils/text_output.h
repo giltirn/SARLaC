@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_UTILS_TEXT_OUTPUT_
-#define _CPSFIT_UTILS_TEXT_OUTPUT_
+#ifndef _SARLAC_UTILS_TEXT_OUTPUT_
+#define _SARLAC_UTILS_TEXT_OUTPUT_
 
 //Functions and types for ascii output
 #include<vector>
@@ -10,7 +10,7 @@
 #include<utils/macros.h>
 
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Any derived type DerivedType of OstreamHook with a write(std::ostream &) method will automatically have an operator<<(std::ostream &os, const DerivedType &v)
 class OstreamHook{
@@ -63,5 +63,5 @@ static nullstream null_stream;
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

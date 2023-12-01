@@ -4,7 +4,7 @@
 #include<utils.h>
 #include<random.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 
 jackknifeDistributionD randomJackknife(double cen, double err, double err_tol, int N, int iter_max = 1000, int iter = 0){

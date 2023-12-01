@@ -5,7 +5,7 @@
 #include<random.h>
 #include<plot.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 int main(void){
   RNG.initialize(1234);

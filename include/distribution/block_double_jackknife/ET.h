@@ -5,7 +5,7 @@
 #include<ET/generic_ET.h>
 #include<distribution/block_double_jackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename A, template<typename> class V>
   struct getElem<blockDoubleJackknifeDistribution<A,V> >{
@@ -14,5 +14,5 @@ template<typename A, template<typename> class V>
   static inline std::pair<int,int> common_properties(const blockDoubleJackknifeDistribution<A,V> &v){ return std::pair<int,int>(v.nSamplesUnbinned(), v.binSize()); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_NUMERIC_VECTOR_ET_H_
-#define _CPSFIT_NUMERIC_VECTOR_ET_H_
+#ifndef _SARLAC_NUMERIC_VECTOR_ET_H_
+#define _SARLAC_NUMERIC_VECTOR_ET_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_vector/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename Tag>
 struct is_NumericVector_tag{
@@ -26,6 +26,6 @@ struct disableGenericETbinOp<ETdivide, NumericVector<Numeric> >{
   enum {value = 1};
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

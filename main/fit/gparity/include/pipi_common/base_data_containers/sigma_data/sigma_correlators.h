@@ -4,7 +4,7 @@
 #include "sigma_bubble_data.h"
 #include "sigma_2pt_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct readSigma2ptOpts{
   bool include_V_diagram;
@@ -28,4 +28,4 @@ inline void readSigma2pt(rawDataCorrelationFunctionD &sigma2pt_raw, sigmaSelfCon
   sigma2pt_raw = sourceAverage(sigma2pt_data);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

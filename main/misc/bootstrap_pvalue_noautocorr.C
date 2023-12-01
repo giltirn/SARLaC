@@ -5,7 +5,7 @@
 #include<common.h>
 #include<containers.h>
 #include<plot.h>
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <bootstrap_pvalue_noautocorr/cmdline.h>
 #include <bootstrap_pvalue_noautocorr/enum.h>

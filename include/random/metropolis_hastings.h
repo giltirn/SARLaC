@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_METROPOLIS_HASTINGS_H
-#define _CPSFIT_METROPOLIS_HASTINGS_H
+#ifndef _SARLAC_METROPOLIS_HASTINGS_H
+#define _SARLAC_METROPOLIS_HASTINGS_H
 
 //An implementation of the Metropolis-Hastings Markov chain Monte Carlo algorithm
 
@@ -8,7 +8,7 @@
 #include<random/random_number.h>
 #include<distribution/raw_data_distribution.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Example update function: update x -> x' where x' is drawn from a Gaussian with x as central value and some chosen width
 struct UpdateFuncGaussian{
@@ -59,6 +59,6 @@ rawDataDistribution<T> MetropolisHastings(const int Nkeep, const int Nwarmup, co
 } 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -9,7 +9,7 @@
 
 //Generic and flexible one and two state fits
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Different fit functions require different numbers of parameters
 struct SimFitCoordGen{
@@ -253,6 +253,6 @@ public:
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -5,7 +5,7 @@
 
 #include "pipi_all_mom_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Perform the rotational state projection
 template<typename DataAllMomentumType>
@@ -131,4 +131,4 @@ inline void readPiPi2pt(rawDataCorrelationFunctionD &pipi_raw, bubbleDataAllMome
   raw_bubble_data = reIm(raw_bubble_data_Z, 0);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

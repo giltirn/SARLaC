@@ -95,14 +95,14 @@ public:
 
   void write(HDF5writer &wr, const std::string &nm) const{
     wr.enter(nm);
-    CPSfit::write(wr, correlators, "correlators");
-    CPSfit::write(wr, contains, "contains");
+    SARLaC::write(wr, correlators, "correlators");
+    SARLaC::write(wr, contains, "contains");
     wr.leave();
   }
   void read(HDF5reader &rd, const std::string &nm){
     rd.enter(nm);
-    CPSfit::read(rd, correlators, "correlators");
-    CPSfit::read(rd, contains, "contains");
+    SARLaC::read(rd, correlators, "correlators");
+    SARLaC::read(rd, contains, "contains");
     rd.leave();
   }
 };

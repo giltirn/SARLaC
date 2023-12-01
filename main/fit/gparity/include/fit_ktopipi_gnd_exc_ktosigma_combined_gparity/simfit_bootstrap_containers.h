@@ -6,7 +6,7 @@
 
 #include "simfit_base.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 template<>
@@ -72,6 +72,6 @@ struct SimFitDataContainers<bootstrapDistribution>{
 
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

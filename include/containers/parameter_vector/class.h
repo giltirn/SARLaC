@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_PARAMETER_VECTOR_CLASS_H_
-#define _CPSFIT_PARAMETER_VECTOR_CLASS_H_
+#ifndef _SARLAC_PARAMETER_VECTOR_CLASS_H_
+#define _SARLAC_PARAMETER_VECTOR_CLASS_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class parameterVector: public NumericVector<T>{
@@ -39,5 +39,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

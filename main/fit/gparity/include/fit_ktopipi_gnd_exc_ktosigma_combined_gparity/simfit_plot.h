@@ -6,7 +6,7 @@
 
 #include<fit_ktopipi_ktosigma_combined_gparity/simfit_plot.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 
@@ -540,6 +540,6 @@ void plotErrorWeightedDataNexpFlat(const ResampledData<DistributionType<double, 
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

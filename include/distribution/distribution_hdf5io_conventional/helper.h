@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_HELPER_H_
-#define _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_HELPER_H_
+#ifndef _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_HELPER_H_
+#define _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_HELPER_H_
 
 //These helper classes implement certain actions for mapping between Distribution<compound-type> and vector<Distribution<POD-type>
 ///They should be specialized if the actions need to be customized
@@ -9,7 +9,7 @@
 #include<utils/template_wizardry.h>
 #include<distribution/distribution_hdf5io_conventional/utils.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename D> struct iterate;
 
@@ -42,5 +42,5 @@ struct standardIOhelper{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

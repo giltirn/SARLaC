@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_NUMERIC_TENSOR_IO_H_
-#define _CPSFIT_NUMERIC_TENSOR_IO_H_
+#ifndef _SARLAC_NUMERIC_TENSOR_IO_H_
+#define _SARLAC_NUMERIC_TENSOR_IO_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_tensor/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, int R>
 void _NTprinter<T,R>::print(std::ostream &os, const NumericTensor<T,R> &t){
@@ -47,5 +47,5 @@ inline std::ostream & operator<<(std::ostream &os, const NumericTensor<T,R> &t){
   return os;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

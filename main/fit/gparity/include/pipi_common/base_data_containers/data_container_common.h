@@ -10,11 +10,11 @@
 #include<tensors.h>
 #include<common.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 enum SourceOrSink { Source, Sink };
-inline void write(CPSfit::HDF5writer &writer, const SourceOrSink d, const std::string &tag){ write(writer,(int)d,tag); }
-inline void read(CPSfit::HDF5reader &reader, SourceOrSink &d, const std::string &tag){
+inline void write(SARLaC::HDF5writer &writer, const SourceOrSink d, const std::string &tag){ write(writer,(int)d,tag); }
+inline void read(SARLaC::HDF5reader &reader, SourceOrSink &d, const std::string &tag){
   int dd; read(reader,dd,tag); 
   d = (SourceOrSink)dd;
 }
@@ -29,4 +29,4 @@ struct setValueComplex{
   static inline void set(T &into, const double re, const double im){ into.real(re); into.imag(im); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

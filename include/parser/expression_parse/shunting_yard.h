@@ -7,7 +7,7 @@
 #include<parser/expression_parse/AST.h>
 #include<parser/expression_parse/tokenize.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //An implementation of the shunting-yard algorithm for parsing math expressions
 class shuntingYardParser{
@@ -233,5 +233,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

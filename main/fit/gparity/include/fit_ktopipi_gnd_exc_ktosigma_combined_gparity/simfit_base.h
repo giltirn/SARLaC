@@ -6,7 +6,7 @@
 #include<pipi_common/fit/analyze_chisq.h>
 #include "simfit_common.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename FitFunc,
 	 template<typename, template<typename> class> class DistributionType>
@@ -237,6 +237,6 @@ public:
   virtual ~simultaneousFitBase(){}
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

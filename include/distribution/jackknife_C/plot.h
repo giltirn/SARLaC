@@ -5,7 +5,7 @@
 #include<distribution/jackknife_C/class.h>
 #include<plot/plot/accessors_2d.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, template<typename> class V>
 class DistributionPlotAccessor<jackknifeCdistribution<T,V> >{
@@ -15,5 +15,5 @@ public:
   static inline double errminus(const jackknifeCdistribution<T,V> &d){ return d.standardError(); }  
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

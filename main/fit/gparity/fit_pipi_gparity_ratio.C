@@ -5,7 +5,7 @@
 #include<plot.h>
 #include<containers.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
 typedef correlationFunction<double,jackknifeDistributionD> jackCorrelationFunction;

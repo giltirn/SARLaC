@@ -6,7 +6,7 @@
 
 #include "compute_amplitude_ktopipi.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 inline int getDindex(const int idx, const std::map<int,int> &idx_map){
   auto it = idx_map.find(idx);
@@ -133,6 +133,6 @@ typename Controls::outputType computeKtoSigmaAmplitudeType(const int i, const ty
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

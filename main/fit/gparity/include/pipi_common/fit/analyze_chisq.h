@@ -4,7 +4,7 @@
 #include<common.h>
 #include<tensors.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 template<typename CoordType>
 struct CoordPrintPolicyBasic{

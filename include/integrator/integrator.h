@@ -1,5 +1,5 @@
-#ifndef CPSFIT_INTEGRATOR_H_
-#define CPSFIT_INTEGRATOR_H_
+#ifndef SARLAC_INTEGRATOR_H_
+#define SARLAC_INTEGRATOR_H_
 
 //Numerical integration for real numbers
 
@@ -11,7 +11,7 @@
 #include<gsl/gsl_sf_gamma.h>
 #include<functional>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class GSLfunctionWrapperBase{
 public:
@@ -144,6 +144,6 @@ inline std::pair<double,double> integrate(const GSLfunctionWrapperBase &f, doubl
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

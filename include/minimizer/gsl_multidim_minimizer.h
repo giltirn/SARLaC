@@ -8,7 +8,7 @@
 
 #include<minimizer/minimizer.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //First line of algorithms use the derivative. The FR and PR conjugate gradient algorithms are Fletcher-Reeves and Polak-Ribiere, respectively
 //Second line do not use the derivative. These are variants of the Nedler-Mead simplex algorithm
@@ -362,6 +362,6 @@ public:
   inline int iterations() const{ return iter; }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

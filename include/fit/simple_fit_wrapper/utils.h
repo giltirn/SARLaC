@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<fit/simple_fit_wrapper/fitter.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 generalContainer getMinimizerParamsT(const bool load_minimizer_params, const std::string &minimizer_params_file){
@@ -39,6 +39,6 @@ generalContainer getMinimizerParams(const MinimizerType minimizer, const bool lo
   }
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

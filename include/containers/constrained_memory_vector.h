@@ -6,7 +6,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<containers/constrained_memory_vector/memory_manager.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class constrainedMemoryVector{
@@ -103,6 +103,6 @@ void read(HDF5reader &reader, constrainedMemoryVector<T> &value, const std::stri
 }
 #endif
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

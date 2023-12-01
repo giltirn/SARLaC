@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct printCoord{
   typedef std::unordered_map<std::string, std::string> InnerParamMap;
@@ -121,6 +121,6 @@ struct simultaneousFitCommon{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

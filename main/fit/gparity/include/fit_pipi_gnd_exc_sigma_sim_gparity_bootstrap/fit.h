@@ -5,7 +5,7 @@
 #include<utils/macros.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity/fit.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Note: nstate applies only for "MultiState" variants
 void fit(bootstrapDistribution<taggedValueContainer<double,std::string> > &params, 
@@ -81,6 +81,6 @@ void fit(bootstrapDistribution<taggedValueContainer<double,std::string> > &param
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -10,7 +10,7 @@
 
 #include "fit.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //two-point effective energy assuming cosh form with optional constant subtraction
 jackknifeCorrelationFunctionD twoPointEffectiveEnergy(const jackknifeCorrelationFunctionD &data_j,
@@ -172,6 +172,6 @@ void plot(const jackknifeCorrelationFunctionD &data_j,
   plotter.write("effective_energy.py","effective_energy.pdf");
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

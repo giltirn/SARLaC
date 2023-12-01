@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_BASE_TYPEDEFS_H_
-#define _CPSFIT_BASE_TYPEDEFS_H_
+#ifndef _SARLAC_BASE_TYPEDEFS_H_
+#define _SARLAC_BASE_TYPEDEFS_H_
 
 //There are a number of basic types and compound types needed for the framework. These are controlled by a baseFitTypedefs, which takes a policy some user-defined input types
 
@@ -11,7 +11,7 @@
 #include<data_series/correlationfunction.h>
 #include<data_series/sample_series.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #define INHERIT_TYPEDEF(FROM,DEF) typedef typename FROM::DEF DEF
 #define INHERIT_USING(FROM, DEF, TEMPL) template<typename TEMPL> using DEF = typename FROM::template DEF<TEMPL>
@@ -50,5 +50,5 @@ struct standardInputFitTypes{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

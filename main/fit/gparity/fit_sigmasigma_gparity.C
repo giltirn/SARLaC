@@ -1,7 +1,7 @@
 
 #include<pipi_common/pipi_common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_sigmasigma_gparity/fit.h>
 #include <fit_sigmasigma_gparity/args.h>

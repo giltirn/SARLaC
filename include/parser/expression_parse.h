@@ -7,13 +7,13 @@
 #include<parser/expression_parse/tokenize.h>
 #include<parser/expression_parse/shunting_yard.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 inline expressionAST mathExpressionParse(const std::string &s){
   shuntingYardParser parser;
   return parser.parse(s);
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

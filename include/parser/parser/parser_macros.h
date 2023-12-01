@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_PARSER_MACROS_H
-#define _CPSFIT_PARSER_MACROS_H
+#ifndef _SARLAC_PARSER_MACROS_H
+#define _SARLAC_PARSER_MACROS_H
 
 //Here be dragons!
 /*                                 _/|__ */
@@ -66,10 +66,10 @@
 
 //Define parsers for the member types
 #define _PARSER_MEMBER_TYPE_PARSER(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem), _type_parse)
-#define _PARSER_MEMBER_DEF_TYPE_PARSER(r,dummy,elem) ::CPSfit::parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
+#define _PARSER_MEMBER_DEF_TYPE_PARSER(r,dummy,elem) ::SARLaC::parsers::parser<_PARSER_MEMBER_GETTYPE(elem)> _PARSER_MEMBER_TYPE_PARSER(elem);
 #define _PARSER_DEF_TYPE_PARSERS(structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_TYPE_PARSER, , structmembers)
 
-#define _PARSER_MEMBER_TYPE_PARSER_INST(elem) ::CPSfit::parsers::parser_instance<_PARSER_MEMBER_GETTYPE(elem)>::get() 
+#define _PARSER_MEMBER_TYPE_PARSER_INST(elem) ::SARLaC::parsers::parser_instance<_PARSER_MEMBER_GETTYPE(elem)>::get() 
 
 
 //Define and specify the rules for parsing the members
@@ -79,7 +79,7 @@
 #define _PARSER_MEMBER_RULE_DEF(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse_def)
 
 #define _PARSER_MEMBER_DEF_RULE(r,structname,elem) \
-  struct _PARSER_MEMBER_TAG(elem): ::CPSfit::parsers::error_handler{ }; \
+  struct _PARSER_MEMBER_TAG(elem): ::SARLaC::parsers::error_handler{ }; \
   \
   inline auto & _PARSER_MEMBER_RULE(elem)(){				\
      static x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > rule_inst = _PARSER_MEMBER_RULESTR(elem); \
@@ -88,7 +88,7 @@
   template <typename Iterator, typename Context, typename Attribute> \
   inline bool parse_rule( x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
     using boost::spirit::x3::unused; \
-    static auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) > '=' > _PARSER_MEMBER_TYPE_PARSER_INST(elem).parse[::CPSfit::parser_tools::set_equals]; \
+    static auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) > '=' > _PARSER_MEMBER_TYPE_PARSER_INST(elem).parse[::SARLaC::parser_tools::set_equals]; \
     static auto const def_ = (_PARSER_MEMBER_RULE(elem)() = _PARSER_MEMBER_RULE_DEF(elem)); \
     return def_.parse(first, last, context, unused, attr);		\
   };
@@ -97,10 +97,10 @@
 
 //Define the rule for the main structure
 #define _PARSER_DEF_STRUCT_RULE_MEMBER_GEN(r,structname,elem) \
-  > _PARSER_MEMBER_RULE(elem)()[::CPSfit::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
+  > _PARSER_MEMBER_RULE(elem)()[::SARLaC::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
 
 #define _PARSER_DEF_STRUCT_RULE_DEF(NAME)\
-  struct main_rule_handler: ::CPSfit::parsers::error_handler{ };	\
+  struct main_rule_handler: ::SARLaC::parsers::error_handler{ };	\
   									\
   inline auto & main_rule(){						\
      static x3::rule<main_rule_handler, NAME> const main_rule = BOOST_PP_STRINGIZE(NAME); \
@@ -123,19 +123,19 @@
 //Register the parser
 #define _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(NAME,GRAMMAR)	\
     template<>							\
-    struct CPSfit::parsers::parser<NAME>{				\
+    struct SARLaC::parsers::parser<NAME>{				\
       const typename std::decay<decltype(GRAMMAR::main_rule())>::type &parse;	\
       parser(): parse(GRAMMAR::main_rule() ){}			\
     };
 
 //Write operator<< and operator>>
-#define _PARSER_DEF_OSTREAM_MEMBER_WRITE(r,structname,elem)  os << ::CPSfit::parser_tools::tabbing::tabs() << BOOST_PP_STRINGIZE(_PARSER_MEMBER_GETNAME(elem)) " = " << ::CPSfit::parser_tools::parser_output_print(s._PARSER_MEMBER_GETNAME(elem)) << std::endl;
+#define _PARSER_DEF_OSTREAM_MEMBER_WRITE(r,structname,elem)  os << ::SARLaC::parser_tools::tabbing::tabs() << BOOST_PP_STRINGIZE(_PARSER_MEMBER_GETNAME(elem)) " = " << ::SARLaC::parser_tools::parser_output_print(s._PARSER_MEMBER_GETNAME(elem)) << std::endl;
 
 #define _PARSER_DEF_DEFINE_OSTREAM_WRITE(NAME, MEMSEQ) \
   inline std::ostream & operator<<(std::ostream &os, const NAME &s){	\
-    os << "{\n"; ::CPSfit::parser_tools::tabbing::increment();		\
+    os << "{\n"; ::SARLaC::parser_tools::tabbing::increment();		\
     TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_OSTREAM_MEMBER_WRITE, NAME, MEMSEQ) \
-      ::CPSfit::parser_tools::tabbing::decrement(); os << ::CPSfit::parser_tools::tabbing::tabs() << "}"; \
+      ::SARLaC::parser_tools::tabbing::decrement(); os << ::SARLaC::parser_tools::tabbing::tabs() << "}"; \
     return os;								\
   }
 
@@ -150,13 +150,13 @@
       _PARSER_DEF_STRUCT_RULE_IMPL(structname,structmembers)		\
     };	
 
-//Parser generated from outside CPSfit namespace
+//Parser generated from outside SARLaC namespace
 #define _GENERATE_PARSER_GM(structname, grammar, structmembers)		\
     _GENERATE_PARSER_GRAMMAR(structname, grammar, structmembers)	\
     _PARSER_DEF_ADD_PARSER_TO_NAMESPACE(structname,grammar)		\
     _PARSER_DEF_DEFINE_OSTREAM_WRITE(structname,structmembers)
 
-//Generate the parser from outside CPSfit namespace
+//Generate the parser from outside SARLaC namespace
 #define _GENERATE_PARSER(structname, structmembers) _GENERATE_PARSER_GM(structname, _PARSER_DEF_GRAMMAR_NAME(structname), structmembers)
 
 
@@ -188,7 +188,7 @@
       enumname &val = x3::_val(ctx);	\
       for(int i=0;i<str.size();i++) \
 	if(tag == str[i]){ val = static_cast<enumname>(i); return; }	\
-      ::CPSfit::error_exit(std::cout << "Unknown " BOOST_PP_STRINGIZE(enumname) " : " << tag << std::endl); \
+      ::SARLaC::error_exit(std::cout << "Unknown " BOOST_PP_STRINGIZE(enumname) " : " << tag << std::endl); \
     } \
   };
 
@@ -197,14 +197,14 @@
     namespace ascii = boost::spirit::x3::ascii; \
     namespace x3 = boost::spirit::x3;\
     auto const enumparse = x3::lexeme[+x3::char_("a-zA-Z0-9_")]; \
-    struct BOOST_PP_CAT(enumname,_tag) : ::CPSfit::parsers::error_handler{ }; \
+    struct BOOST_PP_CAT(enumname,_tag) : ::SARLaC::parsers::error_handler{ }; \
     _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
     x3::rule<BOOST_PP_CAT(enumname,_tag), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
     auto const BOOST_PP_CAT(enumname, __def) = enumparse[BOOST_PP_CAT(enumname,_match)()]; \
     BOOST_SPIRIT_DEFINE(BOOST_PP_CAT(enumname,_)); \
   }; \
     template<>		   \
-    struct CPSfit::parsers::parser<enumname>{				\
+    struct SARLaC::parsers::parser<enumname>{				\
       decltype( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ) &parse; \
       parser(): parse( BOOST_PP_CAT(enumname, _parser)::BOOST_PP_CAT(enumname, _) ){} \
     }; \
@@ -218,13 +218,13 @@
 
 
 
-//Generate the parser from outside CPSfit namespace
+//Generate the parser from outside SARLaC namespace
 #define _GENERATE_ENUM_PARSER(enumname, enummembers)	\
   _GEN_ENUM_STR(enumname, enummembers)				\
   _GEN_ENUM_PARSER_BODY(enumname, enummembers)			\
   _GEN_ENUM_DEFINE_OSTREAM_WRITE(enumname, enummembers)		\
 
-//Define an enum and a parser to go along with it (from outside CPSfit namespace)
+//Define an enum and a parser to go along with it (from outside SARLaC namespace)
 //To use  GENERATE_ENUM_AND_PARSER( <ENUM NAME>, (<ELEM1>)(<ELEM2>)(<ELEM3>)... )
 #define _GENERATE_ENUM_AND_PARSER(enumname, enummembers)	\
   _GEN_ENUM_ENUMDEF(enumname, enummembers) \

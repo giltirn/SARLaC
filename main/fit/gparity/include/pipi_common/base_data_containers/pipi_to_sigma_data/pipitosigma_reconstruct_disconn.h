@@ -5,7 +5,7 @@
 
 #include "pipitosigma_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Construct disconnected part from  Re(  pipi_buble * sigma_bubble ) as we did in the parallel calculation
 //pipi_self_data_Z should be pre-projected
@@ -66,4 +66,4 @@ void reconstructPiPiToSigmaConnected(figureData &conn, const figureData &full, c
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

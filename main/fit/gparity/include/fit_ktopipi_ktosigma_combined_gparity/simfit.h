@@ -6,7 +6,7 @@
 
 #include<fit_ktopipi_ktosigma_combined_gparity/simfit_plot.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 void simultaneousFit2state(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &ktopipi_A0_all_j,
 			   const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &ktopipi_A0_all_dj,
@@ -251,6 +251,6 @@ void simultaneousFit2stateDiffM1(const std::vector<correlationFunction<amplitude
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

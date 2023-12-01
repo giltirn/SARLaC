@@ -4,11 +4,11 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(SimFitType, (PiPiToSigma)(Sigma2pt)(PiPi2pt) );
-inline void write(CPSfit::HDF5writer &writer, const SimFitType d, const std::string &tag){ write(writer,(int)d,tag); } 
-inline void read(CPSfit::HDF5reader &reader, SimFitType &d, const std::string &tag){ int v; read(reader,v,tag); d = (SimFitType)v; }
+inline void write(SARLaC::HDF5writer &writer, const SimFitType d, const std::string &tag){ write(writer,(int)d,tag); } 
+inline void read(SARLaC::HDF5reader &reader, SimFitType &d, const std::string &tag){ int v; read(reader,v,tag); d = (SimFitType)v; }
 
 
 
@@ -99,6 +99,6 @@ struct pipiParamsPrinter<FitSim>: public distributionPrinter<jackknifeDistributi
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

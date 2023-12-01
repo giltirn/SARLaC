@@ -3,7 +3,7 @@
 #include<common.h>
 #include<fit.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 typedef correlationFunction<double,doubleJackknifeDistributionD> doubleJackCorrelationFunction;
 
 #include <ktopipi_common/fitfunc.h>

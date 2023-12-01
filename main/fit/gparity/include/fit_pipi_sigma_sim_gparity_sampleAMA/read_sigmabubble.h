@@ -6,7 +6,7 @@
 
 #include<pipi_common/read_data_sigma.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct SigmaSelfMapReadPolicy{
   std::vector<DataLocationInfo const*> dinfo_vec;
@@ -73,6 +73,6 @@ void getSigmaBubble(resampledBubbleDataType &out,
   out = combineResampledBubble(sjack, data_info_map);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_QDP_BINARY_READ_H__
-#define _CPSFIT_QDP_BINARY_READ_H__
+#ifndef _SARLAC_QDP_BINARY_READ_H__
+#define _SARLAC_QDP_BINARY_READ_H__
 
 //Allow reading of files written in QDP's binary format, eg from UKvalence
 #include<fstream>
@@ -10,7 +10,7 @@
 #include<utils/utils/endian.h>
 #include<utils/utils/error.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class QDPbinaryReader{
   bool system_bigendian;
@@ -54,7 +54,7 @@ inline void read(QDPbinaryReader &rd, std::vector<T> &into){
   for(int i=0;i<size;i++) read(rd,into[i]);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 
 #endif

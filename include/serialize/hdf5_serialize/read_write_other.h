@@ -9,7 +9,7 @@
 #include<set>
 #include<serialize/hdf5_serialize/read_write_basic.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Pair
 template<typename T, typename U>
@@ -127,7 +127,7 @@ static void readPointer(HDF5reader &reader, std::vector<T*> &v, const std::strin
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

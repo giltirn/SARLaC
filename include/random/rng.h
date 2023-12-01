@@ -9,7 +9,7 @@
 #include<utils/macros.h>
 #include<omp.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class RNGstore{
 public:
@@ -78,5 +78,5 @@ struct threadRNGstore{
 threadRNGstore threadRNG;
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

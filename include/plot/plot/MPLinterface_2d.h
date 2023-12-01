@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_MPL_INTERFACE_2D_H_
-#define _CPSFIT_MPL_INTERFACE_2D_H_
+#ifndef _SARLAC_MPL_INTERFACE_2D_H_
+#define _SARLAC_MPL_INTERFACE_2D_H_
 
 //Interface directly with Matplotlib in real-time using Boost's python interface
 #include<config.h>
@@ -13,7 +13,7 @@
 #include<utils/macros.h>
 #include<plot/plot/datasets_2d.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class MatPlotLibInterface{
 public:
@@ -310,6 +310,6 @@ public:
   
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif
 #endif

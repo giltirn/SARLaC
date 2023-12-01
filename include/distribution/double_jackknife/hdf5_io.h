@@ -7,7 +7,7 @@
 #include<distribution/distribution_hdf5io_conventional/io_format.h>
 #include<distribution/double_jackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename PODtype, typename StructType, template<typename> class V1, template<typename> class V2>
 struct standardIOhelper<doubleJackknifeDistribution<PODtype,V1>, doubleJackknifeDistribution<StructType,V2> >{
@@ -46,11 +46,11 @@ struct getDataType<doubleJackknifeDistribution<T,V>,1>{ typedef T type; };
 
 template<typename T, template<typename> class V>
 struct standardIOformat<doubleJackknifeDistribution<T,V> >{
-  inline static void write(HDF5writer &writer, const std::vector<doubleJackknifeDistribution<T,V> > &value, const std::string &tag){ CPSfit::write(writer,value,tag); } //no option to flatten for double jack
-  inline static void read(HDF5reader &reader, std::vector<doubleJackknifeDistribution<T,V> > &value, const std::string &tag){ CPSfit::read(reader,value,tag); }
-  inline static void write(HDF5writer &writer, const std::vector<std::vector<doubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ CPSfit::write(writer,value,tag); }
-  inline static void read(HDF5reader &reader, std::vector<std::vector<doubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ CPSfit::read(reader,value,tag); }  
+  inline static void write(HDF5writer &writer, const std::vector<doubleJackknifeDistribution<T,V> > &value, const std::string &tag){ SARLaC::write(writer,value,tag); } //no option to flatten for double jack
+  inline static void read(HDF5reader &reader, std::vector<doubleJackknifeDistribution<T,V> > &value, const std::string &tag){ SARLaC::read(reader,value,tag); }
+  inline static void write(HDF5writer &writer, const std::vector<std::vector<doubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ SARLaC::write(writer,value,tag); }
+  inline static void read(HDF5reader &reader, std::vector<std::vector<doubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ SARLaC::read(reader,value,tag); }  
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

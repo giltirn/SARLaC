@@ -6,7 +6,7 @@
 
 #include "args.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct CMDline{
   bool load_guess;
@@ -108,6 +108,6 @@ struct CMDline{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

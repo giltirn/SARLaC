@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_PLOT_H
-#define _CPSFIT_PLOT_H
+#ifndef _SARLAC_PLOT_H
+#define _SARLAC_PLOT_H
 
 //Plotting using python Matplotlib either directly in real time or writing a python script to disk
 

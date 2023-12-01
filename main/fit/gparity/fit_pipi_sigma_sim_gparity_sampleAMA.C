@@ -43,7 +43,7 @@ int main(void){
 
 //TODO: Rename outer config to outer sample in code; former is used only when checking the config file
 //      typedef int to OuterSample to make code easier to read
-using namespace CPSfit;
+using namespace SARLaC;
 
 int main(const int argc, const char* argv[]){
   Args args;

@@ -9,7 +9,7 @@
 #include<common.h>
 #include<serialize.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 template<typename T, int Size, int Begin>
@@ -74,6 +74,6 @@ void binResampleAverage(DistributionType & into, const BinResampler &bin_resampl
   into = into/double(size);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

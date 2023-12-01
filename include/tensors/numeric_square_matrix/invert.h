@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_INVERT_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_INVERT_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_INVERT_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_INVERT_H_
 
 #include<tensors/gsl_svdinverse.h>
 #include<tensors/numeric_square_matrix/class.h>
 #include<tensors/numeric_square_matrix/sample_view.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename Numeric, ENABLE_IF_FLOATINGPT(Numeric)>
 inline int svd_inverse(NumericSquareMatrix<Numeric> &Ainv, 
@@ -66,6 +66,6 @@ inline int svd_inverse(NumericSquareMatrix<Numeric> &Ainv,
   return svd_inverse(Ainv, A, c);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

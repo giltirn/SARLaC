@@ -5,7 +5,7 @@
 #include<distribution.h>
 #include<utils/utils/time.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 template<typename T>
 struct mul_flops{

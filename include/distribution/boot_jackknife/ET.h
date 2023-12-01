@@ -5,7 +5,7 @@
 #include<ET/generic_ET.h>
 #include<distribution/boot_jackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename A, template<typename> class V>
   struct getElem<bootJackknifeDistribution<A,V> >{
@@ -14,5 +14,5 @@ template<typename A, template<typename> class V>
   static inline bootJackknifeInitType common_properties(const bootJackknifeDistribution<A,V> &v){ return v.getInitializer(); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

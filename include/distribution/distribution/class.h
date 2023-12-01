@@ -15,7 +15,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<distribution/distribution_print.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 using basic_vector = std::vector<T>;
@@ -193,6 +193,6 @@ DistributionType weightedAvg(const std::vector<DistributionType const*> &v){
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

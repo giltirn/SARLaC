@@ -5,7 +5,7 @@
 #include<random.h>
 #include<common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 void gaussianJackknifePreciseMean(jackknifeDistributionD &d, double mean, double std_err){
   double std_dev = std_err/sqrt( d.size()-1. );

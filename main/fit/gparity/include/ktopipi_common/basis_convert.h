@@ -4,7 +4,7 @@
 #include<vector>
 #include<data_series.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Both container types should have an operator[](const int q)  to return the data with operator index q  (starting 0)
 //Output should be of correct size
@@ -63,6 +63,6 @@ void convert7to10(OutputContainer &out,
 #undef Q
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

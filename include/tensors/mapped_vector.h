@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_MAPPED_VECTOR_H_
-#define _CPSFIT_MAPPED_VECTOR_H_
+#ifndef _SARLAC_MAPPED_VECTOR_H_
+#define _SARLAC_MAPPED_VECTOR_H_
 
 //A vector type with an additional global mapping between some generic tag and it's elements
 
@@ -9,7 +9,7 @@
 #include<utils/macros.h>
 #include<tensors/numeric_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, typename MapType>
 class mappedVector: public NumericVector<T>{
@@ -55,5 +55,5 @@ struct getElem<mappedVector<T,MapType> >{
 template<typename T, typename MapType>
 inline void debug_print(const mappedVector<T,MapType> &v){ std::cout << &v.getMapping() << std::endl; std::cout.flush(); }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

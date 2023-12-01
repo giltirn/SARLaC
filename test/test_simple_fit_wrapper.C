@@ -2,7 +2,7 @@
 #include<fit.h>
 #include<common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 struct results{
   jackknifeDistribution<StandardFitParams> params;

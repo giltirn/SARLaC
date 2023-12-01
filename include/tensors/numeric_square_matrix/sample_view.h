@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_SAMPLE_VIEW_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_SAMPLE_VIEW_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_SAMPLE_VIEW_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_SAMPLE_VIEW_H_
 
 //Create a "view" of a square matrix of distribution type, picking out a single sample
 
@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<tensors/numeric_square_matrix/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename NumericSquareMatrixType>
 class NumericSquareMatrixSampleView{
@@ -27,5 +27,5 @@ public:
   inline typename std::enable_if< !std::is_const<U>::value, SampleType& >::type operator()(const int i, const int j){ return iterate<DistributionType>::at(sample, M(i,j)); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

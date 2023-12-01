@@ -23,7 +23,7 @@ int main(void){
 
 #include <pipi_common/pipi_common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <compare_asymm_symm_pipi/cmdline.h>
 #include <compare_asymm_symm_pipi/args.h>

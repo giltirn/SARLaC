@@ -5,7 +5,7 @@
 #include<distribution/boot_jackknife/class.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, template<typename> class V>
 struct iterate<bootJackknifeDistribution<T,V> >{
@@ -64,5 +64,5 @@ public:
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

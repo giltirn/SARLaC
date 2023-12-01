@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_UTILS_MEMORY_H_
-#define _CPSFIT_UTILS_MEMORY_H_
+#ifndef _SARLAC_UTILS_MEMORY_H_
+#define _SARLAC_UTILS_MEMORY_H_
 
 #include<iostream>
 #include<fstream>
@@ -10,7 +10,7 @@
 #include<utils/macros.h>
 
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Print memory usage
 inline void printMem(const std::string &reason = "", FILE* stream = stdout){
@@ -51,5 +51,5 @@ inline void printMem(const std::string &reason = "", FILE* stream = stdout){
   fflush(stream);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

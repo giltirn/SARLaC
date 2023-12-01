@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_GEVP_H_
-#define _CPSFIT_GEVP_H_
+#ifndef _SARLAC_GEVP_H_
+#define _SARLAC_GEVP_H_
 
 //Generalized eigenvalue problem solver for lattice data
 
@@ -12,7 +12,7 @@
 #include<distribution/jackknife.h>
 #include<data_series/data_series.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class GEVPsolverBase{
@@ -96,10 +96,10 @@ public:
 
   void write(HDF5writer &wr, const std::string &tag) const{
     wr.enter(tag);
-    CPSfit::write(wr, evals_t0_t, "evals_t0_t");
-    CPSfit::write(wr, evecs_t0_t, "evecs_t0_t");
-    CPSfit::write(wr, resid_t0_t, "resid_t0_t");
-    CPSfit::write(wr, tmax, "tmax");
+    SARLaC::write(wr, evals_t0_t, "evals_t0_t");
+    SARLaC::write(wr, evecs_t0_t, "evecs_t0_t");
+    SARLaC::write(wr, resid_t0_t, "resid_t0_t");
+    SARLaC::write(wr, tmax, "tmax");
     wr.leave();
   }
   void write(const std::string &filename, const std::string &tag = "GEVP_solutions"){
@@ -109,10 +109,10 @@ public:
 
   void read(HDF5reader &rd, const std::string &tag){
     rd.enter(tag);
-    CPSfit::read(rd, evals_t0_t, "evals_t0_t");
-    CPSfit::read(rd, evecs_t0_t, "evecs_t0_t");
-    CPSfit::read(rd, resid_t0_t, "resid_t0_t");
-    CPSfit::read(rd, tmax, "tmax");
+    SARLaC::read(rd, evals_t0_t, "evals_t0_t");
+    SARLaC::read(rd, evecs_t0_t, "evecs_t0_t");
+    SARLaC::read(rd, resid_t0_t, "resid_t0_t");
+    SARLaC::read(rd, tmax, "tmax");
     rd.leave();
   }
   void read(const std::string &filename, const std::string &tag = "GEVP_solutions"){
@@ -460,10 +460,10 @@ public:
 
   void write(HDF5writer &wr, const std::string &tag) const{
     wr.enter(tag);
-    CPSfit::write(wr, evals_t0_t, "evals_t0_t");
-    CPSfit::write(wr, evecs_t0_t, "evecs_t0_t");
-    CPSfit::write(wr, resid_t0_t, "resid_t0_t");
-    CPSfit::write(wr, tmax, "tmax");
+    SARLaC::write(wr, evals_t0_t, "evals_t0_t");
+    SARLaC::write(wr, evecs_t0_t, "evecs_t0_t");
+    SARLaC::write(wr, resid_t0_t, "resid_t0_t");
+    SARLaC::write(wr, tmax, "tmax");
     wr.leave();
   }
   void write(const std::string &filename, const std::string &tag = "GEVP_solutions"){
@@ -473,10 +473,10 @@ public:
 
   void read(HDF5reader &rd, const std::string &tag){
     rd.enter(tag);
-    CPSfit::read(rd, evals_t0_t, "evals_t0_t");
-    CPSfit::read(rd, evecs_t0_t, "evecs_t0_t");
-    CPSfit::read(rd, resid_t0_t, "resid_t0_t");
-    CPSfit::read(rd, tmax, "tmax");
+    SARLaC::read(rd, evals_t0_t, "evals_t0_t");
+    SARLaC::read(rd, evecs_t0_t, "evecs_t0_t");
+    SARLaC::read(rd, resid_t0_t, "resid_t0_t");
+    SARLaC::read(rd, tmax, "tmax");
     rd.leave();
   }
   void read(const std::string &filename, const std::string &tag = "GEVP_solutions"){
@@ -487,5 +487,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

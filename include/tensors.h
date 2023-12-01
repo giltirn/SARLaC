@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_TENSORS_ALL_H_
-#define _CPSFIT_TENSORS_ALL_H_
+#ifndef _SARLAC_TENSORS_ALL_H_
+#define _SARLAC_TENSORS_ALL_H_
 #include<tensors/gsl_eigensolve.h>
 #include<tensors/gsl_svdinverse.h>
 #include<tensors/gsl_vector.h>

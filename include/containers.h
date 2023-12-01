@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_CONTAINERS_ALL_H_
-#define _CPSFIT_CONTAINERS_ALL_H_
+#ifndef _SARLAC_CONTAINERS_ALL_H_
+#define _SARLAC_CONTAINERS_ALL_H_
 #include<containers/constrained_memory_vector.h>
 #include<containers/general_container.h>
 #include<containers/mem_mapped_file_vector.h>

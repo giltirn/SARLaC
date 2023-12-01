@@ -8,7 +8,7 @@
 
 //Binary operations with scalar-vector form
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<template<typename,typename> class Op, typename T, typename U>
 struct binaryScalarLeftHelper{
@@ -83,6 +83,6 @@ struct NAME{ \
 ET_BINOP_SCALAR_LEFT_ELEM(ETscalarTimesLeftElem, *, operator*);
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

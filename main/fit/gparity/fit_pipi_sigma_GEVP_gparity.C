@@ -12,7 +12,7 @@ int main(void){
 
 #include<fit/GEVP.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/cmdline.h>

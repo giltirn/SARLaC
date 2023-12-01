@@ -10,7 +10,7 @@
 #include<distribution/jackknife.h>
 #include<distribution/double_jackknife.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 //Generalized version of the superjackknife resampling procedure supporting an arbitrary number of ensembles
@@ -425,6 +425,6 @@ struct sampleAMA_boost<doubleJackknifeDistribution<T> >{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

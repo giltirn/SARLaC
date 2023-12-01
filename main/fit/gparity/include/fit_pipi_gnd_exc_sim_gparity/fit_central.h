@@ -6,7 +6,7 @@
 
 #include "fit.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 struct fitCentralOptions{
@@ -110,6 +110,6 @@ void fitCentral(taggedValueContainer<double,std::string> &params, double &chisq,
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -10,7 +10,7 @@
 #include<utils/template_wizardry.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename SeriesType>
 class filteredDataSeries{
@@ -32,6 +32,6 @@ public:
   inline typename add_const_if<GeneralizedCoordinate, SeriesType>::type & coord(const int i) const{ return series.coord(subset_map[i]); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

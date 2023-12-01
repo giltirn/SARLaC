@@ -3,7 +3,7 @@
 #include<containers/constrained_memory_vector.h>
 #include<tensors/numeric_tensor.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #ifdef HAVE_HDF5
 template<typename DistributionType>

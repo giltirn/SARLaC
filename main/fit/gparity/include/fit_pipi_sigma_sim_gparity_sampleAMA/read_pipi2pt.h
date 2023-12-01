@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //PiPi figure format has a run-tag dependent format, plus the extended requires a momentum combination mapping
 struct PiPiFigureMapReadPolicy{
@@ -106,6 +106,6 @@ void performPiPi2ptVacuumSubtraction(resampledCorrFuncType &out,
   out = resampledCorrFuncType(Lt, [&](const int t){ return typename resampledCorrFuncType::ElementType(in.coord(t), in.value(t) - 3.*vacsub.value(t)); });  //3V
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

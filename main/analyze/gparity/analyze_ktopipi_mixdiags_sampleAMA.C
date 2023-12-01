@@ -14,7 +14,7 @@ int main(void){
 
 //#define PRINT_CORRECTION
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_ktopipi_gparity_sampleAMA/cmdline.h>
 #include <fit_ktopipi_gparity_sampleAMA/args.h>

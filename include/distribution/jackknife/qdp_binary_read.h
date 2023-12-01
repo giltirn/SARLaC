@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_JACKKNIFE_QDP_BINARY_READ_H_
-#define _CPSFIT_JACKKNIFE_QDP_BINARY_READ_H_
+#ifndef _SARLAC_JACKKNIFE_QDP_BINARY_READ_H_
+#define _SARLAC_JACKKNIFE_QDP_BINARY_READ_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<serialize/qdp_binary_read.h>
 #include<distribution/jackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 void read(QDPbinaryReader &rd, jackknifeDistribution<T> &into){
@@ -21,6 +21,6 @@ void read(QDPbinaryReader &rd, jackknifeDistribution<T> &into){
   read(rd,avg);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

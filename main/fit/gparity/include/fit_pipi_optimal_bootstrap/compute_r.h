@@ -1,7 +1,7 @@
 #ifndef FIT_PIPI_OPTIMAL_BOOTSTRAP_COMPUTE_R_H
 #define FIT_PIPI_OPTIMAL_BOOTSTRAP_COMPUTE_R_H
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //idx are the indices for the couplings of this operator to each state
 #define PARAM_ELEM_MEMBERS \
@@ -45,6 +45,6 @@ std::vector<bootstrapDistributionD> computeR(const std::vector<ParamElem> &op_am
   return r;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

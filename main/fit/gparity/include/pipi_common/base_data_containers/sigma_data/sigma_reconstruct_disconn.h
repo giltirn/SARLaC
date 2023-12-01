@@ -3,7 +3,7 @@
 #include "../figure_data_container.h"
 #include "../sigma_bubble_data_container.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Construct disconnected part from  Re(  sigma_bubble * sigma_bubble ) as we did in the parallel calculation
 //sigma_self_data_Z should be pre-projected
@@ -52,4 +52,4 @@ void reconstructSigma2ptConnected(figureData &conn, const figureData &full, cons
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

@@ -1,7 +1,7 @@
 #include <distribution/jackknife.h>
 #include <distribution/boot_jackknife.h>
 #include <utils/template_wizardry.h>
-using namespace CPSfit;
+using namespace SARLaC;
 
 int main(void){
 

@@ -3,7 +3,7 @@
 
 #include <pipi_common/pipi_common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include "args.h"
 #include "cmdline.h"

@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_ALL_H_
-#define _CPSFIT_DISTRIBUTION_ALL_H_
+#ifndef _SARLAC_DISTRIBUTION_ALL_H_
+#define _SARLAC_DISTRIBUTION_ALL_H_
 #include<distribution/distribution.h>
 #include<distribution/distribution_hdf5io_basic.h>
 #include<distribution/distribution_hdf5io_conventional.h>

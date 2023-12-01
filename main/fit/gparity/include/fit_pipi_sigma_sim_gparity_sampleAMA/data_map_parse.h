@@ -9,7 +9,7 @@
 #include <pipi_common/pipi_common.h>
 #include "data_map.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Example parser
 //File format  <t> <re> <im>
@@ -114,6 +114,6 @@ struct PiPiToSigmaFileParseProject{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

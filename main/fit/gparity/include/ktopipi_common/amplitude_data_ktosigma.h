@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "compute_amplitude_ktosigma.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class ProjectedSigmaBubbleData{
   static NumericTensor<rawDataDistributionD,1> getProjectedSigmaBubble(const std::string &data_dir, const std::string &file_fmt,
@@ -106,7 +106,7 @@ private:
       std::ostringstream file; file << opt.load_data_checkpoint_stub << "_ktosigma_tsepksigma" << tsep_k_sigma << ".hdf5";
       std::cout << "Loading K->sigma checkpoint data for tsep_k_sigma = " << tsep_k_sigma << " from " << file.str() << std::endl;
       HDF5reader rd(file.str());
-      for(int i=2;i<=4;i++) ::CPSfit::read(rd,type_data(i),stringize("type%d",i));
+      for(int i=2;i<=4;i++) ::SARLaC::read(rd,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -120,7 +120,7 @@ private:
       std::ostringstream file; file << opt.save_data_checkpoint_stub << "_ktosigma_tsepksigma" << tsep_k_sigma << ".hdf5";
       std::cout << "Saving checkpoint data for tsep_k_sigma = " << tsep_k_sigma << " to " << file.str() << std::endl;
       HDF5writer wr(file.str());
-      for(int i=2;i<=4;i++) ::CPSfit::write(wr,type_data(i),stringize("type%d",i));
+      for(int i=2;i<=4;i++) ::SARLaC::write(wr,type_data(i),stringize("type%d",i));
 #else
       error_exit(std::cout << "Checkpointing of data requires HDF5\n");
 #endif
@@ -223,6 +223,6 @@ public:
 GENERATE_HDF5_SERIALIZE_FUNC(RawKtoSigmaData);
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

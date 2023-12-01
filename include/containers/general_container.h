@@ -6,7 +6,7 @@
 
 #include<containers/general_container/general_container_i.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A polymorphic container type
 class generalContainer{
@@ -40,6 +40,6 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

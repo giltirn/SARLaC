@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_PLOT_WRITE_PYTHON_H_
-#define _CPSFIT_PLOT_WRITE_PYTHON_H_
+#ifndef _SARLAC_PLOT_WRITE_PYTHON_H_
+#define _SARLAC_PLOT_WRITE_PYTHON_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<utils/utils.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Print out a generic type as a string for use in formulating the Matplotlib kwarg dictionaries
 class KWargElem: public OstreamHook{
@@ -81,5 +81,5 @@ std::ostream & operator<<(std::ostream &os, const PythonTuple<T> &v){
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

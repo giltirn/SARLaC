@@ -8,7 +8,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Space-separated POD array
 template<typename PODtype, typename std::enable_if<std::is_pod<PODtype>::value, int>::type = 0>
@@ -30,7 +30,7 @@ struct pod_vector_translator
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 
 #endif

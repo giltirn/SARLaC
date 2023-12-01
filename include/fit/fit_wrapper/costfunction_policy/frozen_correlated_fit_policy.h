@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FIT_WRAPPER_COSTFUNC_FROZEN_CORRELATED_FIT_POLICY_H_
-#define _CPSFIT_FIT_WRAPPER_COSTFUNC_FROZEN_CORRELATED_FIT_POLICY_H_
+#ifndef _SARLAC_FIT_WRAPPER_COSTFUNC_FROZEN_CORRELATED_FIT_POLICY_H_
+#define _SARLAC_FIT_WRAPPER_COSTFUNC_FROZEN_CORRELATED_FIT_POLICY_H_
 
 #include<config.h>
 #include<utils/macros.h>
@@ -7,7 +7,7 @@
 #include<fit/fit_wrapper/base_typedefs.h>
 #include<fit/fit_wrapper/fitfunc_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Use a frozen correlation matrix (i.e. same matrix for each sample) obtained from the data jackknife
 template<typename FitFuncPolicy>
@@ -57,5 +57,5 @@ protected:
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

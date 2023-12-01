@@ -6,7 +6,7 @@
 #include<utils/utils/text_output.h>
 //A distribution for bootstrap data
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //To ensure we retain correlations when bootstrapping multiple raw distributions measured on the same ensemble we must use the same mapping of bootstrap sample
 //to the set of raw sample indices each time. This is accomplished by using a fixed seed for an RNG that is re-initialized each time. 
@@ -278,6 +278,6 @@ struct is_bootstrap<bootstrapDistribution<T,V> >{
   enum {value=1};
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

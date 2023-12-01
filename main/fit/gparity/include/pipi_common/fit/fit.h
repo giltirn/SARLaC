@@ -13,7 +13,7 @@
 #include "fitfunc.h"
 #include "../enums.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct pipiFitOptions{
   bool load_frozen_fit_params;
@@ -119,6 +119,6 @@ inline std::pair<jackknifeDistributionD,jackknifeDistributionD> fit(const jackkn
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

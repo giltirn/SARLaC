@@ -1,7 +1,7 @@
-#ifndef __CPSFIT_MACROS_H_
-#define __CPSFIT_MACROS_H_
+#ifndef __SARLAC_MACROS_H_
+#define __SARLAC_MACROS_H_
 
-#define CPSFIT_START_NAMESPACE namespace CPSfit{
-#define CPSFIT_END_NAMESPACE }
+#define SARLAC_START_NAMESPACE namespace SARLaC{
+#define SARLAC_END_NAMESPACE }
 
 #endif

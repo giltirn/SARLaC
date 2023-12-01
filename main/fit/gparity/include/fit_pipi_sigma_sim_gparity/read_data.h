@@ -8,7 +8,7 @@
 #include <common/common_defs.h>
 #include <pipi_common/pipi_common.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 void writeCheckpoint(const std::string &file, 
 		     const rawDataCorrelationFunctionD &pipi_raw,
@@ -112,6 +112,6 @@ struct rawData{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

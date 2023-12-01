@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_PVALUE_H_
-#define _CPSFIT_PVALUE_H_
+#ifndef _SARLAC_PVALUE_H_
+#define _SARLAC_PVALUE_H_
 
 //An implementation of the chi^2, F and T^2 distributions, and the concept of p-value
 
@@ -12,7 +12,7 @@
 #include<utils/macros.h>
 #include<utils/utils.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct chiSquareDistribution{
 private:
@@ -247,5 +247,5 @@ public:
 };
 
   
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

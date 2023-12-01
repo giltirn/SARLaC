@@ -5,7 +5,7 @@
 #include<distribution/bootstrap/class.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 template<typename T, template<typename> class V, int is_const>
@@ -40,5 +40,5 @@ struct iterate<bootstrapDistribution<T,V> >{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

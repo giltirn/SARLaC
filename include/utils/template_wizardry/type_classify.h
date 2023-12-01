@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A method of providing a list of conditions and associated types for classification
 
@@ -62,6 +62,6 @@ struct TypeIfElse<false,IfTrue,IfFalse>{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

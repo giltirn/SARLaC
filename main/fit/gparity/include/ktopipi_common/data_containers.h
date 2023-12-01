@@ -9,7 +9,7 @@
 #include<distribution.h>
 #include<common.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 struct contractionData{
@@ -361,6 +361,6 @@ typedef blockDoubleJackknifeDistribution<double, basic_vector> blockDoubleJackkn
 #endif
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

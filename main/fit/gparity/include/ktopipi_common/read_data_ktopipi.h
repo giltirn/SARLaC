@@ -14,7 +14,7 @@
 
 //Parse K->pipi type 1-4 data files and A1 projected pipi bubble into raw data structures
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct KtoPiPiFilenamePolicyGen{
   subStringReplace repl_type1; //File format expects <TRAJ> <TSEP_K_PI> <TSEP_PIPI> <MOM>   where mom is the momentum of pi_1^snk
@@ -213,6 +213,6 @@ void readProjectedBubble(HDF5reader &reader, NumericTensor<rawDataDistributionD,
 #endif
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

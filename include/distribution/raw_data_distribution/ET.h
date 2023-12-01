@@ -5,7 +5,7 @@
 #include<ET/generic_ET.h>
 #include<distribution/raw_data_distribution/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename A, template<typename> class V>
   struct getElem<rawDataDistribution<A,V> >{
@@ -14,5 +14,5 @@ template<typename A, template<typename> class V>
   static inline size_t common_properties(const rawDataDistribution<A,V> &v){ return v.size(); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

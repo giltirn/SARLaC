@@ -7,7 +7,7 @@
 #include "../../correlator_utils/mom_project.h"
 #include "symm_data_multiplicities.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 ////////////////////////
 //FILENAME POLICIES
@@ -228,4 +228,4 @@ inline void readPiPi2ptFigure(figureDataAllMomenta &raw_data, const char fig, co
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

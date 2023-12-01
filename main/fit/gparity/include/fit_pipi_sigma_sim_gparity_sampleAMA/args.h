@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #define ARGS_MEMBERS \
   ( std::string, config_map )			\
@@ -37,6 +37,6 @@ struct Args{
 };
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

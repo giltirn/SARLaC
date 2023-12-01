@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_TEMPLATE_WIZARDRY_TEXT_IO_
-#define _CPSFIT_TEMPLATE_WIZARDRY_TEXT_IO_
+#ifndef _SARLAC_TEMPLATE_WIZARDRY_TEXT_IO_
+#define _SARLAC_TEMPLATE_WIZARDRY_TEXT_IO_
 
 //Metaprogramming constructs for obtaining information about types that can be read or written in ascii
 #include<cstdlib>
@@ -9,7 +9,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry/types.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Check if a class T looks like an ostream
 template<class T, class Fallback = void>
@@ -32,5 +32,5 @@ struct hasParseMember {
     static bool const value = sizeof(f<Derived>(0)) == 2;
 }; 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

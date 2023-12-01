@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_SIMPLE_FIT_WRAPPER_FITTER_SINGLE_H
-#define _CPSFIT_SIMPLE_FIT_WRAPPER_FITTER_SINGLE_H
+#ifndef _SARLAC_SIMPLE_FIT_WRAPPER_FITTER_SINGLE_H
+#define _SARLAC_SIMPLE_FIT_WRAPPER_FITTER_SINGLE_H
 
 #include<config.h>
 #include<utils/macros.h>
@@ -7,7 +7,7 @@
 #include<fit/simple_fit_wrapper/fit_common.h>
 #include<distribution/jackknife.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Fit a single set of means (not a distribution). You can of course use the version designed for jackknife distributions with 1 sample, but this version avoids all the overheads
 class simpleSingleFitWrapper{
@@ -263,6 +263,6 @@ public:
   }  
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

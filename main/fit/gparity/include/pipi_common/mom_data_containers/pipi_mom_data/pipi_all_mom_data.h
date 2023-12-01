@@ -7,7 +7,7 @@
 #include "pipi_figure_mom_data.h"
 #include "pipi_figureV_construct.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Read the raw contraction data. No rotational-state projection is done, but we do avoid reading data that won't be needed, hence the projectors input
 //bubbleDataAllMomentaType = bubbleDataAllMomenta or bubbleDataAllMomentaZ
@@ -43,4 +43,4 @@ void readRawPiPi2ptData(figureDataAllMomenta &raw_data, bubbleDataAllMomentaType
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

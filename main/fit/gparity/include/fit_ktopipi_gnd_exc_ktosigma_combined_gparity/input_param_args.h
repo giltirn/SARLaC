@@ -5,7 +5,7 @@
 #include<utils/macros.h>
 #include<parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 #define INPUT_PARAM_ARGS_MEMBERS			\
@@ -43,6 +43,6 @@ struct InputParamArgs{
 
 GENERATE_PARSER(InputParamArgs, INPUT_PARAM_ARGS_MEMBERS);
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

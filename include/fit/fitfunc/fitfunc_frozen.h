@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_FITFUNC_FROZEN_H_
-#define _CPSFIT_FITFUNC_FROZEN_H_
+#ifndef _SARLAC_FITFUNC_FROZEN_H_
+#define _SARLAC_FITFUNC_FROZEN_H_
 
 //A "frozen fit" in which a fitfunc has some of its parameters fixed and unvaried during the minimization, can be implemented simply as a wrapper around a standard fit function
 #include<config.h>
 #include<utils/macros.h>
 #include<containers/parameter_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 namespace _FrozenFitFunc_helper{
   template<typename T, bool default_constructible>
@@ -108,5 +108,5 @@ public:
   inline int Nparams() const{ return fitfunc.Nparams()-n_frozen; }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

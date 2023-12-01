@@ -9,7 +9,7 @@
 #include<serialize/hdf5_serialize/hdf5_writer.h>
 #include<serialize/hdf5_serialize/hdf5_reader.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Read native type (non-native should be user-specified unless defined elsewhere in library
 template<typename T, IF_NATIVE(T)>
@@ -23,7 +23,7 @@ inline void write(HDF5writer &writer, const T &value, const std::string &tag){
   writer.write(value,tag);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

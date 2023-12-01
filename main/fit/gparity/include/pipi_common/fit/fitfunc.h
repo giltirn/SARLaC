@@ -7,7 +7,7 @@
 #include<distribution.h>
 #include<parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class FitCoshPlusConstant{
 public:
@@ -305,6 +305,6 @@ struct pipiParamsPrinter<FitCoshPlusConstantDoubleExp>: public distributionPrint
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

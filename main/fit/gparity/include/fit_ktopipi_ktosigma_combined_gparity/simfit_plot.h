@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template< template<typename, template<typename> class> class DistributionType > 
 inline DistributionType<double, basic_vector> peek(const std::string &tag, 
@@ -363,6 +363,6 @@ void plotErrorWeightedData2expFlatDiffM1(const std::vector<correlationFunction<a
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_COST_FUNCTION_INVERT_POLICY_H_
-#define _CPSFIT_COST_FUNCTION_INVERT_POLICY_H_
+#ifndef _SARLAC_COST_FUNCTION_INVERT_POLICY_H_
+#define _SARLAC_COST_FUNCTION_INVERT_POLICY_H_
 
 //User can optionally modify the procedure used by the minimizer to perform the matrix inversion
 
 #include<config.h>
 #include<tensors/numeric_square_matrix.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename CostType>
 struct CostFunctionSVDinvert{
@@ -15,5 +15,5 @@ struct CostFunctionSVDinvert{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

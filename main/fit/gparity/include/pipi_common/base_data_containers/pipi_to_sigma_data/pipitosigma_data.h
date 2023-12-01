@@ -4,7 +4,7 @@
 #include "../../correlator_utils/threemomentum.h"
 #include "../../correlator_utils/mom_project.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 ///////////////////
 //FILENAME POLICIES
@@ -90,4 +90,4 @@ void readPiPiToSigma(figureData &raw_data, const std::string &file_fmt, const st
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

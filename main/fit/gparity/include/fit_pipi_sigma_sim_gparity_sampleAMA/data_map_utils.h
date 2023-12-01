@@ -7,7 +7,7 @@
 #include "data_map.h"
 #include "enums.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Get the mapping of an outer sample index to the sample index of a distribution measured on a subset
 //Use -1 for entries that do not exist in the sub ensemble
@@ -56,7 +56,7 @@ void superJackknifeResample(resampledCorrFuncType &out,
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

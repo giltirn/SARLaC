@@ -6,7 +6,7 @@
 
 #include <ktopipi_sampleAMA_common/data_structs.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //This version computes alpha and the vacuum subtractions for each (sloppy/exact, S/C) combination separately
 template<typename resampledDistributionType>
@@ -142,6 +142,6 @@ void computeAlphaAndVacuumSubtractionsSampleAMACorrected(NumericTensor<resampled
   }
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

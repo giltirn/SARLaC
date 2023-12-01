@@ -14,7 +14,7 @@
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity_bootstrap/bootstrap_pvalue.h>
 
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //Make sure you delete the rtable when you are done
 bootstrapBlockResampler getResampler(const RawData &raw, const Args &args, const CMDline &cmdline){

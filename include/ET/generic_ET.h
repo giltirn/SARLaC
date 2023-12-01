@@ -7,7 +7,7 @@
 #include<ET/generic_ET/unary.h>
 #include<ET/generic_ET/loop_eval.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //An expression template engine for any 'vector' class (i.e. any class with elements that can be iterated over)
 //For classes without an operator[] or size() methods, you need to create a specialization of getElem (cf ET/generic_ET/getelem.h)
@@ -28,13 +28,13 @@ CPSFIT_START_NAMESPACE
   typedef TAG ET_tag;							\
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
   CLASS_NAME(U&& expr): CLASS_NAME(expr.common_properties()){			\
-    CPSfit::loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
+    SARLaC::loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
   }\
   \
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
   CLASS_FULL & operator=(U && expr){ \
     this->resize(expr.common_properties());    \
-    CPSfit::loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
+    SARLaC::loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
     return *this; \
   }
 
@@ -43,16 +43,16 @@ CPSFIT_START_NAMESPACE
   typedef TAG ET_tag;							\
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
   CLASS_NAME(U&& expr): CLASS_NAME(expr.common_properties()){			\
-    CPSfit::parallel_loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
+    SARLaC::parallel_loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
   }\
   \
   template<typename U, typename std::enable_if<std::is_same<typename U::ET_tag, ET_tag>::value && !std::is_same<U,CLASS_FULL>::value, int>::type = 0> \
   CLASS_FULL & operator=(U && expr){ \
     this->resize(expr.common_properties());    \
-    CPSfit::parallel_loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
+    SARLaC::parallel_loop_eval<CLASS_FULL, U>(*this, std::forward<U>(expr));	\
     return *this; \
   }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

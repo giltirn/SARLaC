@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_PARSERS_H___
-#define _CPSFIT_PARSERS_H___
+#ifndef _SARLAC_PARSERS_H___
+#define _SARLAC_PARSERS_H___
 
 #include<map>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
@@ -10,7 +10,7 @@
 #include<utils/template_wizardry/text_io.h>
 #include<parser/parser/parser_tools.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Bindings of types to parsers. Create overloads automatically or by hand
 namespace parsers{
@@ -303,5 +303,5 @@ int main(void){
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

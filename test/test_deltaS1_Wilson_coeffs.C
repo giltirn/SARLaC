@@ -6,7 +6,7 @@
 
 
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 double Lambda5sol(const double mb, const double Lambda4){
   double as4Mb = ComputeAlphaS::alpha_s(mb, Lambda4, 4, 3);

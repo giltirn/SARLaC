@@ -12,7 +12,7 @@
 #include<parser.h>
 #include "threemomentum.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct PiPiProjectorBase{
   virtual int nMomenta() const = 0;
@@ -148,6 +148,6 @@ std::vector<threeMomentum> getSrcSnkMomentumSet(const PiPiProjectorBase &proj_sr
     return psetv;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

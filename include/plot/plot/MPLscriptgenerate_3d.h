@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_MPL_SCRIPT_GENERATE_3D_H_
-#define _CPSFIT_MPL_SCRIPT_GENERATE_3D_H_
+#ifndef _SARLAC_MPL_SCRIPT_GENERATE_3D_H_
+#define _SARLAC_MPL_SCRIPT_GENERATE_3D_H_
 
 //Generate python scripts for generating 3D plots using Matplotlib
 
@@ -12,7 +12,7 @@
 #include<plot/plot/datasets_3d.h>
 #include<plot/plot/MPLscriptgenerate_base.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A python script generator for 3D plots
 class MatPlotLib3DscriptGenerate: public MatPlotLibScriptGenerateBase{
@@ -88,5 +88,5 @@ public:
   
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

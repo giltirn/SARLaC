@@ -5,7 +5,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 inline bool isBigEndian(void){
     union {
@@ -36,6 +36,6 @@ inline T reverseEndianness(const T in){
   return rint.o;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

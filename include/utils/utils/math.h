@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_UTILS_MATH_H_
-#define _CPSFIT_UTILS_MATH_H_
+#ifndef _SARLAC_UTILS_MATH_H_
+#define _SARLAC_UTILS_MATH_H_
 
 //Some math-related functionality
 #include<complex>
@@ -11,7 +11,7 @@
 #include<utils/template_wizardry/other.h>
 #include<utils/template_wizardry/matrix_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Extract real and imaginary parts of complex by reference
 template<typename T>
@@ -75,5 +75,5 @@ typename std::decay<decltype(VectorOfData()[0])>::type threadedSum(const VectorO
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

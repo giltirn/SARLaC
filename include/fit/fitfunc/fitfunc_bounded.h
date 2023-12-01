@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FITFUNC_BOUNDED_H_
-#define _CPSFIT_FITFUNC_BOUNDED_H_
+#ifndef _SARLAC_FITFUNC_BOUNDED_H_
+#define _SARLAC_FITFUNC_BOUNDED_H_
 
 //This fit function allows us to constrain fit parameters to have some minimum and/or maximum value
 //This is achieved by mapping the external, bounded parameter to an internal unbounded parameter under which the chi^2 is minimized
@@ -9,7 +9,7 @@
 #include<containers/parameter_vector.h>
 #include<fit/param_bounds.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename FitFunc>
 class BoundedFitFunc{
@@ -58,6 +58,6 @@ public:
   inline int Nparams() const{ return fitfunc.Nparams(); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

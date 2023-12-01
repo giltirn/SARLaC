@@ -6,7 +6,7 @@
 
 #include <ktopipi_sampleAMA_common/data_structs.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Perform the source average, sample-AMA resampling and sample-AMA correction
 template<typename DistributionType>
@@ -112,6 +112,6 @@ NumericTensor<DistributionType,1> resampleAverageSampleAMA(const allRawData &raw
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

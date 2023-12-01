@@ -8,7 +8,7 @@
 
 #include<minimizer/minimizer.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
   //Stopping conditions
@@ -307,6 +307,6 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

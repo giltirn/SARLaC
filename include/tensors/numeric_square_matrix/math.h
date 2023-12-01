@@ -1,9 +1,9 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_MATH_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_MATH_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_MATH_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_MATH_H_
 
 #include<tensors/numeric_square_matrix/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //We use the notation in http://www.math.hawaii.edu/~jb/math411/nation1  pg 41
 
@@ -140,5 +140,5 @@ NumericSquareMatrix<T> GrammSchmidtOrthonormalize(const NumericSquareMatrix<T> &
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

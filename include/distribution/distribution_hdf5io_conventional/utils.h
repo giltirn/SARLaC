@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_UTILS_H_
-#define _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_UTILS_H_
+#ifndef _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_UTILS_H_
+#define _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_UTILS_H_
 
 #include<regex>
 
@@ -8,7 +8,7 @@
 #include<utils/utils.h>
 #include<utils/template_wizardry.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, int hasResize>
 struct _actionResize{
@@ -39,5 +39,5 @@ inline std::string getDistributionTypeString(){
   }
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

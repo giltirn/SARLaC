@@ -8,7 +8,7 @@
 #include<fit_ktopipi_ktosigma_combined_gparity/tianle_compare.h>
 #include<fit_ktopipi_ktosigma_combined_gparity/load_frzparams.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 
 int main(const int argc, const char* argv[]){

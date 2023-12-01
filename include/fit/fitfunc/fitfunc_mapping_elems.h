@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_FITFUNC_MAPPING_ELEMS_H_
-#define _CPSFIT_FITFUNC_MAPPING_ELEMS_H_
+#ifndef _SARLAC_FITFUNC_MAPPING_ELEMS_H_
+#define _SARLAC_FITFUNC_MAPPING_ELEMS_H_
 
 #include<cstdlib>
 
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Base type of elements
 template<typename DataStructTo, typename DataStructFrom>
@@ -102,5 +102,5 @@ struct ArrayElementFreeze: public ParameterMapBase<DataStructTo, DataStructFrom>
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

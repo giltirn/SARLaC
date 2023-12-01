@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //An arbitrary data type can be treated by dividing the configurations up into the set of data with only symmetric quark momenta, the set with only asymmetric quark momenta,
 //and the set containing both upon which we compute the sampleAMA correction.
@@ -30,6 +30,6 @@ std::ostream & operator<<(std::ostream &os, SubensTag tag){
 
 enum class DataTag { AsymmOnly, SymmOnly, AsymmCorr, SymmCorr }; 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -12,7 +12,7 @@
 #include<parser.h>
 #include<common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 std::vector<int> parseElemStr(const std::string &e){
   std::istringstream buffer(e);

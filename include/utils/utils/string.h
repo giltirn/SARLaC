@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_UTILS_STRING_H_
-#define _CPSFIT_UTILS_STRING_H_
+#ifndef _SARLAC_UTILS_STRING_H_
+#define _SARLAC_UTILS_STRING_H_
 
 //String manipulation
 #include<iostream>
@@ -15,7 +15,7 @@
 #include<utils/macros.h>
 #include<utils/utils/error.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A bi-directional mapping between a string tag and an integer
 class stringTagMap{
@@ -265,5 +265,5 @@ inline std::string getFilenameFromFmtString(const std::string &fmt_string, int c
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

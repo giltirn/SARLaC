@@ -9,7 +9,7 @@
 #include<utils/macros.h>
 #include<parser/parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #define A_S_T_MEMBERS (double, value)(double, scale)(int, Nf)
 struct a_s_t{
@@ -118,6 +118,6 @@ struct ComputeAlphaS{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

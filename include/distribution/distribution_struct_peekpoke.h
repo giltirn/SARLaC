@@ -6,7 +6,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename DistributionOfStruct>
 struct _distribution_struct_peekpoke_helper{
@@ -59,6 +59,6 @@ void distributionStructPoke(DistributionOfStruct &out, const DISTRIBUTION_OF_BAS
 #undef DSTRUCT_IT
 #undef DBASE_IT
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

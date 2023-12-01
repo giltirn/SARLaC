@@ -9,7 +9,7 @@
 #include<utils/macros.h>
 #include<utils/utils/string.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A class that contains a power series in 2 variables 'as' and 'a' which are taken as coefficients of alpha_s and alpha_EM in perturbative expansion
 struct ValOrd{
@@ -212,6 +212,6 @@ ValOrd truncateO1e(const ValOrd &v){
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

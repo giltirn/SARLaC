@@ -11,7 +11,7 @@ int main(void){
 #include <pipi_common/pipi_common.h>
 #include <pipi_common/analyze_chisq.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_pipi_gparity/args.h>
 #include <fit_pipi_gparity/cmdline.h>

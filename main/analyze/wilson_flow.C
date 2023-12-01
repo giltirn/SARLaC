@@ -5,7 +5,7 @@
 #include<random.h>
 #include<limits>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //includes_t2 -   true:  data is t^2 E(t) [Grid default]  false:  data is E(t)
 //adaptive_smearing : The adaptive Wilson flow smearing was used

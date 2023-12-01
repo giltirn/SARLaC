@@ -6,7 +6,7 @@
 #include<distribution/superjackknife/class.h>
 #include<serialize/xml_serialize.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 struct EnsembleData{
@@ -73,5 +73,5 @@ void read(XMLreader &reader, superJackknifeDistribution<double> &v, const std::s
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

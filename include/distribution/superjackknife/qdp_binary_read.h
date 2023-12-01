@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_SUPERJACKKNIFE_QDP_BINARY_READ_H_
-#define _CPSFIT_SUPERJACKKNIFE_QDP_BINARY_READ_H_
+#ifndef _SARLAC_SUPERJACKKNIFE_QDP_BINARY_READ_H_
+#define _SARLAC_SUPERJACKKNIFE_QDP_BINARY_READ_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<serialize/qdp_binary_read.h>
 #include<distribution/superjackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 void read(QDPbinaryReader &rd, superJackknifeDistribution<T> &into){
@@ -61,6 +61,6 @@ void read(QDPbinaryReader &rd, superJackknifeDistribution<T> &into){
   into.best() = avg;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

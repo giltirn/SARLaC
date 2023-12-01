@@ -5,7 +5,7 @@
 
 //A distribution for single-elimination jackknife data
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class doubleJackknifeDistribution;
@@ -171,6 +171,6 @@ jackknifeDistribution<T,V> superjackknifeBoost(const jackknifeDistribution<T,V> 
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

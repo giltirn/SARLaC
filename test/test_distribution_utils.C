@@ -1,7 +1,7 @@
 #include <distribution/jackknife.h>
 #include <distribution/boot_jackknife.h>
 #include <distribution/utils.h>
-using namespace CPSfit;
+using namespace SARLaC;
 
 int main(void){
   {

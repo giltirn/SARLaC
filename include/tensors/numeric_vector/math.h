@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_NUMERIC_VECTOR_MATH_H_
-#define _CPSFIT_NUMERIC_VECTOR_MATH_H_
+#ifndef _SARLAC_NUMERIC_VECTOR_MATH_H_
+#define _SARLAC_NUMERIC_VECTOR_MATH_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_vector/class.h>
 #include<utils/template_wizardry/complexify.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Vector dot product
 template<typename T>
@@ -58,6 +58,6 @@ std::vector<NumericVector<T> > GrammSchmidtOrthonormalize(const std::vector<Nume
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

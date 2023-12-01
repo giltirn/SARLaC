@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //This type of iterator is bound to a distribution instance
 template<typename T_unconst, int is_const>
@@ -34,6 +34,6 @@ template<typename distributionType>
 struct iterate;
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

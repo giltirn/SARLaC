@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_MPL_DATA_SETS_3D_H_
-#define _CPSFIT_MPL_DATA_SETS_3D_H_
+#ifndef _SARLAC_MPL_DATA_SETS_3D_H_
+#define _SARLAC_MPL_DATA_SETS_3D_H_
 
 #include<iostream>
 #include<vector>
@@ -8,7 +8,7 @@
 #include<utils/macros.h>
 #include<plot/plot/write_python.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 enum SetType3D{ WireframeType, ScatterType };
 
@@ -42,5 +42,5 @@ public:
   const std::string &tag() const{ return set_tag; }  
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

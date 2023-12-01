@@ -7,7 +7,7 @@
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit_plot.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 
 

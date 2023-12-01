@@ -2,7 +2,7 @@
 #include<fit.h>
 #include<common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 struct results{
   bootstrapDistribution<StandardFitParams> params;

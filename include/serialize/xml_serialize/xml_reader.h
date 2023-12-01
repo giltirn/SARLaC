@@ -10,7 +10,7 @@
 #include<utils/utils.h>
 #include<serialize/xml_serialize/xml_translator.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class XMLreader{
   boost::property_tree::ptree pt;
@@ -112,6 +112,6 @@ public:
     
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

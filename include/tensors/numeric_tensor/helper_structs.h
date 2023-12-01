@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_NUMERIC_TENSOR_HELPER_STRUCTS_H_
-#define _CPSFIT_NUMERIC_TENSOR_HELPER_STRUCTS_H_
+#ifndef _SARLAC_NUMERIC_TENSOR_HELPER_STRUCTS_H_
+#define _SARLAC_NUMERIC_TENSOR_HELPER_STRUCTS_H_
 
 #include<iostream>
 
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T,int Rank,int D>
 struct _tensor_helper{
@@ -66,5 +66,5 @@ struct iterate<NumericTensor<T,N> >{
   }
 };  
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

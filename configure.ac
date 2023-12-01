@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.67])
-AC_INIT([CPSfit], [0.1], [ckelly@phys.columbia.edu])
+AC_INIT([SARLaC], [1.0], [ckelly.physics@gmail.com])
 AC_CONFIG_SRCDIR([include/utils.h])
 AC_CONFIG_HEADERS([config.h])
 

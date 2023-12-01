@@ -147,12 +147,12 @@ public:
   
   void write(HDF5writer &wr, const std::string &nm) const{
     wr.enter(nm);
-    CPSfit::write(wr, pipi_bubble, "pipi_bubble");
-    CPSfit::write(wr, pipi_bubble_Z, "pipi_bubble_Z");
-    CPSfit::write(wr, correlators, "correlators");
-    CPSfit::write(wr, sigma_self, "sigma_self");
-    CPSfit::write(wr, sigma_self_Z, "sigma_self_Z");
-    CPSfit::write(wr, contains, "contains");
+    SARLaC::write(wr, pipi_bubble, "pipi_bubble");
+    SARLaC::write(wr, pipi_bubble_Z, "pipi_bubble_Z");
+    SARLaC::write(wr, correlators, "correlators");
+    SARLaC::write(wr, sigma_self, "sigma_self");
+    SARLaC::write(wr, sigma_self_Z, "sigma_self_Z");
+    SARLaC::write(wr, contains, "contains");
     wr.leave();
   }
   void read(HDF5reader &rd, const std::string &nm){
@@ -161,40 +161,40 @@ public:
     rd.enter(nm);
     std::cout << "Reading pipi bubble" << std::endl;
     time.start();
-    CPSfit::read(rd, pipi_bubble, "pipi_bubble");
+    SARLaC::read(rd, pipi_bubble, "pipi_bubble");
     time.stop();
     std::cout << time.elapsed()/1e9 << "s" << std::endl;
 
     std::cout << "Reading pipi bubbleZ" << std::endl;
     time.start();
-    CPSfit::read(rd, pipi_bubble_Z, "pipi_bubble_Z");
+    SARLaC::read(rd, pipi_bubble_Z, "pipi_bubble_Z");
     time.stop();
     std::cout << time.elapsed()/1e9 << "s" << std::endl;
 
 
     std::cout << "Reading correlators" << std::endl;
     time.start();
-    CPSfit::read(rd, correlators, "correlators");
+    SARLaC::read(rd, correlators, "correlators");
     time.stop();
     std::cout << time.elapsed()/1e9 << "s" << std::endl;
 
 
     std::cout << "Reading sigma bubble" << std::endl;
     time.start();
-    CPSfit::read(rd, sigma_self, "sigma_self");
+    SARLaC::read(rd, sigma_self, "sigma_self");
     time.stop();
     std::cout << time.elapsed()/1e9 << "s" << std::endl;
 
 
     std::cout << "Reading sigma bubbleZ" << std::endl;
     time.start();
-    CPSfit::read(rd, sigma_self_Z, "sigma_self_Z");
+    SARLaC::read(rd, sigma_self_Z, "sigma_self_Z");
     time.stop();
     std::cout << time.elapsed()/1e9 << "s" << std::endl;
 
     std::cout << "Reading map" << std::endl;
     time.start();
-    CPSfit::read(rd, contains, "contains");
+    SARLaC::read(rd, contains, "contains");
     time.stop();
     std::cout << time.elapsed()/1e9 << "s" << std::endl;
 

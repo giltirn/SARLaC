@@ -12,7 +12,7 @@
 
 #include "fitfunc.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Perform the error-weighted average of all data with fixed  tsep_op_pi  subject to a cut on the minimum tsep_k_op separation. Output coord is tsep_op_pi
 template<typename DistributionType>
@@ -601,6 +601,6 @@ struct PlotOnlyCall{
     
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

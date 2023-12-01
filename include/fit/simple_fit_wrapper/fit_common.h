@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_SIMPLE_FIT_WRAPPER_COMMON_H
-#define _CPSFIT_SIMPLE_FIT_WRAPPER_COMMON_H
+#ifndef _SARLAC_SIMPLE_FIT_WRAPPER_COMMON_H
+#define _SARLAC_SIMPLE_FIT_WRAPPER_COMMON_H
 
 #include<config.h>
 #include<utils/macros.h>
@@ -16,7 +16,7 @@
 #include<fit/cost_function/correlated_chisq.h>
 #include<fit/cost_function/correlated_chisq_terms.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(MinimizerType, (MarquardtLevenberg)(GSLtrs)(GSLmultimin)(Minuit2) );
 GENERATE_ENUM_AND_PARSER(CostType, (Correlated)(Uncorrelated) );
@@ -198,6 +198,6 @@ struct simpleFitCommon{
 
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

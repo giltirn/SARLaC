@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<random/rng.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Fisher-Yates shuffle algorithm
 std::vector<int> randomPermutation(const std::vector<int> &in, RNGstore &rng = RNG){
@@ -36,6 +36,6 @@ std::vector<T> randomPermutation(const std::vector<T> &in, RNGstore &rng = RNG){
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

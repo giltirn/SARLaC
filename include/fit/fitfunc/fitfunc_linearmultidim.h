@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FITFUNC_LINEAR_MULTIDIM_H_
-#define _CPSFIT_FITFUNC_LINEAR_MULTIDIM_H_
+#ifndef _SARLAC_FITFUNC_LINEAR_MULTIDIM_H_
+#define _SARLAC_FITFUNC_LINEAR_MULTIDIM_H_
 
 //A linear fit in N dimensions: p[0] + p[1]*x[0] + p[2]*x[1] + ...
 
@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<containers/parameter_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 typename std::enable_if<std::is_floating_point<T>::value, T>::type getCoord(const int i, const T coord){ return coord; }
@@ -47,5 +47,5 @@ public:
   inline int Nparams() const{ return Dimension+1; }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

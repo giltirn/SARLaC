@@ -7,7 +7,7 @@
 //A bootstrap distribution of jackknife distributions! It fills a similar role as the double jackknife, allowing one to obtain an estimate of the covariance matrix in this case
 //for each bootstrap sample in a bootstrap fit
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct bootJackknifeInitType: public OstreamHook{
   int nsample; //this can be less than the original number of samples depending on how the resample table was generated
@@ -258,16 +258,16 @@ bootJackknifeDistribution<T,V> weightedAvg(const std::vector<bootJackknifeDistri
   std::vector<jackknifeDistribution<T,V> const*> towavg_j(v.size());
   for(int s=0;s<initv.boots;s++){ //weighted avg each jackknife distribution, looping over outer index
     for(int i=0;i<v.size();i++) towavg_j[i] = &v[i]->sample(s);
-    wavg_dj.sample(s) = CPSfit::weightedAvg(towavg_j);
+    wavg_dj.sample(s) = SARLaC::weightedAvg(towavg_j);
   }
   
   //Jackknife of original ensemble
   for(int i=0;i<v.size();i++) towavg_j[i] = &v[i]->origEnsJackknife();
-  wavg_dj.origEnsJackknife() = CPSfit::weightedAvg(towavg_j);
+  wavg_dj.origEnsJackknife() = SARLaC::weightedAvg(towavg_j);
 
   return wavg_dj;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

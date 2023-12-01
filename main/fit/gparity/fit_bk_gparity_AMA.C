@@ -3,7 +3,7 @@
 #include<parser.h>
 #include<plot.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_mpi_gparity_AMA/parse_data.h>
 #include <fit_mpi_gparity_AMA/data_manipulations.h>

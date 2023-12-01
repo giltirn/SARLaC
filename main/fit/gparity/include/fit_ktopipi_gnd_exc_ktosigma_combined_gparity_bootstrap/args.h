@@ -9,7 +9,7 @@
 #include <fit_ktopipi_gnd_exc_ktosigma_combined_gparity/enums.h>
 #include <fit_ktopipi_gnd_exc_ktosigma_combined_gparity/input_param_args.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 typedef std::pair<threeMomentum, double> momMultiplicityPair;
 typedef std::vector<std::string> typeFileFormat;
@@ -101,6 +101,6 @@ struct Args{
 GENERATE_PARSER(Args, ARGS_MEMBERS);
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

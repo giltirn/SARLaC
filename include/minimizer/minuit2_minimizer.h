@@ -19,7 +19,7 @@
 #include<Minuit2/MnSimplex.h>
 #include<Minuit2/MnPrint.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A wrapper around the Minuit2 minimizer
 //The cost functions are the usual ones that work with the native minimizer
@@ -231,7 +231,7 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

@@ -13,7 +13,7 @@
 #include<utils/utils.h>
 #include<fit/fitfunc/fitfunc_mapping_elems.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename FitFunc,
 	 typename _ParameterSubsetType = typename FitFunc::ParameterType,
@@ -79,6 +79,6 @@ public:
   int Nparams() const{ return deriv_subset_default.size(); } //number of parameters in subset
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

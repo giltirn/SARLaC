@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_MPL_DATA_SETS_2D_H_
-#define _CPSFIT_MPL_DATA_SETS_2D_H_
+#ifndef _SARLAC_MPL_DATA_SETS_2D_H_
+#define _SARLAC_MPL_DATA_SETS_2D_H_
 
 #include<iostream>
 #include<vector>
@@ -8,7 +8,7 @@
 #include<utils/macros.h>
 #include<plot/plot/write_python.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 enum SetType{ DataSetType, ErrorBandType, HistogramType, ErrorLineType, ErrorCurveType };
 
@@ -181,5 +181,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

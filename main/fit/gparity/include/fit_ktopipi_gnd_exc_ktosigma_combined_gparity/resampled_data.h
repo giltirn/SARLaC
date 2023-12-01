@@ -5,7 +5,7 @@
 
 #include "raw_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #define PRUNE_ELEM_MEM (PiPiOperator, op)(int, q)(amplitudeDataCoord, c)
 struct pruneElem{
@@ -115,12 +115,12 @@ public:
 
 };
 template<typename DistributionType>
-inline void write(CPSfit::HDF5writer &writer, const ResampledData<DistributionType> &d, const std::string &tag){ d.write(writer,tag); }
+inline void write(SARLaC::HDF5writer &writer, const ResampledData<DistributionType> &d, const std::string &tag){ d.write(writer,tag); }
 template<typename DistributionType>
-inline void read(CPSfit::HDF5reader &reader, ResampledData<DistributionType> &d, const std::string &tag){ d.read(reader,tag); }
+inline void read(SARLaC::HDF5reader &reader, ResampledData<DistributionType> &d, const std::string &tag){ d.read(reader,tag); }
 
 
   
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -8,7 +8,7 @@
 #include<distribution/supermulti/class.h>
 #include<distribution/distribution_hdf5io_basic.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename D>
 inline void write(HDF5writer &writer, const superMultiDistribution<D> &sj, const std::string &tag){ sj.write(writer,tag); }
@@ -22,21 +22,21 @@ struct extraFlattenIO<superMultiDistribution<T> >{
     const superMultiLayout &layout = value[0].getLayout();
     if(value.size() > 1)
       for(int i=1;i<value.size();i++) assert(value[i].getLayout() == layout);
-    CPSfit::write(writer,layout,"layout");
+    SARLaC::write(writer,layout,"layout");
     
     std::vector<T> cen(value.size());
     for(int i=0;i<cen.size();i++) cen[i] = value[i].best();
-    CPSfit::write(writer,cen,"central");
+    SARLaC::write(writer,cen,"central");
   }
   static inline void read(HDF5reader &reader, std::vector<superMultiDistribution<T> > &value){
     static std::vector<std::unique_ptr<superMultiLayout> > layouts; //all will be deleted at the end
     layouts.push_back(std::unique_ptr<superMultiLayout>(new superMultiLayout));
     superMultiLayout* layout = layouts.back().get();
-    CPSfit::read(reader,*layout,"layout");
+    SARLaC::read(reader,*layout,"layout");
     for(int i=0;i<value.size();i++) value[i].setLayout(*layout);
         
     std::vector<T> cen;
-    CPSfit::read(reader,cen,"central");
+    SARLaC::read(reader,cen,"central");
     for(int i=0;i<cen.size();i++) value[i].best() = cen[i];
   }
   static inline void write(HDF5writer &writer, const std::vector<std::vector<superMultiDistribution<T> > > &value){
@@ -45,7 +45,7 @@ struct extraFlattenIO<superMultiDistribution<T> >{
     for(int i=0;i<value.size();i++)
       for(int j= (i==0 ? 1:0); j<value[i].size(); j++)
 	assert(value[i][j].getLayout() == layout);
-    CPSfit::write(writer,layout,"layout");
+    SARLaC::write(writer,layout,"layout");
     
     int sz = 0; for(int i=0;i<value.size();i++) sz += value[i].size();
     
@@ -55,19 +55,19 @@ struct extraFlattenIO<superMultiDistribution<T> >{
       for(int j=0;j<value[i].size();j++)
 	cen[off++] = value[i][j].best();
 
-    CPSfit::write(writer,cen,"central");
+    SARLaC::write(writer,cen,"central");
   }
   static inline void read(HDF5reader &reader, std::vector<std::vector<superMultiDistribution<T> > > &value){
     static std::vector<std::unique_ptr<superMultiLayout> > layouts; //all will be deleted at the end
     layouts.push_back(std::unique_ptr<superMultiLayout>(new superMultiLayout));
     superMultiLayout* layout = layouts.back().get();
-    CPSfit::read(reader,*layout,"layout");
+    SARLaC::read(reader,*layout,"layout");
     for(int i=0;i<value.size();i++)
       for(int j=0;j<value[i].size();j++)
 	value[i][j].setLayout(*layout);
     
     std::vector<T> cen;
-    CPSfit::read(reader,cen,"central");
+    SARLaC::read(reader,cen,"central");
 
     int off=0;
     for(int i=0;i<value.size();i++) //has already been resized
@@ -77,7 +77,7 @@ struct extraFlattenIO<superMultiDistribution<T> >{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif
 
 #endif

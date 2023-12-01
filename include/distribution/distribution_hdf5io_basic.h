@@ -8,7 +8,7 @@
 
 #ifdef HAVE_HDF5
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Generic HDF5 IO for distributions. Overwrite if you want to save extra data
 template<typename DistributionType, typename std::enable_if<hasSampleMethod<DistributionType>::value, int>::type = 0>
@@ -185,7 +185,7 @@ void read(HDF5reader &reader, std::vector<std::vector<T> > &value, const std::st
   reader.leave();
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 #endif

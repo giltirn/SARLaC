@@ -1,6 +1,6 @@
 
-#ifndef _CPSFIT_TAGGED_VALUE_CONTAINER_H_
-#define _CPSFIT_TAGGED_VALUE_CONTAINER_H_
+#ifndef _SARLAC_TAGGED_VALUE_CONTAINER_H_
+#define _SARLAC_TAGGED_VALUE_CONTAINER_H_
 
 //A vector-like container with all the usual fit boilerplate that has a shared tag->index mapping allowing for, eg. dynamic parameter containers with named parameters
 #include<list>
@@ -12,7 +12,7 @@
 #include<utils/utils.h>
 #include<ET/generic_ET.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, typename TagType = std::string>
 class taggedValueContainer{
@@ -117,6 +117,6 @@ std::ostream & operator<<(std::ostream &os, const taggedValueContainer<T,TagType
   os << r.print(); return os;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

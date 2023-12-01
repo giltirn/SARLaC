@@ -1,7 +1,7 @@
 #include<random.h>
 #include<fit.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 
 template<typename CostFunc, typename CostFuncGSL>

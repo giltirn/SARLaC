@@ -5,7 +5,7 @@
 #include<utils/macros.h>
 #include<pipi_common/analyze_chisq.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct SimFitArgs{
   bool correlated;
@@ -126,6 +126,6 @@ void fit(const simFitCorrFuncJ &data_j, const simFitCorrFuncDJ &data_dj, const S
   }
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

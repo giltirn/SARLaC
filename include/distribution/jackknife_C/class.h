@@ -3,7 +3,7 @@
 
 #include<distribution/jackknife.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
 class jackknifeCdistribution: public jackknifeDistribution<_DataType,_VectorType>{
@@ -126,6 +126,6 @@ std::ostream & operator<<(std::ostream &os, const jackknifeCdistribution<T,V> &d
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

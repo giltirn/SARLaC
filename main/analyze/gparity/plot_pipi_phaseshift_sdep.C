@@ -4,7 +4,7 @@
 #include<common.h>
 #include<plot.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 typedef std::array<double,3> MomArray;
 typedef std::array<int,3> TwistArray;

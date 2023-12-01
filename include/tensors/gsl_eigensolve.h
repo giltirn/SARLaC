@@ -13,7 +13,7 @@
 #include<utils/template_wizardry.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Requires a real floating point *square* matrix with  (i,j) accessor and size() operation
 //evecs and evals size should be equal to matrix size, and eigenvector size should too
@@ -310,6 +310,6 @@ struct GSLsymmEigenSolver{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

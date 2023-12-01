@@ -6,7 +6,7 @@
 
 #include "../base_data_containers.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Assumed to be a resampled distribution type
 template<typename DistributionType>
@@ -61,6 +61,6 @@ inline resampledCorrelationFunctionType computePiPiToSigmaVacSub(const sigmaSelf
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

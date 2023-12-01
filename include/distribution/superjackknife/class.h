@@ -7,7 +7,7 @@
 
 #include<distribution/superjackknife/layout.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 template<typename _DataType>
@@ -216,20 +216,20 @@ public:
 #ifdef HAVE_HDF5
   void write(HDF5writer &writer, const std::string &tag) const{
     writer.enter(tag);
-    CPSfit::write(writer,ens_jacks,"ens_jacks",false); //don't flatten the internal vector
-    CPSfit::write(writer,cen,"cen");
-    CPSfit::write(writer,*layout,"layout");
+    SARLaC::write(writer,ens_jacks,"ens_jacks",false); //don't flatten the internal vector
+    SARLaC::write(writer,cen,"cen");
+    SARLaC::write(writer,*layout,"layout");
     writer.leave();
   }
   void read(HDF5reader &reader, const std::string &tag){
     reader.enter(tag);
-    CPSfit::read(reader,ens_jacks,"ens_jacks",false);
-    CPSfit::read(reader,cen, "cen");
+    SARLaC::read(reader,ens_jacks,"ens_jacks",false);
+    SARLaC::read(reader,cen, "cen");
 
     static std::vector<std::unique_ptr<superJackknifeLayout> > layouts; //all will be deleted at the end
     layouts.push_back(std::unique_ptr<superJackknifeLayout>(new superJackknifeLayout));
     superJackknifeLayout* _layout = layouts.back().get();
-    CPSfit::read(reader,*_layout,"layout");
+    SARLaC::read(reader,*_layout,"layout");
     layout = _layout;
     reader.leave();
   }
@@ -251,5 +251,5 @@ std::ostream & operator<<(std::ostream &os, const superJackknifeDistribution<T> 
   return os;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //PiPi bubble format has a run-tag dependent format
 struct PiPiBubbleMapReadPolicy{
@@ -69,7 +69,7 @@ struct bubbleDataAccessor{
     bubbleDataType out(a);
     int Lt = a.getLt();
     for(int t=0;t<Lt;t++)
-      out(t) = CPSfit::errorWeightedAverage(a(t),b(t));
+      out(t) = SARLaC::errorWeightedAverage(a(t),b(t));
     return out;
   }
   inline static size_t size(const bubbleDataType &corr){ return corr.getLt(); }
@@ -109,7 +109,7 @@ struct bubbleDataAllMomentaAccessor{
 
     while(oit != out.end()){
       for(int t=0;t<Lt;t++)
-	oit->second(t) = CPSfit::errorWeightedAverage(ait->second(t),bit->second(t));
+	oit->second(t) = SARLaC::errorWeightedAverage(ait->second(t),bit->second(t));
       ++ait; ++bit; ++oit;
     }
     return out;
@@ -157,7 +157,7 @@ void getPiPiBubble(resampledBubbleDataAllMomentaType &out,
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

@@ -9,7 +9,7 @@
 #include<utils/template_wizardry.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename SeriesType, typename SFINAE = void>
 class sampleSeries{};
@@ -54,5 +54,5 @@ std::ostream & operator<<(std::ostream & stream, const sampleSeries<SeriesType,D
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

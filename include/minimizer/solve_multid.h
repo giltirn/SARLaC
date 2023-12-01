@@ -2,7 +2,7 @@
 #include<containers/single_value_container.h>
 #include<tensors/numeric_square_matrix.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Function should be a lambda or function object with operator(const NumericVector<double> &param) const
 //Should return a NumericVector<double> for each of the equations
@@ -108,4 +108,4 @@ inline NumericVector<double> solveMultiD(const Function &func, const NumericVect
   return solveMultiD(func, guess, params, cost_out);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

@@ -9,7 +9,7 @@
 #include<parser.h>
 #include<containers.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #define TEST_FIT_ARGS_MEMBERS \
   ( int, nsample ) \

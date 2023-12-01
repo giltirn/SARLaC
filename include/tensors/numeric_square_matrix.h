@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_H_
 
 //A rank-2 tensor with IO and math functionality
 #include<tensors/numeric_square_matrix/class.h>

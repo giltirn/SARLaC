@@ -1,9 +1,9 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_IO_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_IO_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_IO_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_IO_H_
 
 #include<tensors/numeric_square_matrix/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #ifdef HAVE_HDF5
 template<typename D>
@@ -23,5 +23,5 @@ StreamType & operator<<(StreamType & stream, const NumericSquareMatrix<Numeric> 
   return stream;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -4,7 +4,7 @@
 #include<utils.h>
 #include<fit/pvalue.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 int main(const int argc, const char* argv[]){
   assert(argc >= 3);

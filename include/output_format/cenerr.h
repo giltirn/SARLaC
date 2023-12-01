@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_CENERR_H_
-#define _CPSFIT_CENERR_H_
+#ifndef _SARLAC_CENERR_H_
+#define _SARLAC_CENERR_H_
 
 //A class that contains a central value and error in decimal representation for printing purposes
 
@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<output_format/decimal.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 enum SigFigsSource { Central, Error, Largest };
 
@@ -83,6 +83,6 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

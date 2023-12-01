@@ -2,7 +2,7 @@
 
 #include "data_container_common.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A container for figure data (pipi, sigma, pipi->sigma)
 template<typename _DistributionType, typename Policies = empty_t>
@@ -214,4 +214,4 @@ struct _figureDataTypeSelector<bootJackknifeDistributionD>{ typedef figureDataBo
 template<typename DistributionType>
 using figureDataSelect = typename _figureDataTypeSelector<DistributionType>::type;
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

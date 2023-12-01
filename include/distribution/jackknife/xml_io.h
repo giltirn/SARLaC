@@ -7,7 +7,7 @@
 #include<distribution/jackknife/class.h>
 #include<serialize/xml_serialize.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename DistributionType>
 struct UKvalenceDistributionContainer{
@@ -42,5 +42,5 @@ void read(XMLreader &reader, jackknifeDistribution<T,V> &v, const std::string &t
   reader.leave();
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

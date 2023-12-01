@@ -21,7 +21,7 @@
 #include<parser/parser.h>
 #include<serialize/hdf5_serialize.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Extract info from DEF
 #define _ENUMERATED_STRUCT_DEF_STRUCT(DEF)  BOOST_PP_TUPLE_ELEM(0,DEF)
@@ -49,7 +49,7 @@ CPSFIT_START_NAMESPACE
   switch(i){					\
   BOOST_PP_SEQ_FOR_EACH_I(_ENUMERATED_STRUCT_DEF_MEM_ACCESSOR, , _ENUMERATED_STRUCT_DEF_SEQ(DEF))	\
   default:								\
-    CPSfit::error_exit(std::cout << BOOST_PP_STRINGIZE(_ENUMERATED_STRUCT_DEF_STRUCT(DEF)) << "::operator() invalid index " << i <<std::endl); \
+    SARLaC::error_exit(std::cout << BOOST_PP_STRINGIZE(_ENUMERATED_STRUCT_DEF_STRUCT(DEF)) << "::operator() invalid index " << i <<std::endl); \
   }									\
   }									\
   inline const _ENUMERATED_STRUCT_DEF_TYPE(DEF) & operator()(const int i) const{ return const_cast<_ENUMERATED_STRUCT_DEF_STRUCT(DEF)*>(this)->operator()(i); } \
@@ -62,7 +62,7 @@ CPSFIT_START_NAMESPACE
   inline void resize(const int sz){ assert(sz == this->size()); }
 
 //Zero method
-#define _ENUMERATED_STRUCT_DEF_ZERO_MEM(R,DUMMY,ELEM) CPSfit::zeroit(ELEM);
+#define _ENUMERATED_STRUCT_DEF_ZERO_MEM(R,DUMMY,ELEM) SARLaC::zeroit(ELEM);
 
 #define _ENUMERATED_STRUCT_DEF_ZEROFUNC(DEF)			\
   inline void zero(){				\
@@ -89,7 +89,7 @@ CPSFIT_START_NAMESPACE
     switch(i){								\
       BOOST_PP_SEQ_FOR_EACH_I(_ENUMERATED_STRUCT_DEF_MEM_STRING_VAL, , _ENUMERATED_STRUCT_DEF_SEQ(DEF)) \
     default:							\
-      CPSfit::error_exit(std::cout << BOOST_PP_STRINGIZE(_ENUMERATED_STRUCT_DEF_STRUCT(DEF)) << "::memberName(int) invalid index " << i <<std::endl); \
+      SARLaC::error_exit(std::cout << BOOST_PP_STRINGIZE(_ENUMERATED_STRUCT_DEF_STRUCT(DEF)) << "::memberName(int) invalid index " << i <<std::endl); \
     };									\
     }
 
@@ -132,6 +132,6 @@ CPSFIT_START_NAMESPACE
   GENERATE_HDF5_SERIALIZE_FUNC(SCOPE::_ENUMERATED_STRUCT_DEF_STRUCT(DEF));
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

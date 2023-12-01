@@ -3,7 +3,7 @@
 
 #include<ET/generic_ET/value_storage.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, typename U>
 inline void loop_eval(T &obj, U &&expr){
@@ -18,6 +18,6 @@ inline void parallel_loop_eval(T &obj, U &&expr){
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

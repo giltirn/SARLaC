@@ -3,7 +3,7 @@
 #include<common.h>
 #include<plot.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 GENERATE_ENUM_AND_PARSER(Format, (Y)(XY) );
 //Y: consecutive values    

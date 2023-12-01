@@ -13,7 +13,7 @@
 //******
 
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 template<typename BaseDataType, template<typename> class BaseVectorType = basic_vector>
@@ -212,13 +212,13 @@ blockDoubleJackknifeDistribution<T,V> weightedAvg(const std::vector<blockDoubleJ
   std::vector<jackknifeDistribution<T,V> const*> towavg_j(v.size());
   for(int s=0;s<nsample;s++){ //weighted avg each jackknife distribution, looping over outer index
     for(int i=0;i<v.size();i++) towavg_j[i] = &v[i]->sample(s);
-    wavg_dj.sample(s) = CPSfit::weightedAvg(towavg_j);
+    wavg_dj.sample(s) = SARLaC::weightedAvg(towavg_j);
   }
   return wavg_dj;
 }
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

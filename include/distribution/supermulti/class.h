@@ -9,7 +9,7 @@
 
 #include<distribution/supermulti/layout.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 template<typename _DataType, template<typename> class _VectorType = basic_vector>
@@ -305,9 +305,9 @@ public:
 #ifdef HAVE_HDF5
   void write(HDF5writer &writer, const std::string &tag) const{
     writer.enter(tag);
-    CPSfit::write(writer,*layout,"layout");
-    CPSfit::write(writer,cen,"cen");
-    CPSfit::write(writer,this->_data,"data");
+    SARLaC::write(writer,*layout,"layout");
+    SARLaC::write(writer,cen,"cen");
+    SARLaC::write(writer,this->_data,"data");
     writer.leave();
   }
   void read(HDF5reader &reader, const std::string &tag){
@@ -316,11 +316,11 @@ public:
     static std::vector<std::unique_ptr<superMultiLayout> > layouts; //all will be deleted at the end
     layouts.push_back(std::unique_ptr<superMultiLayout>(new superMultiLayout));
     superMultiLayout* _layout = layouts.back().get();
-    CPSfit::read(reader,*_layout,"layout");
+    SARLaC::read(reader,*_layout,"layout");
     layout = _layout;
 
-    CPSfit::read(reader,cen, "cen");    
-    CPSfit::read(reader,this->_data, "data");
+    SARLaC::read(reader,cen, "cen");    
+    SARLaC::read(reader,this->_data, "data");
     reader.leave();
   }
 #endif
@@ -342,5 +342,5 @@ std::ostream & operator<<(std::ostream &os, const superMultiDistribution<T,V> &d
   return os;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -7,7 +7,7 @@
 #include <data_series.h>
 #include <common.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Generate a correlation function by source-averaging the raw data
 template<typename FigureDataType>
@@ -54,6 +54,6 @@ inline void bin(rawDataCorrelationFunctionD &raw, const int bin_size){
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

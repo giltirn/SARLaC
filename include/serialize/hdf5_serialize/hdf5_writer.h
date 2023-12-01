@@ -11,7 +11,7 @@
 #include<serialize/hdf5_serialize/type_map.h>
 #include<utils/utils.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class HDF5writer{
   H5::H5File file;
@@ -67,7 +67,7 @@ public:
   }    
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

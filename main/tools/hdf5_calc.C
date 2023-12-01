@@ -9,7 +9,7 @@
 #include<distribution.h>
 #include<parser.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //A program to perform calculations using distributions loaded from canonical format hdf5 containers
 

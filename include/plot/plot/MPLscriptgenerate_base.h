@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_MPL_SCRIPT_GENERATE_BASE_H_
-#define _CPSFIT_MPL_SCRIPT_GENERATE_BASE_H_
+#ifndef _SARLAC_MPL_SCRIPT_GENERATE_BASE_H_
+#define _SARLAC_MPL_SCRIPT_GENERATE_BASE_H_
 
 //Base class for classes that generate python scripts for generating plots using Matplotlib
 
@@ -10,7 +10,7 @@
 #include<utils/macros.h>
 #include<plot/plot/write_python.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class MatPlotLibScriptGenerateBase{
 public:
@@ -38,5 +38,5 @@ public:
   inline std::ostringstream & invoke(){ return user; }  
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

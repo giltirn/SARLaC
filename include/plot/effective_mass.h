@@ -11,7 +11,7 @@
 #include<fit/cost_function.h>
 #include<plot/effective_mass/fitfunc.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //For a generic fit form and arbitrary linear combination
 template<typename DistributionTimeSeriesType, typename FitEffMassFunc>
@@ -113,6 +113,6 @@ DistributionTimeSeriesType effectiveMass2pt(const DistributionTimeSeriesType &da
   return fitEffectiveMass<DistributionTimeSeriesType,FitEffMass>(ratios,fiteffmass,guess);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif
 

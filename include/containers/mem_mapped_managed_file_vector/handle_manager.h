@@ -10,7 +10,7 @@
 #include <utils/macros.h>
 #include <utils/utils.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct mmfile{
   std::string filename;
@@ -105,6 +105,6 @@ public:
   inline static memmappedFileHandleManager & get(){ static memmappedFileHandleManager mp; return mp; }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

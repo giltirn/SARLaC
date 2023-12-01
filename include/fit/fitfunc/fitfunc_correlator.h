@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FITFUNC_CORRELATOR_H_
-#define _CPSFIT_FITFUNC_CORRELATOR_H_
+#ifndef _SARLAC_FITFUNC_CORRELATOR_H_
+#define _SARLAC_FITFUNC_CORRELATOR_H_
 
 //Fit functions for lattice correlation functions: A*cosh(m*t), A*sinh(m*t), A*exp(-m*t)
 
@@ -13,7 +13,7 @@
 #include<containers/parameter_vector.h>
 #include<tensors/dual_number.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Fit functions for 'standard fits'; exponential, cosh, sinh
 DEF_ENUMERATED_STRUCT( ( StandardFitParams, double, (A)(m), (0.0)(0.0) ) ); 
@@ -204,5 +204,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

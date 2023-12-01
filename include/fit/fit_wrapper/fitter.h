@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FIT_WRAPPER_FITTER_H_
-#define _CPSFIT_FIT_WRAPPER_FITTER_H_
+#ifndef _SARLAC_FIT_WRAPPER_FITTER_H_
+#define _SARLAC_FIT_WRAPPER_FITTER_H_
 
 //Armed with an appropriate policy, the usual boilerplate fitting is implemented here
 
@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<fit/fit_wrapper/minimizer_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename FitPolicies>
 class fitter: public FitPolicies{
@@ -68,5 +68,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

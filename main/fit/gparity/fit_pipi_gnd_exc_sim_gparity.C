@@ -1,7 +1,7 @@
 #include<pipi_common/pipi_common.h>
 
 #include <fit_pipi_sigma_sim_gparity/read_data.h>
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include<fit_pipi_gnd_exc_sim_gparity/args.h>
 #include<fit_pipi_gnd_exc_sim_gparity/cmdline.h>

@@ -4,7 +4,7 @@
 #include<ET/generic_ET/tagging.h>
 #include<ET/generic_ET/getelem.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Store references to lvalue operands
 template<typename A>
@@ -63,6 +63,6 @@ struct ETscalarEval{ //store scalars by value always
   inline const A & value() const{ return rf; }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

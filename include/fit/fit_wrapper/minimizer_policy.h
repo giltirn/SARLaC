@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FIT_WRAPPER_MINIMIZER_POLICY_H
-#define _CPSFIT_FIT_WRAPPER_MINIMIZER_POLICY_H
+#ifndef _SARLAC_FIT_WRAPPER_MINIMIZER_POLICY_H
+#define _SARLAC_FIT_WRAPPER_MINIMIZER_POLICY_H
 
 //The minimizer policy is the topmost layer, and defines which algorithm is used to minimize the cost function
 #include<config.h>
@@ -8,7 +8,7 @@
 
 #include<minimizer.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #define INHERIT_MINIMIZER_POLICY_TYPEDEFS(FROM) \
   INHERIT_COSTFUNCTION_POLICY_TYPEDEFS(FROM);\
@@ -35,6 +35,6 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

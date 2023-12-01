@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct fitOptions{
   bool load_frozen_fit_params;
@@ -257,6 +257,6 @@ void fit(jackknifeDistribution<taggedValueContainer<double,std::string> > &param
   fit(params, chisq, chisq_per_dof, corr_comb_j, corr_comb_dj, corr_comb_bdj, ffunc, param_map, 0, Lt, t_min, t_max, correlated, covariance_matrix, Ascale, Cscale, opt);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

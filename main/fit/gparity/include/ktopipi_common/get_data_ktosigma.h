@@ -8,7 +8,7 @@
 #include "amplitude_data_ktosigma.h"
 #include "computeQ_amplitude_opts.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename DistributionType, typename BinResampler>
 NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
@@ -173,6 +173,6 @@ void getKtoSigmaData(std::vector<correlationFunction<amplitudeDataCoord, jackkni
 		  Lt, bin_resampler, opt);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

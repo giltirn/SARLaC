@@ -6,7 +6,7 @@
 
 #include "simfit_multistate.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template< template<typename, template<typename> class> class DistributionType > 
 class simultaneousFitMultiStateWavg: public simultaneousFitMultiState<DistributionType>{
@@ -25,7 +25,7 @@ private:
     std::vector<T const*> towavg(idx.size());
     for(int i=0;i<idx.size();i++)
       towavg[i] = &from.value(idx[i]);
-    return CPSfit::weightedAvg(towavg);
+    return SARLaC::weightedAvg(towavg);
   }
 
   void weightedAverage(SimFitDataContainers<DistributionType> &fit_data, const subsetMapDescr &pmap_descr) const{
@@ -182,6 +182,6 @@ public:
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

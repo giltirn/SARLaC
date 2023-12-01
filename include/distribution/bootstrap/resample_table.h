@@ -5,7 +5,7 @@
 #include<random/utils.h>
 #include<parser/parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 static std::vector<std::vector<int> > nonoverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
 								       const int nboots = bootstrapDistributionOptions::defaultBoots()){
@@ -239,6 +239,6 @@ std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

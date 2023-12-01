@@ -6,7 +6,7 @@
 #include<tensors.h>
 #include<random.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include<global_fit/utils.h>
 #include<global_fit/data_params.h>

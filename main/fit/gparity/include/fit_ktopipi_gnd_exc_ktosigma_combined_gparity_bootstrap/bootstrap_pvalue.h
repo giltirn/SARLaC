@@ -6,7 +6,7 @@
 
 #include<fit/bootstrap_pvalue.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 void bootstrapPvalue(const std::vector<double> &q2, //one for each q!
 		     const ResampledData<bootstrapDistributionD> &data_b,
@@ -93,6 +93,6 @@ void bootstrapPvalue(const std::vector<double> &q2, //one for each q!
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

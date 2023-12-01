@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_COST_FUNCTION_CORRELATED_CHISQ_H_
-#define _CPSFIT_COST_FUNCTION_CORRELATED_CHISQ_H_
+#ifndef _SARLAC_COST_FUNCTION_CORRELATED_CHISQ_H_
+#define _SARLAC_COST_FUNCTION_CORRELATED_CHISQ_H_
 
 //The chi^2 cost function with a non-diagonal covariance matrix
 
@@ -9,7 +9,7 @@
 #include<tensors/numeric_square_matrix.h>
 #include<fit/cost_function/invert_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //This version uses the inverse of the correlation matrix and sigma
 template<typename FitFunction, typename DataContainer,
@@ -164,5 +164,5 @@ public:
   inline int Nparams() const{ return fitfunc.Nparams(); }    
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

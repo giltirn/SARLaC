@@ -4,7 +4,7 @@
 #include "../../correlator_utils/threemomentum.h"
 #include "sigma_reconstruct_disconn.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 ////////////////////
 //FILENAME POLICIES
@@ -102,4 +102,4 @@ inline void readSigmaSigma(figureData &raw_data, const std::string &file_fmt, co
 } 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

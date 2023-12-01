@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 std::map<SubensTag, std::set<int> > getSigma2ptSubsets(const DataMap &dmap){
   std::map<SubensTag, std::set<int> > subens;
@@ -35,6 +35,6 @@ std::map<DataTag, std::map<int, DataLocationInfo const*> > getSigma2ptDataSubset
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

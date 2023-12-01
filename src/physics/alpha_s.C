@@ -1,6 +1,6 @@
 #include<physics/alpha_s.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct as_params{
   double mu;
@@ -203,4 +203,4 @@ void PerturbativeVariables::initialize(const PerturbativeInputs &_inputs){
   }
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

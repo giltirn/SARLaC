@@ -9,7 +9,7 @@
 #include "../mom_data_containers.h"
 #include "../correlator_utils/mom_project.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Combine the computation of the V diagram with A2 projection and source average to avoid large intermediate data storage
 template<typename BubbleDataType>
@@ -195,6 +195,6 @@ void getResampledPiPi2ptData(jackknifeCorrelationFunctionD &pipi_j, doubleJackkn
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -2,7 +2,7 @@
 #include "mom_data_container_common.h"
 #include "../base_data_containers/pipi_bubble_data_container.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename _ContainerType,typename Extra=empty_t>
 class bubbleDataAllMomentaBase: public Extra{
@@ -121,4 +121,4 @@ inline bubbleDataAllMomenta reIm(const bubbleDataAllMomentaZ &in, const int reim
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

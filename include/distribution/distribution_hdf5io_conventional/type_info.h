@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_TYPE_INFO_H_
-#define _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_TYPE_INFO_H_
+#ifndef _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_TYPE_INFO_H_
+#define _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_TYPE_INFO_H_
 
 //Parse the type info metadata in advance to allow setup of appropriate containers
 
@@ -8,7 +8,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<parser/parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #ifdef HAVE_HDF5
 
@@ -45,6 +45,6 @@ void getTypeInfo(DistributionTypeEnum &type, int & vector_depth, const std::stri
 
 #endif
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

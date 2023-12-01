@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DECIMAL_H_
-#define _CPSFIT_DECIMAL_H_
+#ifndef _SARLAC_DECIMAL_H_
+#define _SARLAC_DECIMAL_H_
 
 #include<cstdlib>
 #include<cmath>
@@ -12,7 +12,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A class that stores a number in a decimal representation for output formatting and truncation
 class decimal{
@@ -226,6 +226,6 @@ inline std::ostream & operator<<(std::ostream &os, const decimal &dec){
   dec.print(os); return os;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

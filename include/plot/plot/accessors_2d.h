@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_PLOT_ACCESSORS_2D_H_
-#define _CPSFIT_PLOT_ACCESSORS_2D_H_
+#ifndef _SARLAC_PLOT_ACCESSORS_2D_H_
+#define _SARLAC_PLOT_ACCESSORS_2D_H_
 
 //Some common accessor classes for feeding data into the 2D plotters
 #include<cassert>
@@ -10,7 +10,7 @@
 #include<utils/macros.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 //Example accessor for x,y data in std::vectors with symmetric errors
@@ -249,5 +249,5 @@ public:
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

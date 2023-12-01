@@ -7,7 +7,7 @@
 #include "../../correlator_utils/mom_project.h"
 #include "../../enums.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 ////////////////////////
 //FILENAME POLICIES
@@ -190,4 +190,4 @@ void readPiPiBubble(bubbleDataAllMomentaType &raw_data, const std::string &data_
   readPiPiBubble(raw_data, Lt, tsep_pipi, rp_src, rp_snk, proj_src, proj_snk);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

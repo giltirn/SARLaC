@@ -8,7 +8,7 @@
 
 //Binary operations with vector-scalar form
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<template<typename,typename> class Op, typename T, typename U>
 struct binaryScalarRightHelper{
@@ -46,6 +46,6 @@ ET_BINOP_SCALAR_RIGHT(ETscalarMinusRight, -, operator-);
 ET_BINOP_SCALAR_RIGHT(ETscalarTimesRight, *, operator*);
 ET_BINOP_SCALAR_RIGHT(ETscalarDivideRight, /, operator/);
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

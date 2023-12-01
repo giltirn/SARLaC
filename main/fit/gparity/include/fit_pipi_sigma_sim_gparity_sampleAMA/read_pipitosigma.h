@@ -7,7 +7,7 @@
 #include <pipi_common/read_data_pipitosigma.h>
 #include <pipi_common/resampled_data_pipitosigma.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //For pipi->sigma, the "sigma" data set was measured with sources on every timeslice whereas the "extended" data set was measured with tstep=8. Thus to ensure correctness we should
 //1) Ensure the 4 sets AsymmOnly, AsymmCorr, SymmCorr and SymmOnly each contain only data with a consistent tstep
@@ -85,6 +85,6 @@ void performPiPiToSigmaVacuumSubtraction(resampledCorrFuncType &out,
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

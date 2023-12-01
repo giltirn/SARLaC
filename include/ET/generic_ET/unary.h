@@ -8,7 +8,7 @@
 
 //Unary operations
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Make sure the compiler is able to find the defaults
 using ::sqrt;
@@ -83,6 +83,6 @@ inline auto pow(T &&a, double exponent)->decltype(powHelper<typename std::decay<
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

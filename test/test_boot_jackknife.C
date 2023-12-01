@@ -2,7 +2,7 @@
 #include<distribution/boot_jackknife.h>
 #include<random.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 template<typename T>
 bool equals(const T &a, const T &b, const double tol){

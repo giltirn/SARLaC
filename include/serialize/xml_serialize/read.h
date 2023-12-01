@@ -5,7 +5,7 @@
 
 #include<serialize/xml_serialize/xml_reader.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, typename std::enable_if<std::is_pod<T>::value, int>::type = 0>
 inline void read(XMLreader &reader, T &into, const std::string &tag){
@@ -32,6 +32,6 @@ void read(XMLreader &reader, std::vector<T> &v, const std::string &tag){
   reader.leave();
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

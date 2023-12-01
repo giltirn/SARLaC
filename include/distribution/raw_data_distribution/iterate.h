@@ -5,7 +5,7 @@
 #include<distribution/raw_data_distribution/class.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, template<typename> class V>
 struct iterate<rawDataDistribution<T,V> >{
@@ -23,5 +23,5 @@ struct iterate<rawDataDistribution<T,V> >{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

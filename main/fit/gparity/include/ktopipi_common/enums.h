@@ -7,10 +7,10 @@
 
 #include<parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(KtoPiPiFitFunc, (FitSeparate)(FitSimultaneous)(FitSimultaneousChiralBasis)(FitSeparateWithConstant)(FitSeparateTwoExp)(FitSeparateTwoExpKaon)(FitSeparateExcPiK) );
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

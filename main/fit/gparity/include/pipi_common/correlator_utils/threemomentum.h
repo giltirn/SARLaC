@@ -6,7 +6,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 typedef std::array<int,3> threeMomentum;
 typedef std::pair<threeMomentum, threeMomentum> sinkSourceMomenta;
@@ -76,10 +76,10 @@ inline threeMomentum cyclicPermute(const int n, const threeMomentum &p){
   return threeMomentum({ p[n % 3], p[ (1+n) % 3], p[ (2+n) % 3 ]});
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 namespace boost{
-  inline std::size_t hash_value(const CPSfit::threeMomentum &p){
+  inline std::size_t hash_value(const SARLaC::threeMomentum &p){
   std::size_t seed = 0;
   boost::hash_combine(seed, p[0]);
   boost::hash_combine(seed, p[1]);

@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 jackknifeDistributionD errorWeightedAverage(const jackknifeDistributionD &a, const jackknifeDistributionD &b){
   double erra = a.standardError();
@@ -141,7 +141,7 @@ struct correlationFunctionAccessor{
   typedef correlationFunction<double,DistributionType> CorrFunc;
   inline static DistributionType & at(CorrFunc &corr, const int t){ return corr.value(t); }
   inline static const DistributionType & at(const CorrFunc &corr, const int t){ return corr.value(t); }
-  inline static CorrFunc errorWeightedAverage(const CorrFunc &a, const CorrFunc &b){ return CPSfit::errorWeightedAverage(a,b); }
+  inline static CorrFunc errorWeightedAverage(const CorrFunc &a, const CorrFunc &b){ return SARLaC::errorWeightedAverage(a,b); }
   inline static size_t size(const CorrFunc &corr){ return corr.size(); }
   inline static std::string printCoord(const CorrFunc &corr, const int t){ return anyToStr(t); }
   inline static std::string printValue(const DistributionType &dist){ return combDistPrint<DistributionType>::print(dist); }
@@ -153,7 +153,7 @@ correlationFunction<double,DistributionType> combineResampledDataSets(const std:
   return combineResampledDataSetsGeneric<correlationFunction<double,DistributionType>, correlationFunctionAccessor<DistributionType> >(sjack, data_info_map);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

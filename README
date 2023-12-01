@@ -1,0 +1,13 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Statistical Analysis and Regression for Lattice Calculations (SARLaC) is a modern C++ framework and set of tools for data analysis primarily aimed at lattice QCD. 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Components include:
+	   - Resampling (bootstrap, jackknife) of data for standard error estimation, etc with data encapsulated in "distribution" objects, following a strategy developed by 
+	     Peter Boyle for UKfit
+	   - Non-linear regression functionality for scalar and array (distribution) data types with a built-in optimal solver and optional linkage to other fit libraries
+	   - Goodness of fit estimation by chi^2 and Hotelling T^2 as well as a bootstrap-based technique for general null distributions
+	   - Expression-template based manipulation of distribution objects for optimized analysis
+	   - Functionality to automatically generate Python MatPlotLib scripts containing analysis results
+	   - Convenience wrappers around BLAS functionality commonly used for analysis include matrix inversion, (generalized-)eigenvalue computation, etc
+	   - Serialization of data objects in binary format via HDF5 wrappers
+	   - A rich parser for inputting configuration to applications

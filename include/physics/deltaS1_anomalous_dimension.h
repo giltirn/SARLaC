@@ -7,7 +7,7 @@
 #include<tensors/basic_square_matrix.h>
 #include<physics/valord.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 void cleanup(BasicSquareMatrix<double> &m, const double tol = 1e-12){
   for(int i=0;i<m.size();i++)
@@ -332,5 +332,5 @@ struct DeltaS1anomalousDimension{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

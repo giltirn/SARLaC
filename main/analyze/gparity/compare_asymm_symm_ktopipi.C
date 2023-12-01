@@ -11,7 +11,7 @@ int main(void){
 
 #include <ktopipi_common/ktopipi_common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <compare_asymm_symm_ktopipi/cmdline.h>
 #include <compare_asymm_symm_ktopipi/args.h>

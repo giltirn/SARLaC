@@ -5,7 +5,7 @@
 #include<physics/luscherzeta.h>
 #include<physics/delta_0_pheno.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 GENERATE_ENUM_AND_PARSER(PhenoCurve, (None)(Schenk)(Colangelo) )
 GENERATE_ENUM_AND_PARSER(XaxisUnits, (Physical)(Lattice) )

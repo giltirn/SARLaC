@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_NUMERIC_TENSOR_CLASS_H_
-#define _CPSFIT_NUMERIC_TENSOR_CLASS_H_
+#ifndef _SARLAC_NUMERIC_TENSOR_CLASS_H_
+#define _SARLAC_NUMERIC_TENSOR_CLASS_H_
 
 #include<iostream>
 #include<vector>
@@ -10,7 +10,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<tensors/numeric_tensor/helper_structs.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename DataType, int Rank>
 class NumericTensor{
@@ -139,10 +139,10 @@ public:
 };
 
 template<typename DataType, int Rank>
-inline void write(CPSfit::HDF5writer &writer, const NumericTensor<DataType,Rank> &d, const std::string &tag){ d.write(writer,tag); }
+inline void write(SARLaC::HDF5writer &writer, const NumericTensor<DataType,Rank> &d, const std::string &tag){ d.write(writer,tag); }
 template<typename DataType, int Rank>
-inline void read(CPSfit::HDF5reader &reader, NumericTensor<DataType,Rank> &d, const std::string &tag){ d.read(reader,tag); }
+inline void read(SARLaC::HDF5reader &reader, NumericTensor<DataType,Rank> &d, const std::string &tag){ d.read(reader,tag); }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

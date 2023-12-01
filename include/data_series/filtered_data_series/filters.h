@@ -4,7 +4,7 @@
 #include<config.h>
 #include<data_series/filtered_data_series/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Only include coordinates within (outside if invert active) some range.
 template<typename GeneralizedCoordinate>
@@ -25,6 +25,6 @@ public:
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

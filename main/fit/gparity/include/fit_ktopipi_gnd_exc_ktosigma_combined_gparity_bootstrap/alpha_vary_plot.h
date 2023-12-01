@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Generate a plot a each matrix element on a particular timeslice and tsep_K_snk as a function of varying the coeffcient of alpha away from 1
 template<typename DistributionType, typename BinResampler>
@@ -93,6 +93,6 @@ struct AlphaVaryPlotArgs{
 GENERATE_PARSER(AlphaVaryPlotArgs, ALPHA_VARY_PLOT_ARGS_MEMBERS);
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,9 +1,9 @@
-#ifndef _CPSFIT_PRINTMANAGER_H_
-#define _CPSFIT_PRINTMANAGER_H_
+#ifndef _SARLAC_PRINTMANAGER_H_
+#define _SARLAC_PRINTMANAGER_H_
 
 #include<utils/macros.h>
 #include<distribution/distribution_print/printers.h>
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A class that stores a singleton copy of the printer for a given type. The current printer is used in the stream operators for the distributions. The printer can be overridden at arbitrary time
 template<typename DistributionType>
@@ -21,5 +21,5 @@ struct distributionPrint{
 
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -6,7 +6,7 @@
 
 #include "args.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 void loadFrozenParameters(jackknifeDistributionD &mK, jackknifeDistributionD &cK,
 			  jackknifeDistributionD &E0, jackknifeDistributionD &E1,
@@ -40,6 +40,6 @@ void loadFrozenParameters(jackknifeDistributionD &mK, jackknifeDistributionD &cK
   std::cout << "E1 = " << E1 << std::endl;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,6 +1,6 @@
 #include <pipi_common/pipi_common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_pipi_gparity_sampleAMA/args.h>
 #include <fit_pipi_gparity_sampleAMA/cmdline.h>

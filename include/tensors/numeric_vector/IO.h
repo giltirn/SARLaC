@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_NUMERIC_VECTOR_IO_H_
-#define _CPSFIT_NUMERIC_VECTOR_IO_H_
+#ifndef _SARLAC_NUMERIC_VECTOR_IO_H_
+#define _SARLAC_NUMERIC_VECTOR_IO_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_vector/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #ifdef HAVE_HDF5
 template<typename D>
@@ -23,6 +23,6 @@ std::ostream & operator<<(std::ostream & stream, const NumericVector<Numeric> &v
   return stream;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

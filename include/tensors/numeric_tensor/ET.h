@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_NUMERIC_TENSOR_ET_H_
-#define _CPSFIT_NUMERIC_TENSOR_ET_H_
+#ifndef _SARLAC_NUMERIC_TENSOR_ET_H_
+#define _SARLAC_NUMERIC_TENSOR_ET_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<tensors/numeric_tensor/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Numeric tensor stuff
 struct _NTcommonproperties{
@@ -154,5 +154,5 @@ inline auto operator*(T &&a, U &&b)->decltype( binaryHelper<ETNumericTensorMatri
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

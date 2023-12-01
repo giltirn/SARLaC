@@ -9,7 +9,7 @@
 #include<data_series.h>
 #include<tensors.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Distribution types
 typedef distribution<double> distributionD;
@@ -78,6 +78,6 @@ typedef correlationFunction<double,superMultiDistributionD> superMultiCorrelatio
 typedef NumericSquareMatrix<jackknifeDistribution<double> >  jackknifeSquareMatrixD;
 typedef NumericSquareMatrix<jackknifeDistribution<float> >  jackknifeSquareMatrixF;
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -17,7 +17,7 @@
 #include<parser/parser.h>
 #include<tensors/gsl_svdinverse.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //The choice of the dampening matrix can have an effect on the fit's stability. cf. section 2.2 of arXiv:1201.5885
 
@@ -348,6 +348,6 @@ public:
 };
 #undef MINPRINT
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

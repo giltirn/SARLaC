@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_PARSER_TOOLS_H_
-#define _CPSFIT_PARSER_TOOLS_H_
+#ifndef _SARLAC_PARSER_TOOLS_H_
+#define _SARLAC_PARSER_TOOLS_H_
 
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/include/support_istream_iterator.hpp>
@@ -9,7 +9,7 @@
 #include<utils/utils.h>
 #include<parser/parser/parser_macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 namespace parser_tools{
   namespace ascii = boost::spirit::x3::ascii;
@@ -170,5 +170,5 @@ namespace parser_tools{
   
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

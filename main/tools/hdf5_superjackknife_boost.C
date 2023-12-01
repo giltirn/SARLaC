@@ -5,7 +5,7 @@
 
 //Take a regular jackknife distribution and boost it to a "simple" superjackknife distribution - i.e. just a regular jackknife class instance but setup as a superjackknife
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 std::vector<int> parseIndices(const std::string &ind){
   std::vector<int> indices;

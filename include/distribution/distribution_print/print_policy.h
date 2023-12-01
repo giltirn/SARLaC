@@ -1,9 +1,9 @@
-#ifndef _CPSFIT_PRINTPOLICY_H_
-#define _CPSFIT_PRINTPOLICY_H_
+#ifndef _SARLAC_PRINTPOLICY_H_
+#define _SARLAC_PRINTPOLICY_H_
 
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Use policies to control how the central value and error are defined for a particular distribution
 
@@ -14,5 +14,5 @@ struct printStats{
   inline static auto error(const DistributionType &d)->decltype(d.standardError()){ return d.standardError(); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

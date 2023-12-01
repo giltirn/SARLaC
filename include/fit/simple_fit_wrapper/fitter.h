@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_SIMPLE_FIT_WRAPPER_FITTER_H
-#define _CPSFIT_SIMPLE_FIT_WRAPPER_FITTER_H
+#ifndef _SARLAC_SIMPLE_FIT_WRAPPER_FITTER_H
+#define _SARLAC_SIMPLE_FIT_WRAPPER_FITTER_H
 
 #include<config.h>
 #include<utils/macros.h>
@@ -11,7 +11,7 @@
 #include<distribution/bootstrap.h>
 #include<distribution/boot_jackknife.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //BaseDistributionType is the distribution type under which the data, chisq, etc are vectorized. Usually this is jackknifeDistribution<double> 
 //but it could be bootstrap for example
@@ -209,6 +209,6 @@ private:
 
 #include "implementation/fitter_impl.tcc"
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

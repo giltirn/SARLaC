@@ -4,7 +4,7 @@
 #include<random.h>
 #include<tensors.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 
 int main(void){

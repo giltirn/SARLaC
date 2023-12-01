@@ -1,7 +1,7 @@
 //Demonstrate the usage of the enumerated_struct macros
 #include<containers/enumerated_struct.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //Define for a struct 'Params' of 2 double members A and B with defaults 1.0 and 2.0 respectively
 #define PARAMS (Params, double, (A)(B), (1.0)(2.0))

@@ -6,7 +6,7 @@
 
 #include "raw_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Do a front-half / back-half analysis of each data point
 
@@ -78,6 +78,6 @@ void frontHalfBackHalfAnalysis(const RawData &raw,
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -9,7 +9,7 @@
 #include<utils/macros.h>
 #include<utils/utils/string.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Expect a file with line of the following format:
 //<OUTER CONFIG> <DIRECTORY> <INNER_CONFIG> <TAG>
@@ -202,6 +202,6 @@ std::set<int> binningPrune(const std::set<int> &in, const int bin_size){
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

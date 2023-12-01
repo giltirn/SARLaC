@@ -5,7 +5,7 @@
 #include<ET/generic_ET.h>
 #include<distribution/jackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename A, template<typename> class V>
   struct getElem<jackknifeDistribution<A,V> >{
@@ -14,5 +14,5 @@ template<typename A, template<typename> class V>
   static inline size_t common_properties(const jackknifeDistribution<A,V> &v){ return v.size(); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

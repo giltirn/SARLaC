@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_TEMPLATE_WIZARDRY_MATRIX_VECTOR_H_
-#define _CPSFIT_TEMPLATE_WIZARDRY_MATRIX_VECTOR_H_
+#ifndef _SARLAC_TEMPLATE_WIZARDRY_MATRIX_VECTOR_H_
+#define _SARLAC_TEMPLATE_WIZARDRY_MATRIX_VECTOR_H_
 
 //Metaprogramming constructs for obtaining information about arrays, vectors and matrices
 #include<cstdlib>
@@ -10,7 +10,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry/types.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Check if type is an std::vector
 template<typename T>
@@ -104,5 +104,5 @@ struct hasSizeMethod<T, typename Void<decltype( ((T*)(NULL))->size() )>::type>{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -7,7 +7,7 @@
 #include<distribution/distribution_hdf5io_conventional/io_format.h>
 #include<distribution/boot_jackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #ifdef HAVE_HDF5
 
@@ -76,11 +76,11 @@ struct getDataType<bootJackknifeDistribution<T,V>,1>{ typedef T type; };
 
 template<typename T, template<typename> class V>
 struct standardIOformat<bootJackknifeDistribution<T,V> >{
-  inline static void write(HDF5writer &writer, const std::vector<bootJackknifeDistribution<T,V> > &value, const std::string &tag){ CPSfit::write(writer,value,tag); } //no option to flatten for boot jack
-  inline static void read(HDF5reader &reader, std::vector<bootJackknifeDistribution<T,V> > &value, const std::string &tag){ CPSfit::read(reader,value,tag); }
-  inline static void write(HDF5writer &writer, const std::vector<std::vector<bootJackknifeDistribution<T,V> > > &value, const std::string &tag){ CPSfit::write(writer,value,tag); }
-  inline static void read(HDF5reader &reader, std::vector<std::vector<bootJackknifeDistribution<T,V> > > &value, const std::string &tag){ CPSfit::read(reader,value,tag); }  
+  inline static void write(HDF5writer &writer, const std::vector<bootJackknifeDistribution<T,V> > &value, const std::string &tag){ SARLaC::write(writer,value,tag); } //no option to flatten for boot jack
+  inline static void read(HDF5reader &reader, std::vector<bootJackknifeDistribution<T,V> > &value, const std::string &tag){ SARLaC::read(reader,value,tag); }
+  inline static void write(HDF5writer &writer, const std::vector<std::vector<bootJackknifeDistribution<T,V> > > &value, const std::string &tag){ SARLaC::write(writer,value,tag); }
+  inline static void read(HDF5reader &reader, std::vector<std::vector<bootJackknifeDistribution<T,V> > > &value, const std::string &tag){ SARLaC::read(reader,value,tag); }  
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

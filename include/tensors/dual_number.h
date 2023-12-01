@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DUAL_NUMBER_H_
-#define _CPSFIT_DUAL_NUMBER_H_
+#ifndef _SARLAC_DUAL_NUMBER_H_
+#define _SARLAC_DUAL_NUMBER_H_
 
 #include<iostream>
 #include<cmath>
@@ -7,7 +7,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A naive implementation for dual numbers (cf https://en.wikipedia.org/wiki/Automatic_differentiation)
 
@@ -135,6 +135,6 @@ inline dual acosh(const dual &a){
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

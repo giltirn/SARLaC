@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_EIGENSOLVE_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_EIGENSOLVE_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_EIGENSOLVE_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_EIGENSOLVE_H_
 
 #include<mutex>
 #include<distribution/distribution_iterate.h>
@@ -8,7 +8,7 @@
 #include<tensors/numeric_square_matrix/class.h>
 #include<utils/template_wizardry/complexify.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, int is_distribution>
 struct _SquareMatrixEigensolve{};
@@ -310,6 +310,6 @@ std::vector<T> nonSymmetricMatrixGEVPsolve(std::vector<NumericVector<Complexify<
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

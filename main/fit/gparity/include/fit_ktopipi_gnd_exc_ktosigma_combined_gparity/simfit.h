@@ -12,7 +12,7 @@
 #include "simfit_multistate.h"
 #include "simfit_multistate_wavg.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template< template<typename, template<typename> class> class DistributionType > 
 simultaneousFitBase<DistributionType>* getFitter(const SimFitFunction ff, const int nstate, const std::vector<PiPiOperator> &operators){
@@ -73,6 +73,6 @@ std::vector<std::vector<DistributionType<double,V> > > convert7basisTo10basis(co
   return params_10;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

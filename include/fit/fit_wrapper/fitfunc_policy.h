@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FIT_WRAPPER_FITFUNC_POLICY_H_
-#define _CPSFIT_FIT_WRAPPER_FITFUNC_POLICY_H_
+#ifndef _SARLAC_FIT_WRAPPER_FITFUNC_POLICY_H_
+#define _SARLAC_FIT_WRAPPER_FITFUNC_POLICY_H_
 
 //The fit func policy contains and manipulates the fit function. It stores/points to the fit function and implements the extraction of the function's parameters for a given sample. In this way it can wrap invisibly around the use of a frozen fit function
 
@@ -9,7 +9,7 @@
 #include<fit/fitfunc/fitfunc_frozen.h>
 #include<fit/param_bounds.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //User-implemented policies should define the following types
 #define INHERIT_FITFUNC_POLICY_TYPEDEFS(FROM)		       \
@@ -184,5 +184,5 @@ public:
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

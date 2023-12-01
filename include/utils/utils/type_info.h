@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_UTILS_TYPE_INFO_H_
-#define _CPSFIT_UTILS_TYPE_INFO_H_
+#ifndef _SARLAC_UTILS_TYPE_INFO_H_
+#define _SARLAC_UTILS_TYPE_INFO_H_
 #include<cxxabi.h>
 #include<string>
 #include<memory>
@@ -8,7 +8,7 @@
 #include<utils/macros.h>
 
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Remove the name mangling
 inline std::string demangle( const char* mangled_name ) {
@@ -23,5 +23,5 @@ template<typename T>
 inline std::string printType(){ return demangle(typeid(T).name()); }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

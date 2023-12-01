@@ -94,7 +94,7 @@ public:
 };
 
 template<typename T>
-struct CPSfit::getElem< GlobalFitParams<T> >{
+struct SARLaC::getElem< GlobalFitParams<T> >{
   static inline double elem(const GlobalFitParams<T> &v, const int i){ return v(i); }
   static inline double& elem(GlobalFitParams<T> &v, const int i){ return v(i); }
   static inline typename GlobalFitParams<T>::_cprops common_properties(const GlobalFitParams<T> &v){ return v.cprops(); }

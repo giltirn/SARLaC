@@ -3,7 +3,7 @@
 #include<physics/delta_0_pheno.h>
 #include<common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //Parse a space-separated set of integers
 std::vector<int> parseIntVector(const std::string &from){

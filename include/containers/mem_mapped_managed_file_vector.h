@@ -6,7 +6,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<containers/mem_mapped_managed_file_vector/handle_manager.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class memmappedManagedFileVector{
@@ -102,6 +102,6 @@ void read(HDF5reader &reader, memmappedManagedFileVector<T> &value, const std::s
 #endif
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

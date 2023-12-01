@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_SINGLE_VALUE_CONTAINER_H_
-#define _CPSFIT_SINGLE_VALUE_CONTAINER_H_
+#ifndef _SARLAC_SINGLE_VALUE_CONTAINER_H_
+#define _SARLAC_SINGLE_VALUE_CONTAINER_H_
 
 //In some cases we wish to interface with parts of the library that expect container-like objects with various canonical methods, but we wish to use a simple POD type. This class wraps a POD type with a container-like interface complete with the usual expression template engine
 
@@ -8,7 +8,7 @@
 #include<utils/utils.h>
 #include<ET/generic_ET.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class singleValueContainer{
@@ -35,5 +35,5 @@ struct getElem<singleValueContainer<T> >{
   inline static int common_properties(const singleValueContainer<T> &v){ return 1; }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

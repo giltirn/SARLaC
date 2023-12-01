@@ -13,7 +13,7 @@
 #include <fit.h>
 #include <common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #define FIT_MPI_JACKKNIFE_PROPAGATE_CENTRAL
 

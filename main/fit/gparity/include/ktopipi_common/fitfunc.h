@@ -10,7 +10,7 @@
 
 #include "enums.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //double t; //K->op separation
 //int tsep_k_pi;
@@ -517,6 +517,6 @@ inline void fitfuncCall(const KtoPiPiFitFunc fitfunc, const Inputs &inputs){
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

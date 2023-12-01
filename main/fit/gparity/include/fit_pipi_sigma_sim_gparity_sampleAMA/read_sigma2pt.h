@@ -7,7 +7,7 @@
 #include <pipi_common/read_data_sigma.h>
 #include <pipi_common/resampled_data_sigma.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct Sigma2ptMapReadPolicy{
   std::vector<DataLocationInfo const*> dinfo_vec;
@@ -60,6 +60,6 @@ void performSigma2ptVacuumSubtraction(resampledCorrFuncType &out,
   out = resampledCorrFuncType(in.size(), [&](const int t){ return typename resampledCorrFuncType::ElementType(in.coord(t), in.value(t) - vacsub.value(t)); }); 
 }
       
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

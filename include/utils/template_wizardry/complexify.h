@@ -9,7 +9,7 @@
 #include "number.h"
 #include "type_classify.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Determine the (std::)complex type corresponding to a scalar type that can be POD or a distribution
 
@@ -68,6 +68,6 @@ using Realify =
   typename _get_complex_type_n::getReal<T, _get_complex_type_n::classify<T> >::type;
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

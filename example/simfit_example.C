@@ -9,7 +9,7 @@
 #include<parser.h>
 #include<common.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //Coordinate, parameters and param derivatives for aggregate fit func
 struct Coord{
@@ -100,7 +100,7 @@ public:
 };
 
 template<>
-struct CPSfit::getElem<Params>{
+struct SARLaC::getElem<Params>{
   static inline auto elem(const Params &v, const int i)->decltype(v(i)){ return v(i); }
   static inline auto elem(Params &v, const int i)->decltype(v(i)){ return v(i); }
   static int common_properties(const Params &v){ return 0; }

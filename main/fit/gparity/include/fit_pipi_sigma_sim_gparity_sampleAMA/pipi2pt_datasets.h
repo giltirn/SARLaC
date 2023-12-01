@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Pipi operators with pion in momentum set {+-1, +-1, +-1}
 std::map<SubensTag, std::set<int> > getGroundPiPiSubsets(const DataMap &dmap){
@@ -46,6 +46,6 @@ std::map<DataTag, std::map<int, DataLocationInfo const*> > getGroundPiPiDataSubs
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_TEMPLATE_WIZARDRY_NUMBER_H_
-#define _CPSFIT_TEMPLATE_WIZARDRY_NUMBER_H_
+#ifndef _SARLAC_TEMPLATE_WIZARDRY_NUMBER_H_
+#define _SARLAC_TEMPLATE_WIZARDRY_NUMBER_H_
 
 //Metaprogramming constructs for obtaining information about numerical types
 
@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<complex>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Check if type is an std::complex
 template<typename T>
@@ -47,5 +47,5 @@ struct is_floating_point_or_complex{ enum { value = std::is_floating_point<T>::v
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

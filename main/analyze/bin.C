@@ -5,7 +5,7 @@
 #include<common.h>
 #include<utils.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 std::vector<int> parseIndices(const std::string &ind){
   std::vector<int> indices;

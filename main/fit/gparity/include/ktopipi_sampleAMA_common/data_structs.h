@@ -6,7 +6,7 @@
 
 #include<ktopipi_common/amplitude_data_ktopipi.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct readKtoPiPiDataSampleAMAoptions{
   readKtoPiPiDataOptions read_opts_sloppy_S;
@@ -132,7 +132,7 @@ struct allRawData{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 
 #endif

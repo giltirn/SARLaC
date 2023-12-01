@@ -10,7 +10,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class GSLvector{  
   gsl_vector * v;
@@ -126,6 +126,6 @@ inline GSLvector operator/(const GSLvector &v,const double x){
   GSLvector out(v); out /= x; return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

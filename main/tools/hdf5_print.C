@@ -10,7 +10,7 @@
 #include<parser.h>
 #include<plot.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //A program to print arrays of distributions stored in the conventional format (cf distribution_IO.h writeParamsStandard/readParamsStandard)
 

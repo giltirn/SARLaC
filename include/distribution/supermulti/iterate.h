@@ -5,7 +5,7 @@
 #include<distribution/supermulti/class.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 struct iterate<superMultiDistribution<T> >{
@@ -24,5 +24,5 @@ struct iterate<superMultiDistribution<T> >{
   
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

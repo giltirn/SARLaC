@@ -5,7 +5,7 @@
 #include<utils/macros.h>
 #include<physics/deltaS1_anomalous_dimension.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Equation number references are for Buchalla et al https://arxiv.org/pdf/hep-ph/9512380.pdf
 
@@ -167,6 +167,6 @@ struct DeltaS1WilsonCoeffs{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

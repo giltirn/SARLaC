@@ -17,7 +17,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Requires a *real* floating point *square* matrix with  (i,j) accessor and size() operation
 template<typename MatrixOutputType, typename MatrixInputType,
@@ -237,6 +237,6 @@ struct GSL_MoorePenrosePseudoInverse{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

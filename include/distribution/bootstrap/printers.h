@@ -6,7 +6,7 @@
 #include<distribution/bootstrap/class.h>
 #include<distribution/distribution_print/print_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 struct bootstrapAsymmetricErrorPrinter{};
@@ -19,5 +19,5 @@ struct bootstrapAsymmetricErrorPrinter<bootstrapDistribution<T,U> >: public dist
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

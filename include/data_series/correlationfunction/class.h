@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_CORRELATION_FUNCTION_CLASS_H_
-#define _CPSFIT_CORRELATION_FUNCTION_CLASS_H_
+#ifndef _SARLAC_CORRELATION_FUNCTION_CLASS_H_
+#define _SARLAC_CORRELATION_FUNCTION_CLASS_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<data_series/correlationfunction/types.h>
 #include<data_series/data_series.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A correlationFunction is the same as a dataSeries but it has an expression-template engine defining element-wise functionality on the data values
 template<typename _GeneralizedCoordinate, typename DistributionType, template<typename,typename> class PairType = CorrFuncTaggedPair>
@@ -34,5 +34,5 @@ public:
   correlationFunction<GeneralizedCoordinate,DistributionType,PairType> & operator=(correlationFunction<GeneralizedCoordinate,DistributionType,PairType> &&) = default;
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

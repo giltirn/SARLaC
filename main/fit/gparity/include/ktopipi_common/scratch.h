@@ -12,7 +12,7 @@
 #include "fitfunc.h"
 #include "data_containers.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class scratch{
   std::vector<std::string> scratch_files;
@@ -100,6 +100,6 @@ public:
 
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

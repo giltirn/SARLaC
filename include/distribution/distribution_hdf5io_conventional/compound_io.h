@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_COMPOUND_IO_H_
-#define _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_COMPOUND_IO_H_
+#ifndef _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_COMPOUND_IO_H_
+#define _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_COMPOUND_IO_H_
 
 //IO routines for distributions of compound (struct) types
 
@@ -8,7 +8,7 @@
 #include<distribution/distribution_hdf5io_conventional/helper.h>
 #include<distribution/distribution_hdf5io_conventional/io_format.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #ifdef HAVE_HDF5
 
@@ -120,5 +120,5 @@ void readParamsStandard(std::vector<DistributionOfStructType> &params, const std
 
 #endif
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

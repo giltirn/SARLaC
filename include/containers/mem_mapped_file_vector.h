@@ -9,7 +9,7 @@
 #include <utils/macros.h>
 #include <serialize/hdf5_serialize.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class memmappedFileVector{
@@ -123,6 +123,6 @@ void read(HDF5reader &reader, memmappedFileVector<T> &value, const std::string &
 #endif
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

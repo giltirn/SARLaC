@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_UTILS
-#define _CPSFIT_DISTRIBUTION_UTILS
+#ifndef _SARLAC_DISTRIBUTION_UTILS
+#define _SARLAC_DISTRIBUTION_UTILS
 
 #include<config.h>
 #include<utils/macros.h>
@@ -11,7 +11,7 @@
 #include<distribution/boot_jackknife.h>
 
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename ResampledDistributionType, typename RawDistributionType>
 struct _bin_resample_t{ 
@@ -217,5 +217,5 @@ jackknifeDistribution<double> fakeJackknife(const double mean, const double std_
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

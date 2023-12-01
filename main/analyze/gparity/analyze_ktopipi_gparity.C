@@ -5,7 +5,7 @@
 #include<fit.h>
 #include<random.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include<analyze_ktopipi_gparity/params.h>
 #include<analyze_ktopipi_gparity/LLfactor.h>

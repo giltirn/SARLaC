@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<parser/expression_parse/AST.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A tokenize for math expressions
 namespace _mathExpressionTokenize{
@@ -33,5 +33,5 @@ std::list<std::string> mathExpressionTokenize(const std::string &s){
   return tokens;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

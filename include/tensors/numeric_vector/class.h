@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_NUMERIC_VECTOR_CLASS_H_
-#define _CPSFIT_NUMERIC_VECTOR_CLASS_H_
+#ifndef _SARLAC_NUMERIC_VECTOR_CLASS_H_
+#define _SARLAC_NUMERIC_VECTOR_CLASS_H_
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -10,7 +10,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<ET/generic_ET.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename Numeric>
 class NumericVector{
@@ -93,6 +93,6 @@ public:
   GENERATE_HDF5_SERIALIZE_METHOD((v));
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

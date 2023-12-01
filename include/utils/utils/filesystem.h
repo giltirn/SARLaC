@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_UTILS_FILESYSTEM_H_
-#define _CPSFIT_UTILS_FILESYSTEM_H_
+#ifndef _SARLAC_UTILS_FILESYSTEM_H_
+#define _SARLAC_UTILS_FILESYSTEM_H_
 
 #include<vector>
 #include<string>
@@ -12,7 +12,7 @@
 #include<utils/macros.h>
 #include<utils/utils/error.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 inline bool fileExists(const std::string &filename){
   std::ifstream infile(filename);
@@ -44,5 +44,5 @@ inline bool createDirectory(const std::string &dir){
   return boost::filesystem::create_directories(dir);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

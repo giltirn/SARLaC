@@ -1,11 +1,11 @@
-#ifndef CPSFIT_PARAM_BOUNDS_H
-#define CPSFIT_PARAM_BOUNDS_H
+#ifndef SARLAC_PARAM_BOUNDS_H
+#define SARLAC_PARAM_BOUNDS_H
 
 #include<config.h>
 #include<utils/macros.h>
 #include<parser/parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Fit parameter bounding can be achieved by transformations of bounded functions onto continous unbounded functions
 //Specifically the input parameter is assumed to be bound and we map onto an unbounded range in which the minimizer performs its minimization
@@ -106,6 +106,6 @@ struct boundedParameterTransform{
 
 GENERATE_PARSER(boundedParameterTransform, (int, param)(ParameterBound, bound)(double, min)(double, max) );
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

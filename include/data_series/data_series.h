@@ -9,7 +9,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<distribution/distribution_iterate.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A class containing a series of data, for example a time series
 template<typename _GeneralizedCoordinate, typename _DataType, template<typename,typename> class _PairType = std::pair>
@@ -115,6 +115,6 @@ void read(HDF5reader &reader, dataSeries<C,D,P> &value, const std::string &tag){
 
 #endif
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

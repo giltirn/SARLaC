@@ -12,7 +12,7 @@
 #include<tensors/gsl_eigensolve.h>
 #include<tensors/gsl_svdinverse.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 class BasicSquareMatrix{
@@ -154,6 +154,6 @@ inline int svd_inverse(BasicSquareMatrix<T> &Ainv,
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

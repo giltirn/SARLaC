@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_FIT_WRAPPER_COSTFUNC_CORRELATED_COV_FIT_POLICY_H_
-#define _CPSFIT_FIT_WRAPPER_COSTFUNC_CORRELATED_COV_FIT_POLICY_H_
+#ifndef _SARLAC_FIT_WRAPPER_COSTFUNC_CORRELATED_COV_FIT_POLICY_H_
+#define _SARLAC_FIT_WRAPPER_COSTFUNC_CORRELATED_COV_FIT_POLICY_H_
 
 #include<config.h>
 #include<utils/macros.h>
@@ -7,7 +7,7 @@
 #include<fit/fit_wrapper/base_typedefs.h>
 #include<fit/fit_wrapper/fitfunc_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename FitFuncPolicy>
 class correlatedCovFitPolicy: public FitFuncPolicy{
@@ -48,5 +48,5 @@ protected:
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

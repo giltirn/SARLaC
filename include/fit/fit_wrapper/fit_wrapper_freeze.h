@@ -13,7 +13,7 @@
 #include<distribution/bootstrap.h>
 #include<distribution/distribution_hdf5io_conventional.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(FreezeDataReaderType, (UKfitXMLvectorReader)(HDF5fileReader)(ConstantValue) );
 
@@ -167,6 +167,6 @@ void readFrozenParams(fitter<FitFuncPolicies> &fitter, const std::string &freeze
   fitter.freeze(freeze, values);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

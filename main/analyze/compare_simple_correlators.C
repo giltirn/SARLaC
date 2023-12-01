@@ -3,7 +3,7 @@
 #include<parser.h>
 #include<plot.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include<fit_simple/read_data.h>
 #include<compare_simple_correlators/args.h>

@@ -1,6 +1,6 @@
 #include<physics/luscherzeta.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 //This is just a basic calculator with assignable symbols!
 int main(){

@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_TEMPLATE_WIZARDRY_DISTRIBUTION_H_
-#define _CPSFIT_TEMPLATE_WIZARDRY_DISTRIBUTION_H_
+#ifndef _SARLAC_TEMPLATE_WIZARDRY_DISTRIBUTION_H_
+#define _SARLAC_TEMPLATE_WIZARDRY_DISTRIBUTION_H_
 
 //Metaprogramming constructs for obtaining information about distribution-like objects
 #include<cstdlib>
@@ -9,7 +9,7 @@
 #include "types.h"
 #include "type_classify.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Check if a class T contains a typedef by name DataType
 template<class T, class Fallback = void>
@@ -88,5 +88,5 @@ struct getBaseType{
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

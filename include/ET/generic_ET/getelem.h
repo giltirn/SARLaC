@@ -5,7 +5,7 @@
 
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T>
 struct getElem{
@@ -14,6 +14,6 @@ struct getElem{
   static inline size_t common_properties(const T &v){ return v.size(); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

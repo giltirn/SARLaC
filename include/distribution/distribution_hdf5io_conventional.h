@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_H_
-#define _CPSFIT_DISTRIBUTION_HDF5IO_CONVENTIONAL_H_
+#ifndef _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_H_
+#define _SARLAC_DISTRIBUTION_HDF5IO_CONVENTIONAL_H_
 
 //Here we define a conventional format similar to UKfit in which all DistributionType<T>, where T is some compound structure, are stored as std::vector<DistributionType<double> >. This enables us to write simple external programs to manipulate results
 

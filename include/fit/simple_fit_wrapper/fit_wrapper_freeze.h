@@ -9,7 +9,7 @@
 #include<fit/simple_fit_wrapper/fitter.h>
 #include<fit/simple_fit_wrapper/fitter_single.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //The main function - read and import the  frozen parameters. A struct "FreezeParams" is read in from "freeze_file" and used for perform the required actions
 //For parameter types that don't have a default constructor the user should provide a pointer 'psetup' to a setup instance of the parameter type
@@ -88,6 +88,6 @@ void readFrozenParams(simpleSingleFitWrapper &fitter, const std::string &freeze_
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

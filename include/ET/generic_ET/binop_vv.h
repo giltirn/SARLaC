@@ -9,7 +9,7 @@
 
 //Binary operations with both operands vector type
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<template<typename,typename> class Op, typename T, typename U>
 struct binaryHelper{
@@ -65,6 +65,6 @@ ET_BINOP(ETminus, -, operator-);
 ET_BINOP(ETtimes, *, operator*);
 ET_BINOP(ETdivide, /, operator/);
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

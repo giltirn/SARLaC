@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_CLASS_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_CLASS_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_CLASS_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_CLASS_H_
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -11,7 +11,7 @@
 #include<ET/generic_ET.h>
 #include<tensors/numeric_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename Numeric>
 class NumericSquareMatrix{ //square matrix
@@ -138,5 +138,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

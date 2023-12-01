@@ -2,7 +2,7 @@
 #include<containers/single_value_container.h>
 #include<tensors/numeric_square_matrix.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //A simple one-dimensional solver for the value of x that satisfies  f(x) = 0
 
@@ -83,4 +83,4 @@ inline double solveOneD(const Function &func, const double guess, double *cost_o
   return solveOneD(func, guess, params, cost_out);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

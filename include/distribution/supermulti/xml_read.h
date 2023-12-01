@@ -5,7 +5,7 @@
 #include<distribution/superjackknife/xml_read.h>
 #include<distribution/supermulti/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //If try_reuse_layout, the reader will attempt to reuse layouts in the global layout manager if suitable
 void read(XMLreader &reader, superMultiDistribution<double> &v, const std::string &tag, bool try_reuse_layout = false){
@@ -84,5 +84,5 @@ void read(XMLreader &reader, superMultiDistribution<double> &v, const std::strin
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

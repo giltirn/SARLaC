@@ -4,7 +4,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<class T, class Fallback = void>
 struct has_ET_tag{ enum{ value = 0 }; };
@@ -31,6 +31,6 @@ struct get_ET_tag{
 #define ENABLE_IF_TWO_ET_LEAF_EQUAL_TAG(T,U,V) typename std::enable_if<is_ET_leaf<T>::value && is_ET_leaf<U>::value && std::is_same<typename T::ET_tag,typename U::ET_tag>::value, V>::type
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

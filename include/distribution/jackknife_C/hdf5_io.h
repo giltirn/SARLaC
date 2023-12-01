@@ -7,7 +7,7 @@
 #include<distribution/distribution_hdf5io_basic.h>
 #include<distribution/distribution_hdf5io_conventional/helper.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #ifdef HAVE_HDF5
 
@@ -33,11 +33,11 @@ struct extraFlattenIO<jackknifeCdistribution<T,V> >{
   static inline void write(HDF5writer &writer, const std::vector<jackknifeCdistribution<T,V> > &value){
     std::vector<T> cen(value.size());
     for(int i=0;i<cen.size();i++) cen[i] = value[i].best();
-    CPSfit::write(writer,cen,"central");
+    SARLaC::write(writer,cen,"central");
   }    
   static inline void read(HDF5reader &reader, std::vector<jackknifeCdistribution<T,V> > &value){
     std::vector<T> cen;
-    CPSfit::read(reader,cen,"central");
+    SARLaC::read(reader,cen,"central");
     for(int i=0;i<cen.size();i++) value[i].best() = cen[i];
   }
   static inline void write(HDF5writer &writer, const std::vector<std::vector<jackknifeCdistribution<T,V> > > &value){
@@ -49,11 +49,11 @@ struct extraFlattenIO<jackknifeCdistribution<T,V> >{
       for(int j=0;j<value[i].size();j++)
 	cen[off++] = value[i][j].best();
 
-    CPSfit::write(writer,cen,"central");
+    SARLaC::write(writer,cen,"central");
   }
   static inline void read(HDF5reader &reader, std::vector<std::vector<jackknifeCdistribution<T,V> > > &value){
     std::vector<T> cen;
-    CPSfit::read(reader,cen,"central");
+    SARLaC::read(reader,cen,"central");
 
     int off=0;
     for(int i=0;i<value.size();i++) //has already been resized
@@ -95,7 +95,7 @@ struct standardIOhelper<jackknifeCdistribution<PODtype,V1>, jackknifeCdistributi
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 
 

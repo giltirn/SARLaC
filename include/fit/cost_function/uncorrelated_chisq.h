@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_COST_FUNCTION_UNCORRELATED_CHISQ_H_
-#define _CPSFIT_COST_FUNCTION_UNCORRELATED_CHISQ_H_
+#ifndef _SARLAC_COST_FUNCTION_UNCORRELATED_CHISQ_H_
+#define _SARLAC_COST_FUNCTION_UNCORRELATED_CHISQ_H_
 
 //The chi^2 cost function with a diagonal covariance matrix
 
@@ -9,7 +9,7 @@
 #include<tensors/numeric_square_matrix.h>
 #include<fit/cost_function/invert_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename FitFunction, typename DataContainer, typename _CostType = double,
 	 typename _CostDerivativeType = NumericVector<_CostType>,
@@ -84,5 +84,5 @@ public:
 
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

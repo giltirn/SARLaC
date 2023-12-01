@@ -7,7 +7,7 @@
 #include<distribution/distribution_hdf5io_conventional/io_format.h>
 #include<distribution/block_double_jackknife/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, template<typename> class V>
 void write(HDF5writer &writer, const blockDoubleJackknifeDistribution<T,V> &value, const std::string &tag){
@@ -66,10 +66,10 @@ struct getDataType<blockDoubleJackknifeDistribution<T,V>,1>{ typedef T type; };
 
 template<typename T, template<typename> class V>
 struct standardIOformat<blockDoubleJackknifeDistribution<T,V> >{
-  inline static void write(HDF5writer &writer, const std::vector<blockDoubleJackknifeDistribution<T,V> > &value, const std::string &tag){ CPSfit::write(writer,value,tag); } //no option to flatten for double jack
-  inline static void read(HDF5reader &reader, std::vector<blockDoubleJackknifeDistribution<T,V> > &value, const std::string &tag){ CPSfit::read(reader,value,tag); }
-  inline static void write(HDF5writer &writer, const std::vector<std::vector<blockDoubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ CPSfit::write(writer,value,tag); }
-  inline static void read(HDF5reader &reader, std::vector<std::vector<blockDoubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ CPSfit::read(reader,value,tag); }  
+  inline static void write(HDF5writer &writer, const std::vector<blockDoubleJackknifeDistribution<T,V> > &value, const std::string &tag){ SARLaC::write(writer,value,tag); } //no option to flatten for double jack
+  inline static void read(HDF5reader &reader, std::vector<blockDoubleJackknifeDistribution<T,V> > &value, const std::string &tag){ SARLaC::read(reader,value,tag); }
+  inline static void write(HDF5writer &writer, const std::vector<std::vector<blockDoubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ SARLaC::write(writer,value,tag); }
+  inline static void read(HDF5reader &reader, std::vector<std::vector<blockDoubleJackknifeDistribution<T,V> > > &value, const std::string &tag){ SARLaC::read(reader,value,tag); }  
 };
 
 
@@ -81,14 +81,14 @@ struct standardIOformat<blockDoubleJackknifeDistribution<T,V> >{
 //     std::vector<int> nsample(value.size());
 //     std::vector<int> bin_size(value.size());
 //     for(int i=0;i<value.size();i++){ nsample[i] = value[i].nSamplesUnbinned(); bin_size[i] = value[i].binSize(); }
-//     CPSfit::write(writer,nsample,"nsample");
-//     CPSfit::write(writer,bin_size,"bin_size");
+//     SARLaC::write(writer,nsample,"nsample");
+//     SARLaC::write(writer,bin_size,"bin_size");
 //   }    
 //   static inline void read(HDF5reader &reader, std::vector<superJackknifeDistribution<T> > &value){
 //     std::vector<int> nsample;
 //     std::vector<int> bin_size;
-//     CPSfit::read(reader,nsample,"nsample");
-//     CPSfit::read(reader,bin_size,"bin_size");
+//     SARLaC::read(reader,nsample,"nsample");
+//     SARLaC::read(reader,bin_size,"bin_size");
 //     assert(value.size() == nsample.size());
 //     assert(value.size() == bin_size.size());
 //     for(int i=0;i<value.size();i++) value[i].resize(nsample[i], bin_size[i]);
@@ -106,14 +106,14 @@ struct standardIOformat<blockDoubleJackknifeDistribution<T,V> >{
 //       }
 //     }
 
-//     CPSfit::write(writer,nsample,"nsample");
-//     CPSfit::write(writer,bin_size,"bin_size");
+//     SARLaC::write(writer,nsample,"nsample");
+//     SARLaC::write(writer,bin_size,"bin_size");
 //   }
 //   static inline void read(HDF5reader &reader, std::vector<std::vector<superJackknifeDistribution<T> > > &value){
 //     std::vector<int> nsample;
 //     std::vector<int> bin_size;
-//     CPSfit::read(reader,nsample,"nsample");
-//     CPSfit::read(reader,bin_size,"bin_size");
+//     SARLaC::read(reader,nsample,"nsample");
+//     SARLaC::read(reader,bin_size,"bin_size");
 
 //     int k=0;
 //     for(int i=0;i<value.size();i++){
@@ -126,5 +126,5 @@ struct standardIOformat<blockDoubleJackknifeDistribution<T,V> >{
 // };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

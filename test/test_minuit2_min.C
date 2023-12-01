@@ -15,7 +15,7 @@ int main(const int argc, const char **argv){
 #include<minimizer.h>
 #include<fit.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 template<typename CostFunc>
 void test(const CostFunc &cost,

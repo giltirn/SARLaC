@@ -2,7 +2,7 @@
 
 #include "data_container_common.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename _DistributionType, typename Policies = empty_t>
 class sigmaSelfContractionBase: public Policies{
@@ -124,4 +124,4 @@ inline sigmaSelfContraction reIm(const sigmaSelfContractionZ &in, const int reim
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

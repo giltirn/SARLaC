@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_EFFMASS_FITFUNC_H_
-#define _CPSFIT_EFFMASS_FITFUNC_H_
+#ifndef _SARLAC_EFFMASS_FITFUNC_H_
+#define _SARLAC_EFFMASS_FITFUNC_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<containers/single_value_container.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //For fit functions with a single amplitude coefficient A*f(m,t) we can extract the effective mass by numerically inverting   C(t)/C(t+1) = f(m,t)/f(m,t+1)
 template<typename FitFunc>
@@ -50,5 +50,5 @@ public:
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

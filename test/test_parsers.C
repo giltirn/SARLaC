@@ -2,7 +2,7 @@
 #include<array>
 #include<parser/parser.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #define TEST_MEMBERS \
   ( int, a) \

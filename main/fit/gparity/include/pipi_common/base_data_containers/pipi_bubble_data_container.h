@@ -2,7 +2,7 @@
 
 #include "data_container_common.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #define DAIQIAN_COMPATIBILITY_MODE
 
@@ -152,4 +152,4 @@ inline bubbleData reIm(const bubbleDataZ &in, const int reim){
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

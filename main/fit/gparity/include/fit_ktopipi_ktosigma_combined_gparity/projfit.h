@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 void projectionFit(const std::vector<correlationFunction<amplitudeDataCoord, jackknifeDistributionD> > &ktopipi_A0_all_j,
 		   const std::vector<correlationFunction<amplitudeDataCoord, doubleJackknifeA0StorageType> > &ktopipi_A0_all_dj,
@@ -75,6 +75,6 @@ void projectionFit(const std::vector<correlationFunction<amplitudeDataCoord, jac
   fitAndPlot(A0_all_j,A0_all_dj, Lt, tmin_k_op, tmin_op_snk, fitfunc, correlated, opt);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

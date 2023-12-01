@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_COST_FUNCTION_CORRELATED_CHISQ_TERMS_H_
-#define _CPSFIT_COST_FUNCTION_CORRELATED_CHISQ_TERMS_H_
+#ifndef _SARLAC_COST_FUNCTION_CORRELATED_CHISQ_TERMS_H_
+#define _SARLAC_COST_FUNCTION_CORRELATED_CHISQ_TERMS_H_
 
 //The chi^2 cost function with a non-diagonal covariance matrix
 //GSL minimizer (and possibly others) require that we can express chi^2 = 1/2 \sum_i f_i^2
@@ -21,7 +21,7 @@
 #include<tensors/numeric_tensor.h>
 #include<fit/cost_function/invert_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //This version uses the inverse of the correlation matrix and sigma
 template<typename FitFunction, typename DataContainer,
@@ -153,5 +153,5 @@ public:
 
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

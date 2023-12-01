@@ -9,7 +9,7 @@
 #include<serialize/hdf5_serialize/hdf5_reader.h>
 #include<serialize/hdf5_serialize/read_write_basic.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //For (contiguous) arrays we can read in a compact format if native, otherwise we can read in an un-compact format. 
 //Requires a policy indicating how to allocate and access (cf above)
@@ -37,11 +37,11 @@ inline static void readUncompact(HDF5reader &reader, typename ArrayPolicy::Array
 //For all array types, those with native elements default to compact reads, and those with non-native to uncompact reads
 template<typename ArrayPolicy, IF_NATIVE(typename ArrayPolicy::ElementType)>
 inline static void read(HDF5reader &reader, typename ArrayPolicy::ArrayType &v, const std::string &tag){
-  CPSfit::readCompact<ArrayPolicy>(reader,v,tag);
+  SARLaC::readCompact<ArrayPolicy>(reader,v,tag);
 }
 template<typename ArrayPolicy, IF_NOT_NATIVE(typename ArrayPolicy::ElementType)>
 inline static void read(HDF5reader &reader, typename ArrayPolicy::ArrayType &v, const std::string &tag){
-  CPSfit::readUncompact<ArrayPolicy>(reader,v,tag);
+  SARLaC::readUncompact<ArrayPolicy>(reader,v,tag);
 }
 
 
@@ -55,15 +55,15 @@ struct HDF5readerCArrayPolicy{
 };
 template<typename T>
 inline static void readCompact(HDF5reader &reader, T* &v, const std::string &tag){
-  CPSfit::readCompact<HDF5readerCArrayPolicy<T> >(reader, v, tag);
+  SARLaC::readCompact<HDF5readerCArrayPolicy<T> >(reader, v, tag);
 }
 template<typename T>
 inline static void readUncompact(HDF5reader &reader, T* &v, const std::string &tag){
-  CPSfit::readUncompact<HDF5readerCArrayPolicy<T> >(reader, v, tag);
+  SARLaC::readUncompact<HDF5readerCArrayPolicy<T> >(reader, v, tag);
 }
 template<typename T>
 inline static void read(HDF5reader &reader, T* &v, const std::string &tag){
-  CPSfit::read<HDF5readerCArrayPolicy<T> >(reader, v, tag);
+  SARLaC::read<HDF5readerCArrayPolicy<T> >(reader, v, tag);
 }
 
 //Strings (only compact)
@@ -86,7 +86,7 @@ inline static void read(HDF5reader &reader, std::complex<T> &v, const std::strin
     inline static void resize(ArrayType &v, const int sz){ assert(sz == 2); }
     inline static ElementType* pointer(ArrayType &v){ return reinterpret_cast<T*>(&v); }
   };
-  CPSfit::read<HDF5readerComplexPolicy>(reader, v, tag);
+  SARLaC::read<HDF5readerComplexPolicy>(reader, v, tag);
 }
 
 //std::vector
@@ -99,16 +99,16 @@ struct HDF5readerVectorPolicy{
 };
 template<typename T>
 inline static void readCompact(HDF5reader &reader, std::vector<T> &v, const std::string &tag){
-  CPSfit::readCompact<HDF5readerVectorPolicy<T> >(reader, v, tag);
+  SARLaC::readCompact<HDF5readerVectorPolicy<T> >(reader, v, tag);
 }
 template<typename T>
 inline static void readUncompact(HDF5reader &reader, std::vector<T> &v, const std::string &tag){
-  CPSfit::readUncompact<HDF5readerVectorPolicy<T> >(reader, v, tag);
+  SARLaC::readUncompact<HDF5readerVectorPolicy<T> >(reader, v, tag);
 }
 //For distributions the defaults are specified elsewhere
 template<typename T, IF_NOT_DISTRIBUTION_NATIVE(T)>
 inline static void read(HDF5reader &reader, std::vector<T> &v, const std::string &tag){
-  CPSfit::read<HDF5readerVectorPolicy<T> >(reader, v, tag);
+  SARLaC::read<HDF5readerVectorPolicy<T> >(reader, v, tag);
 }
 
 //Overload compact reads for complex
@@ -121,14 +121,14 @@ struct HDF5readerVectorComplexPolicy{
 };
 template<typename T, IF_NATIVE(T)>
 inline static void readCompact(HDF5reader &reader, std::vector<std::complex<T> > &v, const std::string &tag){
-  CPSfit::readCompact<HDF5readerVectorComplexPolicy<T> >(reader, v, tag);
+  SARLaC::readCompact<HDF5readerVectorComplexPolicy<T> >(reader, v, tag);
 }
 template<typename T, IF_NATIVE(T)>
 inline static void read(HDF5reader &reader, std::vector<std::complex<T> > &v, const std::string &tag){
   //For backwards compatibility we test whether the array was written in uncompacted vector format, which was the old default
   //This can be done by checking if a group with name 'tag' exists (if written in compact format it is an attribute instead)
-  if(reader.containsGroup(tag)) CPSfit::readUncompact<HDF5readerVectorPolicy<std::complex<T> > >(reader, v, tag);
-  else CPSfit::readCompact<HDF5readerVectorComplexPolicy<T> >(reader, v, tag);
+  if(reader.containsGroup(tag)) SARLaC::readUncompact<HDF5readerVectorPolicy<std::complex<T> > >(reader, v, tag);
+  else SARLaC::readCompact<HDF5readerVectorComplexPolicy<T> >(reader, v, tag);
 }
 
 
@@ -141,18 +141,18 @@ struct HDF5readerArrayPolicy{
 };
 template<typename T, size_t size>
 inline static void readCompact(HDF5reader &reader, std::array<T,size> &v, const std::string &tag){
-  CPSfit::readCompact<HDF5readerArrayPolicy<T,size> >(reader, v, tag);
+  SARLaC::readCompact<HDF5readerArrayPolicy<T,size> >(reader, v, tag);
 }
 template<typename T, size_t size>
 inline static void readUncompact(HDF5reader &reader, std::array<T,size> &v, const std::string &tag){
-  CPSfit::readUncompact<HDF5readerArrayPolicy<T,size> >(reader, v, tag);
+  SARLaC::readUncompact<HDF5readerArrayPolicy<T,size> >(reader, v, tag);
 }
 template<typename T, size_t size>
 inline static void read(HDF5reader &reader, std::array<T,size> &v, const std::string &tag){
-  CPSfit::read<HDF5readerArrayPolicy<T,size> >(reader, v, tag);
+  SARLaC::read<HDF5readerArrayPolicy<T,size> >(reader, v, tag);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

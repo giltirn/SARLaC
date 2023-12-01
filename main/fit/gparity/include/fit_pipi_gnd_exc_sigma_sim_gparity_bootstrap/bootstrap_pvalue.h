@@ -6,7 +6,7 @@
 #include<fit/bootstrap_pvalue.h>
 #include<fit_pipi_gnd_exc_sigma_sim_gparity_bootstrap/fit.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //After recentering the q^2 value for the propagated mean sample .best() should be close to zero. Sometimes this causes the minimizer to fail if the initial guess is set equal to the parameters
 //obtained from fitting these data. Use shift_guess_best to fix
@@ -68,6 +68,6 @@ void bootstrapPvalue(const double q2,
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,7 +1,7 @@
 //Check the wrapper around the general GEVP solve by comparing to one in which B is positive definite
 #include<tensors.h>
 #include<random.h>
-using namespace CPSfit;
+using namespace SARLaC;
 
 void randomizeSymmetric(NumericSquareMatrix<double> &M, double range_start, double range_end){
   int N = M.size();

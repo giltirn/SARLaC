@@ -5,7 +5,7 @@
 #include<utils/macros.h>
 #include<parser/parser/parsers.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Specify a parser
 //Usage: GENERATE_PARSER( MY_STRUCT_NAME ,  (MY_TYPE1, MY_MEMBER1)(MY_TYPE2, MY_MEMBER2).... )
@@ -36,6 +36,6 @@ void parse(T &s, const std::string &filename){
   f >> s;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

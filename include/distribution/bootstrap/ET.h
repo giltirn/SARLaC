@@ -5,7 +5,7 @@
 #include<ET/generic_ET.h>
 #include<distribution/bootstrap/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename A, template<typename> class V>
 struct getElem<bootstrapDistribution<A,V> >{
@@ -14,5 +14,5 @@ struct getElem<bootstrapDistribution<A,V> >{
   static inline typename bootstrapDistribution<A,V>::initType common_properties(const bootstrapDistribution<A,V> &v){ return typename bootstrapDistribution<A,V>::initType(v.size(),v.confidence()); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

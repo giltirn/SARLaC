@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_BOOTSTRAP_PVALUE_H_
-#define _CPSFIT_BOOTSTRAP_PVALUE_H_
+#ifndef _SARLAC_BOOTSTRAP_PVALUE_H_
+#define _SARLAC_BOOTSTRAP_PVALUE_H_
 
 //An implementation of bootstrap procedure for determining a p-value in the context of a general fit
 //q2 = "q^2", the generalization of \chi^2 for cases where the quantity isn't truly distributed by the \chi^2 distribution
@@ -14,7 +14,7 @@
 #include<data_series/correlationfunction.h>
 #include<fit/cost_function.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Compute the bootstrap p-value given the distribution Dist
 //Dist should be sorted in ascending order
@@ -223,5 +223,5 @@ void recenter(correlationFunction<GeneralizedCoordinate, DistributionType> &data
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

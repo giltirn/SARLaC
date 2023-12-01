@@ -16,7 +16,7 @@
 
 //Must link against gsl and gslcblas libraries
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Luscher's quantization condition is
 //n*\pi - \delta_0(k) = \phi(q) 
@@ -293,7 +293,7 @@ inline double phaseShift(const double E, const double m, const double L, const s
   return phaseShiftZ(zeta,E,m,L,dispn);
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

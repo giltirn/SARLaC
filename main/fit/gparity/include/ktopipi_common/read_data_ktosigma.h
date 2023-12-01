@@ -12,7 +12,7 @@
 
 #include "data_containers.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct KtoSigmaFilenamePolicyGen{
   subStringReplace repl_type2; //File format expects <TRAJ> <TSEP_K_SIGMA>
@@ -139,6 +139,6 @@ NumericTensor<rawDataDistributionD,1> readProjectedSigmaBubble(const std::string
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

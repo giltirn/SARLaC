@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_CORRELATION_FUNCTION_TYPES_H_
-#define _CPSFIT_CORRELATION_FUNCTION_TYPES_H_
+#ifndef _SARLAC_CORRELATION_FUNCTION_TYPES_H_
+#define _SARLAC_CORRELATION_FUNCTION_TYPES_H_
 
 #include<utility>
 
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename T, typename Tag>
 struct tagged{
@@ -21,5 +21,5 @@ struct CorrFuncTaggedPair: public std::pair<A,B>{
   using std::pair<A,B>::pair;
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

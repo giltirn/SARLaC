@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_NUMERIC_VECTOR_H_
-#define _CPSFIT_NUMERIC_VECTOR_H_
+#ifndef _SARLAC_NUMERIC_VECTOR_H_
+#define _SARLAC_NUMERIC_VECTOR_H_
 
 //A rank-1 tensor with IO and math functionality
 #include<tensors/numeric_vector/class.h>

@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_UTILS_TIME_
-#define _CPSFIT_UTILS_TIME_
+#ifndef _SARLAC_UTILS_TIME_
+#define _SARLAC_UTILS_TIME_
 
 //Functions for timing
 #include<chrono>
@@ -7,7 +7,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct timer{
   std::chrono::time_point<std::chrono::high_resolution_clock> _start;
@@ -18,6 +18,6 @@ struct timer{
   inline double elapsed(){ return std::chrono::duration<double, std::nano>(_stop-_start).count(); } //in nanoseconds
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_SIMPLE_FIT_WRAPPER_FITFUNC_WRAPPER_H
-#define _CPSFIT_SIMPLE_FIT_WRAPPER_FITFUNC_WRAPPER_H
+#ifndef _SARLAC_SIMPLE_FIT_WRAPPER_FITFUNC_WRAPPER_H
+#define _SARLAC_SIMPLE_FIT_WRAPPER_FITFUNC_WRAPPER_H
 
 #include<config.h>
 #include<utils/macros.h>
@@ -7,7 +7,7 @@
 #include<containers/general_container.h>
 #include<containers/parameter_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Fit functions used by the simple fit wrapper should all inherit from this class. Below I provide a derived class that wraps an existing fit function so the user does not need to modify the fit function class itself
 struct genericFitFuncBase{
@@ -102,5 +102,5 @@ struct genericFitFuncWrapper: public genericFitFuncBase{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -20,7 +20,7 @@
 #include "../../correlator_utils.h"
 #include "../../enums.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //expect substrings  <TRAJ> <FIG> <TSEP_PIPI> <P1SRC> <P1SNK>   and optionally <P2SRC> <P2SNK>
 const std::vector<subStringSpecify> & pipiFileFormatKeys(){ 
@@ -195,10 +195,10 @@ struct ConMomentum{
 
 std::ostream & operator<<(std::ostream &os, const ConMomentum &p){ os << p.pi1_src << " " << p.pi2_src << " " << p.pi1_snk << " " << p.pi2_snk; return os; }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 namespace boost{
-  std::size_t hash_value(const CPSfit::ConMomentum &r){
+  std::size_t hash_value(const SARLaC::ConMomentum &r){
   std::size_t seed = 0;
   boost::hash_combine(seed, r.pi1_src);
   boost::hash_combine(seed, r.pi2_src);
@@ -208,7 +208,7 @@ namespace boost{
 }
 };
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct ConMomentumHasher{
   inline size_t operator()(const ConMomentum &p) const{ return boost::hash_value(p); }
@@ -335,6 +335,6 @@ struct PiPiSymmetrySubset{
 };
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -5,7 +5,7 @@
 #include "../../mom_data_containers/pipi_bubble_mom_data_container.h"
 #include "../../mom_data_containers/pipi_mom_data/pipi_projected_bubble.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct readReconstructPiPiToSigmaWithDisconnAllTsrcOptions{
   //Choose a tstep for the vacuum diagram that is not 1 for testing
@@ -105,4 +105,4 @@ rawDataCorrelationFunctionD readReconstructPiPiToSigmaWithDisconnAllTsrc(const s
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

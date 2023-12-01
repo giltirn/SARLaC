@@ -9,7 +9,7 @@
 #include <ktopipi_sampleAMA_common/alpha_vac_sub.h>
 #include <ktopipi_sampleAMA_common/resample_average_typedata.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 
 #define ALPHA_AND_VAC_SUB_SEPARATE
@@ -351,6 +351,6 @@ void checkpointRawOnly(const std::vector<int> &tsep_k_pi,
   }
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

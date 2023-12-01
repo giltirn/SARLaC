@@ -5,7 +5,7 @@
 #include<fit_ktopipi_optimal_bootstrap/args.h>
 #include<fit_ktopipi_optimal_bootstrap/cmdline.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 template<typename DistributionType>
 std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > projectData(const std::vector<PiPiOperator> &ops, const std::vector<bootstrapDistributionD> &r,

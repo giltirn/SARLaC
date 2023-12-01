@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_PRINTERS_H_
-#define _CPSFIT_PRINTERS_H_
+#ifndef _SARLAC_PRINTERS_H_
+#define _SARLAC_PRINTERS_H_
 
 //Objects that control how distributions are printed. All derive from a common base class, distributionPrinter
 
@@ -7,7 +7,7 @@
 #include<output_format/cenerr.h>
 #include<distribution/distribution_print/print_policy.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename DistributionType>
 struct distributionPrinter{
@@ -191,5 +191,5 @@ public:
   inline void setRoundPower(const int p){ set_round_pow = true; round_pow = p; }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

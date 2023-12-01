@@ -1,5 +1,5 @@
-#ifndef _CPSFIT_TEMPLATE_OTHER_H_
-#define _CPSFIT_TEMPLATE_OTHER_H_
+#ifndef _SARLAC_TEMPLATE_OTHER_H_
+#define _SARLAC_TEMPLATE_OTHER_H_
 
 #include<cstdlib>
 
@@ -7,7 +7,7 @@
 #include<utils/macros.h>
 #include<utils/template_wizardry/types.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Check if a class T has an assignment operator to a type EqualsType
 template<typename T, typename EqualsType, typename U = void>
@@ -25,5 +25,5 @@ struct hasEqualsMethod<T, EqualsType, typename Void<decltype( ((T*)(NULL))->oper
     template<typename B> static inline void copy_##MEM(...){} \
     template<typename B, decltype(INTO_TYPE::MEM) B::* bB = &B::MEM> static inline void copy_##MEM(INTO_TYPE &into, const B& from){ into.MEM= from.MEM; }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

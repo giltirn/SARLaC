@@ -1,12 +1,12 @@
-#ifndef _CPSFIT_PARAMETER_VECTOR_IO_H_
-#define _CPSFIT_PARAMETER_VECTOR_IO_H_
+#ifndef _SARLAC_PARAMETER_VECTOR_IO_H_
+#define _SARLAC_PARAMETER_VECTOR_IO_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<parser/parser.h>
 #include<containers/parameter_vector/class.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 #ifdef HAVE_HDF5
 template<typename D>
@@ -51,6 +51,6 @@ namespace parsers{
   }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

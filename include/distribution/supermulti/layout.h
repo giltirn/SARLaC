@@ -10,7 +10,7 @@
 #include<serialize/hdf5_serialize.h>
 #include<parser/parser.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 GENERATE_ENUM_AND_PARSER(MultiType, (Jackknife)(Bootstrap));
 GENERATE_HDF5_ENUM_SERIALIZE(MultiType);
@@ -116,9 +116,9 @@ public:
 #ifdef HAVE_HDF5
   void write(HDF5writer &writer, const std::string &tag) const{
     writer.enter(tag);
-    CPSfit::write(writer,ens_tags,"ens_tags");
-    CPSfit::write(writer,ens_types,"ens_types");
-    CPSfit::write(writer,ens_sizes,"ens_sizes");
+    SARLaC::write(writer,ens_tags,"ens_tags");
+    SARLaC::write(writer,ens_types,"ens_types");
+    SARLaC::write(writer,ens_sizes,"ens_sizes");
     writer.leave();
   }
   void read(HDF5reader &reader, const std::string &tag){
@@ -127,9 +127,9 @@ public:
     std::vector<int> sizes;
     std::vector<MultiType> types;
     
-    CPSfit::read(reader,tags,"ens_tags");
-    CPSfit::read(reader,types,"ens_types");
-    CPSfit::read(reader,sizes,"ens_sizes");
+    SARLaC::read(reader,tags,"ens_tags");
+    SARLaC::read(reader,types,"ens_types");
+    SARLaC::read(reader,sizes,"ens_sizes");
 
     clear();
     for(int i=0;i<tags.size();i++) addEnsemble(tags[i],types[i],sizes[i]);
@@ -241,5 +241,5 @@ public:
 
 superMultiLayoutManagerDef &  superMultiLayoutManager(){ static superMultiLayoutManagerDef d; return d; }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

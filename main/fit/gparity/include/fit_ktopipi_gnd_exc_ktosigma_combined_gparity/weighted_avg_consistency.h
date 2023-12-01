@@ -6,7 +6,7 @@
 
 #include "resampled_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename DistributionType>
 void checkWeightedAvgConsistency(const ResampledData<DistributionType> &data,
@@ -65,6 +65,6 @@ void checkWeightedAvgConsistency(const ResampledData<DistributionType> &data,
 }
       
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -1,11 +1,11 @@
-#ifndef _CPSFIT_FITFUNC_OTHER_H_
-#define _CPSFIT_FITFUNC_OTHER_H_
+#ifndef _SARLAC_FITFUNC_OTHER_H_
+#define _SARLAC_FITFUNC_OTHER_H_
 
 #include<config.h>
 #include<utils/macros.h>
 #include<containers/parameter_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 class FitConstant{
 public:
@@ -26,5 +26,5 @@ public:
   ParameterType guess() const{ return ParameterType(1,1.0); }
 };
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

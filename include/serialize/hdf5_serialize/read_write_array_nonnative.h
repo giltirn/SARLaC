@@ -11,7 +11,7 @@
 #include<serialize/hdf5_serialize/read_array.h>
 #include<serialize/hdf5_serialize/write_array.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Non-native vector<vector> collapse the two arrays into one to avoid metadata overheads
 template<typename T, IF_NOT_NATIVE(T), IF_NOT_DISTRIBUTION_NATIVE(T)>
@@ -59,7 +59,7 @@ inline static void read(HDF5reader &reader, std::vector<std::vector<T> > &value,
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
 

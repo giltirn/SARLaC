@@ -1,7 +1,7 @@
 #pragma once
 #include "pipi_bubble_mom_data.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //Averages bubble over pion momenta to produce a rotationally invariant state
 
@@ -59,4 +59,4 @@ typename AllMomentaContainerType::ContainerType projectSourcePiPiBubble(const Al
   return out;
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

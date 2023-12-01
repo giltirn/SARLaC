@@ -4,7 +4,7 @@
 #include<plot.h>
 #include<random.h>
 
-using namespace CPSfit;
+using namespace SARLaC;
 
 #include <fit_simple_AMA/parse_data.h>
 #include <fit_simple_AMA/data_manipulations.h>

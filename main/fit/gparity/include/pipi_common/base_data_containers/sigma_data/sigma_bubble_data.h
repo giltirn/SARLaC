@@ -3,7 +3,7 @@
 #include "../sigma_bubble_data_container.h"
 #include "../../correlator_utils/threemomentum.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 ////////////////////
 //FILENAME POLICIES
@@ -86,4 +86,4 @@ inline void readSigmaSelf(ContainerType &raw_data, const std::string &file_fmt,
 
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

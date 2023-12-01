@@ -1,10 +1,10 @@
-#ifndef _CPSFIT_NUMERIC_SQUARE_MATRIX_ET_H_
-#define _CPSFIT_NUMERIC_SQUARE_MATRIX_ET_H_
+#ifndef _SARLAC_NUMERIC_SQUARE_MATRIX_ET_H_
+#define _SARLAC_NUMERIC_SQUARE_MATRIX_ET_H_
 
 #include<tensors/numeric_square_matrix/class.h>
 #include<tensors/numeric_vector.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename A>
 struct getElem<NumericSquareMatrix<A> >{
@@ -99,5 +99,5 @@ inline auto operator*(T &&a, U &&b)->decltype( binaryHelper<ETnumericMatrixVecto
   return binaryHelper<ETnumericMatrixVectorMult,typename std::decay<T>::type,typename std::decay<U>::type>::doit(std::forward<T>(a),std::forward<U>(b));
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 #endif

@@ -4,7 +4,7 @@
 #include<config.h>
 #include<utils/macros.h>
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 struct generateResampledDataOptions{
   bool load_combined_data;
@@ -75,6 +75,6 @@ void generateResampledData(jackknifeCorrelationFunctionD &j_data_gnd_gnd, double
 
 }
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif

@@ -2,7 +2,7 @@
 #include "mom_data_container_common.h"
 #include "../base_data_containers/figure_data_container.h"
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 template<typename _ContainerType, typename Extra = empty_t>
 class figureDataAllMomentaBase: public Extra{
@@ -153,4 +153,4 @@ void zeroUnmeasuredSourceTimeslices(figureDataAllMomenta &data, const char fig, 
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE

@@ -6,7 +6,7 @@
 
 //Compare K->sigma data with Tianle
 
-CPSFIT_START_NAMESPACE
+SARLAC_START_NAMESPACE
 
 //ktosigma_pss_vs_*jk indexing is [qidx][tsep_idx]   tsep_idx=  10:0,12:1,14:2,16:3,18:4
 
@@ -57,6 +57,6 @@ void compareTianle(const std::vector<correlationFunction<amplitudeDataCoord, jac
 }
 
 
-CPSFIT_END_NAMESPACE
+SARLAC_END_NAMESPACE
 
 #endif
