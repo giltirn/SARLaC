@@ -1,0 +1,12 @@
+exampledir = $(prefix)/example
+testdir = $(prefix)/test
+bin_PROGRAMS = fit_resampled_results fit_simple_AMA fit_simple_bootstrap fit_simple fit_simple_sampleAMA fit_simultaneous
+fit_resampled_results_SOURCES = fit_resampled_results.C
+fit_simple_AMA_SOURCES = fit_simple_AMA.C
+fit_simple_bootstrap_SOURCES = fit_simple_bootstrap.C
+fit_simple_SOURCES = fit_simple.C
+fit_simple_sampleAMA_SOURCES = fit_simple_sampleAMA.C
+fit_simultaneous_SOURCES = fit_simultaneous.C
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
+LDADD =$(top_builddir)/src/libcpsfit.a
+SUBDIRS = gparity

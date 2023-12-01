@@ -1,0 +1,13 @@
+exampledir = $(prefix)/example
+testdir = $(prefix)/test
+bin_PROGRAMS = autocorrelation bin compare_simple_correlators dist_compare integrated_autocorrelation pvalue wilson_flow
+autocorrelation_SOURCES = autocorrelation.C
+bin_SOURCES = bin.C
+compare_simple_correlators_SOURCES = compare_simple_correlators.C
+dist_compare_SOURCES = dist_compare.C
+integrated_autocorrelation_SOURCES = integrated_autocorrelation.C
+pvalue_SOURCES = pvalue.C
+wilson_flow_SOURCES = wilson_flow.C
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
+LDADD =$(top_builddir)/src/libcpsfit.a
+SUBDIRS = gparity

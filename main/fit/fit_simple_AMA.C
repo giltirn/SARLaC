@@ -6,8 +6,8 @@
 
 using namespace CPSfit;
 
-#include <fit_mpi_gparity_AMA/parse_data.h>
-#include <fit_mpi_gparity_AMA/data_manipulations.h>
+#include <fit_simple_AMA/parse_data.h>
+#include <fit_simple_AMA/data_manipulations.h>
 #include<fit_simple/args.h>
 #include<fit_simple/cmdline.h>
 #include<fit_simple/read_data.h>

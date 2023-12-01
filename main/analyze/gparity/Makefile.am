@@ -1,0 +1,12 @@
+exampledir = $(prefix)/example
+testdir = $(prefix)/test
+EXTRA_PROGRAMS = analyze_ktopipi_gparity analyze_ktopipi_mixdiags_sampleAMA compare_asymm_symm_ktopipi compare_asymm_symm_pipi compute_pipi_phaseshift plot_pipi_phaseshift plot_pipi_phaseshift_sdep
+analyze_ktopipi_gparity_SOURCES = analyze_ktopipi_gparity.C
+analyze_ktopipi_mixdiags_sampleAMA_SOURCES = analyze_ktopipi_mixdiags_sampleAMA.C
+compare_asymm_symm_ktopipi_SOURCES = compare_asymm_symm_ktopipi.C
+compare_asymm_symm_pipi_SOURCES = compare_asymm_symm_pipi.C
+compute_pipi_phaseshift_SOURCES = compute_pipi_phaseshift.C
+plot_pipi_phaseshift_SOURCES = plot_pipi_phaseshift.C
+plot_pipi_phaseshift_sdep_SOURCES = plot_pipi_phaseshift_sdep.C
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
+LDADD =$(top_builddir)/src/libcpsfit.a

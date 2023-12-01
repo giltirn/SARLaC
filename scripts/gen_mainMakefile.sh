@@ -21,5 +21,6 @@ for i in $(ls *.C); do
     echo $STUB"_SOURCES = "$i
 done
 
-echo "AM_CPPFLAGS = -I\$(srcdir)/../include -I\$(srcdir)/include"
-echo "LDADD =../src/libcpsfit.a"
+echo "AM_CPPFLAGS = -I\$(top_srcdir)/include -I\$(srcdir)/include"
+echo "LDADD =\$(top_builddir)/src/libcpsfit.a"
+if [ -e subdirs.inc ]; then cat subdirs.inc ; fi

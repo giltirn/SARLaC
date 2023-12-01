@@ -164,6 +164,6 @@ AM_CONDITIONAL([HAVE_DOXYGEN],
 
 
 # Output files
-AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile example/Makefile test/Makefile docs/Makefile)
+AC_OUTPUT(Makefile include/Makefile src/Makefile main/Makefile main/analyze/Makefile main/analyze/gparity/Makefile main/tools/Makefile main/fit/Makefile main/fit/gparity/Makefile main/misc/Makefile example/Makefile test/Makefile docs/Makefile)
 AM_INIT_AUTOMAKE([subdir-objects])
 
