@@ -5,8 +5,6 @@ AC_INIT([SARLaC], [1.0], [ckelly.physics@gmail.com])
 AC_CONFIG_SRCDIR([include/utils.h])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE
-
 CPPFLAGS="-Wno-deprecated-declarations $CPPFLAGS"
 
 # Checks for programs.
