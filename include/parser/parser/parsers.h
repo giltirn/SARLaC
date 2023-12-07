@@ -1,7 +1,8 @@
 #ifndef _SARLAC_PARSERS_H___
 #define _SARLAC_PARSERS_H___
 
-#include<map>
+#include <vector>
+#include <map>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 
 #include<config.h>

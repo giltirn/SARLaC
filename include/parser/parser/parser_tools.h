@@ -1,6 +1,7 @@
 #ifndef _SARLAC_PARSER_TOOLS_H_
 #define _SARLAC_PARSER_TOOLS_H_
 
+#include <vector>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/include/support_istream_iterator.hpp>
 
