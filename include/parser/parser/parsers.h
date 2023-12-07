@@ -41,13 +41,48 @@ namespace parsers{
   DEF_X3_PARSER(double);
   DEF_X3_PARSER(bool);
 
+#define STRIP_PARENS(...) __VA_ARGS__
+
+template<typename T>
+struct getAttribute{
+  typedef decltype(std::declval<T>().parse) rule;
+  typedef typename rule::attribute_type attr;
+  typedef typename rule::id id;
+};
+
+#ifdef OLD_BOOST_X3
+#define DEF_BASIC_PARSE_RULE_PEXPL(templ, type)				\
+  template <STRIP_PARENS templ typename Iterator, typename Context, typename Attribute> \
+  bool parse_rule(decltype(std::declval<parser<STRIP_PARENS type> >().parse) rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
+    using boost::spirit::x3::unused;					\
+    static parser<STRIP_PARENS type> inst;				\
+    static auto const parse_def = inst.get_def();			\
+    static auto const def_ = (inst.parse = parse_def);			\
+    return def_.parse(first, last, context, unused, attr);		\
+  }
+#else
+#define DEF_BASIC_PARSE_RULE_PEXPL(templ, vtype, parsertype)				\
+  template <STRIP_PARENS templ typename Iterator, typename Context>	\
+  inline bool parse_rule( ::boost::spirit::x3::detail::rule_id<typename decltype(std::declval<STRIP_PARENS parsertype>().parse)::id>, Iterator& first, Iterator const& last , Context const& context, STRIP_PARENS vtype & attr) { \
+    static STRIP_PARENS parsertype inst;					\
+    static auto const parse_def = inst.get_def();				\
+    static auto const def_ = (inst.parse = parse_def);			\
+    typedef decltype(inst.parse) rule_t;				\
+									\
+    return ::boost::spirit::x3::detail ::rule_parser<typename rule_t::attribute_type, typename rule_t::id, true> ::call_rule_definition( def_, inst.parse.name , first, last, context, attr , ::boost::mpl::bool_<rule_t::force_attribute>()); \
+  }
+
+#endif
+#define DEF_BASIC_PARSE_RULE(templ, vtype) DEF_BASIC_PARSE_RULE_PEXPL(templ, vtype, (parser<STRIP_PARENS vtype>))
+
   //Vector parser
   //For generic vector parse we can hack the parser interface to allow templating the underlying type by static instantiating the rule definition inside the parse_rule itself.
   template<typename U>
-  struct vector_T_rule: error_handler{};
+  class vector_T_rule: error_handler{};
 
   template<typename T>
   struct parser< std::vector<T> >{
+    typedef std::vector<T> type;
     x3::rule<class vector_T_rule<T>, std::vector<T> > const parse;
     parsers::parser<T> elem_parser;
     
@@ -57,18 +92,11 @@ namespace parsers{
       return x3::char_('(') >> *( elem_parser.parse[parser_tools::push_back] >> *(',' >> elem_parser.parse[parser_tools::push_back]) ) > ')';
     }
   };
-  template <typename T, typename Iterator, typename Context, typename Attribute>
-  bool parse_rule(x3::rule<class vector_T_rule<T>, std::vector<T> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
-    using boost::spirit::x3::unused;
-    static parser<std::vector<T> > inst;
-    static auto const parse_def = inst.get_def();
-    static auto const def_ = (inst.parse = parse_def);
-    return def_.parse(first, last, context, unused, attr);
-  }
+  DEF_BASIC_PARSE_RULE((typename T,), (std::vector<T>));
 
   //Array parser
   template<typename T, std::size_t S>
-  struct array_T_rule: error_handler{};
+  class array_T_rule: error_handler{};
   
   template<typename T, std::size_t I, std::size_t S>
   struct gen_array_rule_recurse{
@@ -99,19 +127,11 @@ namespace parsers{
       return NP2 > ')';
     }
   };
-  template <typename T, size_t S, typename Iterator, typename Context, typename Attribute>
-  bool parse_rule(x3::rule<class array_T_rule<T,S>, std::array<T,S> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
-    using boost::spirit::x3::unused;
-    static parser<std::array<T,S> > inst;
-    static auto const parse_def = inst.get_def();
-    static auto const def_ = (inst.parse = parse_def);
-    return def_.parse(first, last, context, unused, attr);
-  }
-
+  DEF_BASIC_PARSE_RULE((typename T, size_t S,), (std::array<T,S>));
 
   //Pair parser
   template<typename T, typename U>
-  struct pair_T_U_rule: error_handler{};
+  class pair_T_U_rule: error_handler{};
 
   template<typename T, typename U>
   struct parser< std::pair<T,U> >{
@@ -126,19 +146,11 @@ namespace parsers{
 	> U_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,U,&std::pair<T,U>::second>()] > '}';
     }
   };
-  template <typename T, typename U, typename Iterator, typename Context, typename Attribute>
-  bool parse_rule(x3::rule<class pair_T_U_rule<T,U>, std::pair<T,U> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
-    using boost::spirit::x3::unused;
-    static parser<std::pair<T,U> > inst;
-    static auto const parse_def = inst.get_def();
-    static auto const def_ = (inst.parse = parse_def);
-    return def_.parse(first, last, context, unused, attr);
-  }
-
+  DEF_BASIC_PARSE_RULE((typename T, typename U,), (std::pair<T,U>));
 
   
   //String parser
-  struct string_rule_: error_handler{};
+  class string_rule_: error_handler{};
   auto const quoted_string = x3::lexeme['"' > *(x3::char_ - '"') > '"'];
   x3::rule<string_rule_, std::string> const string_rule = "string_rule";
   auto const string_rule_def = quoted_string[parser_tools::set_equals];
@@ -146,7 +158,7 @@ namespace parsers{
   DEF_CUSTOM_PARSER(std::string, string_rule);
 
   //Complex parser
-  struct complexD_: error_handler{};
+  class complexD_: error_handler{};
   auto const complexD_rule_def = x3::no_skip[*x3::lit(' ') > x3::double_[parser_tools::set_reim<double,0>()] > x3::lit(' ') > x3::double_[parser_tools::set_reim<double,1>()]];
   x3::rule<complexD_, std::complex<double> > const complexD_rule = "complexD_rule";
   BOOST_SPIRIT_DEFINE(complexD_rule);
@@ -154,7 +166,7 @@ namespace parsers{
 
   //std::map parser
   template<typename T, typename U>
-  struct map_pair_T_U_rule: error_handler{};
+  class map_pair_T_U_rule: error_handler{};
 
   template<typename T, typename U>
   struct map_pair_T_U_parser{
@@ -166,20 +178,13 @@ namespace parsers{
 
     inline decltype(auto) get_def() const{
       return T_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,T,&std::pair<T,U>::first>()] > ':'
-	> U_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,U,&std::pair<T,U>::second>()];
+  	> U_parser.parse[parser_tools::member_set_equals<std::pair<T,U>,U,&std::pair<T,U>::second>()];
     }
   };
-  template <typename T, typename U, typename Iterator, typename Context, typename Attribute>
-  bool parse_rule(x3::rule<class map_pair_T_U_rule<T,U>, std::pair<T,U> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
-    using boost::spirit::x3::unused;
-    static map_pair_T_U_parser<T,U> inst;
-    static auto const parse_def = inst.get_def();
-    static auto const def_ = (inst.parse = parse_def);
-    return def_.parse(first, last, context, unused, attr);
-  }
+  DEF_BASIC_PARSE_RULE_PEXPL((typename T, typename U,), (std::pair<T,U>), (map_pair_T_U_parser<T,U>));
 
   template<typename T, typename U>
-  struct map_T_U_rule{};
+  class map_T_U_rule: error_handler{};
 
   template<typename T, typename U>
   struct parser< std::map<T,U> >{
@@ -199,15 +204,8 @@ namespace parsers{
       return x3::char_('{') >> *( elem_parser.parse[map_insert_elem()] >> *(',' >> elem_parser.parse[map_insert_elem()]) ) > '}';
     }
   };
-  template <typename T, typename U, typename Iterator, typename Context, typename Attribute>
-  bool parse_rule(x3::rule<class map_T_U_rule<T,U>, std::map<T,U> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
-    using boost::spirit::x3::unused;
-    static parser<std::map<T,U> > inst;
-    static auto const parse_def = inst.get_def();
-    static auto const def_ = (inst.parse = parse_def);
-    return def_.parse(first, last, context, unused, attr);
-  }
-
+  DEF_BASIC_PARSE_RULE((typename T, typename U,), (std::map<T,U>));
+  
   template<typename T>
   struct parser_instance{
     inline static const parser<T> &get(){ 

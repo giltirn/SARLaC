@@ -22,4 +22,4 @@ test_template_wizardry_SOURCES = test_template_wizardry.C
 test_tensor_SOURCES = test_tensor.C
 test_distribution_utils_SOURCES = test_distribution_utils.C
 AM_CPPFLAGS = -I$(srcdir)/../include -I$(srcdir)/include
-LDADD =../src/libcpsfit.a
+LDADD =../src/libsarlac.a

@@ -137,7 +137,13 @@ elif test "x$with_minuit2" != "xno"; then
   AC_DEFINE([HAVE_MINUIT2], [1], [Use Minuit2])
 fi
 
+#Option for working with old boost X3 (until I determine applicable version ranges)
+AC_ARG_WITH([old-boost-spirit],
+    AS_HELP_STRING([--with-old-boost-spirit], [Build for old versions of Boost Spirit X3]))
 
+AS_IF([test "x$with_old_boost_spirit" = "xyes"], [
+  AC_DEFINE([OLD_BOOST_X3], [1], [Use old Boost Spirit X3])
+])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])

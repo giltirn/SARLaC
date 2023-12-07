@@ -41,14 +41,7 @@ namespace parsers{
       return x3::char_('(') >> *( elem_parser.parse[parser_tools::push_back] >> *(',' >> elem_parser.parse[parser_tools::push_back]) ) > ')';
     }
   };
-  template <typename T, typename Iterator, typename Context, typename Attribute>
-  bool parse_rule(x3::rule<class parameter_vector_T_rule<T>, parameterVector<T> > const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){
-    using boost::spirit::x3::unused;
-    static parser<parameterVector<T> > inst;
-    static auto const parse_def = inst.get_def();
-    static auto const def_ = (inst.parse = parse_def);
-    return def_.parse(first, last, context, unused, attr);
-  }
+  DEF_BASIC_PARSE_RULE((typename T,), (parameterVector<T>));
 };
 
 SARLAC_END_NAMESPACE

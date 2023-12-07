@@ -79,7 +79,7 @@ public:
 public:
   void print(std::ostream &os_out, const DistributionType &d) const{
     std::stringstream os;    
-    std::ios::streampos init_pos = os.tellp();
+    auto init_pos = os.tellp();
     typedef decltype(ValuePolicy::centralValue(d)) valueType;
     valueType val = src == Central ? ValuePolicy::centralValue(d) : ValuePolicy::error(d);
     decimal dval(val);
@@ -146,7 +146,7 @@ public:
 public:
   void print(std::ostream &os_out, const DistributionType &d) const{
     std::stringstream os;    
-    std::ios::streampos init_pos = os.tellp();
+    auto init_pos = os.tellp();
     typedef decltype(ValuePolicy::centralValue(d)) valueType;
     valueType mu = ValuePolicy::centralValue(d);
     valueType err = ValuePolicy::error(d);

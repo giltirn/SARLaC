@@ -78,8 +78,10 @@
 #define _PARSER_MEMBER_RULESTR(elem) _PARSER_MEMBER_GETNAMESTR(elem) "_parse"
 #define _PARSER_MEMBER_RULE_DEF(elem) BOOST_PP_CAT(_PARSER_MEMBER_GETNAME(elem),_parse_def)
 
+#ifdef OLD_BOOST_X3
+
 #define _PARSER_MEMBER_DEF_RULE(r,structname,elem) \
-  struct _PARSER_MEMBER_TAG(elem): ::SARLaC::parsers::error_handler{ }; \
+  class _PARSER_MEMBER_TAG(elem): ::SARLaC::parsers::error_handler{ }; \
   \
   inline auto & _PARSER_MEMBER_RULE(elem)(){				\
      static x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > rule_inst = _PARSER_MEMBER_RULESTR(elem); \
@@ -93,6 +95,32 @@
     return def_.parse(first, last, context, unused, attr);		\
   };
 
+#else
+
+#define _PARSER_MEMBER_DEF_RULE(r,structname,elem) \
+  class _PARSER_MEMBER_TAG(elem): ::SARLaC::parsers::error_handler{ }; \
+  \
+  inline auto & _PARSER_MEMBER_RULE(elem)(){				\
+     static x3::rule<_PARSER_MEMBER_TAG(elem), _PARSER_MEMBER_GETTYPE(elem) > rule_inst = _PARSER_MEMBER_RULESTR(elem); \
+     return rule_inst; \
+  }\
+  template <typename Iterator, typename Context> \
+  inline bool parse_rule( ::boost::spirit::x3::detail::rule_id<_PARSER_MEMBER_TAG(elem)>, Iterator& first, Iterator const& last , Context const& context, _PARSER_MEMBER_GETTYPE(elem) & attr) { \
+    using boost::spirit::x3::unused; \
+    static auto const _PARSER_MEMBER_RULE_DEF(elem) = x3::lit(_PARSER_MEMBER_GETNAMESTR(elem)) > '=' > _PARSER_MEMBER_TYPE_PARSER_INST(elem).parse[::SARLaC::parser_tools::set_equals]; \
+    static auto const def_ = (_PARSER_MEMBER_RULE(elem)() = _PARSER_MEMBER_RULE_DEF(elem)); \
+    typedef decltype(def_) rule_t;				\
+									\
+    return ::boost::spirit::x3::detail ::rule_parser<typename rule_t::attribute_type, typename rule_t::id, true> ::call_rule_definition( def_, def_.name , first, last, context, attr , ::boost::mpl::bool_<rule_t::force_attribute>()); \
+  };
+
+#endif
+
+
+
+
+
+
 #define _PARSER_DEF_MEMBER_RULES(structname, structmembers) TUPLE_SEQUENCE_FOR_EACH(_PARSER_MEMBER_DEF_RULE, structname, structmembers)
 
 //Define the rule for the main structure
@@ -100,7 +128,7 @@
   > _PARSER_MEMBER_RULE(elem)()[::SARLaC::parser_tools::member_set_equals<structname,_PARSER_MEMBER_GETTYPE(elem),& structname :: _PARSER_MEMBER_GETNAME(elem)>()]
 
 #define _PARSER_DEF_STRUCT_RULE_DEF(NAME)\
-  struct main_rule_handler: ::SARLaC::parsers::error_handler{ };	\
+  class main_rule_handler: ::SARLaC::parsers::error_handler{ };	\
   									\
   inline auto & main_rule(){						\
      static x3::rule<main_rule_handler, NAME> const main_rule = BOOST_PP_STRINGIZE(NAME); \
@@ -108,6 +136,8 @@
   }
 
 //Specify the rules for parsing the structure
+#ifdef OLD_BOOST_X3
+
 #define _PARSER_DEF_STRUCT_RULE_IMPL(NAME,MEMSEQ) \
   template <typename Iterator, typename Context, typename Attribute> \
   inline bool parse_rule( x3::rule<main_rule_handler, NAME> rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
@@ -118,6 +148,26 @@
     static auto const def_ = (main_rule() = main_rule_def);		\
     return def_.parse(first, last, context, unused, attr);		\
   };
+
+#else
+
+#define _PARSER_DEF_STRUCT_RULE_IMPL(NAME,MEMSEQ) \
+  template <typename Iterator, typename Context> \
+  inline bool parse_rule( ::boost::spirit::x3::detail::rule_id<main_rule_handler>, Iterator& first, Iterator const& last , Context const& context, NAME & attr) { \
+    using boost::spirit::x3::unused; \
+    static auto const main_rule_def = x3::char_('{')			\
+      TUPLE_SEQUENCE_FOR_EACH(_PARSER_DEF_STRUCT_RULE_MEMBER_GEN, NAME, MEMSEQ) \
+      > '}';								\
+    static auto const def_ = (main_rule() = main_rule_def);		\
+    typedef decltype(def_) rule_t;				\
+									\
+    return ::boost::spirit::x3::detail ::rule_parser<typename rule_t::attribute_type, typename rule_t::id, true> ::call_rule_definition( def_, def_.name , first, last, context, attr , ::boost::mpl::bool_<rule_t::force_attribute>()); \
+  };
+
+
+#endif
+
+
 
 
 //Register the parser
@@ -197,7 +247,7 @@
     namespace ascii = boost::spirit::x3::ascii; \
     namespace x3 = boost::spirit::x3;\
     auto const enumparse = x3::lexeme[+x3::char_("a-zA-Z0-9_")]; \
-    struct BOOST_PP_CAT(enumname,_tag) : ::SARLaC::parsers::error_handler{ }; \
+    class BOOST_PP_CAT(enumname,_tag) : ::SARLaC::parsers::error_handler{ }; \
     _GEN_ENUM_PARSER_MATCH(enumname, enummembers) \
     x3::rule<BOOST_PP_CAT(enumname,_tag), enumname> const BOOST_PP_CAT(enumname,_) = BOOST_PP_STRINGIZE(BOOST_PP_CAT(enumname,_)); \
     auto const BOOST_PP_CAT(enumname, __def) = enumparse[BOOST_PP_CAT(enumname,_match)()]; \

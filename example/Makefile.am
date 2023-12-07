@@ -8,4 +8,4 @@ simfit_example_SOURCES = simfit_example.C
 superjack_example_SOURCES = superjack_example.C
 fit_simple_bootstrap_example_SOURCES = fit_simple_bootstrap_example.C
 AM_CPPFLAGS = -I$(srcdir)/../include -I$(srcdir)/include
-LDADD =../src/libcpsfit.a
+LDADD =../src/libsarlac.a
