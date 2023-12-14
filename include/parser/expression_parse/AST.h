@@ -3,6 +3,7 @@
 
 #include<iostream>
 #include<map>
+#include<sstream>
 
 #include<boost/spirit/home/x3.hpp>
 
