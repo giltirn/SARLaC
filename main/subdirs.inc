@@ -1,1 +1,1 @@
-SUBDIRS = tools fit misc
+SUBDIRS = tools fit misc analyze

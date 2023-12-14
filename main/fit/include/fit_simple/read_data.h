@@ -1,7 +1,7 @@
 #ifndef _FIT_SIMPLE_READ_DATA_H_
 #define _FIT_SIMPLE_READ_DATA_H_
 
-#include<fit_simple/data_info.h>
+#include "data_info.h"
 
 struct Parser{
   virtual void setup(rawDataCorrelationFunctionD &into, const int nsample, const int Lt) const = 0;

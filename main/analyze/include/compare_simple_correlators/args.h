@@ -1,7 +1,7 @@
 #ifndef _COMPARE_SIMPLE_CORRELATORS_ARGS_H_
 #define _COMPARE_SIMPLE_CORRELATORS_ARGS_H_
 
-#include<fit_simple/data_info.h>
+#include "../../../fit/include/fit_simple/data_info.h"
 
 #define ARGS_MEMBERS \
   ( std::vector<DataInfo>, data_A ) \

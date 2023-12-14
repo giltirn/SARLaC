@@ -5,7 +5,7 @@
 
 using namespace SARLaC;
 
-#include<fit_simple/read_data.h>
+#include "../fit/include/fit_simple/read_data.h"
 #include<compare_simple_correlators/args.h>
 #include<compare_simple_correlators/compare.h>
 

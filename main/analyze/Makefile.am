@@ -1,11 +1,11 @@
 exampledir = $(prefix)/example
 testdir = $(prefix)/test
-bin_PROGRAMS = autocorrelation bin compare_simple_correlators dist_compare integrated_autocorrelation pvalue wilson_flow
-autocorrelation_SOURCES = autocorrelation.C
+bin_PROGRAMS = bin compare_simple_correlators dist_compare integrated_autocorrelation integrated_autocorrelation_jackknife pvalue wilson_flow
 bin_SOURCES = bin.C
 compare_simple_correlators_SOURCES = compare_simple_correlators.C
 dist_compare_SOURCES = dist_compare.C
 integrated_autocorrelation_SOURCES = integrated_autocorrelation.C
+integrated_autocorrelation_jackknife_SOURCES = integrated_autocorrelation_jackknife.C
 pvalue_SOURCES = pvalue.C
 wilson_flow_SOURCES = wilson_flow.C
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(srcdir)/include
