@@ -52,11 +52,11 @@ struct getAttribute{
 };
 
 #ifdef OLD_BOOST_X3
-#define DEF_BASIC_PARSE_RULE_PEXPL(templ, type)				\
+#define DEF_BASIC_PARSE_RULE_PEXPL(templ, vtype, parsertype)			\
   template <STRIP_PARENS templ typename Iterator, typename Context, typename Attribute> \
-  bool parse_rule(decltype(std::declval<parser<STRIP_PARENS type> >().parse) rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
+    bool parse_rule(x3::rule<typename decltype(std::declval<STRIP_PARENS parsertype>().parse)::id, STRIP_PARENS vtype> const rule_ , Iterator& first, Iterator const& last , Context const& context, Attribute& attr){ \
     using boost::spirit::x3::unused;					\
-    static parser<STRIP_PARENS type> inst;				\
+    static STRIP_PARENS parsertype inst;				\
     static auto const parse_def = inst.get_def();			\
     static auto const def_ = (inst.parse = parse_def);			\
     return def_.parse(first, last, context, unused, attr);		\

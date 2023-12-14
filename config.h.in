@@ -63,6 +63,9 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
+/* Use old Boost Spirit X3 */
+#undef OLD_BOOST_X3
+
 /* Name of package */
 #undef PACKAGE
 
