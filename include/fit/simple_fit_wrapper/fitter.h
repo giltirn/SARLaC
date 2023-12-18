@@ -112,8 +112,9 @@ public:
   //Note the parameter type InputParameterType is translated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
   //The coordinate type is wrapped up in a generalContainer as this is only ever needed by the fit function (which knows what type it is and can retrieve it)
   //If chisq_dof_nopriors pointer is provided, the chisq computed without priors and the number of degrees of freedom without priors will be written there (distribution must have correct size
+  //Returns true if the fit converged (assuming the minimizer has been told not to exit on convergence failure)
   template<typename InputParameterType, typename GeneralizedCoordinate>
-  void fit(typename BaseDistributionType::template rebase<InputParameterType> &params,
+  bool fit(typename BaseDistributionType::template rebase<InputParameterType> &params,
 	   BaseDistributionType &chisq,
 	   BaseDistributionType &chisq_per_dof,
 	   int &dof,
@@ -122,7 +123,7 @@ public:
 
   //A version of the above that takes the params as a vector of distributions
   template<typename GeneralizedCoordinate>
-  void fit(std::vector<BaseDistributionType> &params,
+  bool fit(std::vector<BaseDistributionType> &params,
 	   BaseDistributionType &chisq,
 	   BaseDistributionType &chisq_per_dof,
 	   int &dof,
@@ -195,7 +196,7 @@ private:
 
   //Implementation for specific sample
   template<typename InputParameterType, typename GeneralizedCoordinate>
-  void doSample(typename BaseDistributionType::template rebase<InputParameterType> &params,
+  bool doSample(typename BaseDistributionType::template rebase<InputParameterType> &params,
 		BaseDistributionType &chisq,
 		BaseDistributionType &chisq_per_dof,
 		int &dof,

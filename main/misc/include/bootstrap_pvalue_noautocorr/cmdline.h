@@ -2,9 +2,11 @@
 
 struct CMDline{
   bool write_data;
+  bool exit_after_preanalysis;
 
   CMDline(){
     write_data = false;
+    exit_after_preanalysis = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -21,6 +23,9 @@ struct CMDline{
     while(i<sz){
       if(sargv[i] == "-write_data"){
 	write_data = true;
+	i++;
+      }else if(sargv[i] == "-exit_after_preanalysis"){
+	exit_after_preanalysis = true;;
 	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

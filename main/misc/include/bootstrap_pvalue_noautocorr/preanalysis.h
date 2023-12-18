@@ -428,6 +428,89 @@ struct preAnalysisStandardError: public preAnalysisBase{
   }//run
 };
 
+//Fit with the autocorrelation-avoiding covariance matrix for both (block) jackknife and (non-overlapping block) bootstrap. Ignore the covgen input
+struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
+
+  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+    //Generate raw data
+    int nsample = args.nsample;
+    int Lt = args.Lt;
+    int ntest = args.ntest;
+    int dof = Lt - fitfunc.Nparams();
+
+    correlationFunction<double, rawDataDistributionD> data = datagen.generate(Lt,nsample);
+    
+    //Block bootstrap (NBB)  with autocorrelation-ignoring covariance matrix
+    std::vector<std::vector<int> > rtable = nonoverlappingBlockResampleTable(RNG,nsample,args.block_size,ntest); //ntest == nboots
+    int nsample_reduced = rtable[0].size(); //allow for truncation to match multiple of block size
+
+    bootstrapInitType binit(ntest);
+    bootJackknifeInitType bjinit(nsample_reduced,nsample,ntest);
+    correlationFunction<double, bootstrapDistributionD> data_rb(Lt);
+    correlationFunction<double, bootJackknifeDistributionD> data_rbj(Lt);
+    
+    for(int t=0;t<Lt;t++){
+      data_rb.coord(t) = data_rbj.coord(t) = t;
+      data_rb.value(t).resize(binit);
+      data_rb.value(t).resample(data.value(t), rtable);
+      data_rbj.value(t).resize(bjinit);
+      data_rbj.value(t).resample(data.value(t), rtable);
+    }
+    
+    //Block double-jackknife with autocorrelation-ignoring covariance matrix
+    std::pair<int,int> bdjinit(nsample, args.block_size);
+    int jinit = nsample / args.block_size; //block jackknife  == binned jackknife
+    correlationFunction<double, jackknifeDistributionD> data_rj(Lt);
+    correlationFunction<double, blockDoubleJackknifeDistributionD> data_rdj(Lt);
+    for(int t=0;t<Lt;t++){
+      data_rj.coord(t) = data_rdj.coord(t) = t;
+      data_rj.value(t).resize(jinit);
+      data_rj.value(t).resample(data.value(t).bin(args.block_size, true));
+      data_rdj.value(t).resize(bdjinit);
+      data_rdj.value(t).resample(data.value(t));
+    }
+
+    MarquardtLevenbergParameters<double> mlparams(args.MLparams);
+    mlparams.exit_on_convergence_fail = false;
+
+    simpleFitWrapper<bootstrapDistributionD> fit_b(fitfunc, MinimizerType::MarquardtLevenberg, mlparams);
+    simpleFitWrapper<jackknifeDistributionD> fit_j(fitfunc, MinimizerType::MarquardtLevenberg, mlparams);
+
+    fit_b.generateCovarianceMatrix(data_rbj);
+    fit_j.generateCovarianceMatrix(data_rdj);
+
+    std::vector<bootstrapDistributionD> params_b(fitfunc.Nparams(), bootstrapDistributionD(binit));
+    std::vector<jackknifeDistributionD> params_j(fitfunc.Nparams(), jackknifeDistributionD(jinit));
+    
+    int d; 
+    bootstrapDistributionD chisq_b(binit), chisq_per_dof_b(binit);
+    jackknifeDistributionD chisq_j(jinit), chisq_per_dof_j(jinit);
+    std::cout << "Performing bootstrap fit" << std::endl << std::flush;
+    bool conv_b = fit_b.fit(params_b, chisq_b, chisq_per_dof_b, d, data_rb);
+    std::cout << "Performing jackknife fit" << std::endl << std::flush;
+    bool conv_j = fit_j.fit(params_j, chisq_j, chisq_per_dof_j, d, data_rj);
+    if(!conv_b){
+      std::cout << "Bootstrap fit did not converge" << std::endl;
+      for(int i=0;i<fitfunc.Nparams();i++) params_b[i].zero();
+    }
+    if(!conv_j){
+      std::cout << "Jackknife fit did not converge" << std::endl;
+      for(int i=0;i<fitfunc.Nparams();i++) params_j[i].zero();
+    }
+    
+    std::cout << "Fit results,  jackknife : bootstrap" << std::endl;
+    for(int i=0;i<fitfunc.Nparams();i++){
+      std::cout << i << " " << params_j[i] << " : " << params_b[i] << std::endl;
+    }
+    writeParamsStandard(params_b,"fit_params_b.hdf5");
+    writeParamsStandard(params_j,"fit_params_j.hdf5");
+    writeParamsStandard(chisq_b,"chisq_b.hdf5");
+    writeParamsStandard(chisq_j,"chisq_j.hdf5");
+  }//run
+};
+
+
+
 
 std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
   if(type == preAnalysisType::None){
@@ -438,6 +521,8 @@ std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisCorrMatEvals);
   }else if(type == preAnalysisType::StandardError){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisStandardError);
+  }else if(type == preAnalysisType::FitAutoCorrAvoid){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisFitAutoCorrAvoid);
   }else{
     error_exit(std::cout << "Invalid pre-analysis type" << std::endl);
   }

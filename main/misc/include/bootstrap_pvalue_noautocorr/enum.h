@@ -6,4 +6,4 @@ GENERATE_ENUM_AND_PARSER(CovMatStrategy, (Correlated)(Uncorrelated)(Cutoff)(MCM)
 
 GENERATE_ENUM_AND_PARSER(FitFuncType, (FConstant)(FLinear));
 
-GENERATE_ENUM_AND_PARSER(preAnalysisType, (None)(CovMatEvals)(CorrMatEvals)(StandardError));
+GENERATE_ENUM_AND_PARSER(preAnalysisType, (None)(CovMatEvals)(CorrMatEvals)(StandardError)(FitAutoCorrAvoid));

@@ -43,6 +43,7 @@ int main(const int argc, const char** argv){
     std::unique_ptr<preAnalysisBase> preanalysis = preAnalysisFactory(p);
     preanalysis->run(args, *covgen, *dgen, *ffunc);
   }
+  if(cmdline.exit_after_preanalysis) return 0;
 
   //----------------------------------------------
   //Generate distribution for true data

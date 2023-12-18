@@ -101,18 +101,22 @@ public:
 
 class randomDataBinned: public randomDataBase{
   int bin_size;
+  int nsample_unbinned;
   std::unique_ptr<randomDataBase> base_gen;
 public:
   //nsample in input args should be size *after* binning
-  randomDataBinned(int Lt, int bin_size, DataGenStrategy strat, const std::string &base_params_file): bin_size(bin_size), 
+  randomDataBinned(int Lt, int bin_size, int nsample_unbinned, DataGenStrategy strat, const std::string &base_params_file): bin_size(bin_size), nsample_unbinned(nsample_unbinned),
 												      base_gen(dataGenStrategyFactory(strat,base_params_file,Lt)){}
 
   correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const override{
-    correlationFunction<double, rawDataDistributionD> b = base_gen->generate(Lt,nsample*bin_size);
+    if(nsample_unbinned / bin_size != nsample) error_exit(std::cout << "Expect nsample_unbinned ("<<nsample_unbinned<<") / bin_size (" << bin_size <<") == nsample (" << nsample << 
+							  ") got" << nsample_unbinned / bin_size << std::endl); //allow for truncation
+
+    correlationFunction<double, rawDataDistributionD> b = base_gen->generate(Lt,nsample_unbinned); //this way we can be sure we always get the same data even if the bin size is not an exact divisor of nsample_unbinned
     correlationFunction<double, rawDataDistributionD> out(Lt);
     for(int t=0;t<Lt;t++){
       out.coord(t) = t;
-      out.value(t) = b.value(t).bin(bin_size);
+      out.value(t) = b.value(t).bin(bin_size,true);
     }
     return out;
   }
@@ -160,10 +164,10 @@ GENERATE_PARSER( RdataTimeDepNrmLikeMixLeftArgs, MEMBERS);
 #undef MEMBERS
 
 
-#define MEMBERS (int, bin_size)(DataGenStrategy, base_strat)(std::string, base_params_file)
+#define MEMBERS (int, bin_size)(int, nsample_unbinned)(DataGenStrategy, base_strat)(std::string, base_params_file)
 struct BinnedDataArgs{
   GENERATE_MEMBERS(MEMBERS); 
-  BinnedDataArgs(): bin_size(1), base_strat(DataGenStrategy::NormalUniform), base_params_file("datagen_base.args"){  }
+  BinnedDataArgs(): bin_size(1), nsample_unbinned(100),base_strat(DataGenStrategy::NormalUniform), base_params_file("datagen_base.args"){  }
 };
 GENERATE_PARSER( BinnedDataArgs, MEMBERS);
 #undef MEMBERS
@@ -189,7 +193,7 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
     return std::unique_ptr<randomDataBase>(new randomDataGaussianMixLeft(Lt, args.mu, args.sigma, args.alpha));
   }else if(strat == DataGenStrategy::Binned){
     BinnedDataArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
-    return std::unique_ptr<randomDataBase>(new randomDataBinned(Lt, args.bin_size, args.base_strat, args.base_params_file));
+    return std::unique_ptr<randomDataBase>(new randomDataBinned(Lt, args.bin_size, args.nsample_unbinned, args.base_strat, args.base_params_file));
   }else{
     error_exit(std::cout << "Invalid data generation strategy" << std::endl);
   }

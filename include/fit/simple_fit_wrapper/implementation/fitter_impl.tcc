@@ -326,7 +326,7 @@ inline void simpleFitWrapper<BaseDistributionType>::convertFrozenParametersToExt
 
 template<typename BaseDistributionType>
 template<typename InputParameterType, typename GeneralizedCoordinate>
-void simpleFitWrapper<BaseDistributionType>::doSample(typename BaseDistributionType::template rebase<InputParameterType> &params,
+bool simpleFitWrapper<BaseDistributionType>::doSample(typename BaseDistributionType::template rebase<InputParameterType> &params,
 						      BaseDistributionType &chisq,
 						      BaseDistributionType &chisq_per_dof,
 						      int &dof,
@@ -383,11 +383,12 @@ void simpleFitWrapper<BaseDistributionType>::doSample(typename BaseDistributionT
 
   iter::at(s, chisq_per_dof) = iter::at(s, chisq)/dof_s;
   for(int i=0;i<nparam;i++) iter_p::at(s, params)(i) = params_s(i);
+  return converged;
 }
 
 template<typename BaseDistributionType>
 template<typename InputParameterType, typename GeneralizedCoordinate>
-void simpleFitWrapper<BaseDistributionType>::fit(typename BaseDistributionType::template rebase<InputParameterType> &params,
+bool simpleFitWrapper<BaseDistributionType>::fit(typename BaseDistributionType::template rebase<InputParameterType> &params,
 						 BaseDistributionType &chisq,
 						 BaseDistributionType &chisq_per_dof,
 						 int &dof,
@@ -403,13 +404,13 @@ void simpleFitWrapper<BaseDistributionType>::fit(typename BaseDistributionType::
   if(ndata == 0){
     std::cout << "Warning: Fit data container contains no data! Not performing a fit...." << std::endl;
     dof = -1;
-    return;
+    return true;
   }
   int niter = iter::size(data.value(0));
   if(niter == 0){
     std::cout << "Warning: Fit data has 0 samples! Not performing a fit...." << std::endl;
     dof = -1;
-    return;
+    return true;
   }
 
   assert(iter_p::size(params) == niter);
@@ -431,25 +432,29 @@ void simpleFitWrapper<BaseDistributionType>::fit(typename BaseDistributionType::
   if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(&thr0_only);
 
   //Run the first iteration and use the result as a guess for the remainder, speeding up convergence
-  doSample(params, chisq, chisq_per_dof, dof,
-	   0, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);
+  bool conv =  doSample(params, chisq, chisq_per_dof, dof,
+			0, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);
+  if(!conv) return conv;
 
   //Run the rest of the samples
+  std::vector<bool> t_conv(omp_get_max_threads(),true);
 #pragma omp parallel for
   for(int s=1;s<niter;s++){
+    int me = omp_get_thread_num();
     iter_p::at(s,params) = iter_p::at(0,params);
       
-    doSample(params, chisq, chisq_per_dof, dof,
-	     s, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);
+    t_conv[me] = t_conv[me] && doSample(params, chisq, chisq_per_dof, dof,
+					s, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);
   }
+  for(int t=0;t<t_conv.size();t++) conv = conv && t_conv[t];
 
   if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(cout_rdbuf_orig);
-
+  return conv;
 }
 
 template<typename BaseDistributionType>
 template<typename GeneralizedCoordinate>
-void simpleFitWrapper<BaseDistributionType>::fit(std::vector<BaseDistributionType> &params,
+bool simpleFitWrapper<BaseDistributionType>::fit(std::vector<BaseDistributionType> &params,
 						 BaseDistributionType &chisq,
 						 BaseDistributionType &chisq_per_dof,
 						 int &dof,
@@ -476,9 +481,10 @@ void simpleFitWrapper<BaseDistributionType>::fit(std::vector<BaseDistributionTyp
     for(int s=0;s<Niter;s++)
       iter_p::at(s,tmp_params)[p] = iter::at(s,params[p]);
     
-  this->fit<tmpParamType,GeneralizedCoordinate>(tmp_params, chisq, chisq_per_dof, dof, data, chisq_dof_nopriors);
+  bool conv = this->fit<tmpParamType,GeneralizedCoordinate>(tmp_params, chisq, chisq_per_dof, dof, data, chisq_dof_nopriors);
     
   for(int p=0;p<Nparam;p++)
     for(int s=0;s<Niter;s++)
       iter::at(s,params[p]) = iter_p::at(s,tmp_params)[p];
+  return conv;
 }

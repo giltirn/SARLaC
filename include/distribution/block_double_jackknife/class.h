@@ -24,6 +24,7 @@ public:
   template<typename T>
   using rebase = blockDoubleJackknifeDistribution<T,BaseVectorType>;
 
+  typedef std::pair<int,int> initType; //(nsample, bin_size)
 private:
   jackknifeDistribution<BaseDataType> standardDeviation() const{ assert(0); };
   jackknifeDistribution<BaseDataType> standardError() const{ assert(0); };
@@ -47,6 +48,7 @@ private:
   }
 
 public:
+  inline initType getInitializer() const{ return initType(nsample,bin_size); }
 
   inline int nSamplesUnbinned() const{
     return nsample;
@@ -65,7 +67,7 @@ public:
     this->_data.resize(nbinned);
     for(int i=0;i<nbinned;i++) this->_data[i].resize(nsub);
   }
-  inline void resize(const std::pair<int,int> &nb){ //used by ET
+  inline void resize(const initType &nb){ //used by ET
     this->resize(nb.first, nb.second);
   }
 
@@ -119,7 +121,7 @@ public:
 	this->sample(i).sample(j) = r.sample(i).sample(j);
   }
 
-  explicit blockDoubleJackknifeDistribution(const std::pair<int,int> &nb): blockDoubleJackknifeDistribution(nb.first, nb.second){} //used by ET
+  explicit blockDoubleJackknifeDistribution(const initType &nb): blockDoubleJackknifeDistribution(nb.first, nb.second){} //used by ET
   
   blockDoubleJackknifeDistribution(const int nsample, const int bin_size): 
     baseType(nsample/bin_size, DataType(binCrop(nsample,bin_size)-bin_size)),
