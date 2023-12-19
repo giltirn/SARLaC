@@ -1,5 +1,5 @@
 //Code to generate toy examples of the bootstrap p-value approach
-
+#include<tuple>
 #include<fit.h>
 #include<random.h>
 #include<common.h>
@@ -39,9 +39,11 @@ int main(const int argc, const char** argv){
   std::unique_ptr<randomDataBase> dgen = dataGenStrategyFactory(args.data_strat, argv[2], Lt);
 
   //Run any pre-analysis
-  for(auto p : args.preanalysis){
-    std::unique_ptr<preAnalysisBase> preanalysis = preAnalysisFactory(p);
-    preanalysis->run(args, *covgen, *dgen, *ffunc);
+  if(args.preanalysis.size() != args.preanalysis_params_file.size()) error_exit(std::cout << "Require as many preanalysis params files as there are preanalyses specified" << std::endl);
+
+  for(int i=0;i<args.preanalysis.size();i++){
+    std::unique_ptr<preAnalysisBase> preanalysis = preAnalysisFactory(args.preanalysis[i]);
+    preanalysis->run(args, args.preanalysis_params_file[i], *covgen, *dgen, *ffunc);
   }
   if(cmdline.exit_after_preanalysis) return 0;
 

@@ -122,6 +122,122 @@ public:
   }
 };
 
+template<typename Ffunc, typename UpdateFunc>
+class MetropolisDataGen{
+  Ffunc ffunc;
+  UpdateFunc update;
+
+  int nsample_therm; //thermalization, paid once
+  int nsample_decorr; //decorrelation, paid every timeslice (note, we assume that we wish each timeslice's data to be independent)
+
+  mutable std::vector<double> t_state; //thread state
+public:
+  MetropolisDataGen(const Ffunc &ffunc, const UpdateFunc &update, int nsample_therm, int nsample_decorr, double init): ffunc(ffunc), update(update), nsample_therm(nsample_therm), nsample_decorr(nsample_decorr), t_state(omp_get_max_threads()){
+    int nthr = omp_get_max_threads();
+    rawDataDistribution<double> setup = MetropolisHastings(nthr*nsample_decorr, nsample_therm, init, ffunc, update, RNG); //main thread
+    std::cout << "MetropolisDataGen initialized for " << nthr << " thread streams with starts:";
+    for(int i=0;i<nthr;i++){
+      t_state[i] = setup.sample(i*nsample_decorr);
+      std::cout << " " << t_state[i] << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+  rawDataDistributionD generate(const int nsample, const int traj_inc = 1) const{
+    int me = omp_get_thread_num();
+    if(me > t_state.size()) error_exit(std::cout << "Thread index is larger than the initial max_threads" << std::endl);
+    rawDataDistributionD tmp = MetropolisHastings(nsample*traj_inc, nsample_decorr, t_state[me], ffunc, update, threadRNG());
+    t_state[me] = tmp.sample(nsample*traj_inc-1); //update thread state
+    if(traj_inc > 1){
+      rawDataDistributionD out(nsample);
+      for(int i=0;i<nsample;i++) out.sample(i) = tmp.sample(traj_inc*i);
+      return out;
+    }else{
+      return tmp;
+    }
+  }
+};
+
+
+//tParamsType is a struct containing the model and update func params for a given timeslice. Must have operator<,  FFunc gen_func(), UpdateFunc gen_update()
+template<typename tParamsType>
+class randomDataMetropolisBase: public randomDataBase{  
+  typedef typename tParamsType::Ffunc Ffunc;
+  typedef typename tParamsType::UpdateFunc UpdateFunc;
+  typedef MetropolisDataGen<Ffunc,UpdateFunc> genType;
+  std::map<tParamsType, std::unique_ptr<genType> > gen_m; 
+  std::vector<genType*> gen_t;
+  int traj_inc;
+
+public:
+  randomDataMetropolisBase(const std::vector<tParamsType> &tslice_params, int nsample_therm, int nsample_decorr, int traj_inc, double init): traj_inc(traj_inc){
+    int Lt=tslice_params.size();
+    gen_t.resize(Lt,nullptr);
+    for(int t=0;t<Lt;t++){
+      const tParamsType &tp = tslice_params[t];
+      auto it = gen_m.find(tp);
+      if(it == gen_m.end()){
+	std::cout << "For timeslice t=" << t << " starting NEW Metropolis chain with params " << tp << std::endl;
+	gen_m[tp].reset(new genType(tp.gen_func(), tp.gen_update(), nsample_therm, nsample_decorr, init));      
+      }else{
+	std::cout << "For timeslice t=" << t << " reusing existing Metropolis chain with params " << tp << std::endl;
+      }
+      gen_t[t] = gen_m[tp].get();
+    }
+  }
+
+  //nsample is the number of samples in the output distribution, independent of the sample frequency traj_inc
+  correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const override{
+    if(Lt > gen_t.size()) error_exit(std::cout << "Lt is larger than #timeslices for which the generator has been initialized" << std::endl);
+
+    int me = omp_get_thread_num();
+    correlationFunction<double, rawDataDistributionD> out(Lt, nsample);
+    for(int t=0;t<Lt;t++){
+      out.coord(t) = t;
+      out.value(t) = gen_t[t]->generate(nsample,traj_inc);
+    }
+    return out;
+  }
+
+};
+
+struct GaussianMetropolisTimesliceParams{
+  typedef ProbGaussian Ffunc;
+  typedef UpdateFuncGaussian UpdateFunc;
+  std::array<double,3> p;
+  GaussianMetropolisTimesliceParams(){}
+  GaussianMetropolisTimesliceParams(double mu, double sigma, double update_width): p({mu,sigma,update_width}){}
+
+  inline Ffunc gen_func() const{ return Ffunc(p[0],p[1]); }
+  inline UpdateFunc gen_update() const{ return UpdateFunc(p[2]); }
+  bool operator<(const GaussianMetropolisTimesliceParams &r) const{ return p<r.p; }
+};      
+std::ostream & operator<<(std::ostream &os, const GaussianMetropolisTimesliceParams &p){
+  os << "(mu=" << p.p[0] <<",sigma=" << p.p[1] << ",width=" << p.p[2] <<")"; 
+  return os;
+}
+
+class randomDataMetropolisGaussian: public randomDataMetropolisBase<GaussianMetropolisTimesliceParams>{
+  static inline std::vector<GaussianMetropolisTimesliceParams> genParams(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma, const std::vector<double> &update_width){
+    if(mu.size() != Lt || sigma.size() != Lt || update_width.size() != Lt) error_exit(std::cout << "mu, sigma, update_width size must equal Lt" << std::endl);
+    std::vector<GaussianMetropolisTimesliceParams> out(Lt); 
+    for(int t=0;t<Lt;t++) out[t] = GaussianMetropolisTimesliceParams(mu[t],sigma[t],update_width[t]);
+    return out;
+  }
+
+public:
+  randomDataMetropolisGaussian(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma, const std::vector<double> &update_width, 
+			       int nsample_therm, int nsample_decorr, int traj_inc, double init): randomDataMetropolisBase<GaussianMetropolisTimesliceParams>(genParams(Lt,mu,sigma,update_width),nsample_therm,nsample_decorr,traj_inc,init){}
+
+  randomDataMetropolisGaussian(int Lt, const double mu_all, const double sigma_all, const double update_width_all, 
+			       int nsample_therm, int nsample_decorr, int traj_inc, double init): randomDataMetropolisBase<GaussianMetropolisTimesliceParams>(genParams(Lt,std::vector<double>(Lt,mu_all),std::vector<double>(Lt,sigma_all),std::vector<double>(Lt,update_width_all)),nsample_therm,nsample_decorr,traj_inc,init){}
+};
+
+
+
+
+
+
 //Parameters for random data generators with just mu, sigma shared for all timeslices
 #define MEMBERS (double, mu)(double, sigma)
 struct RdataUniformNrmLikeArgs{
@@ -172,6 +288,15 @@ struct BinnedDataArgs{
 GENERATE_PARSER( BinnedDataArgs, MEMBERS);
 #undef MEMBERS
 
+#define MEMBERS (double, mu)(double, sigma)(double, update_width)(int, nsample_therm)(int, nsample_decorr)(int, traj_inc)(double, init)
+struct RdataUniformNrmLikeMetropolisArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  RdataUniformNrmLikeMetropolisArgs(): mu(0.), sigma(1.), update_width(1.0), nsample_therm(50000), nsample_decorr(1000), traj_inc(4), init(0.0){  }
+};
+GENERATE_PARSER( RdataUniformNrmLikeMetropolisArgs, MEMBERS);
+#undef MEMBERS
+
+
 std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, const std::string &params_file, const int Lt){
   if(strat == DataGenStrategy::NormalUniform){
     RdataUniformNrmLikeArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
@@ -194,6 +319,9 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
   }else if(strat == DataGenStrategy::Binned){
     BinnedDataArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataBinned(Lt, args.bin_size, args.nsample_unbinned, args.base_strat, args.base_params_file));
+  }else if(strat == DataGenStrategy::NormalUniformMetropolis){
+    RdataUniformNrmLikeMetropolisArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
+    return std::unique_ptr<randomDataBase>(new randomDataMetropolisGaussian(Lt, args.mu, args.sigma, args.update_width, args.nsample_therm, args.nsample_decorr, args.traj_inc, args.init));
   }else{
     error_exit(std::cout << "Invalid data generation strategy" << std::endl);
   }

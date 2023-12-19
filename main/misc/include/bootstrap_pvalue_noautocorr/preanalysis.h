@@ -1,14 +1,14 @@
 #pragma once
 
 struct preAnalysisBase{
-  virtual void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const = 0;
+  virtual void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const = 0;
   virtual ~preAnalysisBase(){}
 };
 struct preAnalysisNone: public preAnalysisBase{
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{};
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{};
 };
 struct preAnalysisCovMatEvals: public preAnalysisBase{
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{
     int nsample = args.nsample;
     int Lt = args.Lt;
     int ntest = args.ntest;
@@ -204,7 +204,7 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
 };
 
 struct preAnalysisCorrMatEvals: public preAnalysisBase{
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{
     int nsample = args.nsample;
     int Lt = args.Lt;
     int ntest = args.ntest;
@@ -303,7 +303,7 @@ struct preAnalysisStandardError: public preAnalysisBase{
     std_dev = sqrt( s2/vals.size() - mean*mean );
   }
 
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
     //----------------------------------------------
     //Generate distribution for true data
     //----------------------------------------------
@@ -431,7 +431,7 @@ struct preAnalysisStandardError: public preAnalysisBase{
 //Fit with the autocorrelation-avoiding covariance matrix for both (block) jackknife and (non-overlapping block) bootstrap. Ignore the covgen input
 struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
 
-  void run(const Args &args, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
     //Generate raw data
     int nsample = args.nsample;
     int Lt = args.Lt;
@@ -509,6 +509,58 @@ struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
   }//run
 };
 
+#define ARGS (int, delta_max)(int, bin_size)(int, nsample)
+struct preAnalysisTauIntArgs{
+  GENERATE_MEMBERS(ARGS);
+  preAnalysisTauIntArgs(): delta_max(10), bin_size(1), nsample(50000){}
+};
+GENERATE_PARSER( preAnalysisTauIntArgs, ARGS );
+#undef ARGS
+
+struct preAnalysisTauInt: public preAnalysisBase{
+
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+    std::cout << "Analysing integrated autocorrelation time for data generator" << std::endl;
+    preAnalysisTauIntArgs pargs;
+    if(params_file == "TEMPLATE"){
+      std::ofstream of("preanalysis_tau_int_template.args");
+      of << pargs;
+      return;
+    }
+    parse(pargs, params_file);
+
+    auto data = datagen.generate(1, pargs.nsample);
+    
+    std::cout << "Computing error bars using bin/resample of products ( v[s] - <v> )( v[s + delta] - <v> ) with bin size " << pargs.bin_size << std::endl;
+    int nbin = (pargs.nsample - pargs.delta_max)/pargs.bin_size;
+    std::vector<std::vector<int> > rtable = resampleTable(RNG, nbin);
+    AutoCorrelationOptions opt;
+    auto tau_int = integratedAutocorrelationMulti(pargs.delta_max, pargs.bin_size, pargs.delta_max, data.value(0), rtable, opt);
+
+    for(int d=0;d<=pargs.delta_max;d++) std::cout << d << " " << tau_int[d] << std::endl;
+
+    std::cout << "Generating plot" << std::endl;
+    MatPlotLibScriptGenerate plot;
+    
+    struct Accessor{
+      const std::vector<bootstrapDistributionD> &vec;
+      Accessor(const std::vector<bootstrapDistributionD> &vec): vec(vec){}
+      
+      inline double x(const int i) const{ return i; }
+      inline double upper(const int i) const{ return vec[i].confidenceRegion().second; }
+      inline double lower(const int i) const{ return vec[i].confidenceRegion().first; }
+      inline int size() const{ return vec.size(); }
+    };
+    
+    Accessor acc(tau_int);
+    plot.errorBand(acc);
+    plot.setXlabel(R"($\Delta_{\rm cut}$)");
+    plot.setYlabel(R"($\tau_{\rm int}(\Delta_{\rm cut}$))");
+
+    plot.write("plot_tau_int.py","plot_tau_int.pdf");
+  }
+};
+
 
 
 
@@ -523,6 +575,8 @@ std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisStandardError);
   }else if(type == preAnalysisType::FitAutoCorrAvoid){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisFitAutoCorrAvoid);
+  }else if(type == preAnalysisType::TauInt){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisTauInt);
   }else{
     error_exit(std::cout << "Invalid pre-analysis type" << std::endl);
   }
