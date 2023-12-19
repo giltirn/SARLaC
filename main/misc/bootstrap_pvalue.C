@@ -7,14 +7,14 @@
 #include<plot.h>
 using namespace SARLaC;
 
-#include <bootstrap_pvalue_noautocorr/cmdline.h>
-#include <bootstrap_pvalue_noautocorr/enum.h>
-#include <bootstrap_pvalue_noautocorr/args.h>
-#include <bootstrap_pvalue_noautocorr/utils.h>
-#include <bootstrap_pvalue_noautocorr/data_gen.h>
-#include <bootstrap_pvalue_noautocorr/cov_mat.h>
-#include <bootstrap_pvalue_noautocorr/fitfunc.h>
-#include <bootstrap_pvalue_noautocorr/preanalysis.h>
+#include <bootstrap_pvalue/cmdline.h>
+#include <bootstrap_pvalue/enum.h>
+#include <bootstrap_pvalue/args.h>
+#include <bootstrap_pvalue/utils.h>
+#include <bootstrap_pvalue/data_gen.h>
+#include <bootstrap_pvalue/cov_mat.h>
+#include <bootstrap_pvalue/fitfunc.h>
+#include <bootstrap_pvalue/preanalysis.h>
 
 int main(const int argc, const char** argv){
   RNG.initialize(1234);
