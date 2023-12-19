@@ -17,10 +17,10 @@ using namespace SARLaC;
 #include <bootstrap_pvalue/preanalysis.h>
 
 int main(const int argc, const char** argv){
+  CMDline cmdline(argc,argv,3);
+
   RNG.initialize(1234);
   threadRNG.initialize(5678);
-
-  CMDline cmdline(argc,argv,3);
 
   Args args;
   if(argc < 3){

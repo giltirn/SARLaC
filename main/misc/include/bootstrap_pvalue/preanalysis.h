@@ -438,74 +438,103 @@ struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
     int ntest = args.ntest;
     int dof = Lt - fitfunc.Nparams();
 
-    correlationFunction<double, rawDataDistributionD> data = datagen.generate(Lt,nsample);
-    
-    //Block bootstrap (NBB)  with autocorrelation-ignoring covariance matrix
-    std::vector<std::vector<int> > rtable = nonoverlappingBlockResampleTable(RNG,nsample,args.block_size,ntest); //ntest == nboots
-    int nsample_reduced = rtable[0].size(); //allow for truncation to match multiple of block size
+    int norig_ens = args.norig_ens; //to get an idea of the variations in the error
 
-    bootstrapInitType binit(ntest);
-    bootJackknifeInitType bjinit(nsample_reduced,nsample,ntest);
-    correlationFunction<double, bootstrapDistributionD> data_rb(Lt);
-    correlationFunction<double, bootJackknifeDistributionD> data_rbj(Lt);
+    std::vector<std::vector<bootstrapDistributionD> > params_b_all;
+    std::vector<std::vector<jackknifeDistributionD> > params_j_all;
+    std::vector<bootstrapDistributionD> chisq_b_all;
+    std::vector<jackknifeDistributionD> chisq_j_all;
     
-    for(int t=0;t<Lt;t++){
-      data_rb.coord(t) = data_rbj.coord(t) = t;
-      data_rb.value(t).resize(binit);
-      data_rb.value(t).resample(data.value(t), rtable);
-      data_rbj.value(t).resize(bjinit);
-      data_rbj.value(t).resample(data.value(t), rtable);
+    for(int orig_ens=0; orig_ens < norig_ens; orig_ens++){
+      correlationFunction<double, rawDataDistributionD> data = datagen.generate(Lt,nsample);
+    
+      //Block bootstrap (NBB)  with autocorrelation-ignoring covariance matrix
+      std::vector<std::vector<int> > rtable = nonoverlappingBlockResampleTable(RNG,nsample,args.block_size,ntest); //ntest == nboots
+      int nsample_reduced = rtable[0].size(); //allow for truncation to match multiple of block size
+
+      bootstrapInitType binit(ntest);
+      bootJackknifeInitType bjinit(nsample_reduced,nsample,ntest);
+      correlationFunction<double, bootstrapDistributionD> data_rb(Lt);
+      correlationFunction<double, bootJackknifeDistributionD> data_rbj(Lt);
+    
+      for(int t=0;t<Lt;t++){
+	data_rb.coord(t) = data_rbj.coord(t) = t;
+	data_rb.value(t).resize(binit);
+	data_rb.value(t).resample(data.value(t), rtable);
+	data_rbj.value(t).resize(bjinit);
+	data_rbj.value(t).resample(data.value(t), rtable);
+      }
+    
+      //Block double-jackknife with autocorrelation-ignoring covariance matrix
+      std::pair<int,int> bdjinit(nsample, args.block_size);
+      int jinit = nsample / args.block_size; //block jackknife  == binned jackknife
+      correlationFunction<double, jackknifeDistributionD> data_rj(Lt);
+      correlationFunction<double, blockDoubleJackknifeDistributionD> data_rdj(Lt);
+      for(int t=0;t<Lt;t++){
+	data_rj.coord(t) = data_rdj.coord(t) = t;
+	data_rj.value(t).resize(jinit);
+	data_rj.value(t).resample(data.value(t).bin(args.block_size, true));
+	data_rdj.value(t).resize(bdjinit);
+	data_rdj.value(t).resample(data.value(t));
+      }
+
+      MarquardtLevenbergParameters<double> mlparams(args.MLparams);
+      mlparams.exit_on_convergence_fail = false;
+
+      simpleFitWrapper<bootstrapDistributionD> fit_b(fitfunc, MinimizerType::MarquardtLevenberg, mlparams);
+      simpleFitWrapper<jackknifeDistributionD> fit_j(fitfunc, MinimizerType::MarquardtLevenberg, mlparams);
+
+      fit_b.generateCovarianceMatrix(data_rbj);
+      fit_j.generateCovarianceMatrix(data_rdj);
+
+      std::vector<bootstrapDistributionD> params_b(fitfunc.Nparams(), bootstrapDistributionD(binit));
+      std::vector<jackknifeDistributionD> params_j(fitfunc.Nparams(), jackknifeDistributionD(jinit));
+    
+      int d; 
+      bootstrapDistributionD chisq_b(binit), chisq_per_dof_b(binit);
+      jackknifeDistributionD chisq_j(jinit), chisq_per_dof_j(jinit);
+      std::cout << "Performing bootstrap fit" << std::endl << std::flush;
+      bool conv_b = fit_b.fit(params_b, chisq_b, chisq_per_dof_b, d, data_rb);
+      std::cout << "Performing jackknife fit" << std::endl << std::flush;
+      bool conv_j = fit_j.fit(params_j, chisq_j, chisq_per_dof_j, d, data_rj);
+      if(!conv_b){
+	std::cout << "Bootstrap fit did not converge" << std::endl;
+	for(int i=0;i<fitfunc.Nparams();i++) params_b[i].zero();
+      }
+      if(!conv_j){
+	std::cout << "Jackknife fit did not converge" << std::endl;
+	for(int i=0;i<fitfunc.Nparams();i++) params_j[i].zero();
+      }
+      params_b_all.push_back(std::move(params_b));
+      params_j_all.push_back(std::move(params_j));
+      chisq_b_all.push_back(std::move(chisq_b));
+      chisq_j_all.push_back(std::move(chisq_j));
     }
-    
-    //Block double-jackknife with autocorrelation-ignoring covariance matrix
-    std::pair<int,int> bdjinit(nsample, args.block_size);
-    int jinit = nsample / args.block_size; //block jackknife  == binned jackknife
-    correlationFunction<double, jackknifeDistributionD> data_rj(Lt);
-    correlationFunction<double, blockDoubleJackknifeDistributionD> data_rdj(Lt);
-    for(int t=0;t<Lt;t++){
-      data_rj.coord(t) = data_rdj.coord(t) = t;
-      data_rj.value(t).resize(jinit);
-      data_rj.value(t).resample(data.value(t).bin(args.block_size, true));
-      data_rdj.value(t).resize(bdjinit);
-      data_rdj.value(t).resample(data.value(t));
-    }
 
-    MarquardtLevenbergParameters<double> mlparams(args.MLparams);
-    mlparams.exit_on_convergence_fail = false;
-
-    simpleFitWrapper<bootstrapDistributionD> fit_b(fitfunc, MinimizerType::MarquardtLevenberg, mlparams);
-    simpleFitWrapper<jackknifeDistributionD> fit_j(fitfunc, MinimizerType::MarquardtLevenberg, mlparams);
-
-    fit_b.generateCovarianceMatrix(data_rbj);
-    fit_j.generateCovarianceMatrix(data_rdj);
-
-    std::vector<bootstrapDistributionD> params_b(fitfunc.Nparams(), bootstrapDistributionD(binit));
-    std::vector<jackknifeDistributionD> params_j(fitfunc.Nparams(), jackknifeDistributionD(jinit));
-    
-    int d; 
-    bootstrapDistributionD chisq_b(binit), chisq_per_dof_b(binit);
-    jackknifeDistributionD chisq_j(jinit), chisq_per_dof_j(jinit);
-    std::cout << "Performing bootstrap fit" << std::endl << std::flush;
-    bool conv_b = fit_b.fit(params_b, chisq_b, chisq_per_dof_b, d, data_rb);
-    std::cout << "Performing jackknife fit" << std::endl << std::flush;
-    bool conv_j = fit_j.fit(params_j, chisq_j, chisq_per_dof_j, d, data_rj);
-    if(!conv_b){
-      std::cout << "Bootstrap fit did not converge" << std::endl;
-      for(int i=0;i<fitfunc.Nparams();i++) params_b[i].zero();
-    }
-    if(!conv_j){
-      std::cout << "Jackknife fit did not converge" << std::endl;
-      for(int i=0;i<fitfunc.Nparams();i++) params_j[i].zero();
-    }
-    
     std::cout << "Fit results,  jackknife : bootstrap" << std::endl;
-    for(int i=0;i<fitfunc.Nparams();i++){
-      std::cout << i << " " << params_j[i] << " : " << params_b[i] << std::endl;
+    for(int o=0;o<norig_ens;o++){
+      std::cout << "Orig ens " << o << std::endl;
+      for(int i=0;i<fitfunc.Nparams();i++){
+	std::cout << i << " " << params_j_all[o][i] << " : " << params_b_all[o][i] << std::endl;
+      }
     }
-    writeParamsStandard(params_b,"fit_params_b.hdf5");
-    writeParamsStandard(params_j,"fit_params_j.hdf5");
-    writeParamsStandard(chisq_b,"chisq_b.hdf5");
-    writeParamsStandard(chisq_j,"chisq_j.hdf5");
+
+    writeParamsStandard(params_b_all,"fit_params_b.hdf5");
+    writeParamsStandard(params_j_all,"fit_params_j.hdf5");
+    writeParamsStandard(chisq_b_all,"chisq_b.hdf5");
+    writeParamsStandard(chisq_j_all,"chisq_j.hdf5");
+    
+    //Compute the average error and how much it varies over original ensembles
+    std::ofstream err_b("err_b.dat"), err_j("err_j.dat");    
+    for(int i=0;i<fitfunc.Nparams();i++){
+      rawDataDistributionD b(norig_ens), j(norig_ens);
+      for(int o=0;o<norig_ens;o++){
+	b.sample(o) = params_b_all[o][i].standardError();
+	j.sample(o) = params_j_all[o][i].standardError();
+      }
+      err_b << i << " " << b.mean() << " " << b.standardDeviation() << std::endl;
+      err_j << i << " " << j.mean() << " " << j.standardDeviation() << std::endl;
+    }
   }//run
 };
 

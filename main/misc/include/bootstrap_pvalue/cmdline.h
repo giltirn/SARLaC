@@ -4,9 +4,15 @@ struct CMDline{
   bool write_data;
   bool exit_after_preanalysis;
 
+  int seed; //for main rng
+  int seed_thr; //for thread rng
+
   CMDline(){
     write_data = false;
     exit_after_preanalysis = false;
+
+    seed = 1234;
+    seed_thr = 5678;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -27,6 +33,11 @@ struct CMDline{
       }else if(sargv[i] == "-exit_after_preanalysis"){
 	exit_after_preanalysis = true;;
 	i++;
+      }else if(sargv[i] == "-seed"){
+	seed = strToAny<int>(sargv[i+1]);
+	seed_thr = strToAny<int>(sargv[i+2]);
+	std::cout << "Set seeds to " << seed << " " << seed_thr << std::endl;
+	i+=3;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
