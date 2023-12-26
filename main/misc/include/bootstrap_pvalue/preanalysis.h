@@ -444,7 +444,8 @@ struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
     std::vector<std::vector<jackknifeDistributionD> > params_j_all;
     std::vector<bootstrapDistributionD> chisq_b_all;
     std::vector<jackknifeDistributionD> chisq_j_all;
-    
+    std::vector<bool> conv_j_all(norig_ens,true), conv_b_all(norig_ens,true);
+
     for(int orig_ens=0; orig_ens < norig_ens; orig_ens++){
       correlationFunction<double, rawDataDistributionD> data = datagen.generate(Lt,nsample);
     
@@ -500,10 +501,12 @@ struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
       if(!conv_b){
 	std::cout << "Bootstrap fit did not converge" << std::endl;
 	for(int i=0;i<fitfunc.Nparams();i++) params_b[i].zero();
+	conv_b_all[orig_ens] = false;
       }
       if(!conv_j){
 	std::cout << "Jackknife fit did not converge" << std::endl;
 	for(int i=0;i<fitfunc.Nparams();i++) params_j[i].zero();
+	conv_j_all[orig_ens] = false;
       }
       params_b_all.push_back(std::move(params_b));
       params_j_all.push_back(std::move(params_j));
@@ -527,13 +530,17 @@ struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
     //Compute the average error and how much it varies over original ensembles
     std::ofstream err_b("err_b.dat"), err_j("err_j.dat");    
     for(int i=0;i<fitfunc.Nparams();i++){
-      rawDataDistributionD b(norig_ens), j(norig_ens);
+      rawDataDistributionD b, j;
       for(int o=0;o<norig_ens;o++){
-	b.sample(o) = params_b_all[o][i].standardError();
-	j.sample(o) = params_j_all[o][i].standardError();
+	if(conv_b_all[o]) b.push_back(params_b_all[o][i].standardError());
+	if(conv_j_all[o]) j.push_back(params_j_all[o][i].standardError());
       }
-      err_b << i << " " << b.mean() << " " << b.standardDeviation() << std::endl;
-      err_j << i << " " << j.mean() << " " << j.standardDeviation() << std::endl;
+      //Only count those that converged in average
+      if(b.size()) err_b << i << " " << b.mean() << " " << b.standardDeviation() << " " << b.size() << std::endl;
+      else err_b << i << " NA NA 0" << std::endl;
+
+      if(j.size()) err_j << i << " " << j.mean() << " " << j.standardDeviation() << " " << j.size() << std::endl;
+      else err_j << i << " NA NA 0" << std::endl;
     }
   }//run
 };
