@@ -514,6 +514,36 @@ struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
       chisq_j_all.push_back(std::move(chisq_j));
     }
 
+    //Compute the true error
+    //(use bootstrap containers so that the error is the standard deviation)
+    bootstrapInitType binit_true(ntest);
+    std::vector<bootstrapDistributionD> params_true(fitfunc.Nparams(), bootstrapDistributionD(binit_true));
+    bootstrapDistributionD chisq_true(binit_true);
+
+#pragma omp parallel for
+    for(int orig_ens=0; orig_ens < ntest; orig_ens++){
+      correlationFunction<double, rawDataDistributionD> data = datagen.generate(Lt,nsample);
+      correlationFunction<double, double> data_means(Lt);
+      for(int t=0;t<Lt;t++){
+	data_means.coord(t) = t;
+	data_means.value(t) = data.value(t).mean();
+      }
+      NumericSquareMatrix<double> cov(Lt);
+      for(int t=0;t<Lt;t++)
+	for(int u=t;u<Lt;u++)
+	  cov(t,u) = cov(u,t) = rawDataDistributionD::covariance(data.value(t),data.value(u));
+	  
+      simpleSingleFitWrapper fitter(fitfunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+      fitter.importCovarianceMatrix(cov);
+      
+      parameterVector<double> params(fitfunc.Nparams(),0.);
+      double q2, q2_per_dof; int dof;
+      assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
+
+      for(int p=0;p<fitfunc.Nparams();p++) params_true[p].sample(orig_ens) = params[p];
+      chisq_true.sample(orig_ens) = q2;
+    }
+
     std::cout << "Fit results,  jackknife : bootstrap" << std::endl;
     for(int o=0;o<norig_ens;o++){
       std::cout << "Orig ens " << o << std::endl;
@@ -541,6 +571,21 @@ struct preAnalysisFitAutoCorrAvoid: public preAnalysisBase{
 
       if(j.size()) err_j << i << " " << j.mean() << " " << j.standardDeviation() << " " << j.size() << std::endl;
       else err_j << i << " NA NA 0" << std::endl;
+    }
+
+    //True error
+    std::cout << "Fit results,  true" << std::endl;
+    for(int i=0;i<fitfunc.Nparams();i++){
+      params_true[i].best() = params_true[i].mean();
+      std::cout << i << " " << params_true[i] << std::endl;
+    }
+    writeParamsStandard(params_true,"fit_params_true.hdf5");
+    chisq_true.best() = chisq_true.mean();
+    writeParamsStandard(chisq_true,"chisq_true.hdf5");
+
+    std::ofstream err_true("err_true.dat");
+    for(int i=0;i<fitfunc.Nparams();i++){
+      err_true << i << " " << params_true[i].standardError() << std::endl;
     }
   }//run
 };

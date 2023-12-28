@@ -167,7 +167,7 @@ static std::vector<std::vector<int> > resampleTable(threadRNGstore &tbrng, const
 						    const int nboots = bootstrapDistributionOptions::defaultBoots()){
   std::uniform_int_distribution<> dis(0,nsample-1);
   std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample));
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
   for(int b=0;b<nboots;b++)
     for(int i=0;i<nsample;i++)
       out[b][i] = dis(tbrng()());
