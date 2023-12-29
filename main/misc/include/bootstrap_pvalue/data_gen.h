@@ -143,6 +143,15 @@ public:
     std::cout << std::endl;
   }
 
+  //Compute the acceptance by running a new Metropolis chain of a certain length with a new RNG (so as not to change state)
+  double acceptance() const{
+    assert(!omp_in_parallel());
+    RNGstore rng(RNG);
+    double a;
+    rawDataDistributionD tmp = MetropolisHastings(0,200000, t_state[0], ffunc, update, rng, &a);
+    return a;
+  }
+
   rawDataDistributionD generate(const int nsample, const int traj_inc = 1) const{
     int me = omp_get_thread_num();
     if(me > t_state.size()) error_exit(std::cout << "Thread index is larger than the initial max_threads" << std::endl);
@@ -178,7 +187,8 @@ public:
       auto it = gen_m.find(tp);
       if(it == gen_m.end()){
 	std::cout << "For timeslice t=" << t << " starting NEW Metropolis chain with params " << tp << std::endl;
-	gen_m[tp].reset(new genType(tp.gen_func(), tp.gen_update(), nsample_therm, nsample_decorr, init));      
+	gen_m[tp].reset(new genType(tp.gen_func(), tp.gen_update(), nsample_therm, nsample_decorr, init));
+	std::cout << "Got acceptance " << gen_m[tp]->acceptance() << std::endl;
       }else{
 	std::cout << "For timeslice t=" << t << " reusing existing Metropolis chain with params " << tp << std::endl;
       }

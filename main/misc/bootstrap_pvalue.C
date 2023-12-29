@@ -42,7 +42,7 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     parameterVector<double> params(ffunc.Nparams(),0.);
     double q2, q2_per_dof; int dof;
     assert(fitter.fit(params,q2,q2_per_dof,dof, orig_data_means));
-    fit_value = params[0];    
+    fit_value = params[0];    //TODO : Make this work for non-constant fits!
   }    
 
   std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
@@ -82,6 +82,81 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     }
   }
 } 
+
+
+void bootstrapAnalyzeResiduals(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Args &args, const std::string &write_rtable = ""){
+  int nsample = args.nsample;
+  int Lt = args.Lt;
+  int nblock = nsample / args.block_size;
+  int nsample_reduced = nblock * args.block_size;
+  int ntest = args.ntest;
+  assert(q2_into.size() == ntest);
+
+  correlationFunction<double, double> orig_data_means(Lt);
+
+  for(int t=0;t<Lt;t++){
+    orig_data_means.coord(t) = t;
+    orig_data_means.value(t) = orig_data.value(t).mean();      
+  }
+
+  //Get the fit value for the parameter from the original ensemble (for recentering)
+  double fit_value;
+  {
+    simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+    covgen.compute(fitter, orig_data);
+    
+    parameterVector<double> params(ffunc.Nparams(),0.);
+    double q2, q2_per_dof; int dof;
+    assert(fitter.fit(params,q2,q2_per_dof,dof, orig_data_means));
+    fit_value = params[0];    //TODO: Make this work for non-constant fits
+  }    
+
+  std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
+  assert(rtable.size() == ntest && rtable[0].size() == nsample_reduced);
+   
+  correlationFunction<double, rawDataDistributionD> orig_data_resids(Lt);
+  for(int t=0;t<Lt;t++){
+    orig_data_resids.coord(t) = t;
+    orig_data_resids.value(t) = orig_data.value(t) - rawDataDistributionD(nsample, fit_value);
+  }
+
+#pragma omp parallel for
+  for(int test=0;test<ntest;test++){
+    correlationFunction<double, rawDataDistributionD> data(Lt);
+    correlationFunction<double, double> data_means(Lt);
+    for(int t=0;t<Lt;t++){
+      rawDataDistributionD &dd = data.value(t);
+      dd.resize(nsample_reduced);
+      double shift = orig_data_resids.value(t).mean();
+      for(int s=0;s<nsample_reduced;s++){
+	dd.sample(s) = orig_data_resids.value(t).sample(rtable[test][s])
+	  - shift; //recenter
+      } 
+
+      data.coord(t) = data_means.coord(t) = t;
+      data_means.value(t) = dd.mean();
+    }
+    NumericSquareMatrix<double> cov = covgen.compute(data);
+    NumericSquareMatrix<double> inv_cov(cov); svd_inverse(inv_cov, cov);
+
+    double &q2 = q2_into[test]; 
+    q2=0.;
+    for(int t=0;t<Lt;t++)
+      for(int u=0;u<Lt;u++)
+	q2 += data_means.value(t) * inv_cov(t,u) * data_means.value(u);
+  }
+
+  if(write_rtable.size()){
+    std::ofstream f(write_rtable);
+    for(int e=0;e<ntest;e++){
+      for(int s=0;s<nblock;s++)
+	f << rtable[e][s] << " ";
+      f << std::endl;
+    }
+  }
+} 
+
+
 
 int main(const int argc, const char** argv){
   CMDline cmdline(argc,argv,3);
@@ -197,6 +272,18 @@ int main(const int argc, const char** argv){
     bootstrapAnalyze(q2_dist_dbl_boot[o], orig_data, *covgen, *ffunc, args);
   }
 
+
+
+  //---------------------------------------------------------------
+  //Repeat with bootstrap residuals version for norig_ens separate original ensembles
+  //---------------------------------------------------------------
+  std::vector< std::vector<double> > q2_resid_dist_boot(args.norig_ens, std::vector<double>(ntest));
+
+  for(int o=0;o<args.norig_ens;o++){
+    correlationFunction<double, rawDataDistributionD> orig_data = dgen->generate(Lt,nsample);
+    bootstrapAnalyzeResiduals(q2_resid_dist_boot[o], orig_data, *covgen, *ffunc, args);
+  }
+
   //----------------------------------------------
   //Plot results
   //----------------------------------------------
@@ -220,6 +307,11 @@ int main(const int argc, const char** argv){
     kwargs["color"] = 'c';
     auto hboot = plot.histogram(acc(q2_dist_boot[0]),kwargs,"boot");
     plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
+
+    kwargs["color"] = "tab:gray";
+    auto hboot_resid = plot.histogram(acc(q2_resid_dist_boot[0]),kwargs,"boot_resid");
+    plot.setLegend(hboot_resid, R"(${\\rm bootstrap resid}$)");
+
 
     double q2_max = *std::max_element(q2_dist_true.begin(),q2_dist_true.end());
     int npt = 200;
@@ -274,6 +366,7 @@ int main(const int argc, const char** argv){
     std::vector<rawDataDistributionD> pboot(npt, rawDataDistributionD(args.norig_ens) ); //variation over actual original ensembles
     std::vector<rawDataDistributionD> pdbl_boot(npt, rawDataDistributionD(args.norig_ens) ); //variation over bootstrap resampled ensembles in place of original ensembles
     std::vector<double> pboot_ens0(npt); //bootstrap p-value from just first original ensemble
+    std::vector<rawDataDistributionD> pboot_resid(npt, rawDataDistributionD(args.norig_ens) ); //variation over actual original ensembles for residuals version
     std::vector<double> pT2(npt);
     std::vector<double> pchi2(npt);
     
@@ -288,6 +381,7 @@ int main(const int argc, const char** argv){
       for(int o=0;o<args.norig_ens;o++){
 	pboot[i].sample(o) = estimatePvalue(q2, q2_dist_boot[o]);
 	pdbl_boot[i].sample(o) = estimatePvalue(q2, q2_dist_dbl_boot[o]);
+	pboot_resid[i].sample(o) = estimatePvalue(q2, q2_resid_dist_boot[o]);
       }
       pboot_ens0[i] = pboot[i].sample(0);
     }
@@ -361,6 +455,10 @@ int main(const int argc, const char** argv){
       auto hdbl_boot = plot.errorBand(acc_wsep_err(q2vals,pboot_ens0,pdbl_boot), kwb, "dbl_boot");
       plot.setLegend(hdbl_boot, R"(${\\rm dbl. bootstrap}$)");
 
+      kwb["color"] = "tab:gray";
+      auto hboot_resid = plot.errorBand(acc_werr(q2vals,pboot_resid), kwb, "boot_resid");
+      plot.setLegend(hboot_resid, R"(${\\rm bootstrap resid.}$)");
+
       kwargs["color"] = "g";
       auto hT2 = plot.errorBand(acc(q2vals,pT2), kwargs, "T2");
       plot.setLegend(hT2, R"($T^2$)");
@@ -390,6 +488,10 @@ int main(const int argc, const char** argv){
       kwb["color"] = "tab:pink";
       auto hdbl_boot = plot.errorBand(acc_wsep_err(ptrue,pboot_ens0,pdbl_boot), kwb, "dbl_boot");
       plot.setLegend(hdbl_boot, R"(${\\rm dbl. bootstrap}$)");
+
+      kwb["color"] = "tab:gray";
+      auto hboot_resid = plot.errorBand(acc_werr(ptrue,pboot_resid), kwb, "boot_resid");
+      plot.setLegend(hboot_resid, R"(${\\rm bootstrap resid.}$)");
 
       kwargs["color"] = "g";
       auto hT2 = plot.errorBand(acc(ptrue,pT2), kwargs, "T2");
