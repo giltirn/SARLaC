@@ -7,14 +7,54 @@
 
 SARLAC_START_NAMESPACE
 
-static std::vector<std::vector<int> > nonoverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
-								       const int nboots = bootstrapDistributionOptions::defaultBoots()){
+template<typename RNGstoreType>
+struct RNGwrap{};
+template<>
+struct RNGwrap<RNGstore>{
+  RNGstore &rng;
+  RNGwrap(RNGstore &rng): rng(rng){
+    assert(rng.isInitialized());
+  }
+
+  RNGstore &getRNG(const int thr) const{ return rng; }
+
+  template<typename BootOp>
+  inline void bootLoop(int nboots, const BootOp &op) const{
+    for(int b=0;b<nboots;b++)
+      op(b, rng);
+  }
+};
+template<>
+struct RNGwrap<threadRNGstore>{
+  threadRNGstore &rng;
+  RNGwrap(threadRNGstore &rng): rng(rng){
+    for(int t=0;t<rng.size();t++) assert(rng(t).isInitialized());
+  }
+
+  RNGstore &getRNG(const int thr) const{ return rng(thr); }
+
+  template<typename BootOp>
+  inline void bootLoop(int nboots, const BootOp &op) const{
+#pragma omp parallel for schedule(static)
+    for(int b=0;b<nboots;b++)
+      op(b, rng());
+  }
+};
+
+///////////////////////////////////////////////////////////////////////////////////
+//Non-overlapping block bootstrap
+///////////////////////////////////////////////////////////////////////////////////
+
+template<typename RNGwrapType>
+std::vector<std::vector<int> > nonoverlappingBlockResampleTable(const RNGwrapType &wrng, const int nsample, const int block_size,
+								const int nboots = bootstrapDistributionOptions::defaultBoots()){
   int nblock = nsample / block_size;
   int nsample_b = nblock * block_size; //just in case block size doesn't divide the number of samples equally
     
   std::uniform_int_distribution<> dis(0,nblock-1);
   std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));
-  for(int b=0;b<nboots;b++){
+
+  wrng.bootLoop(nboots, [&](const int b, RNGstore &brng){
     for(int i=0;i<nblock;i++){
       int block_idx = dis(brng());
 
@@ -24,8 +64,18 @@ static std::vector<std::vector<int> > nonoverlappingBlockResampleTable(RNGstore 
       for(int ss=0;ss<block_size;ss++)
 	out[b][to_off + ss] = from_off + ss;
     }
-  }
+    });
+
   return out;
+}
+
+inline std::vector<std::vector<int> > nonoverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+								       const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return nonoverlappingBlockResampleTable(RNGwrap<RNGstore>(brng), nsample, block_size, nboots);
+}
+inline std::vector<std::vector<int> > nonoverlappingBlockResampleTable(threadRNGstore &brng, const int nsample, const int block_size,
+								       const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return nonoverlappingBlockResampleTable(RNGwrap<threadRNGstore>(brng), nsample, block_size, nboots);
 }
 
 inline static std::vector<std::vector<int> > nonoverlappingBlockResampleTable(const int nsample, const int block_size,
@@ -35,7 +85,13 @@ inline static std::vector<std::vector<int> > nonoverlappingBlockResampleTable(co
   return nonoverlappingBlockResampleTable(brng, nsample, block_size, nboots);
 }
 
-static std::vector<std::vector<int> > overlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+///////////////////////////////////////////////////////////////////////////////////
+//Overlapping block bootstrap
+///////////////////////////////////////////////////////////////////////////////////
+
+
+template<typename RNGwrapType>
+std::vector<std::vector<int> > overlappingBlockResampleTable(const RNGwrapType &wrng, const int nsample, const int block_size,
 								    const int nboots = bootstrapDistributionOptions::defaultBoots()){
   //Here we use overlapping blocks of size block_size, of which there are nsample-block_size+1. These are the blocks that are resampled
   //We draw floor(n/block_size) of these with replacement and set them down in order, which gives n samples back
@@ -45,8 +101,8 @@ static std::vector<std::vector<int> > overlappingBlockResampleTable(RNGstore &br
 
   std::uniform_int_distribution<> dis(0,nblock_ov-1);
 
-  std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));    
-  for(int b=0;b<nboots;b++){
+  std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));
+  wrng.bootLoop(nboots, [&](const int b, RNGstore &brng){
     for(int i=0;i<nresample;i++){
       int block_idx = dis(brng());
 
@@ -56,8 +112,17 @@ static std::vector<std::vector<int> > overlappingBlockResampleTable(RNGstore &br
       for(int ss=0;ss<block_size;ss++)
 	out[b][to_off + ss] = from_off + ss;
     }
-  }
+    });
   return out;
+}
+
+inline std::vector<std::vector<int> > overlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+								    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return overlappingBlockResampleTable(RNGwrap<RNGstore>(brng), nsample, block_size, nboots);
+}
+inline std::vector<std::vector<int> > overlappingBlockResampleTable(threadRNGstore &brng, const int nsample, const int block_size,
+								    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return overlappingBlockResampleTable(RNGwrap<threadRNGstore>(brng), nsample, block_size, nboots);
 }
 
 inline static std::vector<std::vector<int> > overlappingBlockResampleTable(const int nsample, const int block_size,
@@ -68,9 +133,14 @@ inline static std::vector<std::vector<int> > overlappingBlockResampleTable(const
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////
+//Circular overlapping block bootstrap
+///////////////////////////////////////////////////////////////////////////////////
+
 //One problem with the overlapping block bootstrap is that the underlying samples do not appear in the blocks with equal frequency. For example, sample 0 only appears in block 0, whereas sample 1 appears in 0 and 1, sample 2 in 0,1,2 and so on up to the block size. This can apparently skew the mean away from that of the underlying ensemble. In the circular version the configurations are laid out on a circle
-static std::vector<std::vector<int> > circularOverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
-									    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+template<typename RNGwrapType>
+std::vector<std::vector<int> > circularOverlappingBlockResampleTable(const RNGwrapType &wrng, const int nsample, const int block_size,
+								     const int nboots = bootstrapDistributionOptions::defaultBoots()){
   //Here we use circularly overlapping blocks of size block_size, of which there are nsample. These are the blocks that are resampled
   //We draw floor(n/block_size) of these with replacement and set them down in order, which gives n samples back
   int nblock_ov = nsample;
@@ -79,8 +149,8 @@ static std::vector<std::vector<int> > circularOverlappingBlockResampleTable(RNGs
 
   std::uniform_int_distribution<> dis(0,nblock_ov-1);
 
-  std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));    
-  for(int b=0;b<nboots;b++){
+  std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));
+  wrng.bootLoop(nboots, [&](const int b, RNGstore &brng){
     for(int i=0;i<nresample;i++){
       int block_idx = dis(brng());
 
@@ -90,9 +160,20 @@ static std::vector<std::vector<int> > circularOverlappingBlockResampleTable(RNGs
       for(int ss=0;ss<block_size;ss++)
 	out[b][to_off + ss] = (from_off + ss) % nsample;
     }
-  }
+    });
   return out;
 }
+
+inline std::vector<std::vector<int> > circularOverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+									    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+   return circularOverlappingBlockResampleTable(RNGwrap<RNGstore>(brng), nsample, block_size, nboots);
+}
+inline std::vector<std::vector<int> > circularOverlappingBlockResampleTable(threadRNGstore &brng, const int nsample, const int block_size,
+								    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return circularOverlappingBlockResampleTable(RNGwrap<threadRNGstore>(brng), nsample, block_size, nboots);
+}
+
+
 
 inline static std::vector<std::vector<int> > circularOverlappingBlockResampleTable(const int nsample, const int block_size,
 										   const int nboots = bootstrapDistributionOptions::defaultBoots(), 
@@ -101,8 +182,12 @@ inline static std::vector<std::vector<int> > circularOverlappingBlockResampleTab
   return circularOverlappingBlockResampleTable(brng, nsample, block_size, nboots);
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+//Balanced non-overlapping block bootstrap
+///////////////////////////////////////////////////////////////////////////////////
 
-static std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+template<typename RNGwrapType>
+std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(const RNGwrapType &wrng, const int nsample, const int block_size,
 									       const int nboots = bootstrapDistributionOptions::defaultBoots()){
   int nblock = nsample / block_size;
   int nsample_b = nblock * block_size; //just in case block size doesn't divide the number of samples equally
@@ -115,15 +200,14 @@ static std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(R
       idxB[q++] = i;
 
   //Randomly permute
-  idxB = randomPermutation(idxB, brng);
+  idxB = randomPermutation(idxB, wrng.getRNG(0));
 
   //Generate resample table from the result
   std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample_b));
-
-  q = 0;
-  for(int b=0;b<nboots;b++){
+  
+  wrng.bootLoop(nboots, [&](const int b, RNGstore &brng){
     for(int i=0;i<nblock;i++){
-      int block_idx = idxB[q++];
+      int block_idx = idxB[i+nblock*b];
 
       int to_off = block_size*i;
       int from_off = block_size*block_idx;
@@ -131,8 +215,17 @@ static std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(R
       for(int ss=0;ss<block_size;ss++)
 	out[b][to_off + ss] = from_off + ss;
     }
-  }
+    });
   return out;
+}
+
+inline std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(RNGstore &brng, const int nsample, const int block_size,
+									    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+   return balancedNonoverlappingBlockResampleTable(RNGwrap<RNGstore>(brng), nsample, block_size, nboots);
+}
+inline std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(threadRNGstore &brng, const int nsample, const int block_size,
+								    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return balancedNonoverlappingBlockResampleTable(RNGwrap<threadRNGstore>(brng), nsample, block_size, nboots);
 }
 
 inline static std::vector<std::vector<int> > balancedNonoverlappingBlockResampleTable(const int nsample, const int block_size,
@@ -142,17 +235,30 @@ inline static std::vector<std::vector<int> > balancedNonoverlappingBlockResample
   return balancedNonoverlappingBlockResampleTable(brng, nsample, block_size, nboots);
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////
+//Original
+///////////////////////////////////////////////////////////////////////////////////
   
 //Generate the mapping between the resampled ensembles and the original. Output indices are [boot][sample]
-static std::vector<std::vector<int> > resampleTable(RNGstore &brng, const int nsample, 
-						    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+template<typename RNGwrapType>
+std::vector<std::vector<int> > resampleTable(const RNGwrapType &wrng, const int nsample, 
+					     const int nboots = bootstrapDistributionOptions::defaultBoots()){
   std::uniform_int_distribution<> dis(0,nsample-1);
   std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample));
-  for(int b=0;b<nboots;b++)
+  wrng.bootLoop(nboots, [&](const int b, RNGstore &brng){
     for(int i=0;i<nsample;i++)
       out[b][i] = dis(brng());
+    });
   return out;
+}
+
+inline std::vector<std::vector<int> > resampleTable(RNGstore &brng, const int nsample, 
+						    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return resampleTable(RNGwrap<RNGstore>(brng), nsample, nboots);
+}
+inline std::vector<std::vector<int> > resampleTable(threadRNGstore &brng, const int nsample, 
+						    const int nboots = bootstrapDistributionOptions::defaultBoots()){
+  return resampleTable(RNGwrap<threadRNGstore>(brng), nsample, nboots);
 }
 
 inline static std::vector<std::vector<int> > resampleTable(const int nsample, 
@@ -162,19 +268,11 @@ inline static std::vector<std::vector<int> > resampleTable(const int nsample,
   return resampleTable(brng, nsample, nboots);
 }
 
-//Threaded version
-static std::vector<std::vector<int> > resampleTable(threadRNGstore &tbrng, const int nsample, 
-						    const int nboots = bootstrapDistributionOptions::defaultBoots()){
-  std::uniform_int_distribution<> dis(0,nsample-1);
-  std::vector<std::vector<int> > out(nboots, std::vector<int>(nsample));
-#pragma omp parallel for schedule(static)
-  for(int b=0;b<nboots;b++)
-    for(int i=0;i<nsample;i++)
-      out[b][i] = dis(tbrng()());
-  return out;
-}
-  
 
+  
+///////////////////////////////////////////////////////////////////////////////////
+//Wrapper function with enum
+///////////////////////////////////////////////////////////////////////////////////
 
 
 GENERATE_ENUM_AND_PARSER(BootResampleTableType, (Basic)(NonOverlappingBlock)(OverlappingBlock)(CircularOverlappingBlock)(BalancedNonOverlappingBlock) );
@@ -190,9 +288,10 @@ struct resampleTableOptions{
   resampleTableOptions(): read_from_file(false), write_to_file(false){}
 };
 
+template<typename RNGwrapType>
 std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const size_t nboot, 
 						     const BootResampleTableType table_type,
-						     const size_t block_size, RNGstore &rng=RNG, const resampleTableOptions &opt = resampleTableOptions()){
+						     const size_t block_size, const RNGwrapType &wrng, const resampleTableOptions &opt = resampleTableOptions()){
   std::vector<std::vector<int> > otable;  //[b][s]
 
   if(opt.read_from_file){ //overrides table_type
@@ -207,19 +306,18 @@ std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const
     read(rd, otable, "resample_table");
   }else{
     std::cout << "Generating resample table" << std::endl;
-    assert(rng.isInitialized());
 
     switch(table_type){
     case BootResampleTableType::Basic:
-      otable = resampleTable(rng,nsample,nboot); break;
+      otable = std::move(resampleTable(wrng,nsample,nboot)); break;
     case BootResampleTableType::NonOverlappingBlock:
-      otable = nonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+      otable = std::move(nonoverlappingBlockResampleTable(wrng,nsample,block_size, nboot)); break;
     case BootResampleTableType::OverlappingBlock:
-      otable = overlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+      otable = std::move(overlappingBlockResampleTable(wrng,nsample,block_size, nboot)); break;
     case BootResampleTableType::CircularOverlappingBlock:
-      otable = circularOverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+      otable = std::move(circularOverlappingBlockResampleTable(wrng,nsample,block_size, nboot)); break;
     case BootResampleTableType::BalancedNonOverlappingBlock:
-      otable = balancedNonoverlappingBlockResampleTable(rng,nsample,block_size, nboot); break;
+      otable = std::move(balancedNonoverlappingBlockResampleTable(wrng,nsample,block_size, nboot)); break;
     default:
       assert(0);
     }
@@ -237,7 +335,16 @@ std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const
   return otable;
 }
 
-
+inline std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const size_t nboot, 
+						     const BootResampleTableType table_type,
+						     const size_t block_size, RNGstore &rng=RNG, const resampleTableOptions &opt = resampleTableOptions()){
+  return generateResampleTable(nsample, nboot, table_type, block_size, RNGwrap<RNGstore>(rng), opt);
+}
+inline std::vector<std::vector<int> > generateResampleTable(const size_t nsample, const size_t nboot, 
+						     const BootResampleTableType table_type,
+						     const size_t block_size, threadRNGstore &rng=threadRNG, const resampleTableOptions &opt = resampleTableOptions()){
+  return generateResampleTable(nsample, nboot, table_type, block_size, RNGwrap<threadRNGstore>(rng), opt);
+}
 
 SARLAC_END_NAMESPACE
 

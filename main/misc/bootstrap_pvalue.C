@@ -45,7 +45,8 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     fit_value = params[0];    
   }    
 
-  std::vector<std::vector<int> > rtable = resampleTable(threadRNG, nblock, ntest);
+  std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
+  assert(rtable.size() == ntest && rtable[0].size() == nsample_reduced);
    
 #pragma omp parallel for
   for(int test=0;test<ntest;test++){
@@ -54,10 +55,9 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     for(int t=0;t<Lt;t++){
       rawDataDistributionD &dd = data.value(t);
       dd.resize(nsample_reduced);
-      for(int b=0;b<nblock;b++){
-	for(int bs=0;bs<args.block_size;bs++)
-	  dd.sample(bs + args.block_size * b) = orig_data.value(t).sample(bs + args.block_size * rtable[test][b]) //block resample
-	    + fit_value - orig_data_means.value(t); //recenter
+      for(int s=0;s<nsample_reduced;s++){
+	dd.sample(s) = orig_data.value(t).sample(rtable[test][s])
+	  + fit_value - orig_data_means.value(t); //recenter
       } 
 
       data.coord(t) = t;
@@ -177,10 +177,12 @@ int main(const int argc, const char** argv){
   //---------------------------------------------------------------
   std::vector< std::vector<double> > q2_dist_dbl_boot(args.norig_ens, std::vector<double>(ntest));  
   correlationFunction<double, rawDataDistributionD> dbl_boot_base_data = dgen->generate(Lt,nsample);
+
+  std::vector<std::vector<int> > dbl_boot_rtable = generateResampleTable(nsample, args.norig_ens, args.bootstrap_strat, args.block_size, threadRNG);
   int nblock = nsample / args.block_size;
   int nsample_reduced = nblock * args.block_size;
 
-  std::vector<std::vector<int> > dbl_boot_rtable = resampleTable(RNG, nblock, args.norig_ens);
+  assert(dbl_boot_rtable.size() == args.norig_ens && dbl_boot_rtable[0].size() == nsample_reduced);
 
   for(int o=0;o<args.norig_ens;o++){
     correlationFunction<double, rawDataDistributionD> orig_data(Lt);
@@ -188,9 +190,8 @@ int main(const int argc, const char** argv){
       orig_data.coord(t) = t;
       rawDataDistributionD &dd = orig_data.value(t);
       dd.resize(nsample_reduced);
-      for(int b=0;b<nblock;b++)
-	for(int bs=0;bs<args.block_size;bs++)
-	  dd.sample(bs + args.block_size * b) = dbl_boot_base_data.value(t).sample(bs + args.block_size * dbl_boot_rtable[o][b]); //block resample
+      for(int s=0;s<nsample_reduced;s++)
+	dd.sample(s) = dbl_boot_base_data.value(t).sample(dbl_boot_rtable[o][s]);
     }
 
     bootstrapAnalyze(q2_dist_dbl_boot[o], orig_data, *covgen, *ffunc, args);
