@@ -17,8 +17,8 @@ using namespace SARLaC;
 #include <bootstrap_pvalue/preanalysis.h>
 
 
-
-void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Args &args, const std::string &write_rtable = ""){
+//data_means_out :  output unrecentered data means
+void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Args &args, const std::string &write_rtable = "", std::vector<correlationFunction<double, double> > *data_means_out = nullptr){
   int nsample = args.nsample;
   int Lt = args.Lt;
   int nblock = nsample / args.block_size;
@@ -48,20 +48,23 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
   std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
   assert(rtable.size() == ntest && rtable[0].size() == nsample_reduced);
    
+  if(data_means_out) data_means_out->resize(ntest);
+
 #pragma omp parallel for
   for(int test=0;test<ntest;test++){
     correlationFunction<double, rawDataDistributionD> data(Lt);
-    correlationFunction<double, double> data_means(Lt);
+    correlationFunction<double, double> data_means(Lt), data_means_unrecentered(Lt);
     for(int t=0;t<Lt;t++){
-      rawDataDistributionD &dd = data.value(t);
-      dd.resize(nsample_reduced);
-      for(int s=0;s<nsample_reduced;s++){
-	dd.sample(s) = orig_data.value(t).sample(rtable[test][s])
-	  + fit_value - orig_data_means.value(t); //recenter
-      } 
+      data.coord(t) = data_means.coord(t) = t;
+      rawDataDistributionD shift(nsample_reduced, fit_value - orig_data_means.value(t));
 
-      data.coord(t) = t;
-      data_means.coord(t) = t;
+      rawDataDistributionD &dd = data.value(t);
+      dd = resampledEnsemble(orig_data.value(t), test, rtable);
+
+      data_means_unrecentered.value(t) = dd.mean();
+
+      //Recenter
+      dd = dd + shift;
       data_means.value(t) = dd.mean();
     }
     simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
@@ -71,6 +74,8 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     double q2, q2_per_dof; int dof;
     assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
     q2_into[test] = q2;
+
+    if(data_means_out) (*data_means_out)[test] = std::move(data_means_unrecentered);
   }
 
   if(write_rtable.size()){
@@ -225,7 +230,6 @@ int main(const int argc, const char** argv){
   //Repeat with bootstrap for norig_ens separate original ensembles
   //---------------------------------------------------------------
   std::vector< std::vector<double> > q2_dist_boot(args.norig_ens, std::vector<double>(ntest));
-
   for(int o=0;o<args.norig_ens;o++){
     correlationFunction<double, rawDataDistributionD> orig_data = dgen->generate(Lt,nsample);
     if(cmdline.write_data) wr_data[ntest+o] = orig_data;
@@ -528,7 +532,6 @@ int main(const int argc, const char** argv){
       int size() const{ return d.size(); }
     };
     plot_mean.histogram(acc(mean_dist_true),kwargs);
-  
     plot_mean.write("means_true.py","means_true.pdf");
   }
 

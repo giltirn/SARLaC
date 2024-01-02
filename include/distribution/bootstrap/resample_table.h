@@ -2,6 +2,7 @@
 #define _BOOTSTRAP_RESAMPLE_TABLE_H_
 
 #include<distribution/bootstrap/class.h>
+#include<distribution/raw_data_distribution/class.h>
 #include<random/utils.h>
 #include<parser/parser.h>
 
@@ -345,6 +346,18 @@ inline std::vector<std::vector<int> > generateResampleTable(const size_t nsample
 						     const size_t block_size, threadRNGstore &rng=threadRNG, const resampleTableOptions &opt = resampleTableOptions()){
   return generateResampleTable(nsample, nboot, table_type, block_size, RNGwrap<threadRNGstore>(rng), opt);
 }
+
+//Generate resampled ensemble 'ens_idx' from the input ensemble 'in' and the resample table 'rtable'
+template<typename T>
+inline rawDataDistribution<T> resampledEnsemble(const rawDataDistribution<T> &in, const int ens_idx, const std::vector<std::vector<int> > &rtable){
+  int nsample_reduced = rtable[0].size();
+  assert(nsample_reduced <= in.size());
+  rawDataDistribution<T> out(nsample_reduced);
+  for(int s=0;s<nsample_reduced;s++)
+    out.sample(s) = in.sample(rtable[ens_idx][s]);
+  return out;
+}
+
 
 SARLAC_END_NAMESPACE
 

@@ -643,6 +643,67 @@ struct preAnalysisTauInt: public preAnalysisBase{
 };
 
 
+//Analyze for bias in the means of block resampled ensembles
+struct preAnalysisBlockBootstrapMeanBias : public preAnalysisBase{
+
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+    //Generate raw data
+    int nsample = args.nsample;
+    int ntest = args.ntest;
+
+    //Do many times and plot a histogram of the bias
+    struct acc{
+      const std::vector<double> &d;
+      acc(const std::vector<double> &d): d(d){}
+      double y(const int i) const{ return d[i]; }
+      int size() const{ return d.size(); }
+    };
+
+    int norig_ens = args.norig_ens;
+    std::vector<double> bias(norig_ens);
+    double bias_avg = 0.;
+    for(int e=0;e<norig_ens;e++){
+      std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
+      correlationFunction<double, rawDataDistributionD> orig_data = datagen.generate(1,nsample);
+      double orig_mean = orig_data.value(0).mean();
+      double rmeans_avg = 0.;
+      std::vector<double> rmeans(ntest);
+      for(int test=0;test<ntest;test++){
+	rawDataDistributionD rdata = resampledEnsemble(orig_data.value(0),test,rtable);
+	rmeans[test] = rdata.mean();
+	rmeans_avg += rmeans[test];
+      }
+      rmeans_avg /= ntest;
+      bias[e] = rmeans_avg - orig_mean;
+      bias_avg += bias[e];
+    }
+    bias_avg /= norig_ens;
+
+    MatPlotLibScriptGenerate plot_bias;
+    typename MatPlotLibScriptGenerate::kwargsType kwargs;
+    kwargs["density"] = true;
+    kwargs["bins"] = 60;
+
+    plot_bias.histogram(acc(bias),kwargs);
+    kwargs.clear();
+    kwargs["color"] = 'k';
+    plot_bias.verticalLine(0.,kwargs);
+    kwargs["color"] = 'b';
+    plot_bias.verticalLine(bias_avg,kwargs);
+    
+    std::string fname = "bootstrap_means_bias";
+    plot_bias.write(fname + ".py",fname + ".pdf");
+  }
+};
+
+
+
+
+
+
+
+
+
 
 
 std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
@@ -658,6 +719,8 @@ std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisFitAutoCorrAvoid);
   }else if(type == preAnalysisType::TauInt){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisTauInt);
+  }else if(type == preAnalysisType::BlockBootstrapMeanBias){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisBlockBootstrapMeanBias);
   }else{
     error_exit(std::cout << "Invalid pre-analysis type" << std::endl);
   }

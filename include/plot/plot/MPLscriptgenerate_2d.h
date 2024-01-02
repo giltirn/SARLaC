@@ -38,6 +38,9 @@ private:
   std::vector<PythonErrorCurveContainer> ploterrorcurves_sets;
   std::vector<kwargsType> ploterrorcurves_args;
 
+  std::vector<double> plotvlines_vals;
+  std::vector<kwargsType> plotvlines_args;
+
   std::vector<handleType> leg_handles;
   std::vector<std::string> legends;
   std::string leg_py;
@@ -152,7 +155,15 @@ public:
     return histogram(data,kwargs,tag);
   }
 
-  
+  inline void verticalLine(double val, const kwargsType &kwargs){
+    plotvlines_vals.push_back(val);
+    plotvlines_args.push_back(kwargs);
+  }
+  inline void verticalLine(double val){
+    kwargsType kwargs;
+    verticalLine(val,kwargs);
+  }
+
   void write(std::ostream &os, const std::string &script_gen_filename = "plot.pdf") const{
     os << "import pyplot\n";
     os << "import matplotlib\n\n";
@@ -194,6 +205,9 @@ public:
     for(int i=0;i<ploterrorcurves_sets.size();i++)
       os << "\tplot_" << ploterrorcurves_sets[i].tag() << " = " << "pyplot.plotErrorCurves(ax, " << ploterrorcurves_sets[i].tag() << kwargsPrint(ploterrorcurves_args[i]) << ")\n";
 
+    for(int i=0;i<plotvlines_vals.size();i++)
+      os << "\tax.axvline(" << plotvlines_vals[i] << kwargsPrint(plotvlines_args[i]) << ")\n";
+    
     os << user.str(); //user code
     
     os << leg_py;    
