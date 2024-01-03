@@ -698,6 +698,80 @@ struct preAnalysisBlockBootstrapMeanBias : public preAnalysisBase{
 
 
 
+//Analyze for bias in the mean of q^2 over block resampled ensembles vs the q^2 of the original ensemble
+//(no recentering)
+struct preAnalysisBlockBootstrapQ2Bias : public preAnalysisBase{
+
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+    //Generate raw data
+    int nsample = args.nsample;
+    int ntest = args.ntest;
+    int Lt = args.Lt;
+
+    //Do many times and plot a histogram of the bias
+    struct acc{
+      const std::vector<double> &d;
+      acc(const std::vector<double> &d): d(d){}
+      double y(const int i) const{ return d[i]; }
+      int size() const{ return d.size(); }
+    };
+
+    int norig_ens = args.norig_ens;
+    std::vector<double> bias(norig_ens);
+    double bias_avg = 0.;
+    for(int e=0;e<norig_ens;e++){
+      std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
+      correlationFunction<double, rawDataDistributionD> orig_data = datagen.generate(Lt,nsample);
+      correlationFunction<double, double> data_means(Lt); for(int t=0;t<Lt;t++) data_means.value(t) = orig_data.value(t).mean();
+      double q2_orig;
+      {
+	simpleSingleFitWrapper fitter(fitfunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+	covgen.compute(fitter, orig_data);
+	parameterVector<double> params(fitfunc.Nparams(),0.);
+	double q2_per_dof; int dof;
+	assert(fitter.fit(params,q2_orig,q2_per_dof,dof,data_means));
+      }
+
+      double q2_means_avg = 0.;
+#pragma omp parallel for
+      for(int test=0;test<ntest;test++){
+	correlationFunction<double, rawDataDistributionD> rdata(Lt);
+	for(int t=0;t<Lt;t++) rdata.value(t) = resampledEnsemble(orig_data.value(t),test,rtable);
+	correlationFunction<double, double> data_means(Lt); for(int t=0;t<Lt;t++) data_means.value(t) = rdata.value(t).mean();
+	simpleSingleFitWrapper fitter(fitfunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+	covgen.compute(fitter, rdata);
+	parameterVector<double> params(fitfunc.Nparams(),0.);
+	double q2, q2_per_dof; int dof;
+	assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
+
+	q2_means_avg += q2;
+      }
+      q2_means_avg /= ntest;
+
+      bias[e] = q2_means_avg - q2_orig;
+      bias_avg += bias[e];
+    }
+    bias_avg /= norig_ens;
+
+    MatPlotLibScriptGenerate plot_bias;
+    typename MatPlotLibScriptGenerate::kwargsType kwargs;
+    kwargs["density"] = true;
+    kwargs["bins"] = 60;
+
+    plot_bias.histogram(acc(bias),kwargs);
+    kwargs.clear();
+    kwargs["color"] = 'k';
+    plot_bias.verticalLine(0.,kwargs);
+    kwargs["color"] = 'b';
+    plot_bias.verticalLine(bias_avg,kwargs);
+    
+    std::string fname = "bootstrap_q2_bias";
+    plot_bias.write(fname + ".py",fname + ".pdf");
+  }
+};
+
+
+
 
 
 
@@ -721,6 +795,8 @@ std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisTauInt);
   }else if(type == preAnalysisType::BlockBootstrapMeanBias){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisBlockBootstrapMeanBias);
+  }else if(type == preAnalysisType::BlockBootstrapQ2Bias){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisBlockBootstrapQ2Bias);
   }else{
     error_exit(std::cout << "Invalid pre-analysis type" << std::endl);
   }
