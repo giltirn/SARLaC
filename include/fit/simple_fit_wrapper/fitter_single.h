@@ -156,28 +156,32 @@ public:
 										       
     have_corr_mat = true;
   }
-
-  //Write the covariance matrix to a file in HDF5 format for external manipulation
-  void writeCovarianceMatrixHDF5(const std::string &file) const{
-    if(corr_mat_preinverted) error_exit(std::cout << "simpleFitWrapper::writeCovarianceMatrixHDF5 function inapplicable if covariance matrix inverse is precomputed\n");
-#ifdef HAVE_HDF5
-    if(!have_corr_mat) error_exit(std::cout << "simpleFitWrapper::writeCovarianceMatrixHDF5  No covariance/correlation matrix available. Make sure you import one before calling this method!\n");
-    NumericSquareMatrix<double> cov = corr_mat;
-    for(int i=0;i<cov.size();i++)
-      for(int j=0;j<cov.size();j++)
-	cov(i,j) = cov(i,j) * sigma[i] * sigma[j];
-    HDF5writer wr(file);
-    write(wr, cov, "value");
-#endif
-  }
-  
+ 
   inline const NumericSquareMatrix<double> & getCorrelationMatrix() const{
     assert(have_corr_mat); return corr_mat;
   }
   inline const std::vector<double> & getSigma() const{
     assert(have_corr_mat); return sigma;
   }
-  
+  inline NumericSquareMatrix<double> getCovarianceMatrix() const{
+    if(corr_mat_preinverted) error_exit(std::cout << "simpleFitWrapper::getCovarianceMatrix function inapplicable if covariance matrix inverse is precomputed\n");
+    if(!have_corr_mat) error_exit(std::cout << "simpleFitWrapper::getCovarianceMatrixHDF5  No covariance/correlation matrix available. Make sure you import one before calling this method!\n");
+    NumericSquareMatrix<double> cov = corr_mat;
+    for(int i=0;i<cov.size();i++)
+      for(int j=0;j<cov.size();j++)
+	cov(i,j) = cov(i,j) * sigma[i] * sigma[j];
+    return cov;
+  }
+
+  //Write the covariance matrix to a file in HDF5 format for external manipulation
+  void writeCovarianceMatrixHDF5(const std::string &file) const{
+    NumericSquareMatrix<double> cov = getCovarianceMatrix();
+#ifdef HAVE_HDF5
+    HDF5writer wr(file);
+    write(wr, cov, "value");
+#endif
+  }
+
   //Note the parameter type P is translated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
   //The coordinate type is wrapped up in a generalContainer as this is only ever needed by the fit function (which knows what type it is and can retrieve it)
   //If chisq_dof_nopriors pointer is provided, the chisq computed without priors and the number of degrees of freedom without priors will be written there

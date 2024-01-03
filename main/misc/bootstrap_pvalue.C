@@ -33,16 +33,14 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     orig_data_means.value(t) = orig_data.value(t).mean();      
   }
 
-  //Get the fit value for the parameter from the original ensemble (for recentering)
-  double fit_value;
+  //Get the fit value for the parameter from the original ensemble (for recentering
+  parameterVector<double> orig_fit_params(ffunc.Nparams(),0.);
   {
     simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
     covgen.compute(fitter, orig_data);
     
-    parameterVector<double> params(ffunc.Nparams(),0.);
     double q2, q2_per_dof; int dof;
-    assert(fitter.fit(params,q2,q2_per_dof,dof, orig_data_means));
-    fit_value = params[0];    //TODO : Make this work for non-constant fits!
+    assert(fitter.fit(orig_fit_params,q2,q2_per_dof,dof, orig_data_means));
   }    
 
   std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
@@ -55,6 +53,7 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     correlationFunction<double, rawDataDistributionD> data(Lt);
     correlationFunction<double, double> data_means(Lt), data_means_unrecentered(Lt);
     for(int t=0;t<Lt;t++){
+      double fit_value = ffunc.value(generalContainer(double(t)), orig_fit_params);
       data.coord(t) = data_means.coord(t) = t;
       rawDataDistributionD shift(nsample_reduced, fit_value - orig_data_means.value(t));
 
@@ -105,15 +104,12 @@ void bootstrapAnalyzeResiduals(std::vector<double> &q2_into, const correlationFu
   }
 
   //Get the fit value for the parameter from the original ensemble (for recentering)
-  double fit_value;
+  parameterVector<double> orig_fit_params(ffunc.Nparams(),0.);
   {
     simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
     covgen.compute(fitter, orig_data);
-    
-    parameterVector<double> params(ffunc.Nparams(),0.);
     double q2, q2_per_dof; int dof;
-    assert(fitter.fit(params,q2,q2_per_dof,dof, orig_data_means));
-    fit_value = params[0];    //TODO: Make this work for non-constant fits
+    assert(fitter.fit(orig_fit_params,q2,q2_per_dof,dof, orig_data_means));
   }    
 
   std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
@@ -122,7 +118,8 @@ void bootstrapAnalyzeResiduals(std::vector<double> &q2_into, const correlationFu
   correlationFunction<double, rawDataDistributionD> orig_data_resids(Lt);
   for(int t=0;t<Lt;t++){
     orig_data_resids.coord(t) = t;
-    orig_data_resids.value(t) = orig_data.value(t) - rawDataDistributionD(nsample, fit_value);
+    double fitval = ffunc.value(generalContainer(double(t)), orig_fit_params);
+    orig_data_resids.value(t) = orig_data.value(t) - rawDataDistributionD(nsample, fitval);
   }
 
 #pragma omp parallel for
