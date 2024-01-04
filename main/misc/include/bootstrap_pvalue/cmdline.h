@@ -7,9 +7,12 @@ struct CMDline{
   int seed; //for main rng
   int seed_thr; //for thread rng
 
+  bool bootstrap_resid_diagonalize; //do diagonalization of residuals prior to resampling
+
   CMDline(){
     write_data = false;
     exit_after_preanalysis = false;
+    bootstrap_resid_diagonalize = false;
 
     seed = 1234;
     seed_thr = 5678;
@@ -38,6 +41,9 @@ struct CMDline{
 	seed_thr = strToAny<int>(sargv[i+2]);
 	std::cout << "Set seeds to " << seed << " " << seed_thr << std::endl;
 	i+=3;
+      }else if(sargv[i] == "-bootstrap_resid_diagonalize"){
+	bootstrap_resid_diagonalize = true;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

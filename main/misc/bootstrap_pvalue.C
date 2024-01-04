@@ -89,6 +89,7 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
 
 
 void bootstrapAnalyzeResiduals(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Args &args, const std::string &write_rtable = ""){
+  std::cout << "Bootstrap analysis using residuals" << std::endl;
   int nsample = args.nsample;
   int Lt = args.Lt;
   int nblock = nsample / args.block_size;
@@ -120,6 +121,89 @@ void bootstrapAnalyzeResiduals(std::vector<double> &q2_into, const correlationFu
     orig_data_resids.coord(t) = t;
     double fitval = ffunc.value(generalContainer(double(t)), orig_fit_params);
     orig_data_resids.value(t) = orig_data.value(t) - rawDataDistributionD(nsample, fitval);
+  }
+
+#pragma omp parallel for
+  for(int test=0;test<ntest;test++){
+    correlationFunction<double, rawDataDistributionD> data(Lt);
+    correlationFunction<double, double> data_means(Lt);
+    for(int t=0;t<Lt;t++){
+      rawDataDistributionD &dd = data.value(t);
+      dd.resize(nsample_reduced);
+      double shift = orig_data_resids.value(t).mean();
+      for(int s=0;s<nsample_reduced;s++){
+	dd.sample(s) = orig_data_resids.value(t).sample(rtable[test][s])
+	  - shift; //recenter
+      } 
+
+      data.coord(t) = data_means.coord(t) = t;
+      data_means.value(t) = dd.mean();
+    }
+    NumericSquareMatrix<double> cov = covgen.compute(data);
+    NumericSquareMatrix<double> inv_cov(cov); svd_inverse(inv_cov, cov);
+
+    double &q2 = q2_into[test]; 
+    q2=0.;
+    for(int t=0;t<Lt;t++)
+      for(int u=0;u<Lt;u++)
+	q2 += data_means.value(t) * inv_cov(t,u) * data_means.value(u);
+  }
+
+  if(write_rtable.size()){
+    std::ofstream f(write_rtable);
+    for(int e=0;e<ntest;e++){
+      for(int s=0;s<nblock;s++)
+	f << rtable[e][s] << " ";
+      f << std::endl;
+    }
+  }
+} 
+
+void bootstrapAnalyzeResidualsDiag(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Args &args, const std::string &write_rtable = ""){
+  std::cout << "Bootstrap analysis using residuals *with diagonalization*" << std::endl;
+  int nsample = args.nsample;
+  int Lt = args.Lt;
+  int nblock = nsample / args.block_size;
+  int nsample_reduced = nblock * args.block_size;
+  int ntest = args.ntest;
+  assert(q2_into.size() == ntest);
+
+  correlationFunction<double, double> orig_data_means(Lt);
+
+  for(int t=0;t<Lt;t++){
+    orig_data_means.coord(t) = t;
+    orig_data_means.value(t) = orig_data.value(t).mean();      
+  }
+
+  //Get the fit value for the parameter from the original ensemble (for recentering)
+  parameterVector<double> orig_fit_params(ffunc.Nparams(),0.);
+  NumericSquareMatrix<double> orig_data_cov;
+  {
+    simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+    covgen.compute(fitter, orig_data);
+    orig_data_cov = fitter.getCovarianceMatrix();
+    double q2, q2_per_dof; int dof;
+    assert(fitter.fit(orig_fit_params,q2,q2_per_dof,dof, orig_data_means));
+  }    
+  std::vector<NumericVector<double> > orig_cov_evecs(Lt, NumericVector<double>(Lt));
+  std::vector<double> orig_cov_evals(Lt);
+  symmetricMatrixEigensolve(orig_cov_evecs, orig_cov_evals, orig_data_cov);
+
+  std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
+  assert(rtable.size() == ntest && rtable[0].size() == nsample_reduced);
+   
+  correlationFunction<double, rawDataDistributionD> orig_data_resids_unrot(Lt);
+  for(int t=0;t<Lt;t++){
+    orig_data_resids_unrot.coord(t) = t;
+    double fitval = ffunc.value(generalContainer(double(t)), orig_fit_params);
+    orig_data_resids_unrot.value(t) = orig_data.value(t) - rawDataDistributionD(nsample, fitval);
+  }  
+  correlationFunction<double, rawDataDistributionD> orig_data_resids(Lt);
+  for(int i=0;i<Lt;i++){
+    orig_data_resids.coord(i) = i;
+    orig_data_resids.value(i) = rawDataDistributionD(nsample, 0.);
+    for(int t=0;t<Lt;t++)
+      orig_data_resids.value(i) = orig_data_resids.value(i) + orig_cov_evecs[i](t)*orig_data_resids_unrot.value(t);
   }
 
 #pragma omp parallel for
@@ -282,7 +366,8 @@ int main(const int argc, const char** argv){
 
   for(int o=0;o<args.norig_ens;o++){
     correlationFunction<double, rawDataDistributionD> orig_data = dgen->generate(Lt,nsample);
-    bootstrapAnalyzeResiduals(q2_resid_dist_boot[o], orig_data, *covgen, *ffunc, args);
+    if(cmdline.bootstrap_resid_diagonalize) bootstrapAnalyzeResidualsDiag(q2_resid_dist_boot[o], orig_data, *covgen, *ffunc, args);
+    else bootstrapAnalyzeResiduals(q2_resid_dist_boot[o], orig_data, *covgen, *ffunc, args);
   }
 
   //----------------------------------------------
