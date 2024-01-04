@@ -1,9 +1,11 @@
 #pragma once
 
 class randomDataBase{
+  std::map<int, std::vector<double> > timeslice_means_cache; //cache computation of timeslice means to avoid needing to recompute
 public:
   //Assumed to be thread safe
   virtual correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const = 0;
+  virtual std::vector<double> populationTimesliceMeans() const = 0;
   virtual ~randomDataBase(){}
 };
 
@@ -26,6 +28,11 @@ public:
     }
     return out;
   }
+
+  std::vector<double> populationTimesliceMeans() const override{
+    return mu;
+  }
+
 };
 class randomDataLogNormal: public randomDataBase{
   std::vector<double> mu;
@@ -45,6 +52,13 @@ public:
       mult = exp(mu[t] + sigma[t]*mult);
     }
     return out;
+  }
+
+  std::vector<double> populationTimesliceMeans() const override{
+    std::vector<double> err(mu.size());
+    for(int t=0;t<mu.size();t++)
+      err[t] = exp( mu[t] + sigma[t]*sigma[2]/2. );
+    return err;
   }
 };
 class randomDataGaussianPlusShift: public randomDataBase{
@@ -73,6 +87,13 @@ public:
     }
     return out;
   }
+  std::vector<double> populationTimesliceMeans() const override{
+    std::vector<double> err(mu.size());
+    for(int t=0;t<mu.size();t++)
+      err[t] = mu[t] + shift_alpha * shift_mu;
+    return err;
+  }
+
 };
 class randomDataGaussianMixLeft: public randomDataBase{
   std::vector<double> mu;
@@ -96,6 +117,15 @@ public:
     }
     return out;
   }
+  std::vector<double> populationTimesliceMeans() const override{
+    std::vector<double> err(mu.size());
+    for(int t=0;t<mu.size();t++){
+      err[t] = mu[t];
+      if(t>0) err[t] = alpha[t]*err[t-1] + (1-alpha[t])*err[t]; //TODO: Check this
+    }
+    return err;
+  }
+
 };
 
 
@@ -119,6 +149,9 @@ public:
       out.value(t) = b.value(t).bin(bin_size,true);
     }
     return out;
+  }
+  std::vector<double> populationTimesliceMeans() const override{
+    return base_gen->populationTimesliceMeans();
   }
 };
 
@@ -207,8 +240,7 @@ public:
       out.value(t) = gen_t[t]->generate(nsample,traj_inc);
     }
     return out;
-  }
-
+  }  
 };
 
 struct GaussianMetropolisTimesliceParams{
@@ -228,6 +260,8 @@ std::ostream & operator<<(std::ostream &os, const GaussianMetropolisTimeslicePar
 }
 
 class randomDataMetropolisGaussian: public randomDataMetropolisBase<GaussianMetropolisTimesliceParams>{
+  std::vector<double> _mu;
+
   static inline std::vector<GaussianMetropolisTimesliceParams> genParams(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma, const std::vector<double> &update_width){
     if(mu.size() != Lt || sigma.size() != Lt || update_width.size() != Lt) error_exit(std::cout << "mu, sigma, update_width size must equal Lt" << std::endl);
     std::vector<GaussianMetropolisTimesliceParams> out(Lt); 
@@ -237,10 +271,12 @@ class randomDataMetropolisGaussian: public randomDataMetropolisBase<GaussianMetr
 
 public:
   randomDataMetropolisGaussian(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma, const std::vector<double> &update_width, 
-			       int nsample_therm, int nsample_decorr, int traj_inc, double init): randomDataMetropolisBase<GaussianMetropolisTimesliceParams>(genParams(Lt,mu,sigma,update_width),nsample_therm,nsample_decorr,traj_inc,init){}
+			       int nsample_therm, int nsample_decorr, int traj_inc, double init): randomDataMetropolisBase<GaussianMetropolisTimesliceParams>(genParams(Lt,mu,sigma,update_width),nsample_therm,nsample_decorr,traj_inc,init),  _mu(mu){}
 
   randomDataMetropolisGaussian(int Lt, const double mu_all, const double sigma_all, const double update_width_all, 
-			       int nsample_therm, int nsample_decorr, int traj_inc, double init): randomDataMetropolisBase<GaussianMetropolisTimesliceParams>(genParams(Lt,std::vector<double>(Lt,mu_all),std::vector<double>(Lt,sigma_all),std::vector<double>(Lt,update_width_all)),nsample_therm,nsample_decorr,traj_inc,init){}
+			       int nsample_therm, int nsample_decorr, int traj_inc, double init): randomDataMetropolisBase<GaussianMetropolisTimesliceParams>(genParams(Lt,std::vector<double>(Lt,mu_all),std::vector<double>(Lt,sigma_all),std::vector<double>(Lt,update_width_all)),nsample_therm,nsample_decorr,traj_inc,init),  _mu(Lt,mu_all){}
+
+  std::vector<double> populationTimesliceMeans() const override{ return _mu; }
 };
 
 

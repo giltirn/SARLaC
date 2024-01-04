@@ -87,7 +87,6 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
   }
 } 
 
-
 void bootstrapAnalyzeResiduals(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Args &args, const std::string &write_rtable = ""){
   std::cout << "Bootstrap analysis using residuals" << std::endl;
   int nsample = args.nsample;
@@ -243,6 +242,65 @@ void bootstrapAnalyzeResidualsDiag(std::vector<double> &q2_into, const correlati
 } 
 
 
+void independentEnsAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, randomDataBase &dgen, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Args &args, const std::string &write_rtable = "", std::vector<correlationFunction<double, double> > *data_means_out = nullptr){
+  int nsample = args.nsample;
+  int Lt = args.Lt;
+  int ntest = args.ntest;
+  assert(q2_into.size() == ntest);
+
+  correlationFunction<double, double> orig_data_means(Lt);
+  for(int t=0;t<Lt;t++){
+    orig_data_means.coord(t) = t;
+    orig_data_means.value(t) = orig_data.value(t).mean();      
+  }
+
+  //Get the fit value for the parameter from the original ensemble (for recentering
+  parameterVector<double> orig_fit_params(ffunc.Nparams(),0.);
+  {
+    simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+    covgen.compute(fitter, orig_data);
+    
+    double q2, q2_per_dof; int dof;
+    assert(fitter.fit(orig_fit_params,q2,q2_per_dof,dof, orig_data_means));
+  }    
+  
+  std::vector<double> true_means = dgen.populationTimesliceMeans(); //need the true population means in place of the bootstrap sample means for recentering independent data
+  
+  if(data_means_out) data_means_out->resize(ntest);
+
+#pragma omp parallel for
+  for(int test=0;test<ntest;test++){
+    correlationFunction<double, rawDataDistributionD> data(Lt);
+    correlationFunction<double, double> data_means(Lt), data_means_unrecentered(Lt);
+
+    correlationFunction<double, rawDataDistributionD> ind_data = dgen.generate(Lt, nsample);
+    for(int t=0;t<Lt;t++){
+      double fit_value = ffunc.value(generalContainer(double(t)), orig_fit_params);
+      data.coord(t) = data_means.coord(t) = t;
+      rawDataDistributionD shift(nsample, fit_value - true_means[t]); //recentering around the center of the underlying distribution rather than that of the empirical distribution as we would with bootstrap
+
+      rawDataDistributionD &dd = data.value(t); 
+      dd = ind_data.value(t); //rather than a resampled ensemble, use an actual independent ensemble
+
+      data_means_unrecentered.value(t) = dd.mean();
+
+      //Recenter
+      dd = dd + shift;
+      data_means.value(t) = dd.mean();
+    }
+    simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+    covgen.compute(fitter, data);
+
+    parameterVector<double> params(ffunc.Nparams(),0.);
+    double q2, q2_per_dof; int dof;
+    assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
+    q2_into[test] = q2;
+
+    if(data_means_out) (*data_means_out)[test] = std::move(data_means_unrecentered);
+  }
+} 
+
+
 
 int main(const int argc, const char** argv){
   CMDline cmdline(argc,argv,3);
@@ -315,6 +373,7 @@ int main(const int argc, const char** argv){
     correlationFunction<double, rawDataDistributionD> orig_data = dgen->generate(Lt,nsample);
     if(cmdline.write_data) wr_data[ntest+o] = orig_data;
     bootstrapAnalyze(q2_dist_boot[o], orig_data, *covgen, *ffunc, args, cmdline.write_data ? "rtable."+std::to_string(o)+".dat" : "");
+    //independentEnsAnalyze(q2_dist_boot[o], orig_data, *dgen, *covgen, *ffunc, args, cmdline.write_data ? "rtable."+std::to_string(o)+".dat" : "");
   }
 
   if(cmdline.write_data){ //write data
