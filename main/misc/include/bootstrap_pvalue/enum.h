@@ -4,6 +4,6 @@ GENERATE_ENUM_AND_PARSER(DataGenStrategy, (NormalUniform)(NormalTimeDep)(LogNorm
 
 GENERATE_ENUM_AND_PARSER(CovMatStrategy, (Correlated)(Uncorrelated)(Cutoff)(MCM) );
 
-GENERATE_ENUM_AND_PARSER(FitFuncType, (FConstant)(FLinear));
+GENERATE_ENUM_AND_PARSER(FitFuncType, (FConstant)(FLinear)(FConstantFrozen));
 
 GENERATE_ENUM_AND_PARSER(preAnalysisType, (None)(CovMatEvals)(CorrMatEvals)(StandardError)(FitAutoCorrAvoid)(TauInt)(BlockBootstrapMeanBias)(BlockBootstrapQ2Bias)(BlockBootstrapStdErrBias));

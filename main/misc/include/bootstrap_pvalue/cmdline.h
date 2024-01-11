@@ -1,18 +1,21 @@
 #pragma once
 
 struct CMDline{
-  bool write_data;
   bool exit_after_preanalysis;
 
   int seed; //for main rng
   int seed_thr; //for thread rng
 
+  bool recenter_orig_ens; //this should be on, but can be disabled to demonstrate its effect
+
   bool bootstrap_resid_diagonalize; //do diagonalization of residuals prior to resampling
+  bool bootstrap_resid_diagonalize_evals; //do diagonalization of residuals and normalize by rooted-inverse-evals prior to resampling
 
   CMDline(){
-    write_data = false;
     exit_after_preanalysis = false;
     bootstrap_resid_diagonalize = false;
+    bootstrap_resid_diagonalize_evals = false;
+    recenter_orig_ens = true;
 
     seed = 1234;
     seed_thr = 5678;
@@ -30,10 +33,7 @@ struct CMDline{
 
     int i = 0;
     while(i<sz){
-      if(sargv[i] == "-write_data"){
-	write_data = true;
-	i++;
-      }else if(sargv[i] == "-exit_after_preanalysis"){
+      if(sargv[i] == "-exit_after_preanalysis"){
 	exit_after_preanalysis = true;;
 	i++;
       }else if(sargv[i] == "-seed"){
@@ -43,6 +43,12 @@ struct CMDline{
 	i+=3;
       }else if(sargv[i] == "-bootstrap_resid_diagonalize"){
 	bootstrap_resid_diagonalize = true;
+	i++;
+      }else if(sargv[i] == "-bootstrap_resid_diagonalize_evals"){
+	bootstrap_resid_diagonalize_evals = true;
+	i++;
+      }else if(sargv[i] == "-no_recenter_orig_ens"){
+	recenter_orig_ens = false;
 	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
