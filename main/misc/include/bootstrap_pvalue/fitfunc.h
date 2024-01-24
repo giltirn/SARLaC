@@ -26,6 +26,18 @@ std::unique_ptr<genericFitFuncBase> fitFuncFactory(FitFuncType type){
   }else if(type == FitFuncType::FLinear){
     FitFuncLinearMultiDim<double,double,1> fitfunc;
     return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,1> >(fitfunc));
+  }else if(type == FitFuncType::FPoly2){
+    FitFuncLinearMultiDim<double,double,2> fitfunc;
+    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,2> >(fitfunc));
+  }else if(type == FitFuncType::FPoly3){
+    FitFuncLinearMultiDim<double,double,3> fitfunc;
+    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,3> >(fitfunc));
+  }else if(type == FitFuncType::FPoly4){
+    FitFuncLinearMultiDim<double,double,4> fitfunc;
+    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,4> >(fitfunc));
+  }else if(type == FitFuncType::FPoly5){
+    FitFuncLinearMultiDim<double,double,5> fitfunc;
+    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,5> >(fitfunc));
   }else if(type == FitFuncType::FConstantFrozen){
     FitConstantFrozen fitfunc; 
     return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitConstantFrozen>(fitfunc));
