@@ -11,11 +11,13 @@ struct CMDline{
   bool bootstrap_resid_diagonalize; //do diagonalization of residuals prior to resampling
   bool bootstrap_resid_diagonalize_evals; //do diagonalization of residuals and normalize by rooted-inverse-evals prior to resampling
 
+  bool output_bootstrap_q2sorted_rtable;  //for the primary bootstrap analysis, write out the rtable sorted by q^2 in ascending order, with the value of q^2 as the first entry on each line
   CMDline(){
     exit_after_preanalysis = false;
     bootstrap_resid_diagonalize = false;
     bootstrap_resid_diagonalize_evals = false;
     recenter_orig_ens = true;
+    output_bootstrap_q2sorted_rtable = false;
 
     seed = 1234;
     seed_thr = 5678;
@@ -49,6 +51,9 @@ struct CMDline{
 	i++;
       }else if(sargv[i] == "-no_recenter_orig_ens"){
 	recenter_orig_ens = false;
+	i++;
+      }else if(sargv[i] == "-output_bootstrap_q2sorted_rtable"){
+	output_bootstrap_q2sorted_rtable = true;
 	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

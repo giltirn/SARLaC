@@ -175,6 +175,38 @@ struct RawData{
     resample(A0_all, op, args, cmdline, descr, bin_resampler,alpha_coeff);
   }
 
+  //Extract <0|P|K> averaged over all kaon source timeslices
+  template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
+  void computeKtoVacuumMatrixElem(correlationFunction<double, DistributionType> &vac_P_K,  //[t]
+				  const ArgsType &args, const CMDlineType &cmdline, 
+				  const std::string &descr, const BinResampler &bin_resampler) const{
+    const int Lt = args.Lt;
+
+    const RawKtoPiPiData &raw = *raw_ktopipi_gnd[0]; //tsep_K_pi irrelevant, no pions!
+
+    //source avg
+    int nt = raw.mix4_alltK_nobub.size(1);
+    int ntK=raw.mix4_alltK_nobub.size(0);
+    std::vector<DistributionType> src_avg(nt);
+    DistributionType tmp;
+
+    for(int tKidx=0;tKidx<ntK;tKidx++){
+      for(int t=0;t<nt;t++){
+	bin_resampler.binResample(tmp, raw.mix4_alltK_nobub({tKidx,t}));
+	double nrm = 1./ntK;
+	if(tKidx==0) src_avg[t] = tmp * nrm;
+	else src_avg[t] = src_avg[t] + tmp * nrm;
+      }
+    }
+
+    vac_P_K.resize(nt);
+    for(int t=0;t<nt;t++){
+      vac_P_K.coord(t) = t;
+      vac_P_K.value(t) = -3./sqrt(6.)*src_avg[t]; //CHECKME: is the normalization right?
+    }
+  }
+
+
   //Extract the <op|P|K> matrix element and the coefficients alpha (10-basis) for external analysis
   template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
   void computeAlphaAndPseudoscalarMatrixElem(std::vector<std::vector<std::vector<DistributionType> > > &alpha_sep_q_t, //[tsep_k_snk_idx][q][t]
@@ -262,7 +294,7 @@ struct RawData{
 					     const ArgsType &args, const CMDlineType &cmdline, 
 					     const std::string &descr) const{
     basicBinResampler bin_resampler(args.bin_size);  
-    computeAlphaAndPseudoscalarMatrixElem(alpha_sep_q_t, op_P_K, op, args, cmdline, descr);
+    computeAlphaAndPseudoscalarMatrixElem(alpha_sep_q_t, op_P_K, op, args, cmdline, descr, bin_resampler);
   }
 
   void write(HDF5writer &writer, const std::string &tag) const{

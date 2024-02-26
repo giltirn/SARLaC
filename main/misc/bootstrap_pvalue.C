@@ -32,8 +32,18 @@ void centerEnsembleOnModel(correlationFunction<double, rawDataDistributionD> &da
   for(int t=0;t<data.size();t++) data.value(t) = data.value(t) + rawDataDistributionD(nsample, model.value(t)-true_means[t]);
 }
 
+struct bootstrapAnalyzeOpts{
+  std::string write_rtable; //write the rtable if non-empty string
+  bool write_rtable_include_q2val; //include the corresponding q^2 value as the first entry on each line of the rtable
+  bool write_rtable_sort_q2val; //sort the rows of the rtable over the rows by q^2 in ascending order
+  bool write_rtable_sort_samples; //sort the columns of the rtable in ascending order, making it easier to see repeats
+  std::vector<correlationFunction<double, double> > *data_means_out; //output the data means if non-null
+
+  bootstrapAnalyzeOpts(): write_rtable(""), data_means_out(nullptr), write_rtable_include_q2val(false), write_rtable_sort_q2val(false), write_rtable_sort_samples(false){}
+};
+
 //data_means_out :  output unrecentered data means
-void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Model &model, const Args &args, const std::string &write_rtable = "", std::vector<correlationFunction<double, double> > *data_means_out = nullptr){
+void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Model &model, const Args &args, const bootstrapAnalyzeOpts &opts = bootstrapAnalyzeOpts()){
   int nsample = args.nsample;
   int Lt = args.Lt;
   int nblock = nsample / args.block_size;
@@ -51,7 +61,7 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
   std::vector<std::vector<int> > rtable = generateResampleTable(nsample, ntest, args.bootstrap_strat, args.block_size, threadRNG);
   assert(rtable.size() == ntest && rtable[0].size() == nsample_reduced);
    
-  if(data_means_out) data_means_out->resize(ntest);
+  if(opts.data_means_out) opts.data_means_out->resize(ntest);
 
 #pragma omp parallel for
   for(int test=0;test<ntest;test++){
@@ -79,14 +89,41 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
     q2_into[test] = q2;
 
-    if(data_means_out) (*data_means_out)[test] = std::move(data_means_unrecentered);
+    if(opts.data_means_out) (*opts.data_means_out)[test] = std::move(data_means_unrecentered);
   }
 
-  if(write_rtable.size()){
-    std::ofstream f(write_rtable);
+  if(opts.write_rtable.size()){
+    std::vector<int> tests_sorted(ntest); 
+    if(opts.write_rtable_sort_q2val){
+      for(int e=0;e<ntest;e++) tests_sorted[e] = e;
+      std::sort(tests_sorted.begin(), tests_sorted.end(), [&](const int a, const int b){ return q2_into[a] < q2_into[b]; });
+    }
+
+    std::ofstream f(opts.write_rtable);
     for(int e=0;e<ntest;e++){
-      for(int s=0;s<nblock;s++)
-	f << rtable[e][s] << " ";
+      int ee = opts.write_rtable_sort_q2val ? tests_sorted[e] : e;
+
+      if(opts.write_rtable_include_q2val)
+	f << q2_into[ee] << " ";
+
+      if(args.bootstrap_strat == BootResampleTableType::NonOverlappingBlock){
+	//output block indices for easier reading!
+	std::vector<int> bidx(nblock);
+	for(int s=0;s<nblock;s++)
+	  bidx[s] = rtable[ee][s*args.block_size]/args.block_size;
+
+	if(opts.write_rtable_sort_samples) std::sort(bidx.begin(),bidx.end());
+
+	for(int s=0;s<nblock;s++)
+	  f << bidx[s] << " ";
+
+      }else{
+	if(opts.write_rtable_sort_samples)  std::sort(rtable[ee].begin(),rtable[ee].end());
+
+	for(int s=0;s<rtable[ee].size();s++)
+	  f << rtable[ee][s] << " ";
+      }
+ 
       f << std::endl;
     }
   }
@@ -146,7 +183,7 @@ void bootstrapAnalyzeResiduals(std::vector<double> &q2_into, const correlationFu
   if(write_rtable.size()){
     std::ofstream f(write_rtable);
     for(int e=0;e<ntest;e++){
-      for(int s=0;s<nblock;s++)
+      for(int s=0;s<rtable[e].size();s++)
 	f << rtable[e][s] << " ";
       f << std::endl;
     }
@@ -226,7 +263,7 @@ void bootstrapAnalyzeResidualsDiag(std::vector<double> &q2_into, const correlati
   if(write_rtable.size()){
     std::ofstream f(write_rtable);
     for(int e=0;e<ntest;e++){
-      for(int s=0;s<nblock;s++)
+      for(int s=0;s<rtable[e].size();s++)
 	f << rtable[e][s] << " ";
       f << std::endl;
     }
@@ -306,7 +343,7 @@ void bootstrapAnalyzeResidualsDiagEvals(std::vector<double> &q2_into, const corr
   if(write_rtable.size()){
     std::ofstream f(write_rtable);
     for(int e=0;e<ntest;e++){
-      for(int s=0;s<nblock;s++)
+      for(int s=0;s<rtable[e].size();s++)
 	f << rtable[e][s] << " ";
       f << std::endl;
     }
@@ -391,6 +428,7 @@ int main(const int argc, const char** argv){
     covgen->compute(fitter, base_orig_ens);
     double q2_per_dof; int dof;
     assert(fitter.fit(base_fit_params,base_q2,q2_per_dof,dof, data_means));
+    std::cout << "Base fit q^2=" << base_q2 << std::endl;
   }      
   Model the_model(*ffunc,base_fit_params);
   
@@ -423,7 +461,16 @@ int main(const int argc, const char** argv){
   
   //Compute the q^2 distribution using the bootstrap for the base original ensemble with recentering around the model
   std::vector<double> q2_dist_boot(ntest);
-  bootstrapAnalyze(q2_dist_boot, base_orig_ens, *covgen, *ffunc, the_model, args);
+  bootstrapAnalyzeOpts bopts;
+
+  if(cmdline.output_bootstrap_q2sorted_rtable){
+    bopts.write_rtable = "boot_rtable_q2sorted.dat";
+    bopts.write_rtable_include_q2val = true;
+    bopts.write_rtable_sort_q2val = true;
+    bopts.write_rtable_sort_samples = true;
+  }
+  
+  bootstrapAnalyze(q2_dist_boot, base_orig_ens, *covgen, *ffunc, the_model, args, bopts);
   //independentEnsAnalyze(q2_dist_boot, base_orig_ens, *dgen, *covgen, *ffunc, the_model, args);
 
   //------------------------------------------------------------------------------------------------------------------------------
@@ -762,6 +809,19 @@ int main(const int argc, const char** argv){
     plot_mean.write("means_true.py","means_true.pdf");
   }
 
+  //Compute p-value of original fit
+  double pT2 = TsquareDistribution::PDF(base_q2,dof,nsample-1);
+  double pchi2 = chiSquareDistribution::PDF(dof,base_q2);
+  double ptrue = estimatePvalue(base_q2, q2_dist_true);
+  double pboot = estimatePvalue(base_q2, q2_dist_boot);
+  double pboot_resid = estimatePvalue(base_q2, q2_resid_dist_boot);
+
+  std::cout << "Computing p-values for initial fit, q^2=" << base_q2 << ":" << std::endl;
+  std::cout << "T^2: " << pT2 << std::endl;
+  std::cout << "chi^2: " << pchi2 << std::endl;
+  std::cout << "true: " << ptrue << std::endl;
+  std::cout << "boot: " << pboot << std::endl;
+  std::cout << "boot-resid: " << pboot_resid << std::endl;
 
   std::cout << "Done\n";
   return 0;
