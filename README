@@ -15,3 +15,20 @@ Components include:
              (generalized-)eigenvalue computation, etc
 	   - Serialization of data objects in binary format via HDF5 wrappers
 	   - A rich parser for inputting configuration to applications
+
+
+*********** Installation via Spack ********************
+
+git clone https://github.com/spack/spack.git
+git clone https://github.com/giltirn/SARLaC.git
+
+source spack/share/spack/setup-env.sh  #setup spack. Do this every time
+
+### Do this stuff the first time only ######
+spack compiler find                                                       #get spack to find your compiler
+spack external find                                                       #get spack to locate safe, preinstalled librarier
+spack repo add SARLaC/spack/repo/sarlac                                   #add the SARLaC repo
+spack install sarlac ^hdf5~mpi                                            #Install. Note the latter just tells spack not to install the mpi version of hdf5, which takes longer and builds openmpi
+#################################################
+
+spack load sarlac            #load SARLaC. Do this every time 
