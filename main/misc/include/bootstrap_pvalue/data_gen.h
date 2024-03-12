@@ -127,7 +127,29 @@ public:
   }
 
 };
+class randomDataBernoulli: public randomDataBase{
+  std::vector<double> p; //prob that x=1
+public:
+  randomDataBernoulli(int Lt, const std::vector<double> &p): p(p){
+    if(p.size() != Lt!= Lt) error_exit(std::cout << "p size must equal Lt" << std::endl);
+  }
+  randomDataBernoulli(int Lt, double p_all): p(Lt, p_all){}
+  
+  correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const override{
+    correlationFunction<double, rawDataDistributionD> out(Lt, nsample);
+    for(int t=0;t<Lt;t++){
+      out.coord(t) = t;
+      uniformRandom(out.value(t), 0., 1., threadRNG());
+      for(int s=0;s<nsample;s++) out.value(t).sample(s) = out.value(t).sample(s) >= p[t] ? 1. : 0.;
+    }
+    return out;
+  }
 
+  std::vector<double> populationTimesliceMeans() const override{
+    return p;
+  }
+
+};
 
 class randomDataBinned: public randomDataBase{
   int bin_size;
@@ -325,6 +347,13 @@ struct RdataTimeDepNrmLikeMixLeftArgs{
 GENERATE_PARSER( RdataTimeDepNrmLikeMixLeftArgs, MEMBERS);
 #undef MEMBERS
 
+#define MEMBERS (double, p)
+struct RdataUniformBernoulliLikeArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  RdataUniformBernoulliLikeArgs(): p(0.5){  }
+};
+GENERATE_PARSER(RdataUniformBernoulliLikeArgs, MEMBERS);
+#undef MEMBERS
 
 #define MEMBERS (int, bin_size)(int, nsample_unbinned)(DataGenStrategy, base_strat)(std::string, base_params_file)
 struct BinnedDataArgs{
@@ -362,6 +391,9 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
   }else if(strat == DataGenStrategy::NormalTimeDepMixLeft){
     RdataTimeDepNrmLikeMixLeftArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataGaussianMixLeft(Lt, args.mu, args.sigma, args.alpha));
+  }else  if(strat == DataGenStrategy::BernoulliUniform){
+    RdataUniformBernoulliLikeArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
+    return std::unique_ptr<randomDataBase>(new randomDataBernoulli(Lt, args.p));
   }else if(strat == DataGenStrategy::Binned){
     BinnedDataArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataBinned(Lt, args.bin_size, args.nsample_unbinned, args.base_strat, args.base_params_file));

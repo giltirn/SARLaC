@@ -854,6 +854,78 @@ struct preAnalysisBlockBootstrapStdErrBias : public preAnalysisBase{
 
 
 
+struct preAnalysisMuSigmaCorrelation: public preAnalysisBase{
+  void run(const Args &args, const std::string &params_file, const covMatStrategyBase &covgen, const randomDataBase &datagen, genericFitFuncBase &fitfunc) const override{   
+    int nsample = args.nsample;
+    int ntest = args.ntest;
+
+    std::vector<parameterVector<double> > fitval_dist_true(ntest);
+  
+    std::vector<double> mu(ntest), sigma(ntest);
+
+#pragma omp parallel for
+    for(int test=0;test<ntest;test++){
+      correlationFunction<double, rawDataDistributionD> data = datagen.generate(1,nsample);
+      mu[test] = data.value(0).mean();
+      sigma[test] = sqrt(data.value(0).standardDeviation());
+    }      
+
+    double mu_mean=0, sigma_mean=0., mu_s2=0., sigma_s2=0.;
+    for(int test=0;test<ntest;test++){
+      mu_mean += mu[test];
+      sigma_mean += sigma[test];
+
+      mu_s2 += mu[test]*mu[test];
+      sigma_s2 += sigma[test]*sigma[test];
+    }
+    mu_mean /= ntest;
+    sigma_mean /= ntest;
+
+    double mu_sd = sqrt( mu_s2/ntest - mu_mean*mu_mean );
+    double sigma_sd = sqrt( sigma_s2/ntest - sigma_mean*sigma_mean );
+    
+
+
+    double corr = 0.;
+    for(int test=0;test<ntest;test++){
+      corr += (mu[test]-mu_mean)*(sigma[test]-sigma_mean);
+    }
+    corr /= (ntest * mu_sd * sigma_sd);
+
+    std::cout << "mu/sigma correlation: " << corr << std::endl;
+    
+
+    //Scatter plot of mean and std.dev//Generate histograms (only for first bootstrap original ensemble)
+
+    MatPlotLibScriptGenerate plot;
+    struct acc{
+      const std::vector<double> &mu;
+      const std::vector<double> &sig;
+
+      acc(const std::vector<double> &mu, const std::vector<double> &sig): mu(mu), sig(sig){}
+	  
+      double x(const int i) const{ return mu[i]; }
+      double y(const int i) const{ return sig[i]; }
+      double dxp(const int i) const{ return 0; }
+      double dxm(const int i) const{ return 0; }
+      double dyp(const int i) const{ return 0; }
+      double dym(const int i) const{ return 0; }
+
+      int size() const{ return mu.size(); }
+    };
+    typename MatPlotLibScriptGenerate::kwargsType kwargs;
+
+    auto h = plot.plotData(acc(mu,sigma),kwargs,"data");
+
+    plot.setXlabel(R"($\mu$)");
+    plot.setYlabel(R"($\sigma$)");
+
+    std::string stub = "mu_sigma_correlation";
+    plot.write(stub+".py",stub+".pdf");
+  }//run
+};
+
+
 
 
 
@@ -877,6 +949,8 @@ std::unique_ptr<preAnalysisBase> preAnalysisFactory(preAnalysisType type){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisBlockBootstrapQ2Bias);
   }else if(type == preAnalysisType::BlockBootstrapStdErrBias){
     return std::unique_ptr<preAnalysisBase>(new preAnalysisBlockBootstrapStdErrBias);
+  }else if(type == preAnalysisType::MuSigmaCorrelation){
+    return std::unique_ptr<preAnalysisBase>(new preAnalysisMuSigmaCorrelation);
   }else{
     error_exit(std::cout << "Invalid pre-analysis type" << std::endl);
   }
