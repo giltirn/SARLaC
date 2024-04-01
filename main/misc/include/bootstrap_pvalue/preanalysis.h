@@ -75,7 +75,6 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
     {
       MatPlotLibScriptGenerate plot;
       typename MatPlotLibScriptGenerate::kwargsType kwargs;
-      kwargs["density"] = true;
       kwargs["alpha"] = 0.4;
       kwargs["bins"] = 60;
       auto htrue = plot.histogram(acc(evals_true),kwargs,"true");
@@ -86,7 +85,7 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
       plot.setXlabel(R"($\lambda$)");
-      plot.setYlabel(R"($\rho(\lambda)$)");
+      plot.setYlabel(R"(${\cal N}(\lambda)$)");
       plot.createLegend();
 
       plot.write("eval_density.py","eval_density.pdf");
@@ -105,7 +104,7 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
       plot.setXlabel(R"($\lambda_{\rm hi}$)");
-      plot.setYlabel(R"($f(\lambda_{\rm hi})$)");
+      plot.setYlabel(R"(${\cal N}(\lambda_{\rm hi})$)");
       plot.createLegend();
 
       plot.write("eval_hi_hist.py","eval_hi_hist.pdf");
@@ -123,7 +122,7 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
       plot.setXlabel(R"($\lambda_{\rm lo}$)");
-      plot.setYlabel(R"($f(\lambda_{\rm lo})$)");
+      plot.setYlabel(R"(${\cal N}(\lambda_{\rm lo})$)");
       plot.createLegend();
 
       plot.write("eval_lo_hist.py","eval_lo_hist.pdf");
@@ -148,7 +147,7 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
       plot.setXlabel(R"($N\lambda_{\rm hi}$)");
-      plot.setYlabel(R"($f(N\lambda_{\rm hi})$)");
+      plot.setYlabel(R"(${\cal N}(N\lambda_{\rm hi})$)");
       plot.createLegend();
 
       plot.write("eval_hi_nrm_hist.py","eval_hi_nrm_hist.pdf");
@@ -166,7 +165,7 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
       plot.setXlabel(R"($N\lambda_{\rm lo}$)");
-      plot.setYlabel(R"($f(N\lambda_{\rm lo})$)");
+      plot.setYlabel(R"(${\cal N}(N\lambda_{\rm lo})$)");
       plot.createLegend();
 
       plot.write("eval_lo_nrm_hist.py","eval_lo_nrm_hist.pdf");
@@ -194,7 +193,7 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
       plot.setXlabel(R"($\lambda_{\rm hi}/\lambda_{\rm lo}$)");
-      plot.setYlabel(R"($f(\lambda_{\rm hi}/\lambda_{\rm lo})$)");
+      plot.setYlabel(R"(${\cal N}(\lambda_{\rm hi}/\lambda_{\rm lo})$)");
       plot.createLegend();
 
       plot.write("cond_num_hist.py","cond_num_hist.pdf");
@@ -211,6 +210,7 @@ struct preAnalysisCorrMatEvals: public preAnalysisBase{
     
     //Generate data for the evals of the true covariance matrix
     std::vector<double> evals_true(ntest*Lt);
+    std::vector<double> evals_lo_true(ntest);
 #pragma omp parallel for
     for(int test=0;test<ntest;test++){
       correlationFunction<double, rawDataDistributionD> data = datagen.generate(Lt,nsample);
@@ -229,6 +229,7 @@ struct preAnalysisCorrMatEvals: public preAnalysisBase{
       GSLsymmEigenSolver< NumericVector<double>, NumericSquareMatrix<double> >::symmetricMatrixSolve(evecs, evals, cov);
 
       for(int t=0;t<Lt;t++) evals_true[t+Lt*test] = evals[t];
+      evals_lo_true[test] = evals[Lt-1];    
     }
 
     correlationFunction<double, rawDataDistributionD> orig_data = datagen.generate(Lt,nsample);
@@ -236,6 +237,7 @@ struct preAnalysisCorrMatEvals: public preAnalysisBase{
     std::vector<std::vector<int> > rtable = resampleTable(RNG, nsample, ntest);
 
     std::vector<double> evals_boot(ntest*Lt);
+    std::vector<double> evals_lo_boot(ntest);
 #pragma omp parallel for
     for(int test=0;test<ntest;test++){
       correlationFunction<double, rawDataDistributionD> data(Lt);
@@ -261,19 +263,20 @@ struct preAnalysisCorrMatEvals: public preAnalysisBase{
       GSLsymmEigenSolver< NumericVector<double>, NumericSquareMatrix<double> >::symmetricMatrixSolve(evecs, evals, cov);
 
       for(int t=0;t<Lt;t++) evals_boot[t+Lt*test] = evals[t];
+      evals_lo_boot[test] = evals[Lt-1]; 
     }      
     
     //Generate histograms
+    struct acc{
+      const std::vector<double> &d;
+      acc(const std::vector<double> &d): d(d){}
+      double y(const int i) const{ return d[i]; }
+      int size() const{ return d.size(); }
+    };
+     
     {
       MatPlotLibScriptGenerate plot;
-      struct acc{
-	const std::vector<double> &d;
-	acc(const std::vector<double> &d): d(d){}
-	double y(const int i) const{ return d[i]; }
-	int size() const{ return d.size(); }
-      };
       typename MatPlotLibScriptGenerate::kwargsType kwargs;
-      kwargs["density"] = true;
       kwargs["alpha"] = 0.4;
       kwargs["bins"] = 60;
       auto htrue = plot.histogram(acc(evals_true),kwargs,"true");
@@ -284,11 +287,30 @@ struct preAnalysisCorrMatEvals: public preAnalysisBase{
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
       plot.setXlabel(R"($\lambda$)");
-      plot.setYlabel(R"($\rho(\lambda)$)");
+      plot.setYlabel(R"(${\cal N}(\lambda)$)");
       plot.createLegend();
 
-      plot.write("eval_density.py","eval_density.pdf");
+      plot.write("corrmat_eval_density.py","corrmat_eval_density.pdf");
     }
+    {
+      MatPlotLibScriptGenerate plot;
+      typename MatPlotLibScriptGenerate::kwargsType kwargs;
+      kwargs["alpha"] = 0.4;
+      kwargs["bins"] = 60;
+      auto htrue = plot.histogram(acc(evals_lo_true),kwargs,"true");
+      plot.setLegend(htrue, R"(${\\rm true}$)");
+
+      kwargs["color"] = 'c';
+      auto hboot = plot.histogram(acc(evals_lo_boot),kwargs,"boot");
+      plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
+
+      plot.setXlabel(R"($\lambda_{\rm lo}$)");
+      plot.setYlabel(R"(${\cal N}(\lambda_{\rm lo})$)");
+      plot.createLegend();
+
+      plot.write("corrmat_eval_lo_hist.py","corrmat_eval_lo_hist.pdf");
+    }
+
   }
 };
 

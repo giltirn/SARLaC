@@ -502,7 +502,7 @@ int main(const int argc, const char** argv){
       data.coord(t) = t;
       rawDataDistributionD &dd = data.value(t);
       dd.resize(nsample_reduced);
-      double shift = the_model.value(t) - base_orig_ens.value(t).mean();
+      double shift = cmdline.recenter_orig_ens ? (the_model.value(t) - base_orig_ens.value(t).mean()) : 0.;
       for(int s=0;s<nsample_reduced;s++)
 	dd.sample(s) = base_orig_ens.value(t).sample(dbl_boot_rtable[o][s]) + shift;
     }
@@ -627,12 +627,17 @@ int main(const int argc, const char** argv){
     std::vector<double> ptrue(npt);
     std::vector<double> pboot(npt); //bootstrap p-value from the base original ensemble
     std::vector<double> pboot_resid(npt); //bootstrap p-value by residuals from the base original ensemble
+    std::vector<double> pboot_true_diff(npt); //p_boot - p_true with bootstrap value estimated from the base original ensemble
 
     std::vector<rawDataDistributionD> pboot_var(npt, rawDataDistributionD(args.norig_ens) ); //variation over actual original ensembles
     std::vector<rawDataDistributionD> pdbl_boot_var(npt, rawDataDistributionD(args.norig_ens) ); //variation over bootstrap resampled ensembles in place of original ensembles
     std::vector<rawDataDistributionD> pboot_resid_var(npt, rawDataDistributionD(args.norig_ens) ); //variation over actual original ensembles for residuals version
+    std::vector<rawDataDistributionD> pboot_true_diff_var(npt, rawDataDistributionD(args.norig_ens) ); //p_boot - p_true, variation over actual original ensembles
     std::vector<double> pT2(npt);
     std::vector<double> pchi2(npt);
+    std::vector<double> pT2_true_diff(npt); //p_T2 - p_true
+    std::vector<double> pchi2_true_diff(npt); //p_chisq - p_true
+
     
     double dq2 = q2_max/(npt-1);
 
@@ -656,11 +661,16 @@ int main(const int argc, const char** argv){
       ptrue[i] = estimatePvalue(q2, q2_dist_true);
       pboot[i] = estimatePvalue(q2, q2_dist_boot);
       pboot_resid[i] = estimatePvalue(q2, q2_resid_dist_boot);
+      pboot_true_diff[i] = pboot[i]-ptrue[i];
+
+      pT2_true_diff[i] = pT2[i] - ptrue[i];
+      pchi2_true_diff[i] = pchi2[i] - ptrue[i];
       
       for(int o=0;o<args.norig_ens;o++){
 	pboot_var[i].sample(o) = estimatePvalue(q2, q2_dist_boot_var[o]);
 	pdbl_boot_var[i].sample(o) = estimatePvalue(q2, q2_dist_dbl_boot[o]);
 	pboot_resid_var[i].sample(o) = estimatePvalue(q2, q2_resid_dist_boot_var[o]);
+	pboot_true_diff_var[i].sample(o) = pboot_var[i].sample(o) - ptrue[i];
       }
     }
 
@@ -715,7 +725,8 @@ int main(const int argc, const char** argv){
       int size() const{ return xx.size(); }
     };
 
-
+    
+    //p-value vs q^2
     {
       MatPlotLibScriptGenerate plot;
       typename MatPlotLibScriptGenerate::kwargsType kwargs;
@@ -750,6 +761,7 @@ int main(const int argc, const char** argv){
       plot.createLegend();
       plot.write("pvalue.py","pvalue.pdf");
     }
+    //pvalue vs true pvalue
     {
       MatPlotLibScriptGenerate plot;
       typename MatPlotLibScriptGenerate::kwargsType kwargs;
@@ -787,13 +799,39 @@ int main(const int argc, const char** argv){
       plot.createLegend(kwargs);
       plot.write("pest_v_ptrue.py","pest_v_ptrue.pdf");
     }
+    //pvalue-ptrue vs ptrue
+    {
+      MatPlotLibScriptGenerate plot;
+      typename MatPlotLibScriptGenerate::kwargsType kwargs;
+
+      kwargs["color"] = "r";
+      auto kwb = kwargs; kwb["alpha"]=0.3;
+      auto hboot = plot.errorBand(acc_wsep_err(ptrue,pboot_true_diff,pboot_true_diff_var), kwb, "boot");
+      plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
+
+      kwargs["color"] = "g";
+      auto hT2 = plot.errorBand(acc(ptrue,pT2_true_diff), kwargs, "T2");
+      plot.setLegend(hT2, R"($T^2$)");
+
+      kwargs["color"] = "m";
+      auto hchi2 = plot.errorBand(acc(ptrue,pchi2_true_diff), kwargs, "chi2");
+      plot.setLegend(hchi2, R"($\\chi^2}$)");
+
+      plot.setXlabel(R"($p_{\rm true}");
+      plot.setYlabel(R"($p - p_{\rm true}$)");
+
+      kwargs.clear();
+      kwargs["loc"] = "upper left";
+      plot.createLegend(kwargs);
+      plot.write("pest_ptrue_diff.py","pest_ptrue_diff.pdf");
+    }
 
 
 
   }
 
 
-  //Plot distribution of means
+  //Distribution of means
   {
     MatPlotLibScriptGenerate plot_mean;
     typename MatPlotLibScriptGenerate::kwargsType kwargs;
@@ -810,8 +848,8 @@ int main(const int argc, const char** argv){
   }
 
   //Compute p-value of original fit
-  double pT2 = TsquareDistribution::PDF(base_q2,dof,nsample-1);
-  double pchi2 = chiSquareDistribution::PDF(dof,base_q2);
+  double pT2 = TsquareDistribution::pvalue(base_q2,dof,nsample-1);
+  double pchi2 = chiSquareDistribution::pvalue(dof,base_q2);
   double ptrue = estimatePvalue(base_q2, q2_dist_true);
   double pboot = estimatePvalue(base_q2, q2_dist_boot);
   double pboot_resid = estimatePvalue(base_q2, q2_resid_dist_boot);

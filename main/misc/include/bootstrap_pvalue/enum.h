@@ -1,6 +1,6 @@
 #pragma once
 
-GENERATE_ENUM_AND_PARSER(DataGenStrategy, (NormalUniform)(NormalTimeDep)(LogNormalUniform)(NormalUniformPlusShift)(NormalUniformMixLeft)(NormalTimeDepMixLeft)(BernoulliUniform)(Binned)(NormalUniformMetropolis) );
+GENERATE_ENUM_AND_PARSER(DataGenStrategy, (NormalUniform)(NormalTimeDep)(LogNormalUniform)(NormalUniformPlusShift)(NormalUniformMixLeft)(NormalTimeDepMixLeft)(BernoulliUniform)(MultivariateNormal)(Binned)(NormalUniformMetropolis) );
 
 GENERATE_ENUM_AND_PARSER(CovMatStrategy, (Correlated)(Uncorrelated)(Cutoff)(MCM) );
 

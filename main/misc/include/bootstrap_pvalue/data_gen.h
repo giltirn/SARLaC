@@ -95,6 +95,45 @@ public:
   }
 
 };
+// class randomDataGaussianProdFactor: public randomDataBase{
+//   std::vector<double> mu;
+//   std::vector<double> sigma;
+//   double prod_mu;
+//   double prod_sigma;
+// public:
+//   randomDataGaussianProdFactor(int Lt, const std::vector<double> &mu, const std::vector<double> &sigma,
+// 			      double prod_mu, double prod_sigma): mu(mu), sigma(sigma), prod_mu(prod_mu), prod_sigma(prod_sigma){
+//     if(mu.size() != Lt || sigma.size() != Lt) error_exit(std::cout << "mu, sigma size must equal Lt" << std::endl);
+//   }
+//   randomDataGaussianProdFactor(int Lt, double mu_all, double sigma_all, double prod_mu, double prod_sigma): mu(Lt, mu_all), sigma(Lt, sigma_all), prod_mu(prod_mu), prod_sigma(prod_sigma){}
+  
+//   correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const override{
+//     rawDataDistributionD prod(nsample);
+//     gaussianRandom(prod, prod_mu, prod_sigma, threadRNG());
+
+//     correlationFunction<double, rawDataDistributionD> out(Lt, nsample);
+//     for(int t=0;t<Lt;t++){
+//       out.coord(t) = t;
+//       rawDataDistributionD &ov = out.value(t);
+//       gaussianRandom(ov, mu[t], sigma[t], threadRNG());
+//       ov = prod * ov;
+//     }
+//     return out;
+//   }
+//   std::vector<double> populationTimesliceMeans() const override{
+//     std::vector<double> means(mu.size());
+//     for(int t=0;t<mu.size();t++)
+//       means[t] = prod_mu * mu[t]; //<AB> = <A><B> if A,B independent
+//     return means;
+//   }
+
+// };
+
+
+
+
+
+
 class randomDataGaussianMixLeft: public randomDataBase{
   std::vector<double> mu;
   std::vector<double> sigma;
@@ -150,6 +189,74 @@ public:
   }
 
 };
+
+//Multivariate normal with mean 0
+class randomDataMultivariateNormal: public randomDataBase{
+  std::vector<double> mu; //[t]
+  NumericSquareMatrix<double> cov; //[t1][t2]
+  std::vector<NumericVector<double> > cov_evecs; //[alpha][t]
+  std::vector<double> cov_evals; //[alpha]
+  NumericSquareMatrix<double> cov_evec_inv; // (v^-1)_{j alpha} v_{alpha k} = delta_{jk}
+
+  void setup(){
+    int Lt = mu.size();
+    symmetricMatrixEigensolve(cov_evecs, cov_evals, cov);
+    
+    std::cout << "randomDataMultivariateNormal : Eigenvalues of input covariance matrix:";
+    for(int i=0;i<Lt;i++) std::cout << " " << cov_evals[i];
+    std::cout << std::endl;
+
+    NumericSquareMatrix<double> cov_evec_m(Lt);
+    for(int alpha=0;alpha<Lt;alpha++)
+      for(int t=0;t<Lt;t++)
+	cov_evec_m(alpha,t) = cov_evecs[alpha](t);
+    cov_evec_inv.resize(Lt);
+    svd_inverse(cov_evec_inv, cov_evec_m);
+  }
+
+public:
+  randomDataMultivariateNormal(int Lt, const std::vector<double> &mu, const NumericSquareMatrix<double> &cov): mu(mu), cov(cov){
+    if(mu.size() != Lt || cov.size() != Lt) error_exit(std::cout << "mu, cov size must equal Lt" << std::endl);
+    this->setup();
+  }
+  randomDataMultivariateNormal(int Lt, const std::vector<double> &mu, const std::vector<double> &cov_lin): mu(mu){
+    if(mu.size() != Lt) error_exit(std::cout << "mu, cov size must equal Lt" << std::endl);
+    if(cov_lin.size() != Lt*Lt) error_exit(std::cout << "input covariance matrix as vector has wrong size" << std::endl);
+    cov.resize(Lt);
+    for(int i=0;i<Lt;i++)
+      for(int j=0;j<Lt;j++)
+	cov(i,j) = cov_lin[j + Lt*i];
+    this->setup();    
+  }
+
+  correlationFunction<double, rawDataDistributionD> generate(const int Lt, const int nsample) const override{
+    correlationFunction<double, rawDataDistributionD> x(Lt, nsample);
+    for(int alpha=0;alpha<Lt;alpha++){
+      rawDataDistributionD wal(nsample);
+      gaussianRandom(wal, 0, 1, threadRNG()); //P(\vec w) = e^{-w_alpha w_alpha / 2}
+      wal = wal * sqrt(cov_evals[alpha]);
+      
+      for(int t=0;t<Lt;t++){
+	if(alpha == 0) x.value(t) = cov_evec_inv(t,alpha) * wal;
+	else x.value(t) = x.value(t) + cov_evec_inv(t,alpha) * wal;
+      }
+    }
+    for(int t=0;t<Lt;t++){
+      x.coord(t) = t;
+      rawDataDistributionD shift(nsample, mu[t]);
+      x.value(t) = x.value(t) + shift;
+    }
+    return x;
+  }
+  std::vector<double> populationTimesliceMeans() const override{
+    return mu;
+  }
+
+};
+
+
+
+
 
 class randomDataBinned: public randomDataBase{
   int bin_size;
@@ -355,6 +462,15 @@ struct RdataUniformBernoulliLikeArgs{
 GENERATE_PARSER(RdataUniformBernoulliLikeArgs, MEMBERS);
 #undef MEMBERS
 
+#define MEMBERS (std::vector<double>, mu)(std::vector<double>, cov)
+struct RdataMultivariateNormalArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  RdataMultivariateNormalArgs(): mu(2,0.), cov(2*2,1.0){  }
+};
+GENERATE_PARSER(RdataMultivariateNormalArgs, MEMBERS);
+#undef MEMBERS
+
+
 #define MEMBERS (int, bin_size)(int, nsample_unbinned)(DataGenStrategy, base_strat)(std::string, base_params_file)
 struct BinnedDataArgs{
   GENERATE_MEMBERS(MEMBERS); 
@@ -394,6 +510,9 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
   }else  if(strat == DataGenStrategy::BernoulliUniform){
     RdataUniformBernoulliLikeArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataBernoulli(Lt, args.p));
+  }else  if(strat == DataGenStrategy::MultivariateNormal){
+    RdataMultivariateNormalArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
+    return std::unique_ptr<randomDataBase>(new randomDataMultivariateNormal(Lt, args.mu, args.cov));
   }else if(strat == DataGenStrategy::Binned){
     BinnedDataArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataBinned(Lt, args.bin_size, args.nsample_unbinned, args.base_strat, args.base_params_file));
@@ -404,4 +523,3 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
     error_exit(std::cout << "Invalid data generation strategy" << std::endl);
   }
 }
-
