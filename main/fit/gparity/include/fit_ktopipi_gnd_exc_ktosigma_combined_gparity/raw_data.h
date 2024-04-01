@@ -175,6 +175,46 @@ struct RawData{
     resample(A0_all, op, args, cmdline, descr, bin_resampler,alpha_coeff);
   }
 
+  //Generate resampled data for each four-quark operator, keeping the contributions of each diagram type separate 
+  //A0_all_by_type[type_idx][q]    where type_idx = 0..2 for K->sigma,   0..3 for K->pipi
+  template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
+  void resampleSplitByType(std::vector<std::vector<correlationFunction<amplitudeDataCoord, DistributionType> > > &A0_all_by_type, const PiPiOperator op, 
+			   const ArgsType &args, const CMDlineType &cmdline, const std::string &descr, const BinResampler &bin_resampler, const double alpha_coeff = 1.) const{
+
+    assert(doOp(op, args.operators));
+    computeQamplitudeOpts opt;
+    opt.alpha_scale = alpha_coeff;
+    
+    if(cmdline.disable_vacuum_subtraction)
+      opt.do_vacuum_subtraction = false;
+
+    for(int x=0;x<args.tsep_k_pi.size();x++){
+      int tsep_k_pi = args.tsep_k_pi[x];
+      
+      for(int q=0;q<10;q++){
+	if(op == PiPiOperator::PiPiGnd || op == PiPiOperator::PiPiExc){
+	  IndexedContainer<NumericTensor<DistributionType,1>, 4, 1> data;
+	  if(op == PiPiOperator::PiPiGnd) data = computeQamplitudeSplitByType<DistributionType>(q, tsep_k_pi, *raw_ktopipi_gnd[x], bubble_data_gnd->binResample<DistributionType>(bin_resampler), args.Lt, descr, bin_resampler, opt);
+	  else                            data = computeQamplitudeSplitByType<DistributionType>(q, tsep_k_pi, *raw_ktopipi_exc[x], bubble_data_exc->binResample<DistributionType>(bin_resampler), args.Lt, descr, bin_resampler, opt);
+	  A0_all_by_type.resize(4);
+	  for(int tt=0;tt<4;tt++){
+	    A0_all_by_type[tt].resize(10);
+	    for(int t=0;t<=tsep_k_pi;t++)
+	      A0_all_by_type[tt][q].push_back(amplitudeDataCoord(t,tsep_k_pi), data(tt+1)(&t)); //1,2,3,4
+	  }
+	}else{
+	  auto data = computeQamplitudeSplitByType<DistributionType>(q, tsep_k_pi, *raw_ktosigma[x], *bubble_data_sigma, args.Lt, descr, bin_resampler, opt);
+	  A0_all_by_type.resize(3);
+	  for(int tt=0;tt<3;tt++){
+	    A0_all_by_type[tt].resize(10);
+	    for(int t=0;t<=tsep_k_pi;t++)
+	      A0_all_by_type[tt][q].push_back(amplitudeDataCoord(t,tsep_k_pi), data(tt+2)(&t)); //2,3,4
+	  }
+	}
+      }
+    }
+  }
+
   //Extract <0|P|K> averaged over all kaon source timeslices
   template<typename DistributionType, typename ArgsType, typename CMDlineType, typename BinResampler>
   void computeKtoVacuumMatrixElem(correlationFunction<double, DistributionType> &vac_P_K,  //[t]

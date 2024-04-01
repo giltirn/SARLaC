@@ -10,8 +10,9 @@
 
 SARLAC_START_NAMESPACE
 
+//Compute the K->sigma amplitude for a given q from the raw data, keeping the output split by diagram type (the full result is the sum over all 3 diagrams, 2+3+4)
 template<typename DistributionType, typename BinResampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
+IndexedContainer<NumericTensor<DistributionType,1>, 3, 2> computeQamplitudeSplitByType(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
   std::cout << "Starting generation of resampled amplitude for K->sigma Q" << q+1 << " and t_sep(K->sigma)=" << tsep_k_sigma << std::endl;
   
   int nt = tsep_k_sigma + 1; //only compute on  0<=t<=tsep_k_sigma
@@ -61,14 +62,18 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
     std::cout << "Performing type-4 vacuum subtraction" << std::endl;
     A0_srcavg_r(4) = A0_srcavg_r(4) - A0_type4_srcavg_vacsub_r;
   }
+  time.stop();
+  std::cout << "Remainder of computation: " << time.elapsed()/1.e9 << "s" << std::endl;
+  return A0_srcavg_r;
+}
 
+
+template<typename DistributionType, typename BinResampler>
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_sigma, const RawKtoSigmaData &raw, const ProjectedSigmaBubbleData &bubble_data, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
+  auto A0_srcavg_r = computeQamplitudeSplitByType<DistributionType>(q,tsep_k_sigma,raw,bubble_data,Lt,descr,bin_resampler,opts);
   //Get the full double-jackknife amplitude
   std::cout << "Computing full amplitudes" << std::endl;
   NumericTensor<DistributionType,1> A0_full_srcavg_r = A0_srcavg_r(2) + A0_srcavg_r(3) + A0_srcavg_r(4);
-
-  time.stop();
-  std::cout << "Remainder of computation: " << time.elapsed()/1.e9 << "s" << std::endl;
-
   return A0_full_srcavg_r;
 }
 

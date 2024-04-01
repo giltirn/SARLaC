@@ -86,8 +86,9 @@ NumericTensor<DistributionType,1> binResampleAverageMixDiagram(const NumericTens
   return out;
 }
 
+//Compute the K->pipi amplitude for a given q from the raw data, keeping the output split by diagram type (the full result is the sum over all 4 diagrams, 1+2+3+4)
 template<typename DistributionType, typename BinResampler>
-NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
+IndexedContainer<NumericTensor<DistributionType,1>, 4, 1> computeQamplitudeSplitByType(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
   std::cout << "Starting generation of resampled amplitude for K->pipi Q" << q+1 << " and t_sep(K->pi)=" << tsep_k_pi << std::endl;
 
   const int nt = tsep_k_pi + 1; //only compute on  0<=t<=tsep_k_pi
@@ -123,8 +124,6 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
       DistributionType mix4_t = mix_srcavg_r(4)(t);
       if(opts.do_vacuum_subtraction) mix4_t = mix4_t - mix4_srcavg_vacsub_r(t);
       return DistributionType(from - opts.alpha_scale*alpha_r(t)*mix4_t);
-
-      //return DistributionType(from - opts.alpha_scale*alpha_r(t)*( mix_srcavg_r(4)(t) - mix4_srcavg_vacsub_r(t) ) );
     }); 
 
   //Perform the type 4 vacuum subtraction
@@ -133,14 +132,21 @@ NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_
     A0_srcavg_r(4) = A0_srcavg_r(4) - A0_type4_srcavg_vacsub_r;
   }
 
+  time.stop();
+  std::cout << "Remainder of computation: " << time.elapsed()/1.e9 << "s" << std::endl;
+  return A0_srcavg_r;
+}
+
+template<typename DistributionType, typename BinResampler>
+NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const NumericTensor<DistributionType,1> &resampled_bubble, const int Lt, const std::string &descr, const BinResampler &bin_resampler, const computeQamplitudeOpts &opts = computeQamplitudeOpts()){
+  auto A0_srcavg_r = computeQamplitudeSplitByType(q,tsep_k_pi,raw,resampled_bubble,Lt,descr,bin_resampler,opts);
   //Get the full resampled amplitude
   std::cout << "Computing full amplitudes" << std::endl;
   NumericTensor<DistributionType,1> A0_full_srcavg_r = A0_srcavg_r(1) + A0_srcavg_r(2) + A0_srcavg_r(3) + A0_srcavg_r(4);
-  time.stop();
-  std::cout << "Remainder of computation: " << time.elapsed()/1.e9 << "s" << std::endl;
 
   return A0_full_srcavg_r;
-}
+}  
+
 template<typename DistributionType, typename BinResampler>
 NumericTensor<DistributionType,1> computeQamplitude(const int q, const int tsep_k_pi, const RawKtoPiPiData &raw, const ProjectedBubbleData &bubble_data, 
 						    const int Lt, const std::string &descr, const BinResampler &bin_resampler, 
