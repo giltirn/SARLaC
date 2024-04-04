@@ -9,5 +9,6 @@
 #include<tensors/numeric_square_matrix/sample_view.h>
 #include<tensors/numeric_square_matrix/eigensolve.h>
 #include<tensors/numeric_square_matrix/invert.h>
+#include<tensors/numeric_square_matrix/matrix_factorize.h>
 
 #endif

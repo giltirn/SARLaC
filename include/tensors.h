@@ -8,6 +8,7 @@
 #include<tensors/numeric_square_matrix.h>
 #include<tensors/numeric_tensor.h>
 #include<tensors/numeric_vector.h>
+#include<tensors/numeric_rect_matrix.h>
 #include<tensors/dual_number.h>
 #include<tensors/basic_square_matrix.h>
 #endif
