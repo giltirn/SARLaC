@@ -310,6 +310,78 @@ struct GSLsymmEigenSolver{
 
 
 
+
+
+//Requires a complex floating point *square* matrix with  (i,j) accessor and size() operation
+//evecs and evals size should be equal to matrix size, and eigenvector size should too
+template<typename VectorOutputType, typename MatrixInputType,
+	 typename std::enable_if<
+	   is_std_complex<typename _get_elem_type<MatrixInputType>::type>::value &&
+	   std::is_same<typename _get_elem_type<MatrixInputType>::type, typename _get_vector_elem_type<VectorOutputType>::type>::value
+	   , int>::type = 0
+	 >
+struct GSLhermEigenSolver{
+  static std::vector<double> HermitianMatrixSolve(std::vector<VectorOutputType> &evecs, std::vector<double> &evals, const MatrixInputType &A, bool sort = true){
+    typedef typename _get_elem_type<MatrixInputType>::type T;
+    const int size = A.size();
+    assert(evecs.size() == size);
+    assert(evals.size() == size);
+    
+    gsl_vector *eval = gsl_vector_alloc(size);
+    gsl_matrix_complex *evec = gsl_matrix_complex_alloc(size, size);
+    gsl_matrix_complex *m  = gsl_matrix_complex_alloc(size,size);
+    for(int i=0;i<size;i++){
+      for(int j=0;j<size;j++){
+	gsl_complex v;
+	GSL_REAL(v) = A(i,j).real();
+	GSL_IMAG(v) = A(i,j).imag();
+	gsl_matrix_complex_set(m,i,j,v);
+      }
+    }
+    gsl_eigen_hermv_workspace * w = gsl_eigen_hermv_alloc(size);
+    int ret = gsl_eigen_hermv(m, eval, evec, w);
+    if(ret) throw std::runtime_error(std::string("GSLhermEigenSolver::HermitianMatrixSolveCholesky failed with error: ") + std::string(gsl_strerror(ret)));
+    
+    for(int i=0;i<size;i++){
+      evals[i] = gsl_vector_get(eval,i);
+      for(int j=0;j<size;j++){
+	gsl_complex v = gsl_matrix_complex_get(evec,j,i); //eigenvectors stored in columns, i.e. elements have fixed column index and changing row index
+	evecs[i](j) = T(GSL_REAL(v),GSL_IMAG(v));
+      }
+    }
+    gsl_matrix_complex_free(m);
+    gsl_vector_free(eval);
+    gsl_matrix_complex_free(evec);
+    gsl_eigen_hermv_free(w);
+
+    if(sort){
+      std::vector<int> order(size);
+      for(int i=0;i<size;i++) order[i] = i;
+      std::sort(order.begin(),order.end(), [&](const int a, const int b){ return evals[a] > evals[b]; }); //descending order
+      std::vector<VectorOutputType> evecs_t(evecs); 
+      std::vector<double> evals_t(evals);
+      for(int i=0;i<size;i++){
+	evecs[i] = evecs_t[order[i]];
+	evals[i] = evals_t[order[i]];
+      }
+    }
+
+    std::vector<double> residuals(size);
+    for(int i=0;i<size;i++){
+      VectorOutputType Mv_m_lv = A * evecs[i] - evals[i] * evecs[i];
+      residuals[i] = sqrt(mod2(Mv_m_lv)).real();
+    }
+    return residuals;
+  }
+};
+
+
+
+
+
+
+
+
 SARLAC_END_NAMESPACE
 
 #endif

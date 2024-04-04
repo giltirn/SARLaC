@@ -118,6 +118,15 @@ public:
     return out;
   }
 
+  template<typename T=Numeric, typename std::enable_if<is_std_complex<T>::value, int>::type = 0>
+  NumericSquareMatrix dagger() const{
+    NumericSquareMatrix out(this->size());
+    for(int i=0;i<this->size();i++)
+      for(int j=0;j<this->size();j++)
+	out(i,j) = std::conj((*this)(j,i));
+    return out;
+  }
+
   NumericSquareMatrix submatrix(const int istart, const int jstart, const int size) const{
     return NumericSquareMatrix(size, [&](const int i, const int j){ return m[i+istart][j+jstart]; });
   }
