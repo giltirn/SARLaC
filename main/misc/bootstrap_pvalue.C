@@ -817,7 +817,7 @@ int main(const int argc, const char** argv){
       auto hchi2 = plot.errorBand(acc(ptrue,pchi2_true_diff), kwargs, "chi2");
       plot.setLegend(hchi2, R"($\\chi^2}$)");
 
-      plot.setXlabel(R"($p_{\rm true}");
+      plot.setXlabel(R"($p_{\rm true}$)");
       plot.setYlabel(R"($p - p_{\rm true}$)");
 
       kwargs.clear();

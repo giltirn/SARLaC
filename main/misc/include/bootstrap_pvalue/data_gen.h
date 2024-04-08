@@ -438,6 +438,14 @@ struct RdataUniformNrmLikePlusShiftArgs{
 GENERATE_PARSER( RdataUniformNrmLikePlusShiftArgs, MEMBERS);
 #undef MEMBERS
 
+#define MEMBERS (std::vector<double>, mu)(std::vector<double>, sigma)(double, shift_mu)(double, shift_sigma)(double, shift_alpha)
+struct RdataTimeDepNrmLikePlusShiftArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  RdataTimeDepNrmLikePlusShiftArgs(): mu(10,0.), sigma(10,1.), shift_mu(0.), shift_sigma(1.), shift_alpha(0.1){  }
+};
+GENERATE_PARSER( RdataTimeDepNrmLikePlusShiftArgs, MEMBERS);
+#undef MEMBERS
+
 #define MEMBERS (double, mu)(double, sigma)(std::vector<double>, alpha)
 struct RdataUniformNrmLikeMixLeftArgs{
   GENERATE_MEMBERS(MEMBERS); 
@@ -500,6 +508,9 @@ std::unique_ptr<randomDataBase> dataGenStrategyFactory(DataGenStrategy strat, co
     return std::unique_ptr<randomDataBase>(new randomDataLogNormal(Lt, args.mu, args.sigma));
   }else if(strat == DataGenStrategy::NormalUniformPlusShift){
     RdataUniformNrmLikePlusShiftArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
+    return std::unique_ptr<randomDataBase>(new randomDataGaussianPlusShift(Lt, args.mu, args.sigma, args.shift_mu, args.shift_sigma, args.shift_alpha));
+  }else if(strat == DataGenStrategy::NormalTimeDepPlusShift){
+    RdataTimeDepNrmLikePlusShiftArgs args; parseOrTemplate(args, params_file, "datagen_template.args");
     return std::unique_ptr<randomDataBase>(new randomDataGaussianPlusShift(Lt, args.mu, args.sigma, args.shift_mu, args.shift_sigma, args.shift_alpha));
   }else if(strat == DataGenStrategy::NormalUniformMixLeft){
     RdataUniformNrmLikeMixLeftArgs args; parseOrTemplate(args, params_file, "datagen_template.args");

@@ -452,6 +452,10 @@ def plotHistogram(axes, data, **kwargs):
         binwidth = (max(data.y) - min(data.y))/(kwargs["nbins"])
         kwargs["bins"]=numpy.arange(min(data.y), max(data.y) + binwidth, binwidth)
         del kwargs["nbins"]
+    if "binwidth" in kwargs.keys() and "bins" not in kwargs.keys():
+        binwidth = kwargs["binwidth"]
+        kwargs["bins"]=numpy.arange(min(data.y), max(data.y) + binwidth, binwidth)
+        del kwargs["binwidth"]
     if "color" not in kwargs.keys():
         kwargs["color"] = 'r'
         

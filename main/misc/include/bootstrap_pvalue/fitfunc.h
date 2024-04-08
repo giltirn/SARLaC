@@ -19,6 +19,54 @@ public:
   ParameterType guess() const{ return ParameterType(0); }
 };
 
+class FitExpP{
+public:
+  typedef double ValueType;
+  typedef parameterVector<double> ParameterType;
+  typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef double GeneralizedCoordinate; //time coord
+
+  //Params are A, m  
+  ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    return p[0] * ::exp(-p[1]*t);
+  }
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    ValueDerivativeType yderivs(2);
+    yderivs[0]= ::exp(-p[1]*t);
+    yderivs[1] = -p[0] * t* ::exp(-p[1]*t);
+    return yderivs;
+  }
+
+  inline int Nparams() const{ return 2; }
+
+  ParameterType guess() const{ return ParameterType({1.0,0.5}); }
+};
+
+class FitExpPlusConst{
+public:
+  typedef double ValueType;
+  typedef parameterVector<double> ParameterType;
+  typedef parameterVector<double> ValueDerivativeType; //derivative wrt parameters
+  typedef double GeneralizedCoordinate; //time coord
+
+  //Params are A, m  
+  ValueType value(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    return p[0] * ::exp(-p[1]*t) + p[2];
+  }
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &t, const ParameterType &p) const{
+    ValueDerivativeType yderivs(3);
+    yderivs[0]= ::exp(-p[1]*t);
+    yderivs[1] = -p[0] * t* ::exp(-p[1]*t);
+    yderivs[2] = 1.;
+    return yderivs;
+  }
+
+  inline int Nparams() const{ return 3; }
+
+  ParameterType guess() const{ return ParameterType({1.0,0.5,0.}); }
+};
+
+
 std::unique_ptr<genericFitFuncBase> fitFuncFactory(FitFuncType type){
   if(type == FitFuncType::FConstant){
     FitConstant fitfunc;
@@ -41,6 +89,12 @@ std::unique_ptr<genericFitFuncBase> fitFuncFactory(FitFuncType type){
   }else if(type == FitFuncType::FConstantFrozen){
     FitConstantFrozen fitfunc; 
     return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitConstantFrozen>(fitfunc));
+  }else if(type == FitFuncType::FExp){
+    FitExpP fitfunc;
+    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitExpP>(fitfunc));
+  }else if(type == FitFuncType::FExpPlusConst){
+    FitExpPlusConst fitfunc;
+    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitExpPlusConst>(fitfunc));
   }else{
     error_exit(std::cout << "Invalid fit function" << std::endl);
   }
