@@ -432,6 +432,50 @@ int main(const int argc, const char** argv){
   }      
   Model the_model(*ffunc,base_fit_params);
   
+
+  //---------------------------------------------------
+  //Optionally show base fit params with bootstrap error
+  //---------------------------------------------------
+  if(cmdline.show_base_fit_params){
+    int nparam = ffunc->Nparams();
+    int nboot = 500; //don't need a large number
+    bootstrapInitType binit(nboot);
+    parameterVector<bootstrapDistributionD> base_fit_params_b(nparam,bootstrapDistributionD(binit));
+    for(int p=0;p<nparam;p++) base_fit_params_b[p].best() = base_fit_params[p];
+
+    std::vector<std::vector<int> > rtable = generateResampleTable(nsample, nboot, args.bootstrap_strat, args.block_size, threadRNG);
+    std::cout << "Computing base fit params" << std::endl;
+
+    //#pragma omp parallel for
+    for(int test=0;test<nboot;test++){
+      correlationFunction<double, rawDataDistributionD> data(Lt);
+      correlationFunction<double, double> data_means(Lt);
+      for(int t=0;t<Lt;t++){
+	rawDataDistributionD &dd = data.value(t);
+	dd = resampledEnsemble(base_orig_ens.value(t), test, rtable);
+	data_means.value(t) = dd.mean();
+	data_means.coord(t) = t;
+      }
+      simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
+      covgen->compute(fitter, data);
+
+      parameterVector<double> params(base_fit_params);
+      double q2, q2_per_dof; int dof;
+      assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
+      for(int p=0;p<nparam;p++) base_fit_params_b[p].sample(test) = params[p];
+    }
+    std::cout << "Base fit params:";
+    for(int p=0;p<nparam;p++) std::cout << " " << base_fit_params_b[p];
+    std::cout << std::endl;
+
+    std::cout << "Base fit param samples:\n";
+    for(int b=0;b<nboot;b++){
+      for(int p=0;p<nparam;p++)
+    	std::cout << base_fit_params_b[p].sample(b) << " ";
+      std::cout << std::endl;
+    }
+  }
+
   //------------------------------------------------------------------------------------------------------------------------------------------
   //Generate the true distribution. Data must be centered on the specific model not the true population center
   //------------------------------------------------------------------------------------------------------------------------------------------
