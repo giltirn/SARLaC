@@ -14,6 +14,9 @@ struct CMDline{
   bool output_bootstrap_q2sorted_rtable;  //for the primary bootstrap analysis, write out the rtable sorted by q^2 in ascending order, with the value of q^2 as the first entry on each line
 
   bool show_base_fit_params; //show the base fit params + bootstrap errors (requires extra computation)
+
+  std::string freeze_file; //if provided, frozen fit params will be loaded from this file
+
   CMDline(){
     exit_after_preanalysis = false;
     bootstrap_resid_diagonalize = false;
@@ -23,6 +26,7 @@ struct CMDline{
     show_base_fit_params = true;
     seed = 1234;
     seed_thr = 5678;
+    freeze_file = "";
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -60,6 +64,10 @@ struct CMDline{
       }else if(sargv[i] == "-no_show_base_fit_params"){
 	show_base_fit_params = false;
 	i++;
+      }else if(sargv[i] == "-freeze"){
+	freeze_file = sargv[i+1];
+	std::cout << "Loading frozen fit params from '" << freeze_file << "'" << std::endl;
+	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }

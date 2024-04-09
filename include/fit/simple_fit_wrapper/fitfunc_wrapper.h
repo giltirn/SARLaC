@@ -101,6 +101,55 @@ struct genericFitFuncWrapper: public genericFitFuncBase{
   int Nparams() const{ return fitfunc.Nparams(); }
 };
 
+//Similar to the above but transparently wrapping parameter freezing rather than going through the fitter interface
+template<typename FitFunc>
+struct genericFitFuncFreezeWrapper: public genericFitFuncBase{
+  INHERIT_GENERIC_FITFUNC_BASE_TYPEDEFS;
+  typedef typename FitFunc::ParameterType BaseParameterType;
+  typedef typename FitFunc::ValueDerivativeType BaseDerivType;
+  FitFunc fitfunc;
+  BaseParameterType psetup;
+  std::vector<bool> freeze;
+  int nfreeze;
+  
+  //The 'psetup' argument should be an instance of the object containing the wrapped fit function's parameters
+  //The contents of psetup are used in the context of the frozen params and also it needs to be sized correctly
+  genericFitFuncFreezeWrapper(const FitFunc &fitfunc, const BaseParameterType &psetup): fitfunc(fitfunc), psetup(psetup), freeze(0), nfreeze(0){}
+
+  genericFitFuncFreezeWrapper(const FitFunc &fitfunc, const BaseParameterType &psetup, const std::vector<bool> &freeze): genericFitFuncFreezeWrapper(fitfunc,psetup){
+    freezeParams(freeze);
+  }
+  void freezeParams(const std::vector<bool> &_freeze){
+    freeze = _freeze;
+    assert(freeze.size() == fitfunc.Nparams());
+    nfreeze = 0;
+    for(int i=0;i<freeze.size();i++) if(freeze[i]) ++nfreeze;
+  }
+
+  inline void copyParamsToBase(BaseParameterType &out, const ParameterType &in) const{ //assume out has been initialized from psetup
+    int i=0;
+    for(int o=0;o<out.size();o++)
+      if(!freeze[o]) out(o) = in(i++);
+  }
+  inline void copyDerivsFromBase(ValueDerivativeType &out, const BaseDerivType &in) const{ //assume out has been initialized from psetup
+    int o=0;
+    for(int i=0;i<in.size();i++)
+      if(!freeze[i]) out(o++) = in(i);
+  }  
+
+  ValueType value(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    typename FitFunc::ParameterType pbase(psetup); copyParamsToBase(pbase, p);
+    return fitfunc.value(getCoord<typename FitFunc::GeneralizedCoordinate>(x), pbase);
+  }
+  ValueDerivativeType parameterDerivatives(const GeneralizedCoordinate &x, const ParameterType &p) const{
+    typename FitFunc::ParameterType pbase(psetup); copyParamsToBase(pbase, p);
+    auto derivs = fitfunc.parameterDerivatives(getCoord<typename FitFunc::GeneralizedCoordinate>(x),pbase);
+    ValueDerivativeType out(fitfunc.Nparams()); copyDerivsFromBase(out, derivs);
+    return out;
+  } 
+
+  int Nparams() const{ return fitfunc.Nparams()-nfreeze; }
+};
 
 SARLAC_END_NAMESPACE
 #endif

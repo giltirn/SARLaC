@@ -66,36 +66,59 @@ public:
   ParameterType guess() const{ return ParameterType({1.0,0.5,0.}); }
 };
 
+#define MEMBERS (std::vector<int>, params)(std::vector<double>, values)
+struct FreezeArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  FreezeArgs(): params(1,0),values(1,0.){  }
+};
+GENERATE_PARSER( FreezeArgs, MEMBERS);
+#undef MEMBERS
 
-std::unique_ptr<genericFitFuncBase> fitFuncFactory(FitFuncType type){
+template<typename F>
+inline std::unique_ptr<genericFitFuncBase> enwrap(const F &ff, const FreezeArgs &freeze, bool do_freeze){
+  auto ptr = new genericFitFuncFreezeWrapper<F>(ff, parameterVector<double>(ff.Nparams(),0.));
+  if(do_freeze){
+    std::vector<bool> fparams(ff.Nparams(),false);
+    for(int f=0;f<freeze.params.size();f++){
+      int p = freeze.params[f];
+      fparams[p] = true;
+      ptr->psetup(p) = freeze.values[f];
+    }
+    ptr->freezeParams(fparams);
+  }
+  return std::unique_ptr<genericFitFuncBase>(ptr);
+}
+
+inline std::unique_ptr<genericFitFuncBase> fitFuncFactory(FitFuncType type, const std::string &freeze_param_file = ""){
+  FreezeArgs freeze; bool do_freeze(false);
+  if(freeze_param_file.size()){
+    parseOrTemplate(freeze, freeze_param_file, "freeze_params.args");
+    do_freeze=true;
+  }
+
   if(type == FitFuncType::FConstant){
-    FitConstant fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitConstant>(fitfunc));
+    FitConstant fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FLinear){
-    FitFuncLinearMultiDim<double,double,1> fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,1> >(fitfunc));
+    FitFuncLinearMultiDim<double,double,1> fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FPoly2){
-    FitFuncLinearMultiDim<double,double,2> fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,2> >(fitfunc));
+    FitFuncLinearMultiDim<double,double,2> fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FPoly3){
-    FitFuncLinearMultiDim<double,double,3> fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,3> >(fitfunc));
+    FitFuncLinearMultiDim<double,double,3> fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FPoly4){
-    FitFuncLinearMultiDim<double,double,4> fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,4> >(fitfunc));
+    FitFuncLinearMultiDim<double,double,4> fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FPoly5){
-    FitFuncLinearMultiDim<double,double,5> fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitFuncLinearMultiDim<double,double,5> >(fitfunc));
+    FitFuncLinearMultiDim<double,double,5> fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FConstantFrozen){
-    FitConstantFrozen fitfunc; 
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitConstantFrozen>(fitfunc));
+    FitConstantFrozen fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FExp){
-    FitExpP fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitExpP>(fitfunc));
+    FitExpP fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else if(type == FitFuncType::FExpPlusConst){
-    FitExpPlusConst fitfunc;
-    return std::unique_ptr<genericFitFuncBase>(new simpleFitFuncWrapper<FitExpPlusConst>(fitfunc));
+    FitExpPlusConst fitfunc; return enwrap<decltype(fitfunc)>(fitfunc,freeze,do_freeze);
   }else{
     error_exit(std::cout << "Invalid fit function" << std::endl);
   }
 }
+
+
+
+

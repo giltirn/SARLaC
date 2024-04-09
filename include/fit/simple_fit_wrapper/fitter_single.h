@@ -163,6 +163,8 @@ public:
   inline const std::vector<double> & getSigma() const{
     assert(have_corr_mat); return sigma;
   }
+  inline bool canGetCovarianceMatrix() const{ return !corr_mat_preinverted; }
+
   inline NumericSquareMatrix<double> getCovarianceMatrix() const{
     if(corr_mat_preinverted) error_exit(std::cout << "simpleFitWrapper::getCovarianceMatrix function inapplicable if covariance matrix inverse is precomputed\n");
     if(!have_corr_mat) error_exit(std::cout << "simpleFitWrapper::getCovarianceMatrixHDF5  No covariance/correlation matrix available. Make sure you import one before calling this method!\n");

@@ -398,7 +398,7 @@ int main(const int argc, const char** argv){
   int nsample = args.nsample;
   int Lt = args.Lt;
   int ntest = args.ntest;
-  std::unique_ptr<genericFitFuncBase> ffunc = fitFuncFactory(args.fitfunc);
+  std::unique_ptr<genericFitFuncBase> ffunc = fitFuncFactory(args.fitfunc, cmdline.freeze_file);
   std::unique_ptr<covMatStrategyBase> covgen = covMatStrategyFactory(args.cov_strat, args.cov_strat_params_file);
   std::unique_ptr<randomDataBase> dgen = dataGenStrategyFactory(args.data_strat, argv[2], Lt);
   int dof = Lt - ffunc->Nparams();
@@ -446,7 +446,7 @@ int main(const int argc, const char** argv){
     std::vector<std::vector<int> > rtable = generateResampleTable(nsample, nboot, args.bootstrap_strat, args.block_size, threadRNG);
     std::cout << "Computing base fit params" << std::endl;
 
-    //#pragma omp parallel for
+#pragma omp parallel for
     for(int test=0;test<nboot;test++){
       correlationFunction<double, rawDataDistributionD> data(Lt);
       correlationFunction<double, double> data_means(Lt);

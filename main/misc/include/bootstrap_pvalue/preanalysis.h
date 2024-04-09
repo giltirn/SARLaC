@@ -31,6 +31,22 @@ struct preAnalysisCovMatEvals: public preAnalysisBase{
       for(int t=0;t<Lt;t++) evals_true[t+Lt*test] = evals[t];
       evals_hi_true[test] = evals[0];
       evals_lo_true[test] = evals[Lt-1];
+
+      if(test == 0){ 
+	std::cout << "For ensemble 0: covariance matrix\n" << cov << "\nevals:" << evals << std::endl;
+	for(int i=0;i<Lt;i++) std::cout << "Evec " << i << ":\n" << evecs[i] << std::endl;
+	
+	NumericSquareMatrix<double> recon(Lt,0.);
+	for(int i=0;i<Lt;i++)
+	  for(int j=0;j<Lt;j++)
+	    for(int l=0;l<Lt;l++)
+	      recon(i,j) += evecs[l](i) * evals[l] * evecs[l](j);
+	std::cout << "Reconstructed cov:\n" << recon << std::endl;
+
+	NumericSquareMatrix<double> diff = recon - cov;
+	std::cout << "|recon - cov|^2 = " << modE(diff) << std::endl;
+
+      }
     }
 
     correlationFunction<double, rawDataDistributionD> orig_data = datagen.generate(Lt,nsample);
