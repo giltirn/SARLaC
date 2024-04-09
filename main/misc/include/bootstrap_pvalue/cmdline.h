@@ -17,6 +17,8 @@ struct CMDline{
 
   std::string freeze_file; //if provided, frozen fit params will be loaded from this file
 
+  std::string guess_file; //if provided, guess params will be loaded from this file
+
   CMDline(){
     exit_after_preanalysis = false;
     bootstrap_resid_diagonalize = false;
@@ -27,6 +29,7 @@ struct CMDline{
     seed = 1234;
     seed_thr = 5678;
     freeze_file = "";
+    guess_file = "";
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -67,6 +70,10 @@ struct CMDline{
       }else if(sargv[i] == "-freeze"){
 	freeze_file = sargv[i+1];
 	std::cout << "Loading frozen fit params from '" << freeze_file << "'" << std::endl;
+	i+=2;      
+      }else if(sargv[i] == "-guess"){
+	guess_file = sargv[i+1];
+	std::cout << "Loading guess params from '" << guess_file << "'" << std::endl;
 	i+=2;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");

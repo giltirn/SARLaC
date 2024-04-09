@@ -120,5 +120,11 @@ inline std::unique_ptr<genericFitFuncBase> fitFuncFactory(FitFuncType type, cons
 }
 
 
-
+#define MEMBERS (std::vector<double>, values)
+struct GuessArgs{
+  GENERATE_MEMBERS(MEMBERS); 
+  GuessArgs(): values(1,0.){  }
+};
+GENERATE_PARSER( GuessArgs, MEMBERS);
+#undef MEMBERS
 

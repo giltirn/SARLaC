@@ -43,7 +43,7 @@ struct bootstrapAnalyzeOpts{
 };
 
 //data_means_out :  output unrecentered data means
-void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Model &model, const Args &args, const bootstrapAnalyzeOpts &opts = bootstrapAnalyzeOpts()){
+void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const parameterVector<double> &guess, const Model &model, const Args &args, const bootstrapAnalyzeOpts &opts = bootstrapAnalyzeOpts()){
   int nsample = args.nsample;
   int Lt = args.Lt;
   int nblock = nsample / args.block_size;
@@ -84,7 +84,7 @@ void bootstrapAnalyze(std::vector<double> &q2_into, const correlationFunction<do
     simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
     covgen.compute(fitter, data);
 
-    parameterVector<double> params(ffunc.Nparams(),0.);
+    parameterVector<double> params(guess);
     double q2, q2_per_dof; int dof;
     assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
     q2_into[test] = q2;
@@ -353,7 +353,7 @@ void bootstrapAnalyzeResidualsDiagEvals(std::vector<double> &q2_into, const corr
 
 
 
-void independentEnsAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, randomDataBase &dgen, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const Model &model, const Args &args){
+void independentEnsAnalyze(std::vector<double> &q2_into, const correlationFunction<double, rawDataDistributionD> &orig_data, randomDataBase &dgen, const covMatStrategyBase &covgen, const genericFitFuncBase &ffunc, const parameterVector<double> &guess, const Model &model, const Args &args){
   int nsample = args.nsample;
   int Lt = args.Lt;
   int ntest = args.ntest;
@@ -371,7 +371,7 @@ void independentEnsAnalyze(std::vector<double> &q2_into, const correlationFuncti
     simpleSingleFitWrapper fitter(ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
     covgen.compute(fitter, data);
 
-    parameterVector<double> params(ffunc.Nparams(),0.);
+    parameterVector<double> params(guess);
     double q2, q2_per_dof; int dof;
     assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
     q2_into[test] = q2;
@@ -403,6 +403,14 @@ int main(const int argc, const char** argv){
   std::unique_ptr<randomDataBase> dgen = dataGenStrategyFactory(args.data_strat, argv[2], Lt);
   int dof = Lt - ffunc->Nparams();
 
+  parameterVector<double> guess(ffunc->Nparams(),0.);
+  if(cmdline.guess_file.size()){
+    GuessArgs iguess;
+    parseOrTemplate(iguess, cmdline.guess_file, "guess_params.args");
+    assert(iguess.values.size() == guess.size());
+    for(int i=0;i<guess.size();i++) guess(i) = iguess.values[i];
+  }
+
   //Run any pre-analysis
   if(args.preanalysis.size() != args.preanalysis_params_file.size()) error_exit(std::cout << "Require as many preanalysis params files as there are preanalyses specified" << std::endl);
 
@@ -416,7 +424,7 @@ int main(const int argc, const char** argv){
   //Generate the base original ensemble from which we obtain the model that we are interested in computing the null distribution for
   //------------------------------------------------------------------------------------------------------------------------------------------
   correlationFunction<double, rawDataDistributionD> base_orig_ens = dgen->generate(Lt, nsample);
-  parameterVector<double> base_fit_params(ffunc->Nparams(),0.);
+  parameterVector<double> base_fit_params(guess);
   double base_q2; //q^2 from the base original ensemble
   {
     correlationFunction<double,double> data_means(Lt);
@@ -459,7 +467,7 @@ int main(const int argc, const char** argv){
       simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
       covgen->compute(fitter, data);
 
-      parameterVector<double> params(base_fit_params);
+      parameterVector<double> params(guess);
       double q2, q2_per_dof; int dof;
       assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
       for(int p=0;p<nparam;p++) base_fit_params_b[p].sample(test) = params[p];
@@ -497,7 +505,7 @@ int main(const int argc, const char** argv){
     simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
     covgen->compute(fitter, data);
 
-    parameterVector<double> params(ffunc->Nparams(),0.);
+    parameterVector<double> params(guess);
     double q2, q2_per_dof; int dof;
     assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
     q2_dist_true[test] = q2;
@@ -514,8 +522,8 @@ int main(const int argc, const char** argv){
     bopts.write_rtable_sort_samples = true;
   }
   
-  bootstrapAnalyze(q2_dist_boot, base_orig_ens, *covgen, *ffunc, the_model, args, bopts);
-  //independentEnsAnalyze(q2_dist_boot, base_orig_ens, *dgen, *covgen, *ffunc, the_model, args);
+  bootstrapAnalyze(q2_dist_boot, base_orig_ens, *covgen, *ffunc, guess, the_model, args, bopts);
+  //independentEnsAnalyze(q2_dist_boot, base_orig_ens, *dgen, *covgen, *ffunc, guess, the_model, args);
 
   //------------------------------------------------------------------------------------------------------------------------------
   //Repeat with bootstrap for norig_ens separate original ensembles centered on the model
@@ -524,8 +532,8 @@ int main(const int argc, const char** argv){
   for(int o=0;o<args.norig_ens;o++){
     correlationFunction<double, rawDataDistributionD> data = dgen->generate(Lt,nsample);
     if(cmdline.recenter_orig_ens) centerEnsembleOnModel(data,the_model,*dgen);
-    bootstrapAnalyze(q2_dist_boot_var[o], data, *covgen, *ffunc, the_model, args);
-    //independentEnsAnalyze(q2_dist_boot_var[o], data, *dgen, *covgen, *ffunc, the_model, args);
+    bootstrapAnalyze(q2_dist_boot_var[o], data, *covgen, *ffunc, guess, the_model, args);
+    //independentEnsAnalyze(q2_dist_boot_var[o], data, *dgen, *covgen, *ffunc, guess, the_model, args);
   }
 
   //---------------------------------------------------------------
@@ -550,7 +558,7 @@ int main(const int argc, const char** argv){
       for(int s=0;s<nsample_reduced;s++)
 	dd.sample(s) = base_orig_ens.value(t).sample(dbl_boot_rtable[o][s]) + shift;
     }
-    bootstrapAnalyze(q2_dist_dbl_boot[o], data, *covgen, *ffunc, the_model, args);
+    bootstrapAnalyze(q2_dist_dbl_boot[o], data, *covgen, *ffunc, guess, the_model, args);
   }
 
 
