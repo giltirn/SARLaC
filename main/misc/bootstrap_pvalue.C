@@ -685,6 +685,7 @@ int main(const int argc, const char** argv){
     std::vector<rawDataDistributionD> pdbl_boot_var(npt, rawDataDistributionD(args.norig_ens) ); //variation over bootstrap resampled ensembles in place of original ensembles
     std::vector<rawDataDistributionD> pboot_resid_var(npt, rawDataDistributionD(args.norig_ens) ); //variation over actual original ensembles for residuals version
     std::vector<rawDataDistributionD> pboot_true_diff_var(npt, rawDataDistributionD(args.norig_ens) ); //p_boot - p_true, variation over actual original ensembles
+    std::vector<rawDataDistributionD> pdbl_boot_true_diff_var(npt, rawDataDistributionD(args.norig_ens) ); //p_boot - p_true, variation over bootstrap resampled ensembles in place of original ensembles
     std::vector<double> pT2(npt);
     std::vector<double> pchi2(npt);
     std::vector<double> pT2_true_diff(npt); //p_T2 - p_true
@@ -723,6 +724,7 @@ int main(const int argc, const char** argv){
 	pdbl_boot_var[i].sample(o) = estimatePvalue(q2, q2_dist_dbl_boot[o]);
 	pboot_resid_var[i].sample(o) = estimatePvalue(q2, q2_resid_dist_boot_var[o]);
 	pboot_true_diff_var[i].sample(o) = pboot_var[i].sample(o) - ptrue[i];
+	pdbl_boot_true_diff_var[i].sample(o) = pdbl_boot_var[i].sample(o) - ptrue[i];
       }
     }
 
@@ -861,6 +863,10 @@ int main(const int argc, const char** argv){
       auto hboot = plot.errorBand(acc_wsep_err(ptrue,pboot_true_diff,pboot_true_diff_var), kwb, "boot");
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
+      kwb["color"] = "tab:pink";
+      auto hdbl_boot = plot.errorBand(acc_wsep_err(ptrue,pboot_true_diff,pdbl_boot_true_diff_var), kwb, "dbl_boot");
+      plot.setLegend(hdbl_boot, R"(${\\rm dbl. bootstrap}$)");
+
       kwargs["color"] = "g";
       auto hT2 = plot.errorBand(acc(ptrue,pT2_true_diff), kwargs, "T2");
       plot.setLegend(hT2, R"($T^2$)");
@@ -906,11 +912,18 @@ int main(const int argc, const char** argv){
   double pboot = estimatePvalue(base_q2, q2_dist_boot);
   double pboot_resid = estimatePvalue(base_q2, q2_resid_dist_boot);
 
+  rawDataDistributionD pboot_err(args.norig_ens);
+  rawDataDistributionD pdbl_boot_err(args.norig_ens);
+  for(int o=0;o<args.norig_ens;o++){
+    pboot_err.sample(o) = estimatePvalue(base_q2, q2_dist_boot_var[o]);
+    pdbl_boot_err.sample(o) = estimatePvalue(base_q2, q2_dist_dbl_boot[o]);
+  }
+
   std::cout << "Computing p-values for initial fit, q^2=" << base_q2 << ":" << std::endl;
   std::cout << "T^2: " << pT2 << std::endl;
   std::cout << "chi^2: " << pchi2 << std::endl;
   std::cout << "true: " << ptrue << std::endl;
-  std::cout << "boot: " << pboot << std::endl;
+  std::cout << "boot: " << pboot << " +- " << pboot_err.standardDeviation() << " (true) " <<  pdbl_boot_err.standardDeviation() << " (boot)" << std::endl;
   std::cout << "boot-resid: " << pboot_resid << std::endl;
 
   std::cout << "Done\n";

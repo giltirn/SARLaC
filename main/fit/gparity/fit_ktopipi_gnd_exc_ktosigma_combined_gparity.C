@@ -6,13 +6,10 @@
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/resampled_data.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit_plot.h>
 #include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/simfit.h>
+#include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/weighted_avg_consistency.h>
+#include<fit_ktopipi_gnd_exc_ktosigma_combined_gparity/plot_C_fixedtsepKop.h>
 
 using namespace SARLaC;
-
-
-
-
-
 
 int main(const int argc, const char* argv[]){
   printMem("Beginning of execution");
@@ -88,6 +85,24 @@ int main(const int argc, const char* argv[]){
     data_j.convertBasis10to7(); 
     if(do_dj) data_dj.convertBasis10to7();
     if(do_bdj) data_bdj.convertBasis10to7();
+  }
+
+  checkWeightedAvgConsistency(data_j, args.input_params, args.operators, args.tmin_k_op);
+
+  //Constrain tsep_k_snk to those in input file (in case we read resampled data that contains more)
+  std::map<PiPiOperator, std::vector<int> const*> op_tsep_list = {  {PiPiOperator::PiPiGnd, &args.tsep_k_pi}, {PiPiOperator::PiPiExc, &args.tsep_k_pi}, {PiPiOperator::Sigma, &args.tsep_k_sigma} };
+
+  for(int o=0;o<args.operators.size();o++){
+    data_j.constrainSourceSinkSep(args.operators[o], *op_tsep_list[args.operators[o]]);
+    if(do_dj) data_dj.constrainSourceSinkSep(args.operators[o], *op_tsep_list[args.operators[o]]);
+    if(do_bdj) data_bdj.constrainSourceSinkSep(args.operators[o], *op_tsep_list[args.operators[o]]);
+  }
+
+  //Plot correlation function for each operator and tsep_k_pi
+  for(int o=0;o<args.operators.size();o++){
+    for(int q=0; q < (args.basis == Basis::Basis7 ? 7 : 10); q++){
+      plotCfixedTsepKop(data_j, args.operators[o], q+1, *op_tsep_list[args.operators[o]]);
+    }
   }
 
   std::cout << "Starting fits" << std::endl;

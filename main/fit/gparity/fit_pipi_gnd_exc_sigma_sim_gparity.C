@@ -184,19 +184,28 @@ int main(const int argc, const char* argv[]){
   }
 
   double dof = chisq.sample(0)/chisq_per_dof.sample(0);  
-  jackknifeDistributionD pvalue(nsample, [&](const int s){ return chiSquareDistribution::pvalue(dof, chisq.sample(s)); });
+  double pvalue_chi2 = chiSquareDistribution::pvalue(dof, chisq.best());
+  double pvalue_T2 = TsquareDistribution::pvalue(chisq.best(),dof,nsample-1);  
 
   std::cout << std::endl;
   std::cout << "Chisq: " << chisq << std::endl;
   std::cout << "Chisq/dof: " << chisq_per_dof << std::endl;
-  std::cout << "P-value: " << pvalue << std::endl;
+  std::cout << "P-value (chi^2): " << pvalue_chi2 << std::endl;
+  std::cout << "P-value (T^2): " << pvalue_T2 << std::endl;
 
 #ifdef HAVE_HDF5
   writeParamsStandard(params, "params.hdf5");
   writeParamsStandard(chisq, "chisq.hdf5");
   writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
-  writeParamsStandard(pvalue, "pvalue.hdf5");
 #endif
+  {
+    std::ofstream out("pvalue_chi2.dat");
+    out << pvalue_chi2 << std::endl;
+  }
+  {
+    std::ofstream out("pvalue_T2.dat");
+    out << pvalue_T2 << std::endl;
+  }
 
   if(args.correlated) analyzeChisq(corr_comb_j, params, args.fitfunc, args.nstate, args.Lt, args.t_min, args.t_max, args.Ascale, args.Cscale, pmap_descr); 
 
