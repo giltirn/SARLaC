@@ -454,6 +454,16 @@ int main(const int argc, const char** argv){
     std::vector<std::vector<int> > rtable = generateResampleTable(nsample, nboot, args.bootstrap_strat, args.block_size, threadRNG);
     std::cout << "Computing base fit params" << std::endl;
 
+    correlationFunction<double, bootstrapDistributionD> data_b(Lt); //bootstrap distribution of ensemble means for estimating the standard error
+    correlationFunction<double, bootstrapDistributionD> fit_curve_b(Lt);
+    for(int t=0;t<Lt;t++){
+      data_b.coord(t) = fit_curve_b.coord(t) = t;
+      data_b.value(t) = bootstrapDistributionD(binit);
+      data_b.value(t).best() = base_orig_ens.value(t).mean();
+      fit_curve_b.value(t) = bootstrapDistributionD(binit);
+      fit_curve_b.value(t).best() = the_model.value(t);
+    }
+
 #pragma omp parallel for
     for(int test=0;test<nboot;test++){
       correlationFunction<double, rawDataDistributionD> data(Lt);
@@ -463,6 +473,7 @@ int main(const int argc, const char** argv){
 	dd = resampledEnsemble(base_orig_ens.value(t), test, rtable);
 	data_means.value(t) = dd.mean();
 	data_means.coord(t) = t;
+	data_b.value(t).sample(test) = data_means.value(t);
       }
       simpleSingleFitWrapper fitter(*ffunc, MinimizerType::MarquardtLevenberg, args.MLparams);
       covgen->compute(fitter, data);
@@ -471,6 +482,9 @@ int main(const int argc, const char** argv){
       double q2, q2_per_dof; int dof;
       assert(fitter.fit(params,q2,q2_per_dof,dof,data_means));
       for(int p=0;p<nparam;p++) base_fit_params_b[p].sample(test) = params[p];
+
+      Model model_b(*ffunc,params);
+      for(int t=0;t<Lt;t++) fit_curve_b.value(t).sample(test) = model_b.value(t);
     }
     std::cout << "Base fit params:";
     for(int p=0;p<nparam;p++) std::cout << " " << base_fit_params_b[p];
@@ -482,6 +496,24 @@ int main(const int argc, const char** argv){
     	std::cout << base_fit_params_b[p].sample(b) << " ";
       std::cout << std::endl;
     }
+
+    //Plot the data with bootstrap errors vs the fit
+    typedef DataSeriesAccessor<correlationFunction<double, bootstrapDistributionD>, 
+			       ScalarCoordinateAccessor<double>, 
+			       DistributionPlotAccessor<bootstrapDistributionD> > acc;
+    
+    MatPlotLibScriptGenerate plot;
+    typename MatPlotLibScriptGenerate::kwargsType kwargs;
+
+    kwargs["color"] = "r";
+    plot.plotData(acc(data_b),kwargs);
+    //kwargs["color"] = "b";
+    kwargs["alpha"] = 0.3;
+    plot.errorBand(acc(fit_curve_b), kwargs);
+
+    plot.setXlabel(R"($t$)");
+    plot.setYlabel(R"($C(t)$)");
+    plot.write("orig_ens_data_fit.py","orig_ens_data_fit.pdf");
   }
 
   //------------------------------------------------------------------------------------------------------------------------------------------

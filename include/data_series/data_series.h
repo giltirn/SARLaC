@@ -34,6 +34,7 @@ public:
   dataSeries(){}
   explicit dataSeries(const int n): series(n){}
   dataSeries(const int n, const int samples): series(n, ElementType(GeneralizedCoordinate(), DataType(samples)) ){}; 
+  dataSeries(const int n, const ElementType &init): series(n,init){}
 
   inline iterator begin(){ return series.begin(); }
   inline const_iterator begin() const{ return series.begin(); }
