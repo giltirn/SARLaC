@@ -19,6 +19,8 @@ struct CMDline{
 
   std::string guess_file; //if provided, guess params will be loaded from this file
 
+  bool write_true_ens_data; //write out the ensembles generated for obtaining the true p-value (prior to recentering, if enabled). Will be one file per thread
+
   CMDline(){
     exit_after_preanalysis = false;
     bootstrap_resid_diagonalize = false;
@@ -30,6 +32,7 @@ struct CMDline{
     seed_thr = 5678;
     freeze_file = "";
     guess_file = "";
+    write_true_ens_data = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -75,6 +78,10 @@ struct CMDline{
 	guess_file = sargv[i+1];
 	std::cout << "Loading guess params from '" << guess_file << "'" << std::endl;
 	i+=2;
+      }else if(sargv[i] == "-write_true_ens_data"){
+	write_true_ens_data = true;
+	std::cout << "Writing out the true ensemble data" << std::endl;
+	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
       }
