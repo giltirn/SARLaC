@@ -752,6 +752,7 @@ int main(const int argc, const char** argv){
     std::vector<double> pT2_true_diff(npt); //p_T2 - p_true
     std::vector<double> pchi2_true_diff(npt); //p_chisq - p_true
 
+    std::vector<double> pboot_err_rat_true_dblboot(npt); //ratio of the true statistical error on the bootstrap p-value to that estimated from the double bootstrap
     
     double dq2 = q2_max/(npt-1);
 
@@ -787,6 +788,7 @@ int main(const int argc, const char** argv){
 	pboot_true_diff_var[i].sample(o) = pboot_var[i].sample(o) - ptrue[i];
 	pdbl_boot_true_diff_var[i].sample(o) = pdbl_boot_var[i].sample(o) - ptrue[i];
       }
+      pboot_err_rat_true_dblboot[i] = pboot_var[i].standardDeviation() / pdbl_boot_var[i].standardDeviation();
     }
 
     struct acc : public CurveDataAccessorBase<double>{
@@ -944,7 +946,20 @@ int main(const int argc, const char** argv){
       plot.createLegend(kwargs);
       plot.write("pest_ptrue_diff.py","pest_ptrue_diff.pdf");
     }
+    //ratio of true vs double-bootstrap error on the bootstrap p-value estimate
+    {
+      MatPlotLibScriptGenerate plot;
+      typename MatPlotLibScriptGenerate::kwargsType kwargs;
 
+      kwargs["color"] = "r";
+      auto kwb = kwargs; 
+      auto hboot = plot.errorBand(acc(pboot, pboot_err_rat_true_dblboot), kwb);
+
+      plot.setXlabel(R"($p_{\rm boot}$)");
+      plot.setYlabel(R"($\sigma_{\rm ind}/\sigma_{\rm dbl.boot}$)");
+
+      plot.write("pboot_err_rat_true_dblboot.py","pboot_err_rat_true_dblboot.pdf");
+    }
 
 
   }
