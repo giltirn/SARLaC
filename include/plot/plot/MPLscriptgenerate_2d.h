@@ -41,6 +41,9 @@ private:
   std::vector<double> plotvlines_vals;
   std::vector<kwargsType> plotvlines_args;
 
+  std::vector<double> plothlines_vals;
+  std::vector<kwargsType> plothlines_args;
+
   std::vector<handleType> leg_handles;
   std::vector<std::string> legends;
   std::string leg_py;
@@ -164,6 +167,15 @@ public:
     verticalLine(val,kwargs);
   }
 
+  inline void horizontalLine(double val, const kwargsType &kwargs){
+    plothlines_vals.push_back(val);
+    plothlines_args.push_back(kwargs);
+  }
+  inline void horizontalLine(double val){
+    kwargsType kwargs;
+    horizontalLine(val,kwargs);
+  }
+
   void write(std::ostream &os, const std::string &script_gen_filename = "plot.pdf") const{
     os << "import pyplot\n";
     os << "import matplotlib\n\n";
@@ -207,6 +219,10 @@ public:
 
     for(int i=0;i<plotvlines_vals.size();i++)
       os << "\tax.axvline(" << plotvlines_vals[i] << kwargsPrint(plotvlines_args[i]) << ")\n";
+
+    for(int i=0;i<plothlines_vals.size();i++)
+      os << "\tax.axhline(" << plothlines_vals[i] << kwargsPrint(plothlines_args[i]) << ")\n";
+
     
     os << user.str(); //user code
     

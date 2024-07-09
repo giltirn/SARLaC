@@ -746,7 +746,8 @@ int main(const int argc, const char** argv){
     std::vector<rawDataDistributionD> pdbl_boot_var(npt, rawDataDistributionD(args.norig_ens) ); //variation over bootstrap resampled ensembles in place of original ensembles
     std::vector<rawDataDistributionD> pboot_resid_var(npt, rawDataDistributionD(args.norig_ens) ); //variation over actual original ensembles for residuals version
     std::vector<rawDataDistributionD> pboot_true_diff_var(npt, rawDataDistributionD(args.norig_ens) ); //p_boot - p_true, variation over actual original ensembles
-    std::vector<rawDataDistributionD> pdbl_boot_true_diff_var(npt, rawDataDistributionD(args.norig_ens) ); //p_boot - p_true, variation over bootstrap resampled ensembles in place of original ensembles
+    //std::vector<rawDataDistributionD> pdbl_boot_true_diff_var(npt, rawDataDistributionD(args.norig_ens) ); //p_boot - p_true, variation over bootstrap resampled ensembles in place of original ensembles
+    //  EDIT: No longer show as the bias plot should use the true error on the mean
     std::vector<double> pT2(npt);
     std::vector<double> pchi2(npt);
     std::vector<double> pT2_true_diff(npt); //p_T2 - p_true
@@ -776,7 +777,6 @@ int main(const int argc, const char** argv){
       ptrue[i] = estimatePvalue(q2, q2_dist_true);
       pboot[i] = estimatePvalue(q2, q2_dist_boot);
       pboot_resid[i] = estimatePvalue(q2, q2_resid_dist_boot);
-      pboot_true_diff[i] = pboot[i]-ptrue[i];
 
       pT2_true_diff[i] = pT2[i] - ptrue[i];
       pchi2_true_diff[i] = pchi2[i] - ptrue[i];
@@ -786,9 +786,11 @@ int main(const int argc, const char** argv){
 	pdbl_boot_var[i].sample(o) = estimatePvalue(q2, q2_dist_dbl_boot[o]);
 	pboot_resid_var[i].sample(o) = estimatePvalue(q2, q2_resid_dist_boot_var[o]);
 	pboot_true_diff_var[i].sample(o) = pboot_var[i].sample(o) - ptrue[i];
-	pdbl_boot_true_diff_var[i].sample(o) = pdbl_boot_var[i].sample(o) - ptrue[i];
+	//pdbl_boot_true_diff_var[i].sample(o) = pdbl_boot_var[i].sample(o) - ptrue[i];
       }
       pboot_err_rat_true_dblboot[i] = pboot_var[i].standardDeviation() / pdbl_boot_var[i].standardDeviation();
+
+      pboot_true_diff[i] = pboot_true_diff_var[i].mean(); //for a bias plot we use the mean over many independent ens and the error-on-the-mean as the error
     }
 
     struct acc : public CurveDataAccessorBase<double>{
@@ -842,7 +844,27 @@ int main(const int argc, const char** argv){
       int size() const{ return xx.size(); }
     };
 
-    
+    class acc_wsep_stderr{ //for the bias plot
+      const std::vector<double> &xx;
+      const std::vector<double> &yy;
+      const std::vector<rawDataDistributionD> &yy_err;
+
+    public:
+      acc_wsep_stderr(const std::vector<double> &x, const std::vector<double> &y,  const std::vector<rawDataDistributionD> &y_err): xx(x), yy(y), yy_err(y_err){}
+
+      double x(const int i) const{ return xx[i]; }
+      double y(const int i) const{ return yy[i]; }
+      double dxm(const int i) const{ return 0; }
+      double dxp(const int i) const{ return 0; }
+      double dym(const int i) const{ return yy_err[i].standardError(); }
+      double dyp(const int i) const{ return yy_err[i].standardError(); }
+
+      double upper(const int i) const{ return yy[i] + yy_err[i].standardError(); }
+      double lower(const int i) const{ return yy[i] - yy_err[i].standardError(); }
+      
+      int size() const{ return xx.size(); }
+    };
+
     //p-value vs q^2
     {
       MatPlotLibScriptGenerate plot;
@@ -916,19 +938,19 @@ int main(const int argc, const char** argv){
       plot.createLegend(kwargs);
       plot.write("pest_v_ptrue.py","pest_v_ptrue.pdf");
     }
-    //pvalue-ptrue vs ptrue
+    //pvalue-ptrue vs ptrue. **This is a bias plot** and shows the mean over the independent original ens with the error-on-the-mean as the error
     {
       MatPlotLibScriptGenerate plot;
       typename MatPlotLibScriptGenerate::kwargsType kwargs;
 
       kwargs["color"] = "r";
       auto kwb = kwargs; kwb["alpha"]=0.3;
-      auto hboot = plot.errorBand(acc_wsep_err(ptrue,pboot_true_diff,pboot_true_diff_var), kwb, "boot");
+      auto hboot = plot.errorBand(acc_wsep_stderr(ptrue,pboot_true_diff,pboot_true_diff_var), kwb, "boot");
       plot.setLegend(hboot, R"(${\\rm bootstrap}$)");
 
-      kwb["color"] = "tab:pink";
-      auto hdbl_boot = plot.errorBand(acc_wsep_err(ptrue,pboot_true_diff,pdbl_boot_true_diff_var), kwb, "dbl_boot");
-      plot.setLegend(hdbl_boot, R"(${\\rm dbl. bootstrap}$)");
+      //kwb["color"] = "tab:pink";
+      //auto hdbl_boot = plot.errorBand(acc_wsep_err(ptrue,pboot_true_diff,pdbl_boot_true_diff_var), kwb, "dbl_boot");
+      //plot.setLegend(hdbl_boot, R"(${\\rm dbl. bootstrap}$)");
 
       kwargs["color"] = "g";
       auto hT2 = plot.errorBand(acc(ptrue,pT2_true_diff), kwargs, "T2");
@@ -937,6 +959,12 @@ int main(const int argc, const char** argv){
       kwargs["color"] = "m";
       auto hchi2 = plot.errorBand(acc(ptrue,pchi2_true_diff), kwargs, "chi2");
       plot.setLegend(hchi2, R"($\\chi^2}$)");
+
+      kwargs.clear();
+      kwargs["ls"] = "--";
+      kwargs["color"] = 'k';
+      kwargs["lw"] = 1;
+      plot.horizontalLine(0., kwargs);
 
       plot.setXlabel(R"($p_{\rm true}$)");
       plot.setYlabel(R"($p - p_{\rm true}$)");
