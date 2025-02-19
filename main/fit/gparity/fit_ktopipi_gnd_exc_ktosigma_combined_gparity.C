@@ -108,7 +108,7 @@ int main(const int argc, const char* argv[]){
   std::cout << "Starting fits" << std::endl;
   typedef taggedValueContainer<double,std::string> Params;
 
-  ResampledDataContainers<jackknifeDistribution> rdata(data_j, data_dj, data_bdj);
+  ResampledDataContainers<jackknifeDistribution> rdata(data_j, data_dj, data_bdj, nsample);
 
   std::vector<jackknifeDistribution<Params> > params;
   std::vector<jackknifeDistributionD> chisq;

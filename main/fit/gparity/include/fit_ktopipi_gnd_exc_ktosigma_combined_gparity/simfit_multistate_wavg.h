@@ -40,6 +40,7 @@ private:
 	to_avg[{top_snk, c.param_map}].push_back(d);
 
 	//Print some useful information
+#if 0 //This comparison is made in the main code nowadays
 	for(auto it = to_avg.begin(); it != to_avg.end(); it++){
 	  SimFitCoordGen c(it->first.first, -1,  it->first.second);
 	  const std::vector<int>& idxv = it->second;	       
@@ -56,6 +57,7 @@ private:
 		      << " (diff from wavg: " << wavg_diff << ")" << std::endl;
 	  }
 	}
+#endif
       }
     }
 

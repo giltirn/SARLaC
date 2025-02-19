@@ -15,14 +15,14 @@ void bootstrapPvalue(const std::vector<double> &q2, //one for each q!
 		     simultaneousFitBase<bootstrapDistribution> const* fitter,
 		     const std::vector<PiPiOperator> &operators,
 		     const int Lt, const int tmin_k_op, const int tmin_op_snk, 
-		     bool correlated, CovarianceMatrix covariance_matrix){
+		     bool correlated, CovarianceMatrix covariance_matrix, int nsample){
   
   std::cout << "Computing bootstrap p-values" << std::endl;
 
   typedef taggedValueContainer<double,std::string> Params;
   typedef iterate<bootstrapDistributionD> iter;
 
-  ResampledDataContainers<bootstrapDistribution> fit_data(data_b, data_bj);
+  ResampledDataContainers<bootstrapDistribution> fit_data(data_b, data_bj, nsample);
 
   SimFitDataContainers<bootstrapDistribution> simfit_data;
   fitter->generateSimFitData(simfit_data, fit_data, operators, Lt, tmin_k_op, tmin_op_snk, covariance_matrix);

@@ -13,11 +13,15 @@ template<>
 struct ResampledDataContainers<bootstrapDistribution>{
   const ResampledData<bootstrapDistributionD> &data_b;
   const ResampledData<bootJackknifeDistributionD> &data_bj;
-  
+  int nsample;
+
   ResampledDataContainers(const ResampledData<bootstrapDistributionD> &data_b,
-			  const ResampledData<bootJackknifeDistributionD> &data_bj): data_b(data_b), data_bj(data_bj){}
+			  const ResampledData<bootJackknifeDistributionD> &data_bj,
+			  const int nsample): data_b(data_b), data_bj(data_bj), nsample(nsample){}
 
   const ResampledData<bootstrapDistributionD> & getFitData() const{ return data_b; }
+
+  int getNsample() const{ return nsample; }
 };
 
 
@@ -31,7 +35,8 @@ struct SimFitDataContainers<bootstrapDistribution>{
 
   std::vector<SimFitCorrFuncBoot> A0_sim_b;
   std::vector<SimFitCorrFuncBJack> A0_sim_bj;
-  
+  int nsample;
+
   int getNq() const{
     int nq = A0_sim_b.size();
     return nq;
@@ -51,6 +56,7 @@ struct SimFitDataContainers<bootstrapDistribution>{
 		       const operatorSubsetMap &op_param_maps, const subsetMapDescr &pmap_descr, const CovarianceMatrix covariance_matrix){
     simultaneousFitCommon::generateSimData(A0_sim_b, fit_data.data_b, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
     simultaneousFitCommon::generateSimData(A0_sim_bj, fit_data.data_bj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    nsample = fit_data.getNsample();
   }
   
   const SimFitCorrFuncBoot & getFitData(const int q) const{ return A0_sim_b[q]; }
@@ -70,6 +76,7 @@ struct SimFitDataContainers<bootstrapDistribution>{
     applyFunctionToInternalCorrFunc(func, A0_sim_bj);
   }
 
+  int getNsample() const{ return nsample; }
 };
 
 SARLAC_END_NAMESPACE

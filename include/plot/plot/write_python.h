@@ -64,6 +64,16 @@ struct ListPrint: public OstreamHook{
   }
 };
 
+struct ListPrintRawStrings: public OstreamHook{
+  const std::vector<std::string> &lst;
+  ListPrintRawStrings(const std::vector<std::string> &_lst): lst(_lst){}
+  void write(std::ostream &os) const{
+    os << '[';
+    for(int i=0;i<lst.size()-1; i++) os << "r\"" << lst[i] << "\",";      
+    os << "r\"" << lst.back() << "\"]";
+  }
+};
+
 template<typename T>
 class PythonTuple{
   T v[2];

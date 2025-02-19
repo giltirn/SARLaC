@@ -35,6 +35,7 @@ bootstrapBlockResampler getResampler(const RawData &raw, const Args &args, const
 }
 
 int main(const int argc, const char* argv[]){
+  RNG.initialize(1234);
   printMem("Beginning of execution");
   
   Args args;
@@ -189,7 +190,8 @@ int main(const int argc, const char* argv[]){
   std::cout << "Starting fits" << std::endl;
   typedef taggedValueContainer<double,std::string> Params;
 
-  ResampledDataContainers<bootstrapDistribution> rdata(data_b, data_bj);
+  int nsample = (args.traj_lessthan - args.traj_start)/args.traj_inc;
+  ResampledDataContainers<bootstrapDistribution> rdata(data_b, data_bj, nsample);
 
   std::vector<bootstrapDistribution<Params> > params;
   std::vector<bootstrapDistributionD> chisq;
@@ -211,7 +213,7 @@ int main(const int argc, const char* argv[]){
   std::vector<double> q2_best(chisq.size());
   for(int i=0;i<chisq.size();i++) q2_best[i] = chisq[i].best();
 
-  bootstrapPvalue(q2_best, data_b, data_bj, params, fitter, args.operators, args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix);
+  bootstrapPvalue(q2_best, data_b, data_bj, params, fitter, args.operators, args.Lt, args.tmin_k_op, args.tmin_op_snk, args.correlated, args.covariance_matrix, nsample);
 
   std::cout << "Done" << std::endl;
   

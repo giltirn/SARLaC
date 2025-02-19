@@ -148,7 +148,8 @@ public:
     auto init = fit_data.getDistributionInitializer();
     DistributionTypeD base(init);
 
-    std::vector<DistributionTypeD>  chisq_per_dof(nQ, base), pvalue(nQ, base);
+    std::vector<DistributionTypeD>  chisq_per_dof(nQ, base);
+    std::vector<double> pvalue_chi2(nQ), pvalue_T2(nQ);
 
     for(int q=0;q<nQ;q++){
       chisq[q] = base;
@@ -192,16 +193,16 @@ public:
 
       int ndof;
       fit.fit(params[q], chisq[q], chisq_per_dof[q], ndof, data_q);
-
-      pvalue[q] = DistributionTypeD(init);
-      for(int i=0; i<iterate<DistributionTypeD>::size(pvalue[q]); i++) 
-	iterate<DistributionTypeD>::at(i, pvalue[q]) = chiSquareDistribution::pvalue(ndof, iterate<DistributionTypeD>::at(i, chisq[q]) );
+      
+      pvalue_chi2[q] = chiSquareDistribution::pvalue(ndof, chisq[q].best());
+      pvalue_T2[q] = TsquareDistribution::pvalue(chisq[q].best(), ndof, fit_data.getNsample()-1 );
 
       std::cout << "Q" << q+1 << std::endl;
       std::cout << "Params:\n" << params[q] << std::endl;
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
-      std::cout << "p-value(chi^2): " << pvalue[q] << std::endl;
+      std::cout << "p-value(chi^2): " << pvalue_chi2[q] << std::endl;
+      std::cout << "p-value(T^2): " << pvalue_T2[q] << std::endl;      
 
       if(write_output) analyzeChisqFF(fit_data.getFitData(q), params[q], fitfunc, import.corr, import.sigma, pmap_descr);
     }  
@@ -220,7 +221,8 @@ public:
       }
       std::cout << "Chisq: " << chisq[q] << std::endl;
       std::cout << "Chisq/dof: " << chisq_per_dof[q] << std::endl;
-      std::cout << "p-value: " << pvalue[q] << std::endl;
+      std::cout << "p-value(chi^2): " << pvalue_chi2[q] << std::endl;
+      std::cout << "p-value(T^2): " << pvalue_T2[q] << std::endl;
     }
 
     if(write_output){
@@ -229,7 +231,14 @@ public:
       writeParamsStandard(params, "params.hdf5");
       writeParamsStandard(chisq, "chisq.hdf5");
       writeParamsStandard(chisq_per_dof, "chisq_per_dof.hdf5");
-      writeParamsStandard(pvalue, "pvalue.hdf5");
+      {
+	std::ofstream oc("pvalue_chi2.dat");
+	std::ofstream ot("pvalue_T2.dat");
+	for(int q=0; q<nQ; q++){
+	  oc << q << " " << pvalue_chi2[q] << std::endl;
+	  ot << q << " " << pvalue_T2[q] << std::endl;
+	}
+      }
     }
   }
 

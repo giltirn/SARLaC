@@ -14,12 +14,16 @@ struct ResampledDataContainers<jackknifeDistribution>{
   const ResampledData<jackknifeDistributionD> &data_j;
   const ResampledData<doubleJackknifeA0StorageType> &data_dj;
   const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj;
-  
+  int nsample;
+
   ResampledDataContainers(const ResampledData<jackknifeDistributionD> &data_j,
 			  const ResampledData<doubleJackknifeA0StorageType> &data_dj,
-			  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj): data_j(data_j), data_dj(data_dj), data_bdj(data_bdj){}
+			  const ResampledData<blockDoubleJackknifeA0StorageType> &data_bdj,
+			  int nsample): data_j(data_j), data_dj(data_dj), data_bdj(data_bdj), nsample(nsample){}
 
   const ResampledData<jackknifeDistributionD> & getFitData() const{ return data_j; }
+  
+  int getNsample() const{ return nsample; }
 };
 
 
@@ -35,7 +39,8 @@ struct SimFitDataContainers<jackknifeDistribution>{
   std::vector<SimFitCorrFuncJack> A0_sim_j;
   std::vector<SimFitCorrFuncDJack> A0_sim_dj;
   std::vector<SimFitCorrFuncBDJack> A0_sim_bdj;
-  
+  int nsample;
+
   int getNq() const{
     int nq = A0_sim_j.size();
     return nq;
@@ -62,6 +67,7 @@ struct SimFitDataContainers<jackknifeDistribution>{
     simultaneousFitCommon::generateSimData(A0_sim_j, fit_data.data_j, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
     if(do_dj) simultaneousFitCommon::generateSimData(A0_sim_dj, fit_data.data_dj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
     if(do_bdj) simultaneousFitCommon::generateSimData(A0_sim_bdj, fit_data.data_bdj, operators, tmin_k_op, tmin_op_snk, op_param_maps, pmap_descr);
+    nsample = fit_data.getNsample();
   }
   
   const SimFitCorrFuncJack & getFitData(const int q) const{ return A0_sim_j[q]; }
@@ -82,6 +88,7 @@ struct SimFitDataContainers<jackknifeDistribution>{
     applyFunctionToInternalCorrFunc(func, A0_sim_bdj);
   }
 
+  int getNsample() const{ return nsample; }
 };
 
 SARLAC_END_NAMESPACE

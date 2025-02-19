@@ -267,7 +267,7 @@ public:
 
     std::ostringstream py;
     py << "\tphandles = " << ListPrint<std::string>(handles_str) << '\n';
-    py << "\tplegends = " << ListPrint<std::string>(legends,"\"") << '\n';
+    py << "\tplegends = " << ListPrintRawStrings(legends) << '\n';
     
     if(!kwargs.count("numpoints"))
       kwargs["numpoints"] = 1;
