@@ -92,6 +92,27 @@ struct ParseStandardInlineReal: public Parser{ //expect 1 lines with format <re 
   }
 };
 
+struct ParseAllTimesliceSourceInlineReal: public Parser{ //expect Lt lines, one for each source timeslice, with format <re t=0> <re t=1> ....
+  void setup(rawDataCorrelationFunctionD &into, const int nsample, const int Lt) const{
+    into.resize(Lt);
+    for(int i=0;i<Lt;i++) into.value(i).resize(nsample);    
+  }    
+  
+  void parse(rawDataCorrelationFunctionD &into, std::istream &is, const int sample, const int Lt) const{
+    for(int t=0;t<Lt;t++)
+      into.value(t).sample(sample) = 0.;
+
+    for(int tsrc=0;tsrc<Lt;tsrc++){
+      for(int t=0;t<Lt;t++){
+	double re;
+	is >> re;
+	assert(!is.fail());
+	into.value(t).sample(sample) += re / double(Lt);
+	into.coord(t) = t;
+      }
+    }
+  }
+};
 
 Parser* parserFactory(const ParserType p){
   switch(p){
@@ -103,6 +124,8 @@ Parser* parserFactory(const ParserType p){
     return new ParseMultiSourceAverageImag;
   case ParserType::ParserStandardInlineReal:
     return new ParseStandardInlineReal;
+  case ParserType::ParserAllTimesliceSourceInlineReal:
+    return new ParseAllTimesliceSourceInlineReal;
   default:
     error_exit(std::cout << "readData: Unknown parser " << p << std::endl);
   };
@@ -217,6 +240,76 @@ void applyCombination(CorrelationFunctionType &to, const std::vector<Correlation
     assert(from.size() > 0);
     to = from[0];
     for(int i=1;i<from.size();i++) to = to + from[i];
+  }else if(comb == Combination::CombinationZa){   //the ratio combination for reducing discretization errors in Za, cf https://arxiv.org/pdf/1411.7017 eq 43
+    if(from.size()!=2) error_exit(std::cout << "applyCombination error: CombinationZa requires two channels\n");
+    int Lt = from[0].size();
+    to.resize(Lt);
+    to.value(0) = to.value(Lt-1) = 0.0 * from[0].value(0);
+    to.coord(0) = 0;
+    to.coord(Lt-1) = Lt-1;
+    
+    for(int t=1;t<Lt-1;t++){
+      to.coord(t) = t;
+      to.value(t) = 0.5 * ( 
+			   ( from[0].value(t) + from[0].value(t-1) ) / ( 2.0 * from[1].value(t) ) 
+			   + ( 2.0 * from[0].value(t) ) / ( from[1].value(t-1) + from[1].value(t+1) ) 
+			    );
+    } 
+  }else if(comb == Combination::CombinationZaPCAC){ //via Eq 46 of https://arxiv.org/pdf/1411.7017  
+                                                    //from[0] = <J5|P>   from[1] = <J5q|P>   from[2] = <A_0|P> 
+                                                    //make sure j5 (from[0]) is multiplied by the quark mass
+    if(from.size()!=3) error_exit(std::cout << "applyCombination error: CombinationZaPCAC requires two channels\n");
+    int Lt = from[0].size();
+    to.resize(Lt);
+    to.value(0) = 0.0 * from[0].value(0);
+    to.coord(0) = 0;
+
+    for(int t=1;t<Lt;t++){
+      to.coord(t) = t;
+      to.value(t) = ( 2.0 * from[0].value(t) + 2.0 * from[1].value(t) ) / ( from[2].value(t) - from[2].value(t-1) );
+    }
+  }else if(comb == Combination::CombinationZaImprovedPCAC){ //via Eq 47 of https://arxiv.org/pdf/1411.7017  
+                                                    //from[0] = <J5|P>   from[1] = <J5q|P>   from[2] = <A_0|P> 
+                                                    //make sure j5 (from[0]) is multiplied by the quark mass
+    if(from.size()!=3) error_exit(std::cout << "applyCombination error: CombinationZaPCAC requires two channels\n");
+    typedef typename std::decay<decltype(to.value(0))>::type  DistType;
+
+    int Lt = from[0].size();
+    std::vector<DistType> C_calA(Lt), C_A(Lt);
+    for(int t=0;t<Lt;t++){
+      C_calA[t] = 2.0 * from[0].value(t) + 2.0 * from[1].value(t); //note, from[0] premultiplied by quark mass through input operation
+      if(t>0){
+	C_A[t] = from[2].value(t) - from[2].value(t-1);
+      }else{
+	C_A[t] = 0.0 * from[0].value(0);
+      }
+    }
+
+    to.resize(Lt);
+    to.value(0) = to.value(Lt-1) = 0.0 * from[0].value(0);
+    to.coord(0) = 0;
+    to.coord(Lt-1) = Lt-1;
+
+    for(int t=1;t<Lt-1;t++){
+      to.coord(t) = t;
+      to.value(t) = 0.5 * ( ( C_calA[t-1] + C_calA[t] ) / (2.0 * C_A[t]) +  (2.0 * C_calA[t])/ ( C_A[t+1] + C_A[t] ) );
+    }
+
+  }else if(comb == Combination::CombinationPCAC){ //Test the PCAC relation from numerator of Eq 46 of https://arxiv.org/pdf/1411.7017  
+                                                    //from[0] = <J5|P>   from[1] = <J5q|P>   from[2] = <\cal A_0|P> 
+                                                    //make sure j5 (from[0]) is multiplied by the quark mass
+                                                    //the result should be a constant consistent with 0 within statistics
+    if(from.size()!=3) error_exit(std::cout << "applyCombination error: CombinationPCAC requires two channels\n");
+    int Lt = from[0].size();
+    to.resize(Lt);
+    to.value(0) = 0.0 * from[0].value(0);
+    to.coord(0) = 0;
+
+    for(int t=1;t<Lt;t++){
+      to.coord(t) = t;
+      to.value(t) = ( 2.0 * from[0].value(t) + 2.0 * from[1].value(t) - ( from[2].value(t) - from[2].value(t-1) ));
+    }
+
   }else{
     error_exit(std::cout << "applyCombination unknown combination " << comb << std::endl);
   }

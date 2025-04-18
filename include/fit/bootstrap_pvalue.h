@@ -57,13 +57,14 @@ double computePvalue(const double q2, const bootstrapDistribution<double> &dist)
 //Be aware: if nsample is not a multiple of the block size it will be truncated to the nearest multiple
 
 //If q2_boot_p is provided the q^2 distribution will be copied to this address
+
+
 template<typename RawDataContainer, typename GeneralizedCoordinate, typename ValueType, typename Resampler, typename FitFunctor>
-double bootstrapPvalue(const double q2,
-		       const RawDataContainer &raw_data, int nsample,
-		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
-		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
-		       const Resampler &resampler, FitFunctor &fitter, const std::vector<std::vector<int> > &resample_table, 
-		       int nthread = -1, std::vector<double> *q2_boot_p = NULL){
+std::vector<double> bootstrapNullDistribution(const RawDataContainer &raw_data, int nsample,
+					      const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
+					      const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
+					      const Resampler &resampler, FitFunctor &fitter, const std::vector<std::vector<int> > &resample_table, 
+					      int nthread = -1){
   const int p_fit = fit_data_cen.size();
   assert(fit_values.size() == p_fit);
 
@@ -93,8 +94,31 @@ double bootstrapPvalue(const double q2,
   }
   std::sort(q2_boot.begin(), q2_boot.end(), [&](const double a, const double b){ return a<b; });
 
-  if(q2_boot_p) *q2_boot_p = q2_boot;
+  return q2_boot;
+}
 
+template<typename RawDataContainer, typename GeneralizedCoordinate, typename ValueType, typename Resampler, typename FitFunctor>
+std::vector<double> bootstrapNullDistribution(const RawDataContainer &raw_data, int nsample,
+				 const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
+				 const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
+				 const Resampler &resampler, FitFunctor &fitter, const int nboot = 1000, 
+				 const BootResampleTableType table_type = BootResampleTableType::NonOverlappingBlock,
+				 const int block_size = 1, int nthread = -1, RNGstore &rng = RNG){
+  std::vector<std::vector<int> > otable = generateResampleTable(nsample, nboot, table_type, block_size, rng);  //[b][s]
+  return bootstrapNullDistribution(raw_data, nsample, fit_data_cen, fit_values, resampler, fitter, otable, nthread);
+}
+
+//Compute the null distribution (optionally copying it out) then compute the p-value from it corresponding to the provided value of q^2
+template<typename RawDataContainer, typename GeneralizedCoordinate, typename ValueType, typename Resampler, typename FitFunctor>
+double bootstrapPvalue(const double q2,
+		       const RawDataContainer &raw_data, int nsample,
+		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_data_cen,
+		       const correlationFunction<GeneralizedCoordinate, ValueType> &fit_values,	
+		       const Resampler &resampler, FitFunctor &fitter, const std::vector<std::vector<int> > &resample_table, 
+		       int nthread = -1, std::vector<double> *q2_boot_p = NULL){
+
+  std::vector<double> q2_boot = bootstrapNullDistribution(raw_data, nsample, fit_data_cen, fit_values, resampler, fitter, resample_table, nthread);
+  if(q2_boot_p) *q2_boot_p = q2_boot;
   return computePvalue(q2, q2_boot);
 }
 
@@ -182,6 +206,45 @@ struct BasicFitFunctor{
     return min.fit(params);
   }
 };
+
+//Standard fits where the raw data and fit data have the same coordinate type and the fit data are just the means of the raw data
+//This version uses the simple fit wrapper, and expects a fit function wrapped in the usual way
+template<typename _GeneralizedCoordinate, typename DataType>
+struct SimpleFitWrapperFunctor{
+  typedef parameterVector<DataType> ParameterType;
+  typedef _GeneralizedCoordinate GeneralizedCoordinate;
+
+  typedef simpleSingleFitWrapper Fitter;
+
+  ParameterType guess;
+  MarquardtLevenbergParameters<double> min_params;
+
+  const genericFitFuncBase &fitfunc;
+
+  SimpleFitWrapperFunctor(const ParameterType &guess, const genericFitFuncBase &fitfunc, const MarquardtLevenbergParameters<double> &min_params = MarquardtLevenbergParameters<double>()):
+    guess(guess), min_params(min_params), fitfunc(fitfunc){}
+
+  double operator()(const correlationFunction<GeneralizedCoordinate, rawDataDistribution<DataType> > &raw_data, const correlationFunction<GeneralizedCoordinate, DataType> &corrections, const int b) const{
+    const int p = raw_data.size(); assert(corrections.size() == p);
+    correlationFunction<GeneralizedCoordinate, DataType> data_cen(raw_data.size());
+    for(int i=0;i<p;i++){
+      assert(raw_data.coord(i) == corrections.coord(i));
+      data_cen.coord(i) = raw_data.coord(i);
+      data_cen.value(i) = raw_data.value(i).mean() + corrections.value(i);
+    }
+
+    Fitter fitter(fitfunc, MinimizerType::MarquardtLevenberg, min_params);
+    fitter.generateCovarianceMatrix(raw_data);
+
+    ParameterType params = guess;
+    double cost, ignore; int iignore;
+    fitter.fit(params, cost, ignore, iignore, data_cen);
+    return cost;
+  }
+};
+
+
+
 
 template<typename T>
 void bootstrapResampleRaw(rawDataDistribution<T> &raw, const std::vector<int> &map){

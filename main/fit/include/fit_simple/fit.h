@@ -49,6 +49,12 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
 
   std::unique_ptr< FitFuncManagerBase > fitfunc_manager = getFitFuncManager(args.fitfunc, args.Lt, args.t_min, args.t_max, opt);
 
+  if(opt.guess_file == "TEMPLATE"){
+    std::cout << "Writing guess template to \"guess_template.guess\" and returning" << std::endl;
+    fitfunc_manager->writeGuessTemplate("guess_template.guess");
+    return;
+  }
+
   //Set up the minimizer
   MarquardtLevenbergParameters<double> minparams;
   if(cmdline.load_mlparams){

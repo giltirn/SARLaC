@@ -122,6 +122,18 @@ public:
     importCovarianceMatrix(cov, cost_type);
   }
 
+  //Generate the covariance matrix internally from raw data (sample covariance). Option to use uncorrelated (diagonal) or correlated matrix
+  template<typename T>
+  void generateCovarianceMatrix(const correlationFunction<T, rawDataDistribution<double> > &data_r, 
+				const CostType cost_type = CostType::Correlated){
+    int ndata = data_r.size();
+    NumericSquareMatrix<double> cov(ndata);
+    for(int i=0;i<ndata;i++)
+      for(int j=i;j<ndata;j++)
+	cov(i,j) = cov(j,i) = rawDataDistribution<double>::covariance(data_r.value(i), data_r.value(j));
+
+    importCovarianceMatrix(cov, cost_type);
+  }
 
   //Get the correlation matrix from the unbinned jackknife and sigma from the binned jackknife (the hybrid approach)
   template<typename T>

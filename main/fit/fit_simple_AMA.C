@@ -14,8 +14,34 @@ using namespace SARLaC;
 #include<fit_simple/fit.h>
 #include<fit_simple/main.h>
 
+std::vector<int> readMultiplicity(int traj, const std::string &fmt, int Lt, int nexact_timeslice){
+  subStringReplace repl(fmt,{subStringSpecify("%d")});
+  std::string filename = repl.replace({ std::to_string(traj) });
+
+  std::cout << "Parsing multiplicity " << filename << std::endl;
+  std::ifstream is(filename.c_str());
+  if(is.good()){
+    std::vector<int> out(Lt);
+    int sum = 0;
+    for(int t=0;t<Lt;t++){
+      is >> out[t];
+      assert(!is.fail());
+      sum += out[t];
+    }
+    if(sum != nexact_timeslice){
+      error_exit(std::cout << "readMultiplicity sum of multiplicities " << sum << " does not add to nexact_timeslice=" << nexact_timeslice << std::endl);
+    }
+    return out;
+  }else{
+    error_exit(std::cout << "readMultiplicity failed to read file " << filename << std::endl);
+  }
+}
+
 rawDataDistributionVector readData(const int traj_start, const int traj_inc, const int traj_lessthan,
-				   const std::string &sloppy_fmt, const std::string &exact_fmt, const ReIm reim, const int Lt){
+				   const std::string &sloppy_fmt, const std::string &exact_fmt, 
+				   const bool have_multiplicity, const std::string &mult_file_fmt,
+				   const int nexact_timeslice,
+				   const ReIm reim, const int Lt, AMAparserType parser){
   const int ntraj = (traj_lessthan - traj_start)/traj_inc;
   assert(ntraj > 0);
 
@@ -23,16 +49,20 @@ rawDataDistributionVector readData(const int traj_start, const int traj_inc, con
     
   rawDataDistributionMatrix exact_data(Lt, rawDataDistributionD(ntraj));
   rawDataDistributionMatrix sloppy_data(Lt, rawDataDistributionD(ntraj));
+  std::vector<std::vector<int> > multiplicity(ntraj);
 
 #pragma omp parallel for
   for(int i=0;i<ntraj;i++){
     const int c = traj_start + i*traj_inc;
-    read(exact_data, i, exact_fmt, c, reim);
-    read(sloppy_data, i, sloppy_fmt, c, reim);
+    read(exact_data, i, exact_fmt, c, reim, parser);
+    read(sloppy_data, i, sloppy_fmt, c, reim, parser);
+
+    if(have_multiplicity) multiplicity[i] = readMultiplicity(c,mult_file_fmt,Lt,nexact_timeslice);
+    else multiplicity[i] = randomMultiplicity(exact_data, c, i, nexact_timeslice);
   }
   
   rawDataDistributionVector sloppy_avg = sourceTimeSliceAverage(sloppy_data);
-  rawDataDistributionVector correction = computeAMAcorrection(sloppy_data, exact_data);
+  rawDataDistributionVector correction = computeAMAcorrection(sloppy_data, exact_data, multiplicity, nexact_timeslice);
   
   corrected = sloppy_avg + correction;
 
@@ -49,20 +79,32 @@ rawDataDistributionVector readData(const int traj_start, const int traj_inc, con
   ( ReIm, reim)		       \
   ( std::string, operation )   \
   ( TimeDependence, time_dep ) \
+  ( AMAparserType, parser ) \
   ( std::string, sloppy_file_fmt ) \
-  ( std::string, exact_file_fmt )
+  ( std::string, exact_file_fmt ) \
+  ( int, nexact_timeslice ) \
+  ( bool, have_exact_timeslice_multiplicity_file) \
+  ( std::string, exact_timeslice_multiplicity_file_fmt )
 
-//file_fmt should contain a '%d' which is replaced by the trajectory index
-//operation is a math expression. Use x to represent the data. Use an empty string to leave as-is
+
+//file_fmt : should contain a '%d' which is replaced by the trajectory index
+//operation : a math expression. Use x to represent the data. Use an empty string to leave as-is
+//nexact_timeslice : the number of exact timeslices
+//have_exact_timeslice_multiplicity_file : if more than one exact timeslice is used and are randomly chosen, there is a chance they may overlap. 
+//                                         To allow for this, we can specify a timeslice "multiplicity" file containing a single line of space-separated values of the timeslice multiplicity. 
+//                                         Their sum should add to nexact_timeslice.
+//                                         If a multiplicity file is not included and nexact_timeslice > 1, multiplicities will be randomly assigned such as to add to nexact_timeslice
 
 struct AMAdataInfo{
   GENERATE_MEMBERS(AMA_DATA_INFO_MEMBERS);
-  AMAdataInfo(): operation(""), time_dep(TimeDependence::TimeDepNormal), sloppy_file_fmt("sloppy_data.%d"), exact_file_fmt("exact_data.%d"){}
+  AMAdataInfo(): operation(""), time_dep(TimeDependence::TimeDepNormal), sloppy_file_fmt("sloppy_data.%d"), exact_file_fmt("exact_data.%d"), nexact_timeslice(2), have_exact_timeslice_multiplicity_file(true), exact_timeslice_multiplicity_file_fmt("multiplicity.%d"), parser(AMAparserType::ParserReal){}
 };
 GENERATE_PARSER(AMAdataInfo, AMA_DATA_INFO_MEMBERS);
 
 void readData(rawDataCorrelationFunctionD &into, const AMAdataInfo &data_info, const int Lt, const int traj_start, const int traj_inc, const int traj_lessthan){
-  rawDataDistributionVector v = readData(traj_start, traj_inc, traj_lessthan, data_info.sloppy_file_fmt, data_info.exact_file_fmt, data_info.reim, Lt);
+  rawDataDistributionVector v = readData(traj_start, traj_inc, traj_lessthan, data_info.sloppy_file_fmt, data_info.exact_file_fmt, 
+					 data_info.have_exact_timeslice_multiplicity_file, data_info.exact_timeslice_multiplicity_file_fmt, data_info.nexact_timeslice,
+					 data_info.reim, Lt, data_info.parser);
   into = rawDataCorrelationFunctionD(Lt, [&](const int t){ return rawDataCorrelationFunctionD::ElementType(t, std::move(v[t])); });
   applyOperation(into, data_info.operation);
   applyTimeDep(into, data_info.time_dep,Lt);
