@@ -5,6 +5,11 @@ struct CMDline{
   bool load_guess;
   std::string guess_file;
 
+  bool load_frozen_params;
+  std::string frozen_params_spec_file; //expect 1 or more lines with a parameter index followed by a filename and an index to load from, i.e.  <fit_param> <filename> <input_index>
+                                       //input files should be hdf5 with conventional vector<Distribution> format
+  
+
   bool save_combined_data;
   std::string save_combined_data_file;
 
@@ -56,6 +61,7 @@ struct CMDline{
     print_fitdata_samples = false;
     plot_correlator = false;
     allow_missing_files = false;
+    load_frozen_params = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -73,6 +79,10 @@ struct CMDline{
       if(sargv[i] == "-load_guess"){
 	load_guess = true;
 	guess_file = sargv[i+1];
+	i+=2;
+      }else if(sargv[i] == "-load_frozen_params"){
+	load_frozen_params = true;
+	frozen_params_spec_file = sargv[i+1];
 	i+=2;
       }else if(sargv[i] == "-nthread"){
 	omp_set_num_threads(strToAny<int>(sargv[i+1]));

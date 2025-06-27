@@ -10,3 +10,6 @@ echo -n 'nobase_include_HEADERS = ' >> Makefile.am
 for i in $(find . -name '*.h' | sed 's/^\.\///'); do
     echo -n "$i " >> Makefile.am
 done
+for i in $(find . -name '*.tcc' | sed 's/^\.\///'); do
+    echo -n "$i " >> Makefile.am
+done

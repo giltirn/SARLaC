@@ -1,5 +1,8 @@
 #pragma once
 
+typedef NumericSquareMatrix<rawDataDistribution<double> > rawDataDistributionMatrix;
+typedef NumericVector<rawDataDistribution<double> > rawDataDistributionVector;
+
 std::vector<int> nonZeroSourceTimeSlices(const rawDataDistributionMatrix &M, const int conf){
   const int Lt = M.size();
   std::vector<int> nonzero_slices;

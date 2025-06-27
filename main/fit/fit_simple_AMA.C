@@ -14,67 +14,6 @@ using namespace SARLaC;
 #include<fit_simple/fit.h>
 #include<fit_simple/main.h>
 
-std::vector<int> readMultiplicity(int traj, const std::string &fmt, int Lt, int nexact_timeslice){
-  subStringReplace repl(fmt,{subStringSpecify("%d")});
-  std::string filename = repl.replace({ std::to_string(traj) });
-
-  std::cout << "Parsing multiplicity " << filename << std::endl;
-  std::ifstream is(filename.c_str());
-  if(is.good()){
-    std::vector<int> out(Lt);
-    int sum = 0;
-    for(int t=0;t<Lt;t++){
-      is >> out[t];
-      assert(!is.fail());
-      sum += out[t];
-    }
-    if(sum != nexact_timeslice){
-      error_exit(std::cout << "readMultiplicity sum of multiplicities " << sum << " does not add to nexact_timeslice=" << nexact_timeslice << std::endl);
-    }
-    return out;
-  }else{
-    error_exit(std::cout << "readMultiplicity failed to read file " << filename << std::endl);
-  }
-}
-
-rawDataDistributionVector readData(const int traj_start, const int traj_inc, const int traj_lessthan,
-				   const std::string &sloppy_fmt, const std::string &exact_fmt, 
-				   const bool have_multiplicity, const std::string &mult_file_fmt,
-				   const int nexact_timeslice,
-				   const ReIm reim, const int Lt, AMAparserType parser){
-  const int ntraj = (traj_lessthan - traj_start)/traj_inc;
-  assert(ntraj > 0);
-
-  rawDataDistributionVector corrected;
-    
-  rawDataDistributionMatrix exact_data(Lt, rawDataDistributionD(ntraj));
-  rawDataDistributionMatrix sloppy_data(Lt, rawDataDistributionD(ntraj));
-  std::vector<std::vector<int> > multiplicity(ntraj);
-
-#pragma omp parallel for
-  for(int i=0;i<ntraj;i++){
-    const int c = traj_start + i*traj_inc;
-    read(exact_data, i, exact_fmt, c, reim, parser);
-    read(sloppy_data, i, sloppy_fmt, c, reim, parser);
-
-    if(have_multiplicity) multiplicity[i] = readMultiplicity(c,mult_file_fmt,Lt,nexact_timeslice);
-    else multiplicity[i] = randomMultiplicity(exact_data, c, i, nexact_timeslice);
-  }
-  
-  rawDataDistributionVector sloppy_avg = sourceTimeSliceAverage(sloppy_data);
-  rawDataDistributionVector correction = computeAMAcorrection(sloppy_data, exact_data, multiplicity, nexact_timeslice);
-  
-  corrected = sloppy_avg + correction;
-
-  std::cout << "Sloppy data:\n";
-  for(int t=0;t<Lt;t++) std::cout << t << " " << sloppy_avg[t] << std::endl;
-  
-  std::cout << "Corrected data:\n";
-  for(int t=0;t<Lt;t++) std::cout << t << " " << corrected[t] << std::endl;
-  
-  return corrected;
-}
-
 #define AMA_DATA_INFO_MEMBERS \
   ( ReIm, reim)		       \
   ( std::string, operation )   \

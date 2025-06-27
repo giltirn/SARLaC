@@ -87,6 +87,29 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
     assert(0);
   }
 
+  //Handle frozen parameters
+  if(cmdline.load_frozen_params){
+    std::vector<int> to_freeze;
+    std::vector<jackknifeDistributionD> freeze_to;
+
+    int to_param, in_param;
+    std::string filename;
+    std::ifstream is(cmdline.frozen_params_spec_file);
+    if(!is.good()){ error_exit(std::cout << "Could not load frozen parameters spec file " << cmdline.frozen_params_spec_file << std::endl); }
+    while(is >> to_param >> filename >> in_param){    
+      std::cout << "Freeze file read: " << to_param << " " << filename << " " << in_param << std::endl;
+
+      std::vector<jackknifeDistributionD> iparams;
+      readParamsStandard(iparams, filename);
+      to_freeze.push_back(to_param);
+      freeze_to.push_back(iparams[in_param]);
+
+      std::cout << "Freezing param " << to_param << " to " << iparams[in_param] << std::endl;
+    }
+
+    fitter.freeze(to_freeze,freeze_to);
+  }
+
   //Do the fit
   parameterVectorD guess = fitfunc_manager->getGuess();
 
