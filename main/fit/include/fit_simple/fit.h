@@ -65,6 +65,8 @@ void fit(jackknifeDistribution<parameterVectorD> &params,
   }
   
   simpleFitWrapper<jackknifeDistributionD> fitter(*fitfunc_manager->getFitFunc(), MinimizerType::MarquardtLevenberg, minparams);
+  if(cmdline.disable_init_params_from_1st_sample_fit)
+    fitter.initializeParamsFrom1stSampleFit(false);
 
   //Generate the covariance matrix
   switch(args.covariance_strategy){

@@ -1,7 +1,7 @@
 template<typename BaseDistributionType>
 simpleFitWrapper<BaseDistributionType>::simpleFitWrapper(const FitFunc &fitfunc, 
 							 const MinimizerType min_type, 
-							 const generalContainer &min_params): fitfunc(fitfunc), min_type(min_type), min_params(min_params), have_corr_mat(false){
+							 const generalContainer &min_params): fitfunc(fitfunc), min_type(min_type), min_params(min_params), have_corr_mat(false), init_params_from_1st_sample_fit(true){
 }
 
 template<typename BaseDistributionType>
@@ -431,7 +431,7 @@ bool simpleFitWrapper<BaseDistributionType>::fit(typename BaseDistributionType::
     
   if(min_type == MinimizerType::Minuit2) std::cout.rdbuf(&thr0_only);
 
-  //Run the first iteration and use the result as a guess for the remainder, speeding up convergence
+  //Run the first iteration and use the result as a guess for the remainder, speeding up convergence (optional)
   bool conv =  doSample(params, chisq, chisq_per_dof, dof,
 			0, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);
   if(!conv) return conv;
@@ -441,7 +441,7 @@ bool simpleFitWrapper<BaseDistributionType>::fit(typename BaseDistributionType::
 #pragma omp parallel for
   for(int s=1;s<niter;s++){
     int me = omp_get_thread_num();
-    iter_p::at(s,params) = iter_p::at(0,params);
+    if(init_params_from_1st_sample_fit) iter_p::at(s,params) = iter_p::at(0,params);
       
     t_conv[me] = t_conv[me] && doSample(params, chisq, chisq_per_dof, dof,
 					s, data_sbase, data, inv_corr_mat, chisq_dof_nopriors);

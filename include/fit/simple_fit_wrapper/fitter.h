@@ -109,6 +109,9 @@ public:
   //Return sigma, the weights of the covariance matrix
   inline const std::vector<BaseDistributionType> & getSigma() const;
 
+  //By default we fit to the first sample and use the result to initialize the parameters for the remaining samples. This can be switched off/on via this function
+  void initializeParamsFrom1stSampleFit(bool v){ init_params_from_1st_sample_fit = v; }
+
   //Note the parameter type InputParameterType is translated internally into a parameterVector  (requires the usual size() and operator()(const int) methods)
   //The coordinate type is wrapped up in a generalContainer as this is only ever needed by the fit function (which knows what type it is and can retrieve it)
   //If chisq_dof_nopriors pointer is provided, the chisq computed without priors and the number of degrees of freedom without priors will be written there (distribution must have correct size
@@ -134,6 +137,7 @@ private:
   const FitFunc &fitfunc;
   MinimizerType min_type;
   generalContainer min_params;
+  bool init_params_from_1st_sample_fit; //optionally use the result of fitting to the 1st sample to initialize the fit for remaining samples (default: true)
 
   NumericSquareMatrix<BaseDistributionType> corr_mat;
   std::vector<BaseDistributionType> sigma;

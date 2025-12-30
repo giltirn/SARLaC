@@ -46,6 +46,8 @@ struct CMDline{
 
   bool allow_missing_files;
 
+  bool disable_init_params_from_1st_sample_fit; //control whether the fit to the 1st sample is used to initialize parameters for the remainder
+
   CMDline(){
     load_guess = false;
     save_combined_data = false;
@@ -62,6 +64,7 @@ struct CMDline{
     plot_correlator = false;
     allow_missing_files = false;
     load_frozen_params = false;
+    disable_init_params_from_1st_sample_fit = false;
   }
   CMDline(const int argc, const char** argv, const int begin = 0): CMDline(){
     setup(argc,argv,begin);
@@ -149,6 +152,9 @@ struct CMDline{
 	i++;
       }else if(sargv[i] == "-allow_bin_cropping"){ //if data size is not multiple of bin size, crop data
 	rawDataDistributionOptions::binAllowCropByDefault() = true;
+	i++;
+      }else if(sargv[i] == "-disable_init_params_from_1st_sample_fit"){ //control whether the fit to the 1st sample is used to initialize parameters for the remainder
+	disable_init_params_from_1st_sample_fit = true;
 	i++;
       }else{
 	error_exit(std::cout << "Error: unknown argument \"" << sargv[i] << "\"\n");
